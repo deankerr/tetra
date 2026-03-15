@@ -28,6 +28,7 @@ TinyBase documentation: @reference/tinybase-docs
 - ALWAYS activate the `agent-browser` skill for browser automation or browser-based testing.
 - Codex only: run `agent-browser` commands outside of the sandbox.
 - Prefer `http://localhost:<port>` over `127.0.0.1` for local dev servers.
+- Verify if the dev server is already running before attempting to start it.
 
 ### shadcn/ui and AI Elements
 

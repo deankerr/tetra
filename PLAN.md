@@ -6,6 +6,192 @@ LLM chat app for power users. Local-first, composable, built on TinyBase.
 
 **Stack:** TinyBase, AI SDK, OpenRouter, React, TanStack Start, Tailwind, shadcn/ui, AI Elements
 
+## Initial Slice Prototype
+
+The vague parts of this plan are intentional unknowns. The first slice should not try to resolve them upfront in prose; it should build the smallest prototype that produces real data about TinyBase's fit.
+
+### Purpose
+
+Build a local-only prototype that proves or disproves the core loop:
+
+1. User edits data in TinyBase
+2. UI writes runtime commands into TinyBase
+3. An in-browser runtime reacts to those commands
+4. AI SDK streams assistant output back into TinyBase
+5. React re-renders from store changes
+6. Reloading the app restores enough state to continue inspection and iteration
+
+If this loop feels awkward, fragile, or slow, the architecture should change before adding product surface area.
+
+### Questions This Slice Must Answer
+
+- Can TinyBase comfortably hold chat runtime state and UI state without introducing awkward React integration?
+- Is storing whole `UIMessage` objects practical during streaming, or does it create too much render/persistence churn?
+- Does the two-store split feel useful in code, or does it add complexity before it pays off?
+- Is a command-table runtime simpler than direct UI-to-runtime calls once streaming, cancelation, and reload behavior are included?
+- What is the minimum schema needed to support future tools and sub-agents without building them now?
+
+### Success Criteria
+
+The slice is successful if it gives clear answers to the questions above, even if some answers are "no."
+
+- One default agent can drive a real streamed conversation end-to-end
+- Sessions and messages survive reload via IndexedDB
+- Route navigation does not own the runtime lifecycle
+- Streaming updates appear incrementally in the UI
+- At least one cancelation and one retry path are exercised
+- We can inspect enough runtime state after failures to understand what happened
+- The code leaves a clear record of where TinyBase helped and where it added friction
+
+### Non-Goals
+
+Do not expand the prototype to cover these in the first slice:
+
+- Multi-agent UX beyond a single default agent and basic agent record
+- Slash commands and command palette
+- Tool execution and tool result rendering
+- Sub-agents and delegation flows
+- Image/file input
+- Prompt composition beyond a single system prompt field
+- Sharing, import/export, or sync across devices
+- Provider abstraction beyond OpenRouter
+
+### Scope
+
+#### Included
+
+- Two TinyBase stores: `config` and `runtime`
+- IndexedDB persistence for both stores
+- One seeded agent record with editable model + system prompt
+- Session list with create/select behavior
+- Message timeline for the active session
+- Composer with send, cancel, and retry
+- In-browser runtime module driven by TinyBase listeners
+- AI SDK streaming with OpenRouter
+- Minimal status + error surfaces for sessions and commands
+
+#### Excluded
+
+- Rich command parsing
+- Multi-pane power-user navigation
+- Tool registry
+- Import/export flows
+- Any UI polish not required to evaluate the architecture
+
+### Prototype Decisions
+
+These are temporary defaults to make the slice executable. They are not long-term commitments.
+
+- Use an explicit per-session `seq` field for message ordering instead of relying on timestamps
+- Keep the runtime in-browser and single-client for v1
+- Start with whole-message storage, but treat that as a hypothesis under test
+- Persist stores normally, but document the write pattern during streaming before optimizing it
+- Use one active session view; avoid splitting attention across advanced navigation patterns
+- Seed a default agent so the first run works without setup friction
+
+### Runtime Rules For The Slice
+
+The command pattern needs enough discipline to be testable, even in a prototype.
+
+- Commands are append-only rows with `pending`, `processing`, `complete`, or `error` status
+- The runtime must claim a command before executing it
+- A command should have enough metadata to debug duplicate execution or stalled processing
+- Session status should reflect runtime state independently from the UI route
+- Failures should be written back into the runtime store, not hidden in console logs
+
+The point is not to perfect the protocol now. The point is to make the behavior inspectable enough to evaluate whether the protocol is worth keeping.
+
+### Deliverables
+
+The initial slice should produce these concrete outputs:
+
+- A working app route that replaces the current demo shell
+- TinyBase store setup with typed schemas for the prototype entities
+- A runtime module that reacts to store commands and streams responses
+- A minimal chat UI wired entirely through TinyBase state
+- Short written notes added back to this plan describing what worked, what failed, and what should change next
+
+### Build Sequence
+
+#### Step 1: Store Foundation
+
+- Create `config` and `runtime` stores with the minimum schema needed for one agent, sessions, messages, commands, and UI values
+- Add IndexedDB persisters and seed initial data
+- Prove reload restores usable state
+
+#### Step 2: Static Chat Shell
+
+- Replace the current demo route with a real app shell
+- Render session list, message list, and composer from TinyBase only
+- Keep message creation local and non-networked until the reactive UI shape is stable
+
+#### Step 3: Runtime Loop
+
+- Add command rows for `send`, `cancel`, and `retry`
+- Run an in-browser runtime that listens for `pending` commands and writes results back to the runtime store
+- Stream assistant output into the active message record
+
+#### Step 4: Failure + Recovery Pass
+
+- Test refresh during idle, during streaming, and after error
+- Test duplicate command protection assumptions
+- Verify cancelation and retry behavior leave inspectable state behind
+
+#### Step 5: Evaluation Write-Up
+
+- Record concrete observations about render behavior, persistence churn, schema ergonomics, and runtime complexity
+- Decide whether to keep whole-message storage, keep two stores, and keep the command-table pattern for the next slice
+
+### What We Intentionally Leave Open
+
+These questions should be answered by the prototype, not by pretending certainty now:
+
+- Whether whole-message storage is acceptable during streaming
+- Whether the runtime store should remain fully persisted or partially ephemeral
+- Whether TinyBase `Values` are the right home for all non-transient UI state
+- Whether the command-table pattern is still the cleanest boundary after implementing cancelation and recovery
+- Whether relationships and indexes feel useful immediately or should be introduced more gradually
+
+### Implementation Checklist
+
+- [x] Replace the demo route with a prototype app shell
+- [x] Create `config` + `runtime` TinyBase stores with typed schemas
+- [x] Seed a default agent and first-run session state
+- [x] Persist both stores locally and restore them on reload
+- [x] Add session ordering and message ordering primitives
+- [x] Render session list, active conversation, and composer from TinyBase state
+- [x] Implement `send`, `cancel`, and `retry` command creation helpers
+- [x] Implement runtime command claiming and status transitions
+- [x] Add a server endpoint for OpenRouter-backed streaming
+- [x] Stream assistant output back into TinyBase message records
+- [x] Surface session state, command state, and runtime errors in the UI
+- [x] Exercise refresh, cancel, retry, and duplicate-protection behavior
+- [x] Record implementation friction and evaluation notes back into this plan
+
+### Prototype Evaluation Notes
+
+Observed in the working prototype on 2026-03-15:
+
+- The end-to-end loop is working: `send`, `retry`, and `cancel` all run through TinyBase command rows, the runtime claims and updates those rows, OpenRouter streams through the AI SDK route, and reload restores sessions/messages from IndexedDB.
+- The two-store split is workable in practice. `config` and `runtime` feel meaningfully different in code and persistence behavior without adding much ceremony at this size.
+- Whole-message storage is acceptable for the initial slice. It kept the runtime simple and matched AI SDK message flow cleanly. We do not yet have enough data to say it will remain acceptable for very long streams or tool-heavy conversations.
+- TinyBase reactivity is a good fit for the message timeline and side panels. The UI can stay mostly declarative and read directly from store cells, indexes, and values without adding another client-state layer.
+
+Implementation friction worth carrying into the next slice:
+
+- TinyBase index definitions are easy to mis-specify. Using a constant slice ID like `'all'` must be done with a function (`() => 'all'`), not a string literal, or the index silently stays empty. That broke session ordering, command visibility, and runtime command processing until diagnosed.
+- Inspecting persisted TinyBase state in IndexedDB is not ergonomic by default. The data is stored in TinyBase's internal object-store shape, which is fine for persistence but makes manual debugging harder. Dev-only inspection helpers would help a lot.
+- Cancelation needed explicit post-stream abort handling. Aborting after a request started but before text arrived could otherwise leave an empty assistant placeholder and incorrectly mark the send as complete.
+- Retry works better when treated as message replacement rather than append-then-delete. Preserving the original sequence position reduced ordering weirdness and made abort/error restoration more defensible.
+- Recovery is intentionally conservative right now: reloading during `processing` marks work as interrupted and inspectable rather than attempting stream resumption. That is acceptable for the prototype, but it means the current runtime is recoverable for debugging, not resumable for production.
+
+Provisional take:
+
+- Keep the command-table runtime for the next slice.
+- Keep the two-store split for the next slice.
+- Keep whole-message storage for one more slice, but instrument persistence/write behavior before adding tools or longer-lived sessions.
+- Add dev-oriented runtime diagnostics before expanding scope.
+
 ## Architecture
 
 Two-store design with a decoupled runtime. TinyBase sits between React and the agent runtime as a synchronization layer.
