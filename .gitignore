@@ -1,0 +1,17 @@
+node_modules
+dist
+build
+*.tsbuildinfo
+.DS_Store
+.turbo
+.alchemy
+.cache
+tmp
+
+logs
+*.log
+
+.env
+.env*.local
+
+reference/tinybase-docs

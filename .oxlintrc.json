@@ -1,0 +1,24 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "extends": ["./node_modules/ultracite/config/oxlint/core/.oxlintrc.json"],
+  "ignorePatterns": [
+    ".agents/skills",
+    ".claude/skills",
+    "**/.alchemy/**",
+    "**/_generated",
+    "**/routeTree.gen.ts",
+    "**/components/ui",
+    "**/components/ai-elements",
+  ],
+  "rules": {
+    "func-style": "off",
+    "sort-keys": ["error", "asc", { "allowLineSeparatedGroups": true, "natural": true }],
+    "no-inline-comments": "off",
+    "no-use-before-define": "off",
+    "typescript/triple-slash-reference": "off",
+    "typescript/consistent-type-definitions": "off",
+    "no-void": "off",
+    "no-warning-comments": "off",
+    "import/no-relative-parent-imports": "off",
+  },
+}

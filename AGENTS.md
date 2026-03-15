@@ -1,0 +1,59 @@
+# tinybasechat
+
+Experimental LLM chat app for power users.
+
+POC: Use `TinyBase` for in-browser data storage.
+
+- `AI SDK` with `OpenRouter` provider
+- `React`, `Tailwind`, `shadcn/ui` with `Base UI` and theme preset (Mira, Teal/Mist)
+- `AI Elements` Chatbot/Agent components from the `shadcn` component registry
+- `TanStack Start`
+
+@PLAN.md
+
+- `reference/sub-agents.md`
+
+## TinyBase
+
+TinyBase documentation: @reference/tinybase-docs
+
+## Workflow
+
+- Use `bun run check` to type check, lint with auto-fix, and format the project in <1 sec with `oxlint`/`oxfmt`. Never run `tsc` manually.
+- Strict type-aware linting is enabled. If rule seems invalid or inappropriate, you must justify the reasoning before using an inline ignore comment.
+- Be proactive in activating available skills when you are working within their domain.
+
+### agent-browser
+
+- ALWAYS activate the `agent-browser` skill for browser automation or browser-based testing.
+- Codex only: run `agent-browser` commands outside of the sandbox.
+- Prefer `http://localhost:<port>` over `127.0.0.1` for local dev servers.
+
+### shadcn/ui and AI Elements
+
+- ALWAYS activate the `shadcn` skill when authoring, adding, reviewing, or using `shadcn/ui` components.
+- ALWAYS activate the `ai-elements` skill when adding, reviewing, or using AI Elements components.
+- Add `shadcn/ui` components with `bunx --bun shadcn@latest add <component>`.
+- Add AI Elements components with `bunx --bun shadcn@latest add @ai-elements/<component>`.
+- Do not use `ai-elements@latest` directly.
+- When prompted about overwriting `src/components/ui/*`, answer `no`, then inspect changes with `bunx --bun shadcn@latest add <component> --diff <file>` and apply any needed updates manually.
+- Codex only: run shadcn registry commands outside of the sandbox.
+
+We don't enforce our strict lint rules on external registry components. If a new registry has been added, update `.oxlintrc.json` with an ignore pattern.
+
+## Status
+
+Planning, project setup.
+
+### Prototype Mode
+
+The primary goal is rapid design iteration, not building a user-facing app.
+
+- NO backwards compatibility
+- NO accessibility or mobile UI support
+- NO data migrations - wipe dev data when required
+
+- Optimize for change.
+- Fail fast.
+- Write decoupled, modular components.
+- Prefer using existing libraries/solutions over writing our own.
