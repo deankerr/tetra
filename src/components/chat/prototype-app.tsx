@@ -1,5 +1,3 @@
-'use client'
-
 import {
   BotIcon,
   Loader2Icon,
@@ -9,14 +7,9 @@ import {
   SquareIcon,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import {
-  Provider,
-  useCell,
-  useIndexes,
-  useSliceRowIds,
-  useStore,
-  useValue,
-} from 'tinybase/ui-react'
+import type { Indexes as TinyIndexes, Store as TinyStore } from 'tinybase'
+import { Provider } from 'tinybase/ui-react'
+import { Inspector } from 'tinybase/ui-react-inspector'
 
 import {
   Conversation,
@@ -33,49 +26,30 @@ import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from '@/comp
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
+import { getChatApp, getMessageText } from '@/lib/chat/app'
 import {
   cancelActiveCommand,
   createSession,
-  getChatApp,
-  getMessageText,
   retryLastAssistantMessage,
   selectSession,
   sendMessage,
   updateAgent,
-} from '@/lib/chat/app'
-import { CONFIG_STORE_ID, RUNTIME_INDEXES_ID, RUNTIME_STORE_ID } from '@/lib/chat/types'
-import type { StoredMessage } from '@/lib/chat/types'
+} from '@/lib/chat/commands'
+import {
+  useActiveSessionId,
+  useAgentRecord,
+  useCommandRecord,
+  useMessageRecord,
+  useRecentCommandIds,
+  useSessionIds,
+  useSessionMessageIds,
+  useSessionRecord,
+} from '@/lib/chat/react'
+import { CONFIG_STORE_ID, RUNTIME_INDEXES_ID, RUNTIME_STORE_ID } from '@/lib/chat/schemas'
 
-type SessionView = {
-  activeCommandId: string
-  agentId: string
-  errorMessage: string
-  status: 'idle' | 'streaming' | 'error'
-  title: string
-}
-
-type CommandView = {
-  createdAt: number
-  errorMessage: string
-  sessionId: string
-  status: 'pending' | 'processing' | 'complete' | 'error' | 'canceled'
-  type: 'send' | 'cancel' | 'retry'
-}
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null
-
-const isStoredMessage = (value: unknown): value is StoredMessage =>
-  isRecord(value) &&
-  typeof value.id === 'string' &&
-  (value.role === 'assistant' || value.role === 'system' || value.role === 'user') &&
-  Array.isArray(value.parts)
-
-const readString = (value: unknown, fallback = '') => (typeof value === 'string' ? value : fallback)
-
-const readNumber = (value: unknown, fallback = 0) => (typeof value === 'number' ? value : fallback)
-
-const getStatusBadgeVariant = (status: SessionView['status']) => {
+const getStatusBadgeVariant = (
+  status: NonNullable<ReturnType<typeof useSessionRecord>>['status'],
+) => {
   if (status === 'error') {
     return 'destructive'
   }
@@ -85,7 +59,9 @@ const getStatusBadgeVariant = (status: SessionView['status']) => {
   return 'outline'
 }
 
-const getCommandBadgeVariant = (status: CommandView['status']) => {
+const getCommandBadgeVariant = (
+  status: NonNullable<ReturnType<typeof useCommandRecord>>['status'],
+) => {
   if (status === 'error') {
     return 'destructive'
   }
@@ -95,66 +71,25 @@ const getCommandBadgeVariant = (status: CommandView['status']) => {
   return 'outline'
 }
 
-const useSessionView = (sessionId: string): SessionView => ({
-  activeCommandId: readString(useCell('sessions', sessionId, 'activeCommandId', RUNTIME_STORE_ID)),
-  agentId: readString(useCell('sessions', sessionId, 'agentId', RUNTIME_STORE_ID)),
-  errorMessage: readString(useCell('sessions', sessionId, 'errorMessage', RUNTIME_STORE_ID)),
-  status: (() => {
-    const rawStatus = readString(useCell('sessions', sessionId, 'status', RUNTIME_STORE_ID))
-    if (rawStatus === 'streaming' || rawStatus === 'error') {
-      return rawStatus
-    }
-    return 'idle'
-  })(),
-  title: readString(useCell('sessions', sessionId, 'title', RUNTIME_STORE_ID), 'New session'),
-})
-
-const useCommandView = (commandId: string): CommandView => ({
-  createdAt: readNumber(useCell('commands', commandId, 'createdAt', RUNTIME_STORE_ID)),
-  errorMessage: readString(useCell('commands', commandId, 'errorMessage', RUNTIME_STORE_ID)),
-  sessionId: readString(useCell('commands', commandId, 'sessionId', RUNTIME_STORE_ID)),
-  status: (() => {
-    const rawStatus = readString(useCell('commands', commandId, 'status', RUNTIME_STORE_ID))
-    if (
-      rawStatus === 'processing' ||
-      rawStatus === 'complete' ||
-      rawStatus === 'error' ||
-      rawStatus === 'canceled'
-    ) {
-      return rawStatus
-    }
-    return 'pending'
-  })(),
-  type: (() => {
-    const rawType = readString(useCell('commands', commandId, 'type', RUNTIME_STORE_ID))
-    if (rawType === 'cancel' || rawType === 'retry') {
-      return rawType
-    }
-    return 'send'
-  })(),
-})
-
-const useStoredMessage = (messageId: string) => {
-  const value = useCell('messages', messageId, 'message', RUNTIME_STORE_ID)
-  return isStoredMessage(value) ? value : null
-}
-
-function StatusBadge({ status }: { status: SessionView['status'] }) {
+function StatusBadge({
+  status,
+}: {
+  status: NonNullable<ReturnType<typeof useSessionRecord>>['status']
+}) {
   return <Badge variant={getStatusBadgeVariant(status)}>{status}</Badge>
 }
 
-function CommandStatusBadge({ status }: { status: CommandView['status'] }) {
+function CommandStatusBadge({
+  status,
+}: {
+  status: NonNullable<ReturnType<typeof useCommandRecord>>['status']
+}) {
   return <Badge variant={getCommandBadgeVariant(status)}>{status}</Badge>
 }
 
 function SessionList() {
-  const runtimeStore = useStore(RUNTIME_STORE_ID)
-  const sessionIds = useSliceRowIds('sessionsByRecency', 'all', RUNTIME_INDEXES_ID)
-  const activeSessionId = readString(useValue('activeSessionId', RUNTIME_STORE_ID))
-
-  if (runtimeStore === undefined) {
-    return null
-  }
+  const sessionIds = useSessionIds()
+  const activeSessionId = useActiveSessionId()
 
   return (
     <ItemGroup className="gap-2">
@@ -163,7 +98,7 @@ function SessionList() {
           active={sessionId === activeSessionId}
           key={sessionId}
           onSelect={() => {
-            selectSession(runtimeStore, sessionId)
+            selectSession(sessionId)
           }}
           sessionId={sessionId}
         />
@@ -181,14 +116,12 @@ function SessionListItem({
   onSelect: () => void
   sessionId: string
 }) {
-  const session = useSessionView(sessionId)
-  const messageIds = useSliceRowIds('messagesBySession', sessionId, RUNTIME_INDEXES_ID)
+  const session = useSessionRecord(sessionId)
+  const messageIds = useSessionMessageIds(sessionId)
   const latestMessageId = messageIds.at(-1) ?? ''
-  const latestMessage = useStoredMessage(latestMessageId)
 
-  let preview = 'No messages yet'
-  if (latestMessage !== null) {
-    preview = getMessageText(latestMessage) || 'No text content yet'
+  if (session === null) {
+    return null
   }
 
   return (
@@ -204,7 +137,13 @@ function SessionListItem({
             <ItemTitle>{session.title}</ItemTitle>
             <StatusBadge status={session.status} />
           </div>
-          <ItemDescription>{preview}</ItemDescription>
+          <ItemDescription>
+            {latestMessageId === '' ? (
+              'No messages yet'
+            ) : (
+              <SessionPreview messageId={latestMessageId} />
+            )}
+          </ItemDescription>
         </ItemContent>
       </Item>
     </button>
@@ -212,14 +151,29 @@ function SessionListItem({
 }
 
 function AgentPanel({ sessionId }: { sessionId: string }) {
-  const configStore = useStore(CONFIG_STORE_ID)
-  const session = useSessionView(sessionId)
-  const model = readString(useCell('agents', session.agentId, 'model', CONFIG_STORE_ID))
-  const systemPrompt = readString(
-    useCell('agents', session.agentId, 'systemPrompt', CONFIG_STORE_ID),
-  )
+  const session = useSessionRecord(sessionId)
 
-  if (configStore === undefined || session.agentId === '') {
+  if (session === null) {
+    return null
+  }
+
+  return <AgentEditor agentId={session.agentId} />
+}
+
+function SessionPreview({ messageId }: { messageId: string }) {
+  const message = useMessageRecord(messageId)
+
+  if (message === null) {
+    return 'No text content yet'
+  }
+
+  return getMessageText(message.message) || 'No text content yet'
+}
+
+function AgentEditor({ agentId }: { agentId: string }) {
+  const agent = useAgentRecord(agentId)
+
+  if (agent === null) {
     return null
   }
 
@@ -240,10 +194,10 @@ function AgentPanel({ sessionId }: { sessionId: string }) {
             <Textarea
               id="model"
               onChange={(event) => {
-                updateAgent(configStore, session.agentId, { model: event.target.value })
+                updateAgent(agentId, { model: event.target.value })
               }}
               rows={2}
-              value={model}
+              value={agent.model}
             />
           </Field>
           <Field className="flex flex-col gap-2">
@@ -256,10 +210,10 @@ function AgentPanel({ sessionId }: { sessionId: string }) {
             <Textarea
               id="system-prompt"
               onChange={(event) => {
-                updateAgent(configStore, session.agentId, { systemPrompt: event.target.value })
+                updateAgent(agentId, { systemPrompt: event.target.value })
               }}
               rows={6}
-              value={systemPrompt}
+              value={agent.systemPrompt}
             />
           </Field>
         </FieldGroup>
@@ -269,8 +223,12 @@ function AgentPanel({ sessionId }: { sessionId: string }) {
 }
 
 function RuntimePanel({ sessionId }: { sessionId: string }) {
-  const commandIds = useSliceRowIds('commandsByCreatedAt', 'all', RUNTIME_INDEXES_ID).slice(0, 6)
-  const session = useSessionView(sessionId)
+  const commandIds = useRecentCommandIds(6)
+  const session = useSessionRecord(sessionId)
+
+  if (session === null) {
+    return null
+  }
 
   return (
     <Card size="sm">
@@ -301,7 +259,12 @@ function RuntimePanel({ sessionId }: { sessionId: string }) {
 }
 
 function RuntimeCommand({ commandId }: { commandId: string }) {
-  const command = useCommandView(commandId)
+  const command = useCommandRecord(commandId)
+
+  if (command === null) {
+    return null
+  }
+
   const subtitle =
     command.errorMessage === ''
       ? `${command.sessionId} at ${new Date(command.createdAt).toLocaleTimeString()}`
@@ -321,7 +284,7 @@ function RuntimeCommand({ commandId }: { commandId: string }) {
 }
 
 function MessageList({ sessionId }: { sessionId: string }) {
-  const messageIds = useSliceRowIds('messagesBySession', sessionId, RUNTIME_INDEXES_ID)
+  const messageIds = useSessionMessageIds(sessionId)
 
   return (
     <div className="min-h-0 flex-1 overflow-hidden">
@@ -344,13 +307,13 @@ function MessageList({ sessionId }: { sessionId: string }) {
 }
 
 function TimelineMessage({ messageId }: { messageId: string }) {
-  const message = useStoredMessage(messageId)
+  const message = useMessageRecord(messageId)
 
   if (message === null) {
     return null
   }
 
-  const text = getMessageText(message)
+  const text = getMessageText(message.message)
   const assistantContent =
     text === '' ? (
       <div className="flex items-center gap-2 text-muted-foreground">
@@ -361,31 +324,29 @@ function TimelineMessage({ messageId }: { messageId: string }) {
       <MessageResponse>{text}</MessageResponse>
     )
   const content =
-    message.role === 'assistant' ? (
+    message.message.role === 'assistant' ? (
       assistantContent
     ) : (
       <div className="whitespace-pre-wrap">{text}</div>
     )
 
   return (
-    <Message from={message.role}>
+    <Message from={message.message.role}>
       <MessageContent>{content}</MessageContent>
     </Message>
   )
 }
 
 function Composer({ sessionId }: { sessionId: string }) {
-  const runtimeStore = useStore(RUNTIME_STORE_ID)
-  const runtimeIndexes = useIndexes(RUNTIME_INDEXES_ID)
-  const session = useSessionView(sessionId)
+  const session = useSessionRecord(sessionId)
   const [draft, setDraft] = useState('')
 
-  if (runtimeStore === undefined || runtimeIndexes === undefined) {
+  if (session === null) {
     return null
   }
 
   const sendDraft = () => {
-    const commandId = sendMessage(runtimeStore, sessionId, draft)
+    const commandId = sendMessage(sessionId, draft)
     if (commandId !== null) {
       setDraft('')
     }
@@ -420,7 +381,7 @@ function Composer({ sessionId }: { sessionId: string }) {
             <Button
               disabled={session.status === 'streaming'}
               onClick={() => {
-                retryLastAssistantMessage(runtimeStore, runtimeIndexes, sessionId)
+                retryLastAssistantMessage(sessionId)
               }}
               type="button"
               variant="outline"
@@ -431,7 +392,7 @@ function Composer({ sessionId }: { sessionId: string }) {
             {session.status === 'streaming' ? (
               <Button
                 onClick={() => {
-                  cancelActiveCommand(runtimeStore, sessionId)
+                  cancelActiveCommand(sessionId)
                 }}
                 type="button"
                 variant="outline"
@@ -456,10 +417,9 @@ function Composer({ sessionId }: { sessionId: string }) {
 }
 
 function Workspace() {
-  const runtimeStore = useStore(RUNTIME_STORE_ID)
-  const activeSessionId = readString(useValue('activeSessionId', RUNTIME_STORE_ID))
+  const activeSessionId = useActiveSessionId()
 
-  if (runtimeStore === undefined || activeSessionId === '') {
+  if (activeSessionId === '') {
     return null
   }
 
@@ -473,7 +433,7 @@ function Workspace() {
           </div>
           <Button
             onClick={() => {
-              createSession(runtimeStore)
+              createSession()
             }}
             size="icon-sm"
             type="button"
@@ -548,15 +508,23 @@ export function PrototypeApp() {
     }
   }, [])
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Provider is schema-agnostic and expects the widened TinyBase Store type at the React context boundary.
+  const configStore = appRef.current.configStore as unknown as TinyStore
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Provider is schema-agnostic and expects the widened TinyBase Store type at the React context boundary.
+  const runtimeStore = appRef.current.runtimeStore as unknown as TinyStore
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- Provider is schema-agnostic and expects the widened TinyBase Indexes type at the React context boundary.
+  const runtimeIndexes = appRef.current.runtimeIndexes as unknown as TinyIndexes
+
   return (
     <Provider
-      indexesById={{ [RUNTIME_INDEXES_ID]: appRef.current.runtimeIndexes }}
+      indexesById={{ [RUNTIME_INDEXES_ID]: runtimeIndexes }}
       storesById={{
-        [CONFIG_STORE_ID]: appRef.current.configStore,
-        [RUNTIME_STORE_ID]: appRef.current.runtimeStore,
+        [CONFIG_STORE_ID]: configStore,
+        [RUNTIME_STORE_ID]: runtimeStore,
       }}
     >
       {ready ? <Workspace /> : <LoadingState />}
+      <Inspector />
     </Provider>
   )
 }

@@ -17,6 +17,8 @@ POC: Use `TinyBase` for in-browser data storage.
 
 TinyBase documentation: @reference/tinybase-docs
 
+- In React, do not use TinyBase `useRow` for rows that contain `object` or `array` cells such as `messages.message` or `commands.payload`. TinyBase rebuilds those nested values on read, which can make the hook snapshot unstable and trigger React `useSyncExternalStore` infinite-loop errors. Prefer `useCell` subscriptions and reconstruct the record in a local adapter layer. (This is probably a bug/oversight.)
+
 ## Workflow
 
 - Use `bun run check` to type check, lint with auto-fix, and format the project in <1 sec with `oxlint`/`oxfmt`. Never run `tsc` manually.
@@ -53,6 +55,7 @@ The primary goal is rapid design iteration, not building a user-facing app.
 - NO backwards compatibility
 - NO accessibility or mobile UI support
 - NO data migrations - wipe dev data when required
+- NO premature optimization, including bundle size
 
 - Optimize for change.
 - Fail fast.

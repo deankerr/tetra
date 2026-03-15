@@ -1,4 +1,3 @@
-import type { UIMessage } from 'ai'
 import type { TablesSchema, ValuesSchema } from 'tinybase'
 
 export const CONFIG_STORE_ID = 'config'
@@ -9,55 +8,6 @@ export const DEFAULT_AGENT_ID = 'agent-default'
 export const DEFAULT_AGENT_NAME = 'Prototype Agent'
 export const DEFAULT_MODEL_ID = 'openai/gpt-4o-mini'
 
-export type AgentProvider = 'openrouter'
-export type SessionStatus = 'idle' | 'streaming' | 'error'
-export type CommandType = 'send' | 'cancel' | 'retry'
-export type CommandStatus = 'pending' | 'processing' | 'complete' | 'error' | 'canceled'
-
-export type StoredMessage = UIMessage & Record<string, unknown>
-
-export interface AgentRow extends Record<string, unknown> {
-  name: string
-  provider: AgentProvider
-  model: string
-  systemPrompt: string
-  temperature: number
-  maxTokens: number
-}
-
-export interface SessionRow extends Record<string, unknown> {
-  agentId: string
-  title: string
-  status: SessionStatus
-  errorMessage: string
-  activeCommandId: string
-  createdAt: number
-  updatedAt: number
-  lastSeq: number
-}
-
-export interface MessageRow extends Record<string, unknown> {
-  sessionId: string
-  seq: number
-  role: StoredMessage['role']
-  createdAt: number
-  updatedAt: number
-  message: StoredMessage
-}
-
-export interface CommandRow extends Record<string, unknown> {
-  sessionId: string
-  type: CommandType
-  status: CommandStatus
-  payload: Record<string, unknown>
-  createdAt: number
-  updatedAt: number
-  claimedBy: string
-  claimedAt: number
-  completedAt: number
-  errorMessage: string
-}
-
 export const configTablesSchema = {
   agents: {
     maxTokens: { default: 800, type: 'number' },
@@ -67,9 +17,9 @@ export const configTablesSchema = {
     systemPrompt: { default: '', type: 'string' },
     temperature: { default: 0.7, type: 'number' },
   },
-} satisfies TablesSchema
+} as const satisfies TablesSchema
 
-export const configValuesSchema = {} satisfies ValuesSchema
+export const configValuesSchema = {} as const satisfies ValuesSchema
 
 export const runtimeTablesSchema = {
   commands: {
@@ -102,22 +52,11 @@ export const runtimeTablesSchema = {
     title: { default: 'New session', type: 'string' },
     updatedAt: { default: 0, type: 'number' },
   },
-} satisfies TablesSchema
+} as const satisfies TablesSchema
 
 export const runtimeValuesSchema = {
   activeSessionId: { default: '', type: 'string' },
-} satisfies ValuesSchema
+} as const satisfies ValuesSchema
 
-export type SendPayload = {
-  assistantMessageId: string
-  sourceMessageId: string
-}
-
-export type RetryPayload = {
-  assistantMessageId: string
-  replacedMessageId: string
-}
-
-export type CancelPayload = {
-  targetCommandId: string
-}
+export type ConfigSchemas = [typeof configTablesSchema, typeof configValuesSchema]
+export type RuntimeSchemas = [typeof runtimeTablesSchema, typeof runtimeValuesSchema]
