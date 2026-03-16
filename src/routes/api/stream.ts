@@ -1,0 +1,67 @@
+import { createOpenRouter } from '@openrouter/ai-sdk-provider'
+import { createFileRoute } from '@tanstack/react-router'
+import { convertToModelMessages, streamText } from 'ai'
+import type { UIMessage } from 'ai'
+import { z } from 'zod'
+
+const openrouter = createOpenRouter({
+  apiKey: process.env.OPENROUTER_API_KEY,
+})
+
+const messageSchema = z.looseObject({
+  id: z.string(),
+  parts: z.array(z.looseObject({ type: z.string() })),
+  role: z.enum(['user', 'assistant', 'system']),
+})
+
+const requestSchema = z.object({
+  assistantMessageId: z.string().min(1),
+  maxOutputTokens: z.number().optional(),
+  messages: z.array(messageSchema).min(1),
+  model: z.string().min(1),
+  systemPrompt: z.string().optional(),
+  temperature: z.number().optional(),
+})
+
+export const Route = createFileRoute('/api/stream')({
+  server: {
+    handlers: {
+      POST: async ({ request }) => {
+        if (process.env.OPENROUTER_API_KEY === undefined || process.env.OPENROUTER_API_KEY === '') {
+          return new Response('OPENROUTER_API_KEY is missing', { status: 500 })
+        }
+
+        const body: unknown = await request.json()
+        const parsed = requestSchema.safeParse(body)
+        if (!parsed.success) {
+          return new Response(parsed.error.message, { status: 400 })
+        }
+
+        const { assistantMessageId, maxOutputTokens, model, systemPrompt, temperature } =
+          parsed.data
+
+        // Zod validates structural integrity; UIMessage is the canonical type.
+        // oxlint-disable-next-line no-unsafe-type-assertion -- system boundary: Zod-validated input
+        const messages = parsed.data.messages as unknown as UIMessage[]
+
+        // Strip IDs before converting to model messages
+        const modelMessages = await convertToModelMessages(
+          messages.map(({ id: _id, ...message }) => message),
+        )
+
+        const result = streamText({
+          maxOutputTokens,
+          messages: modelMessages,
+          model: openrouter(model),
+          system: systemPrompt,
+          temperature,
+        })
+
+        return result.toUIMessageStreamResponse({
+          generateMessageId: () => assistantMessageId,
+          originalMessages: messages,
+        })
+      },
+    },
+  },
+})

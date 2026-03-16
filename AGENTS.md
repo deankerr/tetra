@@ -8,6 +8,8 @@ POC: Use `TinyBase` for in-browser data storage.
 - `React`, `Tailwind`, `shadcn/ui` with `Base UI` and theme preset (Mira, Teal/Mist)
 - `AI Elements` Chatbot/Agent components from the `shadcn` component registry
 - `TanStack Start`
+- Use `zod` for validation - not manual checking
+- Use `import * as R from 'remeda'` to write compact, type safe functions (this is tree-shaken)
 
 @PLAN.md
 
@@ -18,6 +20,7 @@ POC: Use `TinyBase` for in-browser data storage.
 TinyBase documentation: @reference/tinybase-docs
 
 - In React, do not use TinyBase `useRow` for rows that contain `object` or `array` cells such as `messages.message` or `commands.payload`. TinyBase rebuilds those nested values on read, which can make the hook snapshot unstable and trigger React `useSyncExternalStore` infinite-loop errors. Prefer `useCell` subscriptions and reconstruct the record in a local adapter layer. (This is probably a bug/oversight.)
+- Use domain types inferred from the decoders in the data access layer - create derived types if necessary, NEVER manually recreate type definitions.
 
 ## Workflow
 
@@ -46,7 +49,10 @@ We don't enforce our strict lint rules on external registry components. If a new
 
 ## Status
 
-Planning, project setup.
+Experimentation, iteration.
+
+Initial prototype: @src/lib/chat
+New core implementation: @src/lib/core
 
 ### Prototype Mode
 
