@@ -1,5 +1,3 @@
-'use client'
-
 import { DefaultChatTransport, readUIMessageStream } from 'ai'
 import type { UIMessage } from 'ai'
 import { nanoid } from 'nanoid'

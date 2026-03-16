@@ -1,3 +1,4 @@
+import { ThemeProvider } from '@lonik/themer'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
@@ -32,16 +33,19 @@ export const Route = createRootRoute({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
       <body>
-        <TooltipProvider>{children}</TooltipProvider>
+        <ThemeProvider defaultTheme="dark" enableSystem storageKey="tinybasechat-theme">
+          <TooltipProvider>{children}</TooltipProvider>
+        </ThemeProvider>
         <TanStackDevtools
           config={{
+            openHotkey: ['Control', 'A'],
             position: 'bottom-right',
-            requireUrlFlag: true,
+            triggerHidden: true,
           }}
           plugins={[
             {
