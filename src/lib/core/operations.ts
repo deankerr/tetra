@@ -102,6 +102,52 @@ export const bindOperations = (data: DataLayer) => ({
     return { assistantMessageId, messageId, requestId, seq: assistantSeq }
   },
 
+  regenerate(sessionId: string) {
+    // Guard: one active request per session
+    const active = data.requests.getActiveForSession(sessionId)
+    if (active !== null) {
+      console.log('[operations:regenerate]', 'skipped — active request exists', { sessionId })
+      return null
+    }
+
+    // Find last assistant message and the user message before it
+    const messages = data.messages.listBySession(sessionId)
+    const lastAssistant = messages.findLast((m) => m.message.role === 'assistant')
+    if (lastAssistant === undefined) {
+      return null
+    }
+    const lastAssistantIdx = messages.indexOf(lastAssistant)
+    const userMessage = messages
+      .slice(0, lastAssistantIdx)
+      .findLast((m) => m.message.role === 'user')
+    if (userMessage === undefined) {
+      return null
+    }
+
+    const assistantMessageId = `msg-${nanoid(10)}`
+    const requestId = `req-${nanoid(10)}`
+
+    const assistantPlaceholder: UIMessage = {
+      id: assistantMessageId,
+      parts: [],
+      role: 'assistant',
+    }
+
+    // Atomic: delete old assistant, insert new placeholder + request
+    data.transaction(() => {
+      data.messages.delete(lastAssistant.id)
+      data.messages.insert(assistantMessageId, sessionId, lastAssistant.seq, assistantPlaceholder)
+      data.requests.insert(requestId, sessionId, userMessage.id, assistantMessageId)
+    })
+
+    console.log('[operations:regenerate]', 'regenerating', {
+      assistantMessageId,
+      requestId,
+      sessionId,
+    })
+    return { assistantMessageId, requestId }
+  },
+
   cancelRequest(sessionId: string) {
     const active = data.requests.getActiveForSession(sessionId)
     if (active === null) {

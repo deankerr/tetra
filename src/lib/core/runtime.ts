@@ -1,6 +1,6 @@
 import type { DataLayer } from '@/lib/core/data'
 import type { ChatTransport, StreamResult } from '@/lib/core/stream'
-import { removeEmptyPlaceholder, streamResponse } from '@/lib/core/stream'
+import { streamResponse } from '@/lib/core/stream'
 
 export type Runtime = { stop: () => void }
 
@@ -132,12 +132,7 @@ const recoverStaleRequests = (data: DataLayer) => {
       continue
     }
 
-    // Clean up empty assistant placeholder if it exists
-    const assistantMessageId = data.store.getCell('requests', id, 'assistantMessageId')
-    if (typeof assistantMessageId === 'string' && assistantMessageId !== '') {
-      removeEmptyPlaceholder(data, assistantMessageId)
-    }
-
+    // Keep the empty placeholder so the error block renders in the message list
     data.requests.update(id, {
       errorMessage: 'Interrupted by app restart',
       status: 'error',

@@ -15,11 +15,13 @@ import {
   MessageContent,
   MessageResponse,
 } from '@/components/ai-elements/message'
+import { useCore } from '@/components/chat/use-core'
 import { useMessage, useSessionMessageIds } from '@/lib/core/data/messages'
 import type { Request } from '@/lib/core/data/requests'
 import { useRequestForMessage } from '@/lib/core/data/requests'
 
 export function MessageList({ sessionId }: { sessionId: string }) {
+  const core = useCore()
   const messageIds = useSessionMessageIds(sessionId)
 
   return (
@@ -37,6 +39,7 @@ export function MessageList({ sessionId }: { sessionId: string }) {
               isLast={index === messageIds.length - 1}
               key={messageId}
               messageId={messageId}
+              onRegenerate={() => core.regenerate(sessionId)}
             />
           ))
         )}
@@ -112,7 +115,15 @@ function getFullText(message: UIMessage): string {
     .join('')
 }
 
-function TimelineMessage({ isLast, messageId }: { messageId: string; isLast: boolean }) {
+function TimelineMessage({
+  isLast,
+  messageId,
+  onRegenerate,
+}: {
+  messageId: string
+  isLast: boolean
+  onRegenerate: () => void
+}) {
   const record = useMessage(messageId)
   const request = useRequestForMessage(messageId)
 
@@ -124,17 +135,38 @@ function TimelineMessage({ isLast, messageId }: { messageId: string; isLast: boo
   const isAssistant = message.role === 'assistant'
   const hasTextParts = message.parts.some((p) => p.type === 'text')
 
-  // Empty assistant message with error — standalone error block, no message bubble
+  // Empty assistant message with error — standalone error block with retry
   if (isAssistant && !hasTextParts && request?.status === 'error') {
     return (
-      <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-        <AlertCircleIcon className="size-4 shrink-0" />
-        <span>{request.errorMessage || 'Unknown error'}</span>
+      <div className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <div className="flex items-center gap-2">
+          <AlertCircleIcon className="size-4 shrink-0" />
+          <span>{request.errorMessage || 'Unknown error'}</span>
+        </div>
+        <button
+          className="text-muted-foreground hover:text-foreground"
+          onClick={onRegenerate}
+          type="button"
+        >
+          <RefreshCcwIcon className="size-3.5" />
+        </button>
       </div>
     )
   }
 
-  // Empty assistant message with no active stream — render nothing
+  // Empty assistant message cancelled — minimal block with retry
+  if (isAssistant && !hasTextParts && request?.status === 'cancelled') {
+    return (
+      <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+        <span>Cancelled</span>
+        <button className="hover:text-foreground" onClick={onRegenerate} type="button">
+          <RefreshCcwIcon className="size-3.5" />
+        </button>
+      </div>
+    )
+  }
+
+  // Empty assistant message with no active stream and no terminal state — render nothing
   if (
     isAssistant &&
     !hasTextParts &&
@@ -156,7 +188,7 @@ function TimelineMessage({ isLast, messageId }: { messageId: string; isLast: boo
       {isAssistant && hasTextParts && (
         <MessageActions>
           {isLast && (
-            <MessageAction label="Regenerate">
+            <MessageAction label="Regenerate" onClick={onRegenerate}>
               <RefreshCcwIcon className="size-3" />
             </MessageAction>
           )}

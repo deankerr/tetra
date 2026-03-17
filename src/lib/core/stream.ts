@@ -122,9 +122,8 @@ export const streamResponse = async (
     console.log('[stream:streamResponse]', 'complete', { assistantMessageId, sessionId })
     return { status: 'completed' }
   } catch (error) {
-    // Abort during stream initiation or iteration
+    // Abort during stream initiation or iteration — keep placeholder for cancelled state
     if (signal !== undefined && signal.aborted) {
-      removeEmptyPlaceholder(data, assistantMessageId)
       console.log('[stream:streamResponse]', 'aborted', { assistantMessageId, sessionId })
       return { status: 'aborted' }
     }
@@ -133,13 +132,5 @@ export const streamResponse = async (
     const errorMessage = error instanceof Error ? error.message : 'Unknown streaming error'
     console.error('[stream:streamResponse]', 'error', { errorMessage, sessionId })
     return { errorMessage, status: 'error' }
-  }
-}
-
-/** Remove assistant placeholder if it never received content. */
-export const removeEmptyPlaceholder = (data: DataLayer, assistantMessageId: string) => {
-  const placeholder = data.messages.get(assistantMessageId)
-  if (placeholder !== null && placeholder.message.parts.length === 0) {
-    data.messages.delete(assistantMessageId)
   }
 }
