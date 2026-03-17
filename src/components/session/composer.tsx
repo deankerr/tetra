@@ -9,7 +9,7 @@ import {
   PromptInputTools,
 } from '@/components/ai-elements/prompt-input'
 import type { PromptInputMessage } from '@/components/ai-elements/prompt-input'
-import { useCore } from '@/components/chat/use-core'
+import { useCore } from '@/components/core/use-core'
 import { useActiveRequest } from '@/lib/core/data/requests'
 import { useSession } from '@/lib/core/data/sessions'
 

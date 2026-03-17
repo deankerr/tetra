@@ -1,21 +1,10 @@
-import { useCore } from '@/components/chat/use-core'
+import { useCore } from '@/components/core/use-core'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldGroup } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
 import { useAgent } from '@/lib/core/data/agents'
-import { useSession } from '@/lib/core/data/sessions'
 
-export function AgentPanel({ sessionId }: { sessionId: string }) {
-  const session = useSession(sessionId)
-
-  if (session === null) {
-    return null
-  }
-
-  return <AgentEditor agentId={session.agentId} />
-}
-
-function AgentEditor({ agentId }: { agentId: string }) {
+export function AgentCard({ agentId }: { agentId: string }) {
   const core = useCore()
   const agent = useAgent(agentId)
 
@@ -27,9 +16,7 @@ function AgentEditor({ agentId }: { agentId: string }) {
     <Card size="sm">
       <CardHeader>
         <CardTitle>Agent</CardTitle>
-        <CardDescription>
-          Edit the seeded agent to evaluate config-store ergonomics.
-        </CardDescription>
+        <CardDescription>Configure this agent's model and behavior.</CardDescription>
       </CardHeader>
       <CardContent>
         <FieldGroup>

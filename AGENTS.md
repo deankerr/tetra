@@ -3,15 +3,15 @@
 LLM chat app for power users. Local-first, composable, built on TinyBase.
 
 - `AI SDK` with `OpenRouter` provider
-- `React`, `Tailwind`, `shadcn/ui` with `Base UI` and theme preset (Mira, Teal/Mist)
+- `TanStack Start`, `Tailwind`, `shadcn/ui` with `Base UI` and theme preset (Mira, Teal/Mist)
 - `AI Elements` Chatbot/Agent components from the `shadcn` component registry
-- `TanStack Start`
 - Use `zod` for validation - not manual checking
 - Use `import * as R from 'remeda'` to write compact, type safe functions (this is tree-shaken)
 
 @VISION.md @ARCHITECTURE.md
 
-- `docs/sub-agents.md`
+- Feature exploration `docs/sub-agents.md`
+- Single user, no auth.
 
 ## TinyBase
 
@@ -43,12 +43,13 @@ TinyBase documentation: @reference/tinybase-docs
 - When prompted about overwriting `src/components/ui/*`, answer `no`, then inspect changes with `bunx --bun shadcn@latest add <component> --diff <file>` and apply any needed updates manually.
 - Codex only: run shadcn registry commands outside of the sandbox.
 - We don't enforce our strict lint rules on external registry components. If a new registry has been added, update `.oxlintrc.json` with an ignore pattern.
+- Never put padding directly on a ScrollArea component.
 
 ## Status
 
 Experimentation, iteration.
 
-Core: @src/lib/core
+Core: @src/lib/core @src/components/chat
 
 ### Prototype Mode
 

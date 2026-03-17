@@ -29,6 +29,7 @@ export type SessionDAO = {
   getOrThrow: (id: string) => Session
   listIds: () => string[]
   listIdsByRecency: () => string[]
+  hasSessionsForAgent: (agentId: string) => boolean
   insert: (id: string, agentId: string, title?: string) => void
   update: (id: string, patch: SessionPatch) => void
   delete: (id: string) => void
@@ -56,6 +57,10 @@ export const createSessionDAO = (store: AppStore, indexes: AppIndexes): SessionD
 
   listIdsByRecency() {
     return indexes.getSliceRowIds('sessionsByRecency', 'all')
+  },
+
+  hasSessionsForAgent(agentId) {
+    return this.listIds().some((id) => store.getCell('sessions', id, 'agentId') === agentId)
   },
 
   insert(id, agentId, title) {

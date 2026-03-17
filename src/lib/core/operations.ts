@@ -32,7 +32,56 @@ const generateTitle = (text: string, maxLength = 48) => {
 export type Operations = ReturnType<typeof bindOperations>
 
 export const bindOperations = (data: DataLayer) => ({
-  createSession(agentId: string) {
+  // --- Agent Operations ---
+
+  createAgent(name: string, config?: AgentPatch) {
+    const agentId = id.agent()
+    data.agents.insert(agentId, { ...config, name })
+
+    console.log('[operations:createAgent]', 'created', { agentId, name })
+    return agentId
+  },
+
+  deleteAgent(agentId: string) {
+    if (agentId === DEFAULT_AGENT_ID) {
+      throw new Error('Cannot delete the default agent')
+    }
+
+    data.agents.getOrThrow(agentId)
+
+    if (data.sessions.hasSessionsForAgent(agentId)) {
+      throw new Error('Cannot delete agent with existing sessions')
+    }
+
+    data.agents.delete(agentId)
+    console.log('[operations:deleteAgent]', 'deleted', { agentId })
+  },
+
+  duplicateAgent(sourceId: string) {
+    const source = data.agents.getOrThrow(sourceId)
+    const agentId = id.agent()
+
+    data.agents.insert(agentId, {
+      maxOutputTokens: source.maxOutputTokens,
+      model: source.model,
+      name: `${source.name} (copy)`,
+      provider: source.provider,
+      systemPrompt: source.systemPrompt,
+      temperature: source.temperature,
+    })
+
+    console.log('[operations:duplicateAgent]', 'duplicated', { agentId, sourceId })
+    return agentId
+  },
+
+  updateAgentConfig(agentId: string, patch: AgentPatch) {
+    data.agents.update(agentId, patch)
+    console.log('[operations:updateAgentConfig]', 'updated', { agentId })
+  },
+
+  // --- Session Operations ---
+
+  createSession(agentId: string = DEFAULT_AGENT_ID) {
     const agent = data.agents.getOrThrow(agentId)
     const sessionId = id.session()
 
@@ -156,11 +205,6 @@ export const bindOperations = (data: DataLayer) => ({
 
     data.requests.update(active.id, { status: 'cancelled' })
     console.log('[operations:cancelRequest]', 'cancelled', { requestId: active.id, sessionId })
-  },
-
-  updateAgentConfig(agentId: string, patch: AgentPatch) {
-    data.agents.update(agentId, patch)
-    console.log('[operations:updateAgentConfig]', 'updated', { agentId })
   },
 })
 

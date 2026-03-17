@@ -15,7 +15,7 @@ import {
   MessageContent,
   MessageResponse,
 } from '@/components/ai-elements/message'
-import { useCore } from '@/components/chat/use-core'
+import { useCore } from '@/components/core/use-core'
 import { useMessage, useSessionMessageIds } from '@/lib/core/data/messages'
 import type { Request } from '@/lib/core/data/requests'
 import { useRequestForMessage } from '@/lib/core/data/requests'
@@ -29,7 +29,7 @@ export function MessageList({ sessionId }: { sessionId: string }) {
       <ConversationContent>
         {messageIds.length === 0 ? (
           <ConversationEmptyState
-            description="Start a conversation and watch the runtime write through TinyBase."
+            description="Send a message to get started."
             icon={<BotIcon className="size-5" />}
             title="No messages yet"
           />

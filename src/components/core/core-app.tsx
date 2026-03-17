@@ -4,7 +4,7 @@ import type { Indexes as TinyIndexes, Store as TinyStore } from 'tinybase'
 import { Provider } from 'tinybase/ui-react'
 import { Inspector } from 'tinybase/ui-react-inspector'
 
-import { CoreContext } from '@/components/chat/use-core'
+import { CoreContext } from '@/components/core/use-core'
 import { Spinner } from '@/components/ui/spinner'
 import type { Core } from '@/lib/core'
 import { getCore } from '@/lib/core'

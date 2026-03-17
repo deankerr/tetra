@@ -25,7 +25,7 @@ export const createDataLayer = (): DataLayer => {
   const indexes = createAppIndexes(store)
   const persister = createAppPersister(store)
 
-  const agents = createAgentDAO(store)
+  const agents = createAgentDAO(store, indexes)
   const messages = createMessageDAO(store, indexes)
   const requests = createRequestDAO(store, indexes)
   const sessions = createSessionDAO(store, indexes)

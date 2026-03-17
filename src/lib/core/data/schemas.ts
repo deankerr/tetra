@@ -2,6 +2,7 @@ import type { TablesSchema, ValuesSchema } from 'tinybase'
 
 export const tablesSchema = {
   agents: {
+    createdAt: { default: 0, type: 'number' },
     maxOutputTokens: { default: 0, type: 'number' },
     model: { default: '', type: 'string' },
     name: { default: '', type: 'string' },
