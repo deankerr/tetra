@@ -1,5 +1,4 @@
 import type { Row } from 'tinybase/with-schemas'
-import { z } from 'zod'
 
 import type { Schemas } from '@/lib/core/data/schemas'
 import type { AppIndexes, AppStore } from '@/lib/core/data/stores'
@@ -9,26 +8,17 @@ import { ui } from '@/lib/core/data/stores'
 
 type SessionRow = Row<Schemas[0], 'sessions'>
 
-const SESSION_STATUSES = ['idle', 'streaming', 'error'] as const
-const sessionStatusSchema = z.enum(SESSION_STATUSES)
-
-const isStatus = (value: string): value is SessionStatus =>
-  SESSION_STATUSES.some((s) => s === value)
-
 const decode = (id: string, row: SessionRow) => ({
   agentId: row.agentId,
   createdAt: row.createdAt,
-  errorMessage: row.errorMessage,
   id,
   lastSeq: row.lastSeq,
-  status: isStatus(row.status) ? row.status : ('idle' as const),
   title: row.title,
   updatedAt: row.updatedAt,
 })
 
 // --- Types ---
 
-export type SessionStatus = z.infer<typeof sessionStatusSchema>
 export type Session = ReturnType<typeof decode>
 export type SessionPatch = Partial<Omit<Session, 'createdAt' | 'id' | 'updatedAt'>>
 
@@ -39,7 +29,6 @@ export type SessionDAO = {
   getOrThrow: (id: string) => Session
   listIds: () => string[]
   listIdsByRecency: () => string[]
-  getStreamingIds: () => string[]
   insert: (id: string, agentId: string, title?: string) => void
   update: (id: string, patch: SessionPatch) => void
   delete: (id: string) => void
@@ -69,20 +58,12 @@ export const createSessionDAO = (store: AppStore, indexes: AppIndexes): SessionD
     return indexes.getSliceRowIds('sessionsByRecency', 'all')
   },
 
-  getStreamingIds() {
-    return store
-      .getRowIds('sessions')
-      .filter((id) => store.getCell('sessions', id, 'status') === 'streaming')
-  },
-
   insert(id, agentId, title) {
     const timestamp = Date.now()
     store.setRow('sessions', id, {
       agentId,
       createdAt: timestamp,
-      errorMessage: '',
       lastSeq: 0,
-      status: 'idle',
       title: title ?? '',
       updatedAt: timestamp,
     })

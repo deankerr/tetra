@@ -56,31 +56,71 @@ export const selectSession = (data: DataLayer, sessionId: string) => {
 }
 
 /**
- * Insert a user message into a session, bump seq, auto-title on first message.
- * Returns { messageId, seq } for the caller to use when triggering a stream.
+ * Insert a user message and a pending request into a session.
+ * The runtime picks up the request reactively via store listeners.
  */
 export const sendMessage = (data: DataLayer, sessionId: string, text: string) => {
   const session = data.sessions.getOrThrow(sessionId)
-  const messageId = `msg-${nanoid(10)}`
-  const seq = session.lastSeq + 1
 
-  const message: UIMessage = {
+  // Concurrency guard — one active request per session
+  const active = data.requests.getActiveForSession(sessionId)
+  if (active !== null) {
+    console.log('[operations:sendMessage]', 'skipped — active request exists', { sessionId })
+    return null
+  }
+
+  const messageId = `msg-${nanoid(10)}`
+  const assistantMessageId = `msg-${nanoid(10)}`
+  const requestId = `req-${nanoid(10)}`
+  const userSeq = session.lastSeq + 1
+  const assistantSeq = session.lastSeq + 2
+
+  const userMessage: UIMessage = {
     id: messageId,
     parts: [{ text, type: 'text' }],
     role: 'user',
+  }
+
+  const assistantPlaceholder: UIMessage = {
+    id: assistantMessageId,
+    parts: [],
+    role: 'assistant',
   }
 
   // Auto-title: use first user message text
   const isFirstMessage = session.lastSeq === 0
   const title = isFirstMessage ? generateTitle(text) : session.title
 
+  // Atomic: user msg + assistant placeholder + request, all linked
   data.transaction(() => {
-    data.messages.insert(messageId, sessionId, seq, message)
-    data.sessions.update(sessionId, { lastSeq: seq, title })
+    data.messages.insert(messageId, sessionId, userSeq, userMessage)
+    data.messages.insert(assistantMessageId, sessionId, assistantSeq, assistantPlaceholder)
+    data.sessions.update(sessionId, { lastSeq: assistantSeq, title })
+    data.requests.insert(requestId, sessionId, messageId, assistantMessageId)
   })
 
-  console.log('[operations:sendMessage]', 'sent', { messageId, seq, sessionId })
-  return { messageId, seq }
+  console.log('[operations:sendMessage]', 'sent', {
+    assistantMessageId,
+    messageId,
+    requestId,
+    sessionId,
+    userSeq,
+  })
+  return { assistantMessageId, messageId, requestId, seq: assistantSeq }
+}
+
+/**
+ * Cancel the active request for a session.
+ * Sets the request status to 'cancelled' — the runtime detects this via listener and aborts.
+ */
+export const cancelRequest = (data: DataLayer, sessionId: string) => {
+  const active = data.requests.getActiveForSession(sessionId)
+  if (active === null) {
+    return
+  }
+
+  data.requests.update(active.id, { status: 'cancelled' })
+  console.log('[operations:cancelRequest]', 'cancelled', { requestId: active.id, sessionId })
 }
 
 /**

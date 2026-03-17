@@ -3,14 +3,15 @@ import { PlusIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { createSession } from '@/lib/chat/commands'
-import { useActiveSessionId } from '@/lib/chat/react'
+import { getDataLayer } from '@/lib/core/data'
+import { DEFAULT_AGENT_ID } from '@/lib/core/data/agents'
+import { useActiveSessionId } from '@/lib/core/data/sessions'
+import { createSession } from '@/lib/core/operations'
 
 import { ThemeSwitcher } from '../theme-switcher'
 import { AgentPanel } from './agent-panel'
 import { Composer } from './composer'
 import { MessageList } from './message-list'
-import { RuntimePanel } from './runtime-panel'
 import { SessionList } from './session-list'
 
 export function Workspace() {
@@ -31,7 +32,7 @@ export function Workspace() {
           <ThemeSwitcher />
           <Button
             onClick={() => {
-              createSession()
+              createSession(getDataLayer(), DEFAULT_AGENT_ID)
             }}
             size="icon-sm"
             type="button"
@@ -46,7 +47,6 @@ export function Workspace() {
             <SessionList />
             <Separator />
             <AgentPanel sessionId={activeSessionId} />
-            <RuntimePanel sessionId={activeSessionId} />
           </div>
         </ScrollArea>
       </aside>

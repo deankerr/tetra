@@ -1,9 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { PrototypeApp } from '@/components/chat/prototype-app'
+import { CoreApp } from '@/components/chat/core-app'
+import { Workspace } from '@/components/chat/workspace'
 
 export const Route = createFileRoute('/')({ component: App })
 
 function App() {
-  return <PrototypeApp />
+  return (
+    <CoreApp>
+      <Workspace />
+    </CoreApp>
+  )
 }

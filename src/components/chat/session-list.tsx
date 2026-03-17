@@ -1,13 +1,9 @@
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from '@/components/ui/item'
-import { getMessageText } from '@/lib/chat/app'
-import { selectSession } from '@/lib/chat/commands'
-import {
-  useActiveSessionId,
-  useMessageRecord,
-  useSessionIds,
-  useSessionMessageIds,
-  useSessionRecord,
-} from '@/lib/chat/react'
+import { getDataLayer } from '@/lib/core/data'
+import { useMessage, useSessionMessageIds } from '@/lib/core/data/messages'
+import { useLatestRequest } from '@/lib/core/data/requests'
+import { useActiveSessionId, useSession, useSessionIds } from '@/lib/core/data/sessions'
+import { getMessageText, selectSession } from '@/lib/core/operations'
 
 import { StatusBadge } from './status-badges'
 
@@ -22,7 +18,7 @@ export function SessionList() {
           active={sessionId === activeSessionId}
           key={sessionId}
           onSelect={() => {
-            selectSession(sessionId)
+            selectSession(getDataLayer(), sessionId)
           }}
           sessionId={sessionId}
         />
@@ -40,7 +36,8 @@ function SessionListItem({
   onSelect: () => void
   sessionId: string
 }) {
-  const session = useSessionRecord(sessionId)
+  const session = useSession(sessionId)
+  const latestRequest = useLatestRequest(sessionId)
   const messageIds = useSessionMessageIds(sessionId)
   const latestMessageId = messageIds.at(-1) ?? ''
 
@@ -59,7 +56,7 @@ function SessionListItem({
         <ItemContent>
           <div className="flex items-center justify-between gap-2">
             <ItemTitle>{session.title}</ItemTitle>
-            <StatusBadge status={session.status} />
+            <StatusBadge status={latestRequest?.status ?? null} />
           </div>
           <ItemDescription>
             {latestMessageId === '' ? (
@@ -75,11 +72,11 @@ function SessionListItem({
 }
 
 function SessionPreview({ messageId }: { messageId: string }) {
-  const message = useMessageRecord(messageId)
+  const record = useMessage(messageId)
 
-  if (message === null) {
+  if (record === null) {
     return 'No text content yet'
   }
 
-  return getMessageText(message.message) || 'No text content yet'
+  return getMessageText(record.message) || 'No text content yet'
 }

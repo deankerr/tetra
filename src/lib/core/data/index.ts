@@ -2,6 +2,8 @@ import { createAgentDAO } from '@/lib/core/data/agents'
 import type { AgentDAO } from '@/lib/core/data/agents'
 import { createMessageDAO } from '@/lib/core/data/messages'
 import type { MessageDAO } from '@/lib/core/data/messages'
+import { createRequestDAO } from '@/lib/core/data/requests'
+import type { RequestDAO } from '@/lib/core/data/requests'
 import { createSessionDAO } from '@/lib/core/data/sessions'
 import type { SessionDAO } from '@/lib/core/data/sessions'
 import type { AppIndexes, AppStore } from '@/lib/core/data/stores'
@@ -10,11 +12,19 @@ import { createAppIndexes, createAppPersister, createAppStore } from '@/lib/core
 export type DataLayer = {
   agents: AgentDAO
   messages: MessageDAO
+  requests: RequestDAO
   sessions: SessionDAO
   store: AppStore
   indexes: AppIndexes
   initialize: () => Promise<void>
   transaction: (fn: () => void) => void
+}
+
+let instance: DataLayer | undefined
+
+export const getDataLayer = (): DataLayer => {
+  instance ??= createDataLayer()
+  return instance
 }
 
 export const createDataLayer = (): DataLayer => {
@@ -24,6 +34,7 @@ export const createDataLayer = (): DataLayer => {
 
   const agents = createAgentDAO(store)
   const messages = createMessageDAO(store, indexes)
+  const requests = createRequestDAO(store, indexes)
   const sessions = createSessionDAO(store, indexes)
 
   let initialized = false
@@ -41,6 +52,7 @@ export const createDataLayer = (): DataLayer => {
 
     indexes,
     messages,
+    requests,
     sessions,
     store,
 

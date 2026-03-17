@@ -1,4 +1,3 @@
-import type { ChatStatus } from 'ai'
 import { useState } from 'react'
 
 import {
@@ -10,46 +9,37 @@ import {
   PromptInputTools,
 } from '@/components/ai-elements/prompt-input'
 import type { PromptInputMessage } from '@/components/ai-elements/prompt-input'
-import { cancelActiveCommand, sendMessage } from '@/lib/chat/commands'
-import { useSessionRecord } from '@/lib/chat/react'
+import { getDataLayer } from '@/lib/core/data'
+import { useActiveRequest, useLatestRequest } from '@/lib/core/data/requests'
+import { useSession } from '@/lib/core/data/sessions'
+import { cancelRequest, sendMessage } from '@/lib/core/operations'
 
 import { StatusBadge } from './status-badges'
 
-// Map TinyBase session status to AI SDK ChatStatus
-function toChatStatus(sessionStatus: string): ChatStatus {
-  if (sessionStatus === 'streaming') {
-    return 'streaming'
-  }
-  if (sessionStatus === 'error') {
-    return 'error'
-  }
-  return 'ready'
-}
-
 export function Composer({ sessionId }: { sessionId: string }) {
-  const session = useSessionRecord(sessionId)
+  const session = useSession(sessionId)
+  const activeRequest = useActiveRequest(sessionId)
+  const latestRequest = useLatestRequest(sessionId)
   const [draft, setDraft] = useState('')
 
   if (session === null) {
     return null
   }
 
-  const chatStatus = toChatStatus(session.status)
-  const isActive = chatStatus === 'streaming' || chatStatus === 'submitted'
+  const isStreaming = activeRequest !== null
+  const showError = latestRequest !== null && latestRequest.status === 'error'
 
   const handleSubmit = (message: PromptInputMessage) => {
     if (!message.text.trim()) {
       return
     }
 
-    const commandId = sendMessage(sessionId, message.text)
-    if (commandId !== null) {
-      setDraft('')
-    }
+    sendMessage(getDataLayer(), sessionId, message.text)
+    setDraft('')
   }
 
   const handleStop = () => {
-    cancelActiveCommand(sessionId)
+    cancelRequest(getDataLayer(), sessionId)
   }
 
   return (
@@ -57,7 +47,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
       <PromptInput onSubmit={handleSubmit}>
         <PromptInputBody>
           <PromptInputTextarea
-            disabled={isActive}
+            disabled={isStreaming}
             onChange={(e) => {
               setDraft(e.currentTarget.value)
             }}
@@ -67,12 +57,17 @@ export function Composer({ sessionId }: { sessionId: string }) {
         </PromptInputBody>
         <PromptInputFooter>
           <PromptInputTools>
-            <StatusBadge status={session.status} />
+            <StatusBadge status={activeRequest?.status ?? latestRequest?.status ?? null} />
+            {showError && latestRequest.errorMessage !== '' && (
+              <span className="truncate text-xs text-destructive">
+                {latestRequest.errorMessage}
+              </span>
+            )}
           </PromptInputTools>
           <PromptInputSubmit
-            disabled={!isActive && !draft.trim()}
+            disabled={!isStreaming && !draft.trim()}
             onStop={handleStop}
-            status={chatStatus}
+            status={isStreaming ? 'streaming' : 'ready'}
           />
         </PromptInputFooter>
       </PromptInput>

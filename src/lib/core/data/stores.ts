@@ -40,3 +40,12 @@ export const createAppIndexes = (store: AppStore): AppIndexes =>
       undefined,
       (left, right) => Number(left) - Number(right),
     )
+    .setIndexDefinition(
+      'requestsBySession',
+      'requests',
+      'sessionId',
+      'createdAt',
+      undefined,
+      (left, right) => Number(right) - Number(left),
+    )
+    .setIndexDefinition('requestByAssistantMessage', 'requests', 'assistantMessageId')

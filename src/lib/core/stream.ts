@@ -1,6 +1,5 @@
 import { DefaultChatTransport, readUIMessageStream } from 'ai'
 import type { UIMessage } from 'ai'
-import { nanoid } from 'nanoid'
 
 import type { DataLayer } from '@/lib/core/data'
 import type { Agent } from '@/lib/core/data/agents'
@@ -57,51 +56,38 @@ export const createDefaultTransport = (api = '/api/stream'): ChatTransport => {
   }
 }
 
+// --- Result Type ---
+
+export type StreamResult =
+  | { status: 'completed' }
+  | { status: 'aborted' }
+  | { status: 'error'; errorMessage: string }
+
 // --- Streaming Runtime ---
 
 /**
  * Stream an AI response into TinyBase for the given session.
  *
- * This is the pure execution path — no queue, no dispatcher.
- * The caller (React action or future dispatcher) decides when to stream.
+ * The assistant placeholder message already exists (created by sendMessage).
+ * This function streams content into it and returns the outcome.
  *
  * Flow:
  * 1. Read agent config + message history from data
- * 2. Set session status to streaming
- * 3. Create assistant placeholder message
- * 4. Call transport, iterate stream, write partial updates
- * 5. On complete: set session idle
- * 6. On error: set session error, write error message
- * 7. On abort: clean up placeholder, set idle
+ * 2. Call transport, iterate stream, write partial updates into existing placeholder
+ * 3. On complete: return completed (or error if empty stream)
+ * 4. On error: clean up empty placeholder, return error
+ * 5. On abort: clean up empty placeholder, return aborted
  */
 export const streamResponse = async (
   data: DataLayer,
   sessionId: string,
+  assistantMessageId: string,
   transport: ChatTransport,
   signal?: AbortSignal,
-) => {
+): Promise<StreamResult> => {
   const session = data.sessions.getOrThrow(sessionId)
   const agent = data.agents.getOrThrow(session.agentId)
   const messages = data.messages.listBySession(sessionId)
-
-  // Prepare assistant placeholder
-  const assistantMessageId = `msg-${nanoid(10)}`
-  const assistantSeq = session.lastSeq + 1
-  const placeholder: UIMessage = {
-    id: assistantMessageId,
-    parts: [],
-    role: 'assistant',
-  }
-
-  // Mark session as streaming, insert placeholder
-  data.transaction(() => {
-    data.messages.insert(assistantMessageId, sessionId, assistantSeq, placeholder)
-    data.sessions.update(sessionId, {
-      errorMessage: '',
-      lastSeq: assistantSeq,
-      status: 'streaming',
-    })
-  })
 
   console.log('[stream:streamResponse]', 'started', { assistantMessageId, sessionId })
 
@@ -115,39 +101,42 @@ export const streamResponse = async (
       signal,
     })
 
-    // Write incremental updates
+    // Write incremental updates into existing placeholder
+    let received = false
     for await (const nextMessage of stream) {
+      received = true
       data.messages.update(assistantMessageId, { message: nextMessage })
     }
 
-    // Success
-    data.sessions.update(sessionId, { errorMessage: '', status: 'idle' })
+    // Empty stream — model returned nothing
+    if (!received) {
+      removeEmptyPlaceholder(data, assistantMessageId)
+      console.error('[stream:streamResponse]', 'empty stream', { assistantMessageId, sessionId })
+      return { errorMessage: 'Empty response from model', status: 'error' }
+    }
+
     console.log('[stream:streamResponse]', 'complete', { assistantMessageId, sessionId })
+    return { status: 'completed' }
   } catch (error) {
     // Abort during stream initiation or iteration
     if (signal !== undefined && signal.aborted) {
-      handleAbort(data, sessionId, assistantMessageId)
-      return
+      removeEmptyPlaceholder(data, assistantMessageId)
+      console.log('[stream:streamResponse]', 'aborted', { assistantMessageId, sessionId })
+      return { status: 'aborted' }
     }
 
     // Real error
+    removeEmptyPlaceholder(data, assistantMessageId)
     const errorMessage = error instanceof Error ? error.message : 'Unknown streaming error'
-    data.sessions.update(sessionId, { errorMessage, status: 'error' })
     console.error('[stream:streamResponse]', 'error', { errorMessage, sessionId })
+    return { errorMessage, status: 'error' }
   }
 }
 
-/**
- * Handle an aborted stream. Remove empty placeholders, set session idle.
- */
-const handleAbort = (data: DataLayer, sessionId: string, assistantMessageId: string) => {
+/** Remove assistant placeholder if it never received content. */
+export const removeEmptyPlaceholder = (data: DataLayer, assistantMessageId: string) => {
   const placeholder = data.messages.get(assistantMessageId)
-
-  // Remove empty placeholder; keep partial content if the stream produced any
   if (placeholder !== null && placeholder.message.parts.length === 0) {
     data.messages.delete(assistantMessageId)
   }
-
-  data.sessions.update(sessionId, { errorMessage: '', status: 'idle' })
-  console.log('[stream:streamResponse]', 'aborted', { assistantMessageId, sessionId })
 }

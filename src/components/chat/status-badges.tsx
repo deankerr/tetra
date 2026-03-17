@@ -1,42 +1,20 @@
 import { Badge } from '@/components/ui/badge'
-import type { useCommandRecord, useSessionRecord } from '@/lib/chat/react'
+import type { RequestStatus } from '@/lib/core/data/requests'
 
-export const getStatusBadgeVariant = (
-  status: NonNullable<ReturnType<typeof useSessionRecord>>['status'],
-) => {
+const getStatusBadgeVariant = (status: RequestStatus) => {
   if (status === 'error') {
     return 'destructive'
   }
-  if (status === 'streaming') {
+  if (status === 'streaming' || status === 'pending') {
     return 'secondary'
   }
   return 'outline'
 }
 
-const getCommandBadgeVariant = (
-  status: NonNullable<ReturnType<typeof useCommandRecord>>['status'],
-) => {
-  if (status === 'error') {
-    return 'destructive'
+export function StatusBadge({ status }: { status: RequestStatus | null }) {
+  // Don't show badge for completed or no request (idle)
+  if (status === null || status === 'completed') {
+    return null
   }
-  if (status === 'processing') {
-    return 'secondary'
-  }
-  return 'outline'
-}
-
-export function StatusBadge({
-  status,
-}: {
-  status: NonNullable<ReturnType<typeof useSessionRecord>>['status']
-}) {
   return <Badge variant={getStatusBadgeVariant(status)}>{status}</Badge>
-}
-
-export function CommandStatusBadge({
-  status,
-}: {
-  status: NonNullable<ReturnType<typeof useCommandRecord>>['status']
-}) {
-  return <Badge variant={getCommandBadgeVariant(status)}>{status}</Badge>
 }

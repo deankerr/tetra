@@ -1,4 +1,5 @@
-import { BotIcon, CopyIcon, Loader2Icon, RefreshCcwIcon } from 'lucide-react'
+import type { UIMessage } from 'ai'
+import { AlertCircleIcon, BotIcon, CopyIcon, Loader2Icon, RefreshCcwIcon } from 'lucide-react'
 import { Fragment } from 'react'
 
 import {
@@ -14,8 +15,9 @@ import {
   MessageContent,
   MessageResponse,
 } from '@/components/ai-elements/message'
-import { useMessageRecord, useSessionMessageIds } from '@/lib/chat/react'
-import type { StoredMessage } from '@/lib/chat/repository'
+import { useMessage, useSessionMessageIds } from '@/lib/core/data/messages'
+import type { Request } from '@/lib/core/data/requests'
+import { useRequestForMessage } from '@/lib/core/data/requests'
 
 export function MessageList({ sessionId }: { sessionId: string }) {
   const messageIds = useSessionMessageIds(sessionId)
@@ -44,45 +46,66 @@ export function MessageList({ sessionId }: { sessionId: string }) {
   )
 }
 
-// Render each part of the message following AI Elements patterns
-function MessageParts({ message }: { message: StoredMessage }) {
+// Render each part of the message based on request state
+function MessageParts({ message, request }: { message: UIMessage; request: Request | null }) {
   const { parts } = message
   const hasTextParts = parts.some((p) => p.type === 'text')
 
-  // Streaming placeholder — assistant has no parts yet
+  // Empty assistant message — render based on request status
   if (message.role === 'assistant' && !hasTextParts) {
-    return (
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <Loader2Icon className="size-4 animate-spin" />
-        <span>Streaming response…</span>
-      </div>
-    )
+    const status = request?.status
+
+    // Actively streaming, just no content yet
+    if (status === 'pending' || status === 'streaming') {
+      return (
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2Icon className="size-4 animate-spin" />
+          <span>Streaming response…</span>
+        </div>
+      )
+    }
+
+    // All other states (error, completed, cancelled, no request) — render nothing.
+    // Error display is handled by TimelineMessage as a standalone block.
+    return null
   }
 
-  return parts.map((part, i) => {
-    const key = `${message.id}-${String(i)}`
+  return (
+    <>
+      {parts.map((part, i) => {
+        const key = `${message.id}-${String(i)}`
 
-    // oxlint-disable-next-line @typescript-eslint/switch-exhaustiveness-check -- TODO: render reasoning, tool, file, source parts
-    switch (part.type) {
-      case 'text': {
-        if (message.role === 'user') {
-          return (
-            <div className="whitespace-pre-wrap" key={key}>
-              {part.text}
-            </div>
-          )
+        // oxlint-disable-next-line @typescript-eslint/switch-exhaustiveness-check -- TODO: render reasoning, tool, file, source parts
+        switch (part.type) {
+          case 'text': {
+            if (message.role === 'user') {
+              return (
+                <div className="whitespace-pre-wrap" key={key}>
+                  {part.text}
+                </div>
+              )
+            }
+            return <MessageResponse key={key}>{part.text}</MessageResponse>
+          }
+
+          default: {
+            return null
+          }
         }
-        return <MessageResponse key={key}>{part.text}</MessageResponse>
-      }
+      })}
 
-      default: {
-        return null
-      }
-    }
-  })
+      {/* Partial content + error: show error indicator after content */}
+      {request?.status === 'error' && request.errorMessage !== '' && (
+        <div className="mt-2 flex items-center gap-1.5 text-xs text-destructive">
+          <AlertCircleIcon className="size-3" />
+          <span>{request.errorMessage}</span>
+        </div>
+      )}
+    </>
+  )
 }
 
-function getFullText(message: StoredMessage): string {
+function getFullText(message: UIMessage): string {
   return message.parts
     .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
     .map((p) => p.text)
@@ -90,7 +113,8 @@ function getFullText(message: StoredMessage): string {
 }
 
 function TimelineMessage({ isLast, messageId }: { messageId: string; isLast: boolean }) {
-  const record = useMessageRecord(messageId)
+  const record = useMessage(messageId)
+  const request = useRequestForMessage(messageId)
 
   if (record === null) {
     return null
@@ -98,21 +122,44 @@ function TimelineMessage({ isLast, messageId }: { messageId: string; isLast: boo
 
   const { message } = record
   const isAssistant = message.role === 'assistant'
+  const hasTextParts = message.parts.some((p) => p.type === 'text')
+
+  // Empty assistant message with error — standalone error block, no message bubble
+  if (isAssistant && !hasTextParts && request?.status === 'error') {
+    return (
+      <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <AlertCircleIcon className="size-4 shrink-0" />
+        <span>{request.errorMessage || 'Unknown error'}</span>
+      </div>
+    )
+  }
+
+  // Empty assistant message with no active stream — render nothing
+  if (
+    isAssistant &&
+    !hasTextParts &&
+    request?.status !== 'pending' &&
+    request?.status !== 'streaming'
+  ) {
+    return null
+  }
 
   return (
     <Fragment>
       <Message from={message.role}>
         <MessageContent>
-          <MessageParts message={message} />
+          <MessageParts message={message} request={request} />
         </MessageContent>
       </Message>
 
-      {isAssistant && isLast && (
+      {/* Copy on all assistant messages with content, regenerate on last only */}
+      {isAssistant && hasTextParts && (
         <MessageActions>
-          {/* TODO: wire up regenerate when command pattern changes */}
-          <MessageAction label="Regenerate">
-            <RefreshCcwIcon className="size-3" />
-          </MessageAction>
+          {isLast && (
+            <MessageAction label="Regenerate">
+              <RefreshCcwIcon className="size-3" />
+            </MessageAction>
+          )}
           <MessageAction
             label="Copy"
             onClick={() => void navigator.clipboard.writeText(getFullText(message))}
