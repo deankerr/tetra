@@ -10,7 +10,7 @@ import { tablesSchema, valuesSchema } from '@/lib/core/data/schemas'
 
 // Schema-aware TinyBase React hooks.
 // oxlint-disable-next-line no-unsafe-type-assertion -- TinyBase WithSchemas pattern
-export const ui = UiReact as unknown as UiReact.WithSchemas<Schemas>
+export const uiStore = UiReact as unknown as UiReact.WithSchemas<Schemas>
 
 const DB_NAME = 'tinybasechat'
 

@@ -1,6 +1,11 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 import { createFileRoute } from '@tanstack/react-router'
-import { convertToModelMessages, streamText } from 'ai'
+import {
+  convertToModelMessages,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  streamText,
+} from 'ai'
 import type { UIMessage } from 'ai'
 import { z } from 'zod'
 
@@ -28,17 +33,21 @@ export const Route = createFileRoute('/api/stream')({
     handlers: {
       POST: async ({ request }) => {
         if (process.env.OPENROUTER_API_KEY === undefined || process.env.OPENROUTER_API_KEY === '') {
+          console.error('[api/stream]', 'OPENROUTER_API_KEY is missing')
           return new Response('OPENROUTER_API_KEY is missing', { status: 500 })
         }
 
         const body: unknown = await request.json()
         const parsed = requestSchema.safeParse(body)
         if (!parsed.success) {
+          console.error('[api/stream]', 'invalid request', parsed.error.message)
           return new Response(parsed.error.message, { status: 400 })
         }
 
         const { assistantMessageId, maxOutputTokens, model, systemPrompt, temperature } =
           parsed.data
+
+        console.log('[api/stream]', 'start', { assistantMessageId, model })
 
         // Zod validates structural integrity; UIMessage is the canonical type.
         // oxlint-disable-next-line no-unsafe-type-assertion -- system boundary: Zod-validated input
@@ -53,14 +62,40 @@ export const Route = createFileRoute('/api/stream')({
           maxOutputTokens,
           messages: modelMessages,
           model: openrouter(model),
+          onAbort: () => {
+            console.log('[api/stream]', 'abort', { assistantMessageId })
+          },
+          onFinish: ({ finishReason, usage }) => {
+            console.log('[api/stream]', 'finish', {
+              assistantMessageId,
+              finishReason,
+              tokens: usage.totalTokens,
+            })
+          },
           system: systemPrompt,
           temperature,
         })
 
-        return result.toUIMessageStreamResponse({
-          generateMessageId: () => assistantMessageId,
-          originalMessages: messages,
+        // Wrap in createUIMessageStream so provider errors (e.g. invalid model)
+        // are caught and encoded as protocol-level error events instead of
+        // silently terminating the HTTP body.
+        const stream = createUIMessageStream({
+          execute: ({ writer }) => {
+            writer.merge(
+              result.toUIMessageStream({
+                generateMessageId: () => assistantMessageId,
+                originalMessages: messages,
+              }),
+            )
+          },
+          onError: (error) => {
+            const msg = error instanceof Error ? error.message : 'Unknown error'
+            console.error('[api/stream]', 'stream error', { assistantMessageId, error: msg })
+            return msg
+          },
         })
+
+        return createUIMessageStreamResponse({ stream })
       },
     },
   },

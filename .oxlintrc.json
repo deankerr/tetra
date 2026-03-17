@@ -20,5 +20,6 @@
     "no-void": "off",
     "no-warning-comments": "off",
     "import/no-relative-parent-imports": "off",
+    "require-await": "off",
   },
 }

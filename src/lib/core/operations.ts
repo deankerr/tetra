@@ -3,6 +3,7 @@ import { nanoid } from 'nanoid'
 
 import type { DataLayer } from '@/lib/core/data'
 import { DEFAULT_AGENT_ID } from '@/lib/core/data/agents'
+import type { AgentPatch } from '@/lib/core/data/agents'
 
 // --- Text Helpers ---
 
@@ -26,120 +27,101 @@ const generateTitle = (text: string, maxLength = 48) => {
   return `${normalized.slice(0, maxLength - 1)}…`
 }
 
-// --- Domain Operations ---
+// --- Bound Operations ---
 
-/**
- * Create a new session for the given agent and make it active.
- * Returns the new session ID.
- */
-export const createSession = (data: DataLayer, agentId: string) => {
-  const agent = data.agents.getOrThrow(agentId)
-  const sessionId = `session-${nanoid(10)}`
+export type Operations = ReturnType<typeof bindOperations>
 
-  data.transaction(() => {
-    data.sessions.insert(sessionId, agent.id)
+export const bindOperations = (data: DataLayer) => ({
+  createSession(agentId: string) {
+    const agent = data.agents.getOrThrow(agentId)
+    const sessionId = `session-${nanoid(10)}`
+
+    data.transaction(() => {
+      data.sessions.insert(sessionId, agent.id)
+      data.store.setValue('activeSessionId', sessionId)
+    })
+
+    console.log('[operations:createSession]', 'created', { agentId, sessionId })
+    return sessionId
+  },
+
+  selectSession(sessionId: string) {
+    data.sessions.getOrThrow(sessionId)
     data.store.setValue('activeSessionId', sessionId)
-  })
 
-  console.log('[operations:createSession]', 'created', { agentId, sessionId })
-  return sessionId
-}
+    console.log('[operations:selectSession]', 'selected', { sessionId })
+  },
 
-/**
- * Switch the active session. Validates the session exists.
- */
-export const selectSession = (data: DataLayer, sessionId: string) => {
-  data.sessions.getOrThrow(sessionId)
-  data.store.setValue('activeSessionId', sessionId)
+  sendMessage(sessionId: string, text: string) {
+    const session = data.sessions.getOrThrow(sessionId)
 
-  console.log('[operations:selectSession]', 'selected', { sessionId })
-}
+    // Concurrency guard — one active request per session
+    const active = data.requests.getActiveForSession(sessionId)
+    if (active !== null) {
+      console.log('[operations:sendMessage]', 'skipped — active request exists', { sessionId })
+      return null
+    }
 
-/**
- * Insert a user message and a pending request into a session.
- * The runtime picks up the request reactively via store listeners.
- */
-export const sendMessage = (data: DataLayer, sessionId: string, text: string) => {
-  const session = data.sessions.getOrThrow(sessionId)
+    const messageId = `msg-${nanoid(10)}`
+    const assistantMessageId = `msg-${nanoid(10)}`
+    const requestId = `req-${nanoid(10)}`
+    const userSeq = session.lastSeq + 1
+    const assistantSeq = session.lastSeq + 2
 
-  // Concurrency guard — one active request per session
-  const active = data.requests.getActiveForSession(sessionId)
-  if (active !== null) {
-    console.log('[operations:sendMessage]', 'skipped — active request exists', { sessionId })
-    return null
-  }
+    const userMessage: UIMessage = {
+      id: messageId,
+      parts: [{ text, type: 'text' }],
+      role: 'user',
+    }
 
-  const messageId = `msg-${nanoid(10)}`
-  const assistantMessageId = `msg-${nanoid(10)}`
-  const requestId = `req-${nanoid(10)}`
-  const userSeq = session.lastSeq + 1
-  const assistantSeq = session.lastSeq + 2
+    const assistantPlaceholder: UIMessage = {
+      id: assistantMessageId,
+      parts: [],
+      role: 'assistant',
+    }
 
-  const userMessage: UIMessage = {
-    id: messageId,
-    parts: [{ text, type: 'text' }],
-    role: 'user',
-  }
+    // Auto-title: use first user message text
+    const isFirstMessage = session.lastSeq === 0
+    const title = isFirstMessage ? generateTitle(text) : session.title
 
-  const assistantPlaceholder: UIMessage = {
-    id: assistantMessageId,
-    parts: [],
-    role: 'assistant',
-  }
+    // Atomic: user msg + assistant placeholder + request, all linked
+    data.transaction(() => {
+      data.messages.insert(messageId, sessionId, userSeq, userMessage)
+      data.messages.insert(assistantMessageId, sessionId, assistantSeq, assistantPlaceholder)
+      data.sessions.update(sessionId, { lastSeq: assistantSeq, title })
+      data.requests.insert(requestId, sessionId, messageId, assistantMessageId)
+    })
 
-  // Auto-title: use first user message text
-  const isFirstMessage = session.lastSeq === 0
-  const title = isFirstMessage ? generateTitle(text) : session.title
+    console.log('[operations:sendMessage]', 'sent', {
+      assistantMessageId,
+      messageId,
+      requestId,
+      sessionId,
+      userSeq,
+    })
+    return { assistantMessageId, messageId, requestId, seq: assistantSeq }
+  },
 
-  // Atomic: user msg + assistant placeholder + request, all linked
-  data.transaction(() => {
-    data.messages.insert(messageId, sessionId, userSeq, userMessage)
-    data.messages.insert(assistantMessageId, sessionId, assistantSeq, assistantPlaceholder)
-    data.sessions.update(sessionId, { lastSeq: assistantSeq, title })
-    data.requests.insert(requestId, sessionId, messageId, assistantMessageId)
-  })
+  cancelRequest(sessionId: string) {
+    const active = data.requests.getActiveForSession(sessionId)
+    if (active === null) {
+      return
+    }
 
-  console.log('[operations:sendMessage]', 'sent', {
-    assistantMessageId,
-    messageId,
-    requestId,
-    sessionId,
-    userSeq,
-  })
-  return { assistantMessageId, messageId, requestId, seq: assistantSeq }
-}
+    data.requests.update(active.id, { status: 'cancelled' })
+    console.log('[operations:cancelRequest]', 'cancelled', { requestId: active.id, sessionId })
+  },
 
-/**
- * Cancel the active request for a session.
- * Sets the request status to 'cancelled' — the runtime detects this via listener and aborts.
- */
-export const cancelRequest = (data: DataLayer, sessionId: string) => {
-  const active = data.requests.getActiveForSession(sessionId)
-  if (active === null) {
-    return
-  }
+  updateAgentConfig(agentId: string, patch: AgentPatch) {
+    data.agents.update(agentId, patch)
+    console.log('[operations:updateAgentConfig]', 'updated', { agentId })
+  },
+})
 
-  data.requests.update(active.id, { status: 'cancelled' })
-  console.log('[operations:cancelRequest]', 'cancelled', { requestId: active.id, sessionId })
-}
+// --- Boot-only ---
 
-/**
- * Update agent configuration. Validates the agent exists.
- */
-export const updateAgentConfig = (
-  data: DataLayer,
-  agentId: string,
-  patch: { maxOutputTokens?: number; model?: string; systemPrompt?: string; temperature?: number },
-) => {
-  data.agents.update(agentId, patch)
-  console.log('[operations:updateAgentConfig]', 'updated', { agentId })
-}
-
-/**
- * Ensure a default agent and session exist after first load.
- * Idempotent — safe to call on every startup.
- */
-export const ensureDefaults = (data: DataLayer) => {
+/** Seed defaults. Called once during boot, not exposed on Core. */
+export const ensureDefaults = (data: DataLayer, createSession: (agentId: string) => string) => {
   // Seed default agent if missing
   if (data.agents.get(DEFAULT_AGENT_ID) === null) {
     data.agents.insertDefault()
@@ -159,5 +141,5 @@ export const ensureDefaults = (data: DataLayer) => {
   }
 
   // Create a fresh session
-  createSession(data, DEFAULT_AGENT_ID)
+  createSession(DEFAULT_AGENT_ID)
 }

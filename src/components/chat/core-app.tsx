@@ -1,44 +1,25 @@
 import type { ReactNode } from 'react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Indexes as TinyIndexes, Store as TinyStore } from 'tinybase'
 import { Provider } from 'tinybase/ui-react'
 import { Inspector } from 'tinybase/ui-react-inspector'
 
+import { CoreContext } from '@/components/chat/use-core'
 import { Spinner } from '@/components/ui/spinner'
-import { getDataLayer } from '@/lib/core/data'
-import { ensureDefaults } from '@/lib/core/operations'
-import type { Runtime } from '@/lib/core/runtime'
-import { startRuntime } from '@/lib/core/runtime'
-import { createDefaultTransport } from '@/lib/core/stream'
+import type { Core } from '@/lib/core'
+import { getCore } from '@/lib/core'
 
 export function CoreApp({ children }: { children: ReactNode }) {
-  const [ready, setReady] = useState(false)
-  const runtimeRef = useRef<Runtime | null>(null)
+  const [core, setCore] = useState<Core | null>(null)
 
   useEffect(() => {
-    let cancelled = false
-
-    const boot = async () => {
-      await getDataLayer().initialize()
-      if (cancelled) {
-        return
-      }
-
-      ensureDefaults(getDataLayer())
-      runtimeRef.current = startRuntime(getDataLayer(), createDefaultTransport())
-      setReady(true)
+    const init = async () => {
+      setCore(await getCore())
     }
-
-    void boot()
-
-    return () => {
-      cancelled = true
-      runtimeRef.current?.stop()
-      runtimeRef.current = null
-    }
+    void init()
   }, [])
 
-  if (!ready) {
+  if (core === null) {
     return (
       <div className="flex min-h-svh items-center justify-center bg-background">
         <div className="flex items-center gap-3">
@@ -51,14 +32,16 @@ export function CoreApp({ children }: { children: ReactNode }) {
 
   // Provider is schema-agnostic; typed hooks handle schema awareness via WithSchemas cast
   // oxlint-disable-next-line no-unsafe-type-assertion
-  const store = getDataLayer().store as unknown as TinyStore
+  const store = core.data.store as unknown as TinyStore
   // oxlint-disable-next-line no-unsafe-type-assertion
-  const indexes = getDataLayer().indexes as unknown as TinyIndexes
+  const indexes = core.data.indexes as unknown as TinyIndexes
 
   return (
-    <Provider indexes={indexes} store={store}>
-      {children}
-      <Inspector />
-    </Provider>
+    <CoreContext value={core}>
+      <Provider indexes={indexes} store={store}>
+        {children}
+        <Inspector />
+      </Provider>
+    </CoreContext>
   )
 }

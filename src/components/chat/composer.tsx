@@ -9,17 +9,14 @@ import {
   PromptInputTools,
 } from '@/components/ai-elements/prompt-input'
 import type { PromptInputMessage } from '@/components/ai-elements/prompt-input'
-import { getDataLayer } from '@/lib/core/data'
-import { useActiveRequest, useLatestRequest } from '@/lib/core/data/requests'
+import { useCore } from '@/components/chat/use-core'
+import { useActiveRequest } from '@/lib/core/data/requests'
 import { useSession } from '@/lib/core/data/sessions'
-import { cancelRequest, sendMessage } from '@/lib/core/operations'
-
-import { StatusBadge } from './status-badges'
 
 export function Composer({ sessionId }: { sessionId: string }) {
+  const core = useCore()
   const session = useSession(sessionId)
   const activeRequest = useActiveRequest(sessionId)
-  const latestRequest = useLatestRequest(sessionId)
   const [draft, setDraft] = useState('')
 
   if (session === null) {
@@ -27,19 +24,18 @@ export function Composer({ sessionId }: { sessionId: string }) {
   }
 
   const isStreaming = activeRequest !== null
-  const showError = latestRequest !== null && latestRequest.status === 'error'
 
   const handleSubmit = (message: PromptInputMessage) => {
     if (!message.text.trim()) {
       return
     }
 
-    sendMessage(getDataLayer(), sessionId, message.text)
+    core.sendMessage(sessionId, message.text)
     setDraft('')
   }
 
   const handleStop = () => {
-    cancelRequest(getDataLayer(), sessionId)
+    core.cancelRequest(sessionId)
   }
 
   return (
@@ -56,14 +52,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
           />
         </PromptInputBody>
         <PromptInputFooter>
-          <PromptInputTools>
-            <StatusBadge status={activeRequest?.status ?? latestRequest?.status ?? null} />
-            {showError && latestRequest.errorMessage !== '' && (
-              <span className="truncate text-xs text-destructive">
-                {latestRequest.errorMessage}
-              </span>
-            )}
-          </PromptInputTools>
+          <PromptInputTools />
           <PromptInputSubmit
             disabled={!isStreaming && !draft.trim()}
             onStop={handleStop}

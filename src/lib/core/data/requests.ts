@@ -3,7 +3,7 @@ import { z } from 'zod'
 
 import type { Schemas } from '@/lib/core/data/schemas'
 import type { AppIndexes, AppStore } from '@/lib/core/data/stores'
-import { ui } from '@/lib/core/data/stores'
+import { uiStore } from '@/lib/core/data/stores'
 
 // --- Codec ---
 
@@ -96,10 +96,10 @@ export const createRequestDAO = (store: AppStore, indexes: AppIndexes): RequestD
 
 /** Returns the currently active (pending/streaming) request for a session, or null. */
 export const useActiveRequest = (sessionId: string): Request | null => {
-  const ids = ui.useSliceRowIds('requestsBySession', sessionId)
+  const ids = uiStore.useSliceRowIds('requestsBySession', sessionId)
   const latestId = ids[0] ?? ''
-  const hasRow = ui.useHasRow('requests', latestId)
-  const row = ui.useRow('requests', latestId)
+  const hasRow = uiStore.useHasRow('requests', latestId)
+  const row = uiStore.useRow('requests', latestId)
 
   if (!hasRow || latestId === '') {
     return null
@@ -113,10 +113,10 @@ export const useActiveRequest = (sessionId: string): Request | null => {
 
 /** Returns the most recent request for a session regardless of status. */
 export const useLatestRequest = (sessionId: string): Request | null => {
-  const ids = ui.useSliceRowIds('requestsBySession', sessionId)
+  const ids = uiStore.useSliceRowIds('requestsBySession', sessionId)
   const latestId = ids[0] ?? ''
-  const hasRow = ui.useHasRow('requests', latestId)
-  const row = ui.useRow('requests', latestId)
+  const hasRow = uiStore.useHasRow('requests', latestId)
+  const row = uiStore.useRow('requests', latestId)
 
   if (!hasRow || latestId === '') {
     return null
@@ -127,10 +127,10 @@ export const useLatestRequest = (sessionId: string): Request | null => {
 
 /** Looks up the request linked to an assistant message. Returns null for user messages. */
 export const useRequestForMessage = (messageId: string): Request | null => {
-  const ids = ui.useSliceRowIds('requestByAssistantMessage', messageId)
+  const ids = uiStore.useSliceRowIds('requestByAssistantMessage', messageId)
   const requestId = ids[0] ?? ''
-  const hasRow = ui.useHasRow('requests', requestId)
-  const row = ui.useRow('requests', requestId)
+  const hasRow = uiStore.useHasRow('requests', requestId)
+  const row = uiStore.useRow('requests', requestId)
 
   if (!hasRow || requestId === '') {
     return null

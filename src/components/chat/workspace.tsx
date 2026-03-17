@@ -1,12 +1,11 @@
 import { PlusIcon } from 'lucide-react'
 
+import { useCore } from '@/components/chat/use-core'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { getDataLayer } from '@/lib/core/data'
 import { DEFAULT_AGENT_ID } from '@/lib/core/data/agents'
 import { useActiveSessionId } from '@/lib/core/data/sessions'
-import { createSession } from '@/lib/core/operations'
 
 import { ThemeSwitcher } from '../theme-switcher'
 import { AgentPanel } from './agent-panel'
@@ -15,6 +14,7 @@ import { MessageList } from './message-list'
 import { SessionList } from './session-list'
 
 export function Workspace() {
+  const core = useCore()
   const activeSessionId = useActiveSessionId()
 
   if (activeSessionId === '') {
@@ -32,7 +32,7 @@ export function Workspace() {
           <ThemeSwitcher />
           <Button
             onClick={() => {
-              createSession(getDataLayer(), DEFAULT_AGENT_ID)
+              core.createSession(DEFAULT_AGENT_ID)
             }}
             size="icon-sm"
             type="button"

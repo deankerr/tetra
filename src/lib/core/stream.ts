@@ -51,7 +51,11 @@ export const createDefaultTransport = (api = '/api/stream'): ChatTransport => {
         role: 'assistant',
       }
 
-      return readUIMessageStream<UIMessage>({ message: seed, stream: rawStream })
+      return readUIMessageStream<UIMessage>({
+        message: seed,
+        stream: rawStream,
+        terminateOnError: true,
+      })
     },
   }
 }
@@ -75,7 +79,7 @@ export type StreamResult =
  * 1. Read agent config + message history from data
  * 2. Call transport, iterate stream, write partial updates into existing placeholder
  * 3. On complete: return completed (or error if empty stream)
- * 4. On error: clean up empty placeholder, return error
+ * 4. On error: keep placeholder for error display in message list, return error
  * 5. On abort: clean up empty placeholder, return aborted
  */
 export const streamResponse = async (
@@ -110,7 +114,7 @@ export const streamResponse = async (
 
     // Empty stream — model returned nothing
     if (!received) {
-      removeEmptyPlaceholder(data, assistantMessageId)
+      // Keep the placeholder so the error block renders in the message list
       console.error('[stream:streamResponse]', 'empty stream', { assistantMessageId, sessionId })
       return { errorMessage: 'Empty response from model', status: 'error' }
     }
@@ -125,8 +129,7 @@ export const streamResponse = async (
       return { status: 'aborted' }
     }
 
-    // Real error
-    removeEmptyPlaceholder(data, assistantMessageId)
+    // Real error — keep the placeholder so the error block renders in the message list
     const errorMessage = error instanceof Error ? error.message : 'Unknown streaming error'
     console.error('[stream:streamResponse]', 'error', { errorMessage, sessionId })
     return { errorMessage, status: 'error' }

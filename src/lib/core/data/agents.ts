@@ -2,7 +2,7 @@ import type { Row } from 'tinybase/with-schemas'
 
 import type { Schemas } from '@/lib/core/data/schemas'
 import type { AppStore } from '@/lib/core/data/stores'
-import { ui } from '@/lib/core/data/stores'
+import { uiStore } from '@/lib/core/data/stores'
 
 // --- Codec ---
 
@@ -85,7 +85,7 @@ export const createAgentDAO = (store: AppStore): AgentDAO => ({
 // --- Hooks ---
 
 export const useAgent = (id: string): Agent | null => {
-  const hasRow = ui.useHasRow('agents', id)
-  const row = ui.useRow('agents', id)
+  const hasRow = uiStore.useHasRow('agents', id)
+  const row = uiStore.useRow('agents', id)
   return hasRow ? decode(id, row) : null
 }

@@ -1,13 +1,14 @@
+import { useCore } from '@/components/chat/use-core'
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from '@/components/ui/item'
-import { getDataLayer } from '@/lib/core/data'
 import { useMessage, useSessionMessageIds } from '@/lib/core/data/messages'
-import { useLatestRequest } from '@/lib/core/data/requests'
+import { useActiveRequest } from '@/lib/core/data/requests'
 import { useActiveSessionId, useSession, useSessionIds } from '@/lib/core/data/sessions'
-import { getMessageText, selectSession } from '@/lib/core/operations'
+import { getMessageText } from '@/lib/core/operations'
 
 import { StatusBadge } from './status-badges'
 
 export function SessionList() {
+  const core = useCore()
   const sessionIds = useSessionIds()
   const activeSessionId = useActiveSessionId()
 
@@ -18,7 +19,7 @@ export function SessionList() {
           active={sessionId === activeSessionId}
           key={sessionId}
           onSelect={() => {
-            selectSession(getDataLayer(), sessionId)
+            core.selectSession(sessionId)
           }}
           sessionId={sessionId}
         />
@@ -37,7 +38,7 @@ function SessionListItem({
   sessionId: string
 }) {
   const session = useSession(sessionId)
-  const latestRequest = useLatestRequest(sessionId)
+  const activeRequest = useActiveRequest(sessionId)
   const messageIds = useSessionMessageIds(sessionId)
   const latestMessageId = messageIds.at(-1) ?? ''
 
@@ -56,7 +57,7 @@ function SessionListItem({
         <ItemContent>
           <div className="flex items-center justify-between gap-2">
             <ItemTitle>{session.title}</ItemTitle>
-            <StatusBadge status={latestRequest?.status ?? null} />
+            <StatusBadge status={activeRequest?.status ?? null} />
           </div>
           <ItemDescription>
             {latestMessageId === '' ? (

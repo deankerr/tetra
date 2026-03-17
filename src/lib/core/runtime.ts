@@ -66,6 +66,8 @@ export const startRuntime = (data: DataLayer, transport: ChatTransport): Runtime
   console.log('[runtime]', 'started')
 
   return {
+    // Currently unused — the runtime is a page-scoped singleton that lives
+    // until the tab closes. Kept for tests and future hot-swap scenarios.
     stop() {
       data.store.delListener(rowIdsListenerId)
       data.store.delListener(cellListenerId)

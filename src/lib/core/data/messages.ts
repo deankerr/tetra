@@ -5,7 +5,7 @@ import { z } from 'zod'
 
 import type { Schemas } from '@/lib/core/data/schemas'
 import type { AppIndexes, AppStore } from '@/lib/core/data/stores'
-import { ui } from '@/lib/core/data/stores'
+import { uiStore } from '@/lib/core/data/stores'
 
 // --- Codec ---
 
@@ -184,19 +184,19 @@ export const createMessageDAO = (store: AppStore, indexes: AppIndexes): MessageD
 // --- Hooks ---
 
 export const useSessionMessageIds = (sessionId: string) =>
-  ui.useSliceRowIds('messagesBySession', sessionId)
+  uiStore.useSliceRowIds('messagesBySession', sessionId)
 
 // Per-cell subscriptions to avoid useRow instability with object cells.
 // useCell returns CellOrUndefined; hasRow guards at runtime but can't
 // narrow across separate hook calls. We assert after the guard.
 export const useMessage = (id: string): Message | null => {
-  const hasRow = ui.useHasRow('messages', id)
-  const createdAt = ui.useCell('messages', id, 'createdAt')
-  const message = ui.useCell('messages', id, 'message')
-  const role = ui.useCell('messages', id, 'role')
-  const seq = ui.useCell('messages', id, 'seq')
-  const sessionId = ui.useCell('messages', id, 'sessionId')
-  const updatedAt = ui.useCell('messages', id, 'updatedAt')
+  const hasRow = uiStore.useHasRow('messages', id)
+  const createdAt = uiStore.useCell('messages', id, 'createdAt')
+  const message = uiStore.useCell('messages', id, 'message')
+  const role = uiStore.useCell('messages', id, 'role')
+  const seq = uiStore.useCell('messages', id, 'seq')
+  const sessionId = uiStore.useCell('messages', id, 'sessionId')
+  const updatedAt = uiStore.useCell('messages', id, 'updatedAt')
 
   if (
     !hasRow ||

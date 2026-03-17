@@ -20,13 +20,6 @@ export type DataLayer = {
   transaction: (fn: () => void) => void
 }
 
-let instance: DataLayer | undefined
-
-export const getDataLayer = (): DataLayer => {
-  instance ??= createDataLayer()
-  return instance
-}
-
 export const createDataLayer = (): DataLayer => {
   const store = createAppStore()
   const indexes = createAppIndexes(store)

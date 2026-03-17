@@ -1,10 +1,9 @@
+import { useCore } from '@/components/chat/use-core'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldGroup } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
-import { getDataLayer } from '@/lib/core/data'
 import { useAgent } from '@/lib/core/data/agents'
 import { useSession } from '@/lib/core/data/sessions'
-import { updateAgentConfig } from '@/lib/core/operations'
 
 export function AgentPanel({ sessionId }: { sessionId: string }) {
   const session = useSession(sessionId)
@@ -17,6 +16,7 @@ export function AgentPanel({ sessionId }: { sessionId: string }) {
 }
 
 function AgentEditor({ agentId }: { agentId: string }) {
+  const core = useCore()
   const agent = useAgent(agentId)
 
   if (agent === null) {
@@ -40,7 +40,7 @@ function AgentEditor({ agentId }: { agentId: string }) {
             <Textarea
               id="model"
               onChange={(event) => {
-                updateAgentConfig(getDataLayer(), agentId, { model: event.target.value })
+                core.updateAgentConfig(agentId, { model: event.target.value })
               }}
               rows={2}
               value={agent.model}
@@ -56,7 +56,7 @@ function AgentEditor({ agentId }: { agentId: string }) {
             <Textarea
               id="system-prompt"
               onChange={(event) => {
-                updateAgentConfig(getDataLayer(), agentId, { systemPrompt: event.target.value })
+                core.updateAgentConfig(agentId, { systemPrompt: event.target.value })
               }}
               rows={6}
               value={agent.systemPrompt}
