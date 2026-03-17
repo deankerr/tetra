@@ -6,7 +6,7 @@ Sub-agents are not a separate system. They're an emergent capability of sessions
 
 An agent can spawn another agent by calling a tool. The tool handler creates a sub-session with a different agent config. The runtime processes it identically to a user-initiated session. The result flows back as a tool result.
 
-The existing analog: Claude Code's `Agent` tool. It spawns a sub-agent with a prompt, runs it in its own context, returns the result. The `run_in_background` parameter controls blocking vs async. tinybasechat's version is the same pattern over the session/command infrastructure.
+The existing analog: Claude Code's `Agent` tool. It spawns a sub-agent with a prompt, runs it in its own context, returns the result. The `run_in_background` parameter controls blocking vs async. Tetra's version is the same pattern over the session/command infrastructure.
 
 ## Example: Seer (Vision)
 

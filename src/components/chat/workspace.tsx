@@ -26,7 +26,7 @@ export function Workspace() {
       <aside className="flex min-h-0 flex-col border-r bg-muted/40">
         <div className="flex items-center justify-between gap-3 px-4 py-4">
           <div>
-            <div className="font-medium text-sm">tinybasechat</div>
+            <div className="font-medium text-sm">Tetra</div>
             <div className="text-muted-foreground text-xs">Initial slice prototype</div>
           </div>
           <ThemeSwitcher />

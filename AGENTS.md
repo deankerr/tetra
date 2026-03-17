@@ -1,8 +1,6 @@
-# tinybasechat
+# Tetra
 
-Experimental LLM chat app for power users.
-
-POC: Use `TinyBase` for in-browser data storage.
+LLM chat app for power users. Local-first, composable, built on TinyBase.
 
 - `AI SDK` with `OpenRouter` provider
 - `React`, `Tailwind`, `shadcn/ui` with `Base UI` and theme preset (Mira, Teal/Mist)
@@ -11,9 +9,9 @@ POC: Use `TinyBase` for in-browser data storage.
 - Use `zod` for validation - not manual checking
 - Use `import * as R from 'remeda'` to write compact, type safe functions (this is tree-shaken)
 
-@PLAN.md
+@VISION.md @ARCHITECTURE.md
 
-- `reference/sub-agents.md`
+- `docs/sub-agents.md`
 
 ## TinyBase
 

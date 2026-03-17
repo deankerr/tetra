@@ -14,6 +14,11 @@ export const Route = createRootRoute({
         href: appCss,
         rel: 'stylesheet',
       },
+      {
+        href: '/favicon.svg',
+        rel: 'icon',
+        type: 'image/svg+xml',
+      },
     ],
     meta: [
       {
@@ -24,7 +29,7 @@ export const Route = createRootRoute({
         name: 'viewport',
       },
       {
-        title: 'tinybasechat',
+        title: 'Tetra',
       },
     ],
   }),
@@ -38,7 +43,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <ThemeProvider defaultTheme="dark" enableSystem storageKey="tinybasechat-theme">
+        <ThemeProvider defaultTheme="dark" enableSystem storageKey="tetra-theme">
           <TooltipProvider>{children}</TooltipProvider>
         </ThemeProvider>
         <TanStackDevtools

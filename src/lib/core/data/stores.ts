@@ -12,7 +12,7 @@ import { tablesSchema, valuesSchema } from '@/lib/core/data/schemas'
 // oxlint-disable-next-line no-unsafe-type-assertion -- TinyBase WithSchemas pattern
 export const uiStore = UiReact as unknown as UiReact.WithSchemas<Schemas>
 
-const DB_NAME = 'tinybasechat'
+const DB_NAME = 'tetra'
 
 export type AppStore = Store<Schemas>
 export type AppIndexes = Indexes<Schemas>
