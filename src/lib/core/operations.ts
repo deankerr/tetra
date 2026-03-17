@@ -1,9 +1,9 @@
 import type { UIMessage } from 'ai'
-import { nanoid } from 'nanoid'
 
 import type { DataLayer } from '@/lib/core/data'
 import { DEFAULT_AGENT_ID } from '@/lib/core/data/agents'
 import type { AgentPatch } from '@/lib/core/data/agents'
+import { id } from '@/lib/core/id'
 
 // --- Text Helpers ---
 
@@ -34,7 +34,7 @@ export type Operations = ReturnType<typeof bindOperations>
 export const bindOperations = (data: DataLayer) => ({
   createSession(agentId: string) {
     const agent = data.agents.getOrThrow(agentId)
-    const sessionId = `session-${nanoid(10)}`
+    const sessionId = id.session()
 
     data.transaction(() => {
       data.sessions.insert(sessionId, agent.id)
@@ -62,9 +62,9 @@ export const bindOperations = (data: DataLayer) => ({
       return null
     }
 
-    const messageId = `msg-${nanoid(10)}`
-    const assistantMessageId = `msg-${nanoid(10)}`
-    const requestId = `req-${nanoid(10)}`
+    const messageId = id.message()
+    const assistantMessageId = id.message()
+    const requestId = id.request()
     const userSeq = session.lastSeq + 1
     const assistantSeq = session.lastSeq + 2
 
@@ -124,8 +124,8 @@ export const bindOperations = (data: DataLayer) => ({
       return null
     }
 
-    const assistantMessageId = `msg-${nanoid(10)}`
-    const requestId = `req-${nanoid(10)}`
+    const assistantMessageId = id.message()
+    const requestId = id.request()
 
     const assistantPlaceholder: UIMessage = {
       id: assistantMessageId,

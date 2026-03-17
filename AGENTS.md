@@ -44,15 +44,13 @@ TinyBase documentation: @reference/tinybase-docs
 - Do not use `ai-elements@latest` directly.
 - When prompted about overwriting `src/components/ui/*`, answer `no`, then inspect changes with `bunx --bun shadcn@latest add <component> --diff <file>` and apply any needed updates manually.
 - Codex only: run shadcn registry commands outside of the sandbox.
-
-We don't enforce our strict lint rules on external registry components. If a new registry has been added, update `.oxlintrc.json` with an ignore pattern.
+- We don't enforce our strict lint rules on external registry components. If a new registry has been added, update `.oxlintrc.json` with an ignore pattern.
 
 ## Status
 
 Experimentation, iteration.
 
-Initial prototype: @src/lib/chat
-New core implementation: @src/lib/core
+Core: @src/lib/core
 
 ### Prototype Mode
 
