@@ -3,8 +3,8 @@ import { createStore } from 'tinybase'
 import { createLocalPersister } from 'tinybase/persisters/persister-browser'
 import { useCell, useCellState, useRow, useStore, useValue, useValueState } from 'tinybase/ui-react'
 
-import { DEFAULT_CONFIG, inferenceConfigSchema } from '@/lib/core/data/config'
-import type { InferenceConfig } from '@/lib/core/data/config'
+import { DEFAULT_CONFIG, sessionConfigSchema } from '@/lib/shared/config'
+import type { SessionConfig } from '@/lib/shared/config'
 
 // --- Store ID ---
 
@@ -41,21 +41,20 @@ export const useDraftCell = (sessionId: string, cellId: string): [string, (v: st
 // --- Draft Helpers ---
 
 /** Read draft config for a session. Falls back to DEFAULT_CONFIG. */
-export const getDraftConfig = (uiStore: Store, sessionId: string): InferenceConfig => {
+export const getDraftConfig = (uiStore: Store, sessionId: string): SessionConfig => {
   const row = uiStore.getRow('drafts', sessionId)
-  const result = inferenceConfigSchema.safeParse(row)
+  const result = sessionConfigSchema.safeParse(row)
   return result.success ? result.data : DEFAULT_CONFIG
 }
 
 /** Write config to drafts only if no draft exists yet (preserves in-progress edits). */
-export const initDraft = (uiStore: Store, sessionId: string, config: InferenceConfig) => {
+export const initDraft = (uiStore: Store, sessionId: string, config: SessionConfig) => {
   if (uiStore.hasRow('drafts', sessionId)) {
     return
   }
   uiStore.setRow('drafts', sessionId, {
-    maxOutputTokens: config.maxOutputTokens ?? 800,
     modelId: config.modelId,
+    providerOptions: config.providerOptions ?? {},
     systemPrompt: config.systemPrompt ?? '',
-    temperature: config.temperature ?? 0.7,
   })
 }

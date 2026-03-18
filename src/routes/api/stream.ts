@@ -9,6 +9,8 @@ import {
 import type { UIMessage } from 'ai'
 import { z } from 'zod'
 
+import { sessionConfigSchema } from '@/lib/shared/config'
+
 const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
 })
@@ -19,16 +21,10 @@ const messageSchema = z.looseObject({
   role: z.enum(['user', 'assistant', 'system']),
 })
 
-const requestSchema = z
-  .object({
-    assistantMessageId: z.string().min(1),
-    maxOutputTokens: z.number().optional(),
-    messages: z.array(messageSchema).min(1),
-    modelId: z.string().min(1),
-    systemPrompt: z.string().optional(),
-    temperature: z.number().optional(),
-  })
-  .loose()
+const requestSchema = sessionConfigSchema.omit({ maxMessages: true }).extend({
+  assistantMessageId: z.string().min(1),
+  messages: z.array(messageSchema).min(1),
+})
 
 export const Route = createFileRoute('/api/stream')({
   server: {
@@ -46,8 +42,7 @@ export const Route = createFileRoute('/api/stream')({
           return new Response(parsed.error.message, { status: 400 })
         }
 
-        const { assistantMessageId, maxOutputTokens, modelId, systemPrompt, temperature } =
-          parsed.data
+        const { assistantMessageId, modelId, providerOptions, systemPrompt } = parsed.data
 
         console.log('[api/stream]', 'start', { assistantMessageId, modelId })
 
@@ -61,7 +56,6 @@ export const Route = createFileRoute('/api/stream')({
         )
 
         const result = streamText({
-          maxOutputTokens,
           messages: modelMessages,
           model: openrouter(modelId),
           onAbort: () => {
@@ -74,8 +68,9 @@ export const Route = createFileRoute('/api/stream')({
               tokens: usage.totalTokens,
             })
           },
+          // oxlint-disable-next-line no-unsafe-type-assertion -- system boundary: Zod-validated JSON
+          providerOptions: providerOptions ? { openrouter: providerOptions } : undefined,
           system: systemPrompt,
-          temperature,
         })
 
         // Wrap in createUIMessageStream so provider errors (e.g. invalid model)

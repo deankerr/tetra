@@ -1,8 +1,8 @@
 import type { UIMessage } from 'ai'
 
 import type { DataLayer } from '@/lib/core/data'
-import type { InferenceConfig } from '@/lib/core/data/config'
 import { id } from '@/lib/core/id'
+import type { SessionConfig } from '@/lib/shared/config'
 
 // --- Text Helpers ---
 
@@ -74,7 +74,7 @@ export const bindOperations = (data: DataLayer) => ({
 
   // --- Message Operations ---
 
-  sendMessage(sessionId: string, text: string, config?: InferenceConfig) {
+  sendMessage(sessionId: string, text: string, config?: SessionConfig) {
     const session = data.sessions.getOrThrow(sessionId)
 
     // Concurrency guard — one active request per session
@@ -127,7 +127,7 @@ export const bindOperations = (data: DataLayer) => ({
     return { assistantMessageId, messageId, requestId, seq: assistantSeq }
   },
 
-  regenerate(sessionId: string, config?: InferenceConfig) {
+  regenerate(sessionId: string, config?: SessionConfig) {
     // Guard: one active request per session
     const active = data.requests.getActiveForSession(sessionId)
     if (active !== null) {

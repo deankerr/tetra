@@ -2,13 +2,13 @@ import { DefaultChatTransport, readUIMessageStream } from 'ai'
 import type { UIMessage } from 'ai'
 
 import type { DataLayer } from '@/lib/core/data'
-import type { InferenceConfig } from '@/lib/core/data/config'
+import type { SessionConfig } from '@/lib/shared/config'
 
 // --- Transport Interface ---
 
 export type StreamConfig = {
   assistantMessageId: string
-  config: InferenceConfig
+  config: SessionConfig
   messages: UIMessage[]
   sessionId: string
   signal?: AbortSignal
@@ -33,7 +33,9 @@ export const createDefaultTransport = (api = '/api/stream'): ChatTransport => {
         abortSignal: config.signal,
         body: {
           assistantMessageId: config.assistantMessageId,
-          ...config.config,
+          modelId: config.config.modelId,
+          providerOptions: config.config.providerOptions,
+          systemPrompt: config.config.systemPrompt,
         },
         chatId: config.sessionId,
         messageId: config.assistantMessageId,
@@ -76,7 +78,7 @@ export const streamResponse = async (
   data: DataLayer,
   sessionId: string,
   assistantMessageId: string,
-  config: InferenceConfig,
+  config: SessionConfig,
   transport: ChatTransport,
   signal?: AbortSignal,
 ): Promise<StreamResult> => {

@@ -2,11 +2,11 @@ import { useMemo } from 'react'
 import type { Row } from 'tinybase/with-schemas'
 import { z } from 'zod'
 
-import { DEFAULT_CONFIG, parseConfig } from '@/lib/core/data/config'
-import type { InferenceConfig } from '@/lib/core/data/config'
 import type { Schemas } from '@/lib/core/data/schemas'
 import type { AppIndexes, AppStore } from '@/lib/core/data/stores'
 import { CORE, reactCoreStore } from '@/lib/core/data/stores'
+import { DEFAULT_CONFIG, sessionConfigSchema } from '@/lib/shared/config'
+import type { SessionConfig } from '@/lib/shared/config'
 
 // --- Codec ---
 
@@ -18,9 +18,14 @@ const requestStatusSchema = z.enum(REQUEST_STATUSES)
 const isStatus = (value: string): value is RequestStatus =>
   REQUEST_STATUSES.some((s) => s === value)
 
+const decodeConfig = (raw: unknown) => {
+  const result = sessionConfigSchema.safeParse(raw)
+  return result.success ? result.data : null
+}
+
 const decode = (id: string, row: RequestRow) => ({
   assistantMessageId: row.assistantMessageId,
-  config: parseConfig(row.config),
+  config: decodeConfig(row.config),
   createdAt: row.createdAt,
   errorMessage: row.errorMessage,
   id,
@@ -41,14 +46,14 @@ export type RequestDAO = {
   get: (id: string) => Request | null
   getOrThrow: (id: string) => Request
   getActiveForSession: (sessionId: string) => Request | null
-  getLatestConfigForSession: (sessionId: string) => InferenceConfig
+  getLatestConfigForSession: (sessionId: string) => SessionConfig
   listIdsBySession: (sessionId: string) => string[]
   insert: (
     id: string,
     sessionId: string,
     messageId: string,
     assistantMessageId: string,
-    config: InferenceConfig,
+    config: SessionConfig,
   ) => void
   update: (id: string, patch: RequestPatch) => void
   delete: (id: string) => void
@@ -89,7 +94,7 @@ export const createRequestDAO = (store: AppStore, indexes: AppIndexes): RequestD
     const ids = indexes.getSliceRowIds('requestsBySession', sessionId)
     for (const id of ids) {
       const raw = store.getCell('requests', id, 'config')
-      const config = parseConfig(raw)
+      const config = decodeConfig(raw)
       if (config !== null) {
         return config
       }
@@ -100,7 +105,7 @@ export const createRequestDAO = (store: AppStore, indexes: AppIndexes): RequestD
   insert(id, sessionId, messageId, assistantMessageId, config) {
     store.setRow('requests', id, {
       assistantMessageId,
-      config: JSON.stringify(config),
+      config,
       createdAt: Date.now(),
       errorMessage: '',
       messageId,
@@ -169,15 +174,15 @@ export const useRequestForMessage = (messageId: string): Request | null => {
 }
 
 /** Returns the inference config from the most recent request for a session, or DEFAULT_CONFIG. */
-export const useLatestConfig = (sessionId: string): InferenceConfig => {
+export const useLatestConfig = (sessionId: string): SessionConfig => {
   const ids = reactCoreStore.useSliceRowIds('requestsBySession', sessionId, CORE)
   const latestId = ids[0] ?? ''
   const raw = reactCoreStore.useCell('requests', latestId, 'config', CORE)
 
   return useMemo(() => {
-    if (latestId === '' || typeof raw !== 'string') {
+    if (latestId === '') {
       return DEFAULT_CONFIG
     }
-    return parseConfig(raw) ?? DEFAULT_CONFIG
+    return decodeConfig(raw) ?? DEFAULT_CONFIG
   }, [latestId, raw])
 }

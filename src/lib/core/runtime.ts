@@ -1,7 +1,7 @@
 import type { DataLayer } from '@/lib/core/data'
-import { DEFAULT_CONFIG } from '@/lib/core/data/config'
 import type { ChatTransport, StreamResult } from '@/lib/core/stream'
 import { streamResponse } from '@/lib/core/stream'
+import { DEFAULT_CONFIG } from '@/lib/shared/config'
 
 export type Runtime = { stop: () => void }
 
