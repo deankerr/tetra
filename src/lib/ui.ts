@@ -1,0 +1,61 @@
+import type { Store } from 'tinybase'
+import { createStore } from 'tinybase'
+import { createLocalPersister } from 'tinybase/persisters/persister-browser'
+import { useCell, useCellState, useRow, useStore, useValue, useValueState } from 'tinybase/ui-react'
+
+import { DEFAULT_CONFIG, inferenceConfigSchema } from '@/lib/core/data/config'
+import type { InferenceConfig } from '@/lib/core/data/config'
+
+// --- Store ID ---
+
+export const UI = 'ui' as const
+
+// --- Factory ---
+
+export const createUiStore = () => createStore()
+
+export const createUiPersister = (store: Store) => createLocalPersister(store, 'tetra-ui')
+
+// --- Hook Wrappers ---
+// Hard-code 'ui' store ID so callers can't accidentally hit the core store.
+
+export const useUiStore = () => useStore(UI)
+export const useUiValue = (valueId: string) => useValue(valueId, UI)
+export const useUiValueState = (valueId: string) => useValueState(valueId, UI)
+export const useUiCell = (tableId: string, rowId: string, cellId: string) =>
+  useCell(tableId, rowId, cellId, UI)
+export const useUiCellState = (tableId: string, rowId: string, cellId: string) =>
+  useCellState(tableId, rowId, cellId, UI)
+export const useUiRow = (tableId: string, rowId: string) => useRow(tableId, rowId, UI)
+
+// --- Draft Cell Hook ---
+// Narrowed to string for draft config fields (all stored as string/number scalars).
+
+export const useDraftCell = (sessionId: string, cellId: string): [string, (v: string) => void] => {
+  const [value, setter] = useCellState('drafts', sessionId, cellId, UI)
+  // Draft cells are always written as strings via initDraft. Non-string is unexpected.
+  const str = typeof value === 'string' ? value : ''
+  return [str, setter]
+}
+
+// --- Draft Helpers ---
+
+/** Read draft config for a session. Falls back to DEFAULT_CONFIG. */
+export const getDraftConfig = (uiStore: Store, sessionId: string): InferenceConfig => {
+  const row = uiStore.getRow('drafts', sessionId)
+  const result = inferenceConfigSchema.safeParse(row)
+  return result.success ? result.data : DEFAULT_CONFIG
+}
+
+/** Write config to drafts only if no draft exists yet (preserves in-progress edits). */
+export const initDraft = (uiStore: Store, sessionId: string, config: InferenceConfig) => {
+  if (uiStore.hasRow('drafts', sessionId)) {
+    return
+  }
+  uiStore.setRow('drafts', sessionId, {
+    maxOutputTokens: config.maxOutputTokens ?? 800,
+    modelId: config.modelId,
+    systemPrompt: config.systemPrompt ?? '',
+    temperature: config.temperature ?? 0.7,
+  })
+}

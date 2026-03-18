@@ -35,11 +35,7 @@ export const bindOperations = (data: DataLayer) => ({
 
   createSession() {
     const sessionId = id.session()
-
-    data.transaction(() => {
-      data.sessions.insert(sessionId)
-      data.store.setValue('activeSessionId', sessionId)
-    })
+    data.sessions.insert(sessionId)
 
     console.log('[operations:createSession]', 'created', { sessionId })
     return sessionId
@@ -68,30 +64,12 @@ export const bindOperations = (data: DataLayer) => ({
       data.sessions.delete(sessionId)
     })
 
-    // If we deleted the active session, select another or create a new one
-    const currentActive = data.store.getValue('activeSessionId') ?? ''
-    if (currentActive === sessionId) {
-      const remaining = data.sessions.listIdsByRecency()
-      if (remaining.length > 0 && remaining[0] !== undefined) {
-        data.store.setValue('activeSessionId', remaining[0])
-      } else {
-        this.createSession()
-      }
-    }
-
     console.log('[operations:deleteSession]', 'deleted', { sessionId })
   },
 
   updateSession(sessionId: string, title: string) {
     data.sessions.update(sessionId, { title })
     console.log('[operations:updateSession]', 'updated', { sessionId, title })
-  },
-
-  selectSession(sessionId: string) {
-    data.sessions.getOrThrow(sessionId)
-    data.store.setValue('activeSessionId', sessionId)
-
-    console.log('[operations:selectSession]', 'selected', { sessionId })
   },
 
   // --- Message Operations ---
@@ -211,21 +189,11 @@ export const bindOperations = (data: DataLayer) => ({
 
 // --- Boot-only ---
 
-/** Ensure a valid active session exists. Called once during boot. */
-export const ensureDefaults = (data: DataLayer, createSession: () => string) => {
-  // Validate or fix activeSessionId
-  const activeSessionId = data.store.getValue('activeSessionId') ?? ''
-  if (activeSessionId !== '' && data.sessions.get(activeSessionId) !== null) {
-    return
-  }
-
-  // Try to pick an existing session
+/** Ensure at least one session exists. Returns a valid sessionId. */
+export const ensureDefaultSession = (data: DataLayer, createSession: () => string): string => {
   const existingIds = data.sessions.listIdsByRecency()
   if (existingIds.length > 0 && existingIds[0] !== undefined) {
-    data.store.setValue('activeSessionId', existingIds[0])
-    return
+    return existingIds[0]
   }
-
-  // Create a fresh session
-  createSession()
+  return createSession()
 }

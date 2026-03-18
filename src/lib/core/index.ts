@@ -1,7 +1,7 @@
 import { createDataLayer } from '@/lib/core/data'
 import type { DataLayer } from '@/lib/core/data'
 import type { Operations } from '@/lib/core/operations'
-import { bindOperations, ensureDefaults } from '@/lib/core/operations'
+import { bindOperations, ensureDefaultSession } from '@/lib/core/operations'
 import type { Runtime } from '@/lib/core/runtime'
 import { startRuntime } from '@/lib/core/runtime'
 import { createDefaultTransport } from '@/lib/core/stream'
@@ -28,7 +28,7 @@ async function initialize(): Promise<Core> {
   await data.initialize()
 
   const operations = bindOperations(data)
-  ensureDefaults(data, () => operations.createSession())
+  ensureDefaultSession(data, () => operations.createSession())
 
   const runtime = startRuntime(data, createDefaultTransport())
 

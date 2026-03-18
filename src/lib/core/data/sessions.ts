@@ -2,7 +2,8 @@ import type { Row } from 'tinybase/with-schemas'
 
 import type { Schemas } from '@/lib/core/data/schemas'
 import type { AppIndexes, AppStore } from '@/lib/core/data/stores'
-import { uiStore } from '@/lib/core/data/stores'
+import { CORE, reactCoreStore } from '@/lib/core/data/stores'
+import { useUiValue } from '@/lib/ui'
 
 // --- Codec ---
 
@@ -88,12 +89,15 @@ export const createSessionDAO = (store: AppStore, indexes: AppIndexes): SessionD
 
 // --- Hooks ---
 
-export const useActiveSessionId = () => uiStore.useValue('activeSessionId')
+export const useActiveSessionId = () => {
+  const value = useUiValue('activeSessionId')
+  return typeof value === 'string' ? value : undefined
+}
 
-export const useSessionIds = () => uiStore.useSliceRowIds('sessionsByRecency', 'all')
+export const useSessionIds = () => reactCoreStore.useSliceRowIds('sessionsByRecency', 'all', CORE)
 
 export const useSession = (id: string): Session | null => {
-  const hasRow = uiStore.useHasRow('sessions', id)
-  const row = uiStore.useRow('sessions', id)
+  const hasRow = reactCoreStore.useHasRow('sessions', id, CORE)
+  const row = reactCoreStore.useRow('sessions', id, CORE)
   return hasRow ? decode(id, row) : null
 }

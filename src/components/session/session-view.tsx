@@ -1,5 +1,5 @@
 import { BotIcon, PanelRightIcon } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import {
   Conversation,
@@ -10,10 +10,10 @@ import {
 import { Button } from '@/components/ui/button'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { useCore } from '@/components/use-core'
-import type { InferenceConfig } from '@/lib/core/data/config'
 import { useSessionMessageIds } from '@/lib/core/data/messages'
 import { useLatestConfig } from '@/lib/core/data/requests'
 import { useActiveSessionId, useSession } from '@/lib/core/data/sessions'
+import { initDraft, useUiStore } from '@/lib/ui'
 
 import { Composer } from './composer'
 import { DetailPanel } from './detail-panel'
@@ -35,9 +35,16 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
   const core = useCore()
   const session = useSession(sessionId)
   const messageIds = useSessionMessageIds(sessionId)
-  const latestConfig = useLatestConfig(sessionId)
-  const configRef = useRef<InferenceConfig>(latestConfig)
   const [detailOpen, setDetailOpen] = useState(true)
+
+  // Initialize draft config from last committed config (only if no draft exists yet)
+  const uiStore = useUiStore()
+  const latestConfig = useLatestConfig(sessionId)
+  useEffect(() => {
+    if (uiStore) {
+      initDraft(uiStore, sessionId, latestConfig)
+    }
+  }, [sessionId]) // eslint-disable-line react-hooks/exhaustive-deps -- runs once per session mount
 
   if (session === null) {
     return null
@@ -87,12 +94,12 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
           <ConversationScrollButton />
         </Conversation>
 
-        <Composer configRef={configRef} sessionId={sessionId} />
+        <Composer sessionId={sessionId} />
       </div>
 
       {/* Config panel */}
       <DetailPanel open={detailOpen}>
-        <SessionConfig configRef={configRef} initialConfig={latestConfig} />
+        <SessionConfig sessionId={sessionId} />
       </DetailPanel>
     </div>
   )

@@ -1,44 +1,27 @@
-import type { RefObject } from 'react'
-import { useState } from 'react'
-
+import { ModelPicker } from '@/components/model-picker'
 import { Field, FieldGroup, FieldTitle } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import type { InferenceConfig } from '@/lib/core/data/config'
+import { useDraftCell } from '@/lib/ui'
 
-type Props = {
-  configRef: RefObject<InferenceConfig>
-  initialConfig: InferenceConfig
-}
-
-export function SessionConfig({ configRef, initialConfig }: Props) {
-  const [config, setConfig] = useState(initialConfig)
-
-  const update = (next: InferenceConfig) => {
-    setConfig(next)
-    configRef.current = next
-  }
+export function SessionConfig({ sessionId }: { sessionId: string }) {
+  // Each cell is an independent subscription — editing one field doesn't re-render others.
+  const [modelId, setModelId] = useDraftCell(sessionId, 'modelId')
+  const [systemPrompt, setSystemPrompt] = useDraftCell(sessionId, 'systemPrompt')
 
   return (
     <FieldGroup>
       <Field>
         <FieldTitle>Model</FieldTitle>
-        <Input
-          onChange={(e) => {
-            update({ ...config, modelId: e.currentTarget.value })
-          }}
-          placeholder="openai/gpt-4o-mini"
-          value={config.modelId}
-        />
+        <ModelPicker className="w-full" onValueChange={setModelId} value={modelId} />
       </Field>
       <Field>
         <FieldTitle>System Prompt</FieldTitle>
         <Textarea
           onChange={(e) => {
-            update({ ...config, systemPrompt: e.currentTarget.value })
+            setSystemPrompt(e.currentTarget.value)
           }}
           placeholder="You are a helpful assistant."
-          value={config.systemPrompt ?? ''}
+          value={systemPrompt}
         />
       </Field>
     </FieldGroup>

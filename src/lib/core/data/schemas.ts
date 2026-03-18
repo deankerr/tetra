@@ -37,8 +37,6 @@ export const tablesSchema = {
   },
 } as const satisfies TablesSchema
 
-export const valuesSchema = {
-  activeSessionId: { default: '', type: 'string' },
-} as const satisfies ValuesSchema
+export const valuesSchema = {} as const satisfies ValuesSchema
 
 export type Schemas = [typeof tablesSchema, typeof valuesSchema]

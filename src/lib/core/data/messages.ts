@@ -5,7 +5,7 @@ import { z } from 'zod'
 
 import type { Schemas } from '@/lib/core/data/schemas'
 import type { AppIndexes, AppStore } from '@/lib/core/data/stores'
-import { uiStore } from '@/lib/core/data/stores'
+import { CORE, reactCoreStore } from '@/lib/core/data/stores'
 
 // --- Codec ---
 
@@ -188,19 +188,19 @@ export const createMessageDAO = (store: AppStore, indexes: AppIndexes): MessageD
 // --- Hooks ---
 
 export const useSessionMessageIds = (sessionId: string) =>
-  uiStore.useSliceRowIds('messagesBySession', sessionId)
+  reactCoreStore.useSliceRowIds('messagesBySession', sessionId, CORE)
 
 // Per-cell subscriptions to avoid useRow instability with object cells.
 // useCell returns CellOrUndefined; hasRow guards at runtime but can't
 // narrow across separate hook calls. We assert after the guard.
 export const useMessage = (id: string): Message | null => {
-  const hasRow = uiStore.useHasRow('messages', id)
-  const createdAt = uiStore.useCell('messages', id, 'createdAt')
-  const message = uiStore.useCell('messages', id, 'message')
-  const role = uiStore.useCell('messages', id, 'role')
-  const seq = uiStore.useCell('messages', id, 'seq')
-  const sessionId = uiStore.useCell('messages', id, 'sessionId')
-  const updatedAt = uiStore.useCell('messages', id, 'updatedAt')
+  const hasRow = reactCoreStore.useHasRow('messages', id, CORE)
+  const createdAt = reactCoreStore.useCell('messages', id, 'createdAt', CORE)
+  const message = reactCoreStore.useCell('messages', id, 'message', CORE)
+  const role = reactCoreStore.useCell('messages', id, 'role', CORE)
+  const seq = reactCoreStore.useCell('messages', id, 'seq', CORE)
+  const sessionId = reactCoreStore.useCell('messages', id, 'sessionId', CORE)
+  const updatedAt = reactCoreStore.useCell('messages', id, 'updatedAt', CORE)
 
   if (
     !hasRow ||

@@ -1,4 +1,3 @@
-import type { RefObject } from 'react'
 import { useState } from 'react'
 
 import {
@@ -10,28 +9,29 @@ import {
   PromptInputTools,
 } from '@/components/ai-elements/prompt-input'
 import type { PromptInputMessage } from '@/components/ai-elements/prompt-input'
+import { ModelPicker } from '@/components/model-picker'
 import { useCore } from '@/components/use-core'
-import type { InferenceConfig } from '@/lib/core/data/config'
+import { getDraftConfig, useDraftCell, useUiStore } from '@/lib/ui'
 
 import { useIsStreaming } from './hooks'
 
-export function Composer({
-  configRef,
-  sessionId,
-}: {
-  configRef: RefObject<InferenceConfig>
-  sessionId: string
-}) {
+export function Composer({ sessionId }: { sessionId: string }) {
   const core = useCore()
+  const uiStore = useUiStore()
   const isStreaming = useIsStreaming(sessionId)
   const [draft, setDraft] = useState('')
+
+  // Subscribe to modelId for display — changes in SessionConfig update this reactively
+  const [modelId, setModelId] = useDraftCell(sessionId, 'modelId')
 
   const handleSubmit = (message: PromptInputMessage) => {
     if (!message.text.trim()) {
       return
     }
 
-    core.sendMessage(sessionId, message.text, configRef.current)
+    // Read full draft config imperatively at submit time
+    const config = uiStore ? getDraftConfig(uiStore, sessionId) : undefined
+    core.sendMessage(sessionId, message.text, config)
     setDraft('')
   }
 
@@ -53,7 +53,9 @@ export function Composer({
           />
         </PromptInputBody>
         <PromptInputFooter>
-          <PromptInputTools />
+          <PromptInputTools>
+            <ModelPicker onValueChange={setModelId} value={modelId} />
+          </PromptInputTools>
           <PromptInputSubmit
             disabled={!isStreaming && !draft.trim()}
             onStop={handleStop}

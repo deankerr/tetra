@@ -12,11 +12,13 @@ import {
 import { SidebarMenuAction, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar'
 import { useCore } from '@/components/use-core'
 import { useActiveSessionId, useSession, useSessionIds } from '@/lib/core/data/sessions'
+import { useUiValueState } from '@/lib/ui'
 
 export function SessionList() {
   const core = useCore()
   const sessionIds = useSessionIds()
   const activeSessionId = useActiveSessionId()
+  const [, setActiveSessionId] = useUiValueState('activeSessionId')
 
   return (
     <>
@@ -26,12 +28,23 @@ export function SessionList() {
           key={sessionId}
           onDelete={() => {
             core.deleteSession(sessionId)
+
+            // If we deleted the active session, pick another or create one
+            if (sessionId === activeSessionId) {
+              const remaining = sessionIds.filter((id) => id !== sessionId)
+              if (remaining.length > 0 && remaining[0] !== undefined) {
+                setActiveSessionId(remaining[0])
+              } else {
+                const newId = core.createSession()
+                setActiveSessionId(newId)
+              }
+            }
           }}
           onRename={(title) => {
             core.updateSession(sessionId, title)
           }}
           onSelect={() => {
-            core.selectSession(sessionId)
+            setActiveSessionId(sessionId)
           }}
           sessionId={sessionId}
         />

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { Indexes as TinyIndexes, Store as TinyStore } from 'tinybase'
-import { Provider } from 'tinybase/ui-react'
+import { createStore } from 'tinybase'
+import { createLocalPersister } from 'tinybase/persisters/persister-browser'
+import { Provider, useCreatePersister, useCreateStore } from 'tinybase/ui-react'
 import { Inspector } from 'tinybase/ui-react-inspector'
 
 import { AppSidebar } from '@/components/app-sidebar'
@@ -13,6 +15,18 @@ import { getCore } from '@/lib/core'
 
 export function App() {
   const [core, setCore] = useState<Core | null>(null)
+
+  // UI store — ephemeral state (activeSessionId, draft configs, panel visibility)
+  const uiStore = useCreateStore(createStore)
+  useCreatePersister(
+    uiStore,
+    (store) => createLocalPersister(store, 'tetra-ui'),
+    [],
+    async (persister) => {
+      await persister.startAutoLoad([{}, { activeSessionId: '' }])
+      await persister.startAutoSave()
+    },
+  )
 
   useEffect(() => {
     const init = async () => {
@@ -33,15 +47,15 @@ export function App() {
     )
   }
 
-  // Provider is schema-agnostic; typed hooks handle schema awareness via WithSchemas cast
+  // Both stores are named — no defaults. Every hook must specify which store it targets.
   // oxlint-disable-next-line no-unsafe-type-assertion
-  const store = core.data.store as unknown as TinyStore
+  const coreStore = core.data.store as unknown as TinyStore
   // oxlint-disable-next-line no-unsafe-type-assertion
-  const indexes = core.data.indexes as unknown as TinyIndexes
+  const coreIndexes = core.data.indexes as unknown as TinyIndexes
 
   return (
     <CoreContext value={core}>
-      <Provider indexes={indexes} store={store}>
+      <Provider indexesById={{ core: coreIndexes }} storesById={{ core: coreStore, ui: uiStore }}>
         <SidebarProvider>
           <Sidebar>
             <AppSidebar />

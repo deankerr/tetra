@@ -13,9 +13,11 @@ import {
   SidebarMenu,
 } from '@/components/ui/sidebar'
 import { useCore } from '@/components/use-core'
+import { useUiValueState } from '@/lib/ui'
 
 export function AppSidebar() {
   const core = useCore()
+  const [, setActiveSessionId] = useUiValueState('activeSessionId')
 
   return (
     <>
@@ -36,7 +38,8 @@ export function AppSidebar() {
           <SidebarGroupAction
             className="top-2.5"
             onClick={() => {
-              core.createSession()
+              const sessionId = core.createSession()
+              setActiveSessionId(sessionId)
             }}
           >
             <PlusIcon />
