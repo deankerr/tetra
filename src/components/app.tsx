@@ -1,15 +1,17 @@
-import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import type { Indexes as TinyIndexes, Store as TinyStore } from 'tinybase'
 import { Provider } from 'tinybase/ui-react'
 import { Inspector } from 'tinybase/ui-react-inspector'
 
-import { CoreContext } from '@/components/core/use-core'
+import { AppSidebar } from '@/components/app-sidebar'
+import { SessionView } from '@/components/session/session-view'
+import { Sidebar, SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { Spinner } from '@/components/ui/spinner'
+import { CoreContext } from '@/components/use-core'
 import type { Core } from '@/lib/core'
 import { getCore } from '@/lib/core'
 
-export function CoreApp({ children }: { children: ReactNode }) {
+export function App() {
   const [core, setCore] = useState<Core | null>(null)
 
   useEffect(() => {
@@ -19,6 +21,7 @@ export function CoreApp({ children }: { children: ReactNode }) {
     void init()
   }, [])
 
+  // Loading state — core initializes store + persistence
   if (core === null) {
     return (
       <div className="flex min-h-svh items-center justify-center bg-background">
@@ -39,7 +42,20 @@ export function CoreApp({ children }: { children: ReactNode }) {
   return (
     <CoreContext value={core}>
       <Provider indexes={indexes} store={store}>
-        {children}
+        <SidebarProvider>
+          <Sidebar>
+            <AppSidebar />
+          </Sidebar>
+
+          {/* Workspace: the bounded content area to the right of the sidebar.
+              min-w-0 breaks the flex minimum width default so children can't
+              push the viewport wider. overflow-hidden contains all descendant
+              overflow — views handle their own scrolling internally. */}
+          <SidebarInset className="h-svh min-w-0 overflow-hidden">
+            <SessionView />
+          </SidebarInset>
+        </SidebarProvider>
+
         <Inspector />
       </Provider>
     </CoreContext>

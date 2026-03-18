@@ -28,7 +28,7 @@ async function initialize(): Promise<Core> {
   await data.initialize()
 
   const operations = bindOperations(data)
-  ensureDefaults(data, (agentId) => operations.createSession(agentId))
+  ensureDefaults(data, () => operations.createSession())
 
   const runtime = startRuntime(data, createDefaultTransport())
 

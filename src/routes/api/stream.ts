@@ -19,14 +19,16 @@ const messageSchema = z.looseObject({
   role: z.enum(['user', 'assistant', 'system']),
 })
 
-const requestSchema = z.object({
-  assistantMessageId: z.string().min(1),
-  maxOutputTokens: z.number().optional(),
-  messages: z.array(messageSchema).min(1),
-  model: z.string().min(1),
-  systemPrompt: z.string().optional(),
-  temperature: z.number().optional(),
-})
+const requestSchema = z
+  .object({
+    assistantMessageId: z.string().min(1),
+    maxOutputTokens: z.number().optional(),
+    messages: z.array(messageSchema).min(1),
+    modelId: z.string().min(1),
+    systemPrompt: z.string().optional(),
+    temperature: z.number().optional(),
+  })
+  .loose()
 
 export const Route = createFileRoute('/api/stream')({
   server: {
@@ -44,10 +46,10 @@ export const Route = createFileRoute('/api/stream')({
           return new Response(parsed.error.message, { status: 400 })
         }
 
-        const { assistantMessageId, maxOutputTokens, model, systemPrompt, temperature } =
+        const { assistantMessageId, maxOutputTokens, modelId, systemPrompt, temperature } =
           parsed.data
 
-        console.log('[api/stream]', 'start', { assistantMessageId, model })
+        console.log('[api/stream]', 'start', { assistantMessageId, modelId })
 
         // Zod validates structural integrity; UIMessage is the canonical type.
         // oxlint-disable-next-line no-unsafe-type-assertion -- system boundary: Zod-validated input
@@ -61,7 +63,7 @@ export const Route = createFileRoute('/api/stream')({
         const result = streamText({
           maxOutputTokens,
           messages: modelMessages,
-          model: openrouter(model),
+          model: openrouter(modelId),
           onAbort: () => {
             console.log('[api/stream]', 'abort', { assistantMessageId })
           },

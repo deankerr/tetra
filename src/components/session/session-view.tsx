@@ -1,14 +1,24 @@
-import { PanelRightIcon } from 'lucide-react'
-import { useState } from 'react'
+import { BotIcon, PanelRightIcon } from 'lucide-react'
+import { useRef, useState } from 'react'
 
-import { AgentCard } from '@/components/agent/agent-card'
+import {
+  Conversation,
+  ConversationContent,
+  ConversationEmptyState,
+  ConversationScrollButton,
+} from '@/components/ai-elements/conversation'
 import { Button } from '@/components/ui/button'
 import { SidebarTrigger } from '@/components/ui/sidebar'
+import { useCore } from '@/components/use-core'
+import type { InferenceConfig } from '@/lib/core/data/config'
+import { useSessionMessageIds } from '@/lib/core/data/messages'
+import { useLatestConfig } from '@/lib/core/data/requests'
 import { useActiveSessionId, useSession } from '@/lib/core/data/sessions'
 
 import { Composer } from './composer'
 import { DetailPanel } from './detail-panel'
-import { MessageList } from './message-list'
+import { TimelineMessage } from './message'
+import { SessionConfig } from './session-config'
 
 export function SessionView() {
   const activeSessionId = useActiveSessionId()
@@ -17,11 +27,16 @@ export function SessionView() {
     return null
   }
 
-  return <SessionViewInner sessionId={activeSessionId} />
+  return <ActiveSession key={activeSessionId} sessionId={activeSessionId} />
 }
 
-function SessionViewInner({ sessionId }: { sessionId: string }) {
+/** Renders the active session. Guards session existence — children can assume valid sessionId. */
+function ActiveSession({ sessionId }: { sessionId: string }) {
+  const core = useCore()
   const session = useSession(sessionId)
+  const messageIds = useSessionMessageIds(sessionId)
+  const latestConfig = useLatestConfig(sessionId)
+  const configRef = useRef<InferenceConfig>(latestConfig)
   const [detailOpen, setDetailOpen] = useState(true)
 
   if (session === null) {
@@ -30,13 +45,13 @@ function SessionViewInner({ sessionId }: { sessionId: string }) {
 
   return (
     <div className="flex min-h-0 flex-1">
-      {/* Main content column */}
+      {/* Main content */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <header className="flex shrink-0 items-center justify-between border-b px-6 py-4">
-          <div className="flex items-center gap-2">
-            <SidebarTrigger />
-            <span className="font-medium text-sm">{session.title}</span>
-          </div>
+        <header className="flex shrink-0 items-center justify-between gap-2 border-b px-2 py-4">
+          <SidebarTrigger />
+          <span className="min-w-0 flex-1 truncate font-medium text-sm">
+            {session.title || 'New session'}
+          </span>
           <Button
             onClick={() => {
               setDetailOpen((prev) => !prev)
@@ -49,13 +64,35 @@ function SessionViewInner({ sessionId }: { sessionId: string }) {
           </Button>
         </header>
 
-        <MessageList sessionId={sessionId} />
-        <Composer sessionId={sessionId} />
+        {/* Messages */}
+        <Conversation>
+          <ConversationContent className="">
+            {messageIds.length === 0 ? (
+              <ConversationEmptyState
+                description="Send a message to get started."
+                icon={<BotIcon className="size-5" />}
+                title="No messages yet"
+              />
+            ) : (
+              messageIds.map((messageId, index) => (
+                <TimelineMessage
+                  isLast={index === messageIds.length - 1}
+                  key={messageId}
+                  messageId={messageId}
+                  onRegenerate={() => core.regenerate(sessionId)}
+                />
+              ))
+            )}
+          </ConversationContent>
+          <ConversationScrollButton />
+        </Conversation>
+
+        <Composer configRef={configRef} sessionId={sessionId} />
       </div>
 
-      {/* Right detail panel */}
+      {/* Config panel */}
       <DetailPanel open={detailOpen}>
-        <AgentCard agentId={session.agentId} />
+        <SessionConfig configRef={configRef} initialConfig={latestConfig} />
       </DetailPanel>
     </div>
   )

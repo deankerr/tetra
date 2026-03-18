@@ -1,3 +1,4 @@
+import type { RefObject } from 'react'
 import { useState } from 'react'
 
 import {
@@ -9,28 +10,28 @@ import {
   PromptInputTools,
 } from '@/components/ai-elements/prompt-input'
 import type { PromptInputMessage } from '@/components/ai-elements/prompt-input'
-import { useCore } from '@/components/core/use-core'
-import { useActiveRequest } from '@/lib/core/data/requests'
-import { useSession } from '@/lib/core/data/sessions'
+import { useCore } from '@/components/use-core'
+import type { InferenceConfig } from '@/lib/core/data/config'
 
-export function Composer({ sessionId }: { sessionId: string }) {
+import { useIsStreaming } from './hooks'
+
+export function Composer({
+  configRef,
+  sessionId,
+}: {
+  configRef: RefObject<InferenceConfig>
+  sessionId: string
+}) {
   const core = useCore()
-  const session = useSession(sessionId)
-  const activeRequest = useActiveRequest(sessionId)
+  const isStreaming = useIsStreaming(sessionId)
   const [draft, setDraft] = useState('')
-
-  if (session === null) {
-    return null
-  }
-
-  const isStreaming = activeRequest !== null
 
   const handleSubmit = (message: PromptInputMessage) => {
     if (!message.text.trim()) {
       return
     }
 
-    core.sendMessage(sessionId, message.text)
+    core.sendMessage(sessionId, message.text, configRef.current)
     setDraft('')
   }
 
@@ -39,7 +40,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
   }
 
   return (
-    <div className="shrink-0 border-t border-border px-6 pb-4 pt-3">
+    <div className="shrink-0 border-t p-4">
       <PromptInput onSubmit={handleSubmit}>
         <PromptInputBody>
           <PromptInputTextarea

@@ -1,8 +1,7 @@
 import type { UIMessage } from 'ai'
 
 import type { DataLayer } from '@/lib/core/data'
-import { DEFAULT_AGENT_ID } from '@/lib/core/data/agents'
-import type { AgentPatch } from '@/lib/core/data/agents'
+import type { InferenceConfig } from '@/lib/core/data/config'
 import { id } from '@/lib/core/id'
 
 // --- Text Helpers ---
@@ -16,7 +15,7 @@ export const getMessageText = (message: UIMessage) =>
     .map((part) => part.text)
     .join('')
 
-const generateTitle = (text: string, maxLength = 48) => {
+const generateTitle = (text: string, maxLength = 128) => {
   const normalized = text.replaceAll(/\s+/g, ' ').trim()
   if (normalized === '') {
     return 'New session'
@@ -32,66 +31,60 @@ const generateTitle = (text: string, maxLength = 48) => {
 export type Operations = ReturnType<typeof bindOperations>
 
 export const bindOperations = (data: DataLayer) => ({
-  // --- Agent Operations ---
-
-  createAgent(name: string, config?: AgentPatch) {
-    const agentId = id.agent()
-    data.agents.insert(agentId, { ...config, name })
-
-    console.log('[operations:createAgent]', 'created', { agentId, name })
-    return agentId
-  },
-
-  deleteAgent(agentId: string) {
-    if (agentId === DEFAULT_AGENT_ID) {
-      throw new Error('Cannot delete the default agent')
-    }
-
-    data.agents.getOrThrow(agentId)
-
-    if (data.sessions.hasSessionsForAgent(agentId)) {
-      throw new Error('Cannot delete agent with existing sessions')
-    }
-
-    data.agents.delete(agentId)
-    console.log('[operations:deleteAgent]', 'deleted', { agentId })
-  },
-
-  duplicateAgent(sourceId: string) {
-    const source = data.agents.getOrThrow(sourceId)
-    const agentId = id.agent()
-
-    data.agents.insert(agentId, {
-      maxOutputTokens: source.maxOutputTokens,
-      model: source.model,
-      name: `${source.name} (copy)`,
-      provider: source.provider,
-      systemPrompt: source.systemPrompt,
-      temperature: source.temperature,
-    })
-
-    console.log('[operations:duplicateAgent]', 'duplicated', { agentId, sourceId })
-    return agentId
-  },
-
-  updateAgentConfig(agentId: string, patch: AgentPatch) {
-    data.agents.update(agentId, patch)
-    console.log('[operations:updateAgentConfig]', 'updated', { agentId })
-  },
-
   // --- Session Operations ---
 
-  createSession(agentId: string = DEFAULT_AGENT_ID) {
-    const agent = data.agents.getOrThrow(agentId)
+  createSession() {
     const sessionId = id.session()
 
     data.transaction(() => {
-      data.sessions.insert(sessionId, agent.id)
+      data.sessions.insert(sessionId)
       data.store.setValue('activeSessionId', sessionId)
     })
 
-    console.log('[operations:createSession]', 'created', { agentId, sessionId })
+    console.log('[operations:createSession]', 'created', { sessionId })
     return sessionId
+  },
+
+  deleteSession(sessionId: string) {
+    data.sessions.getOrThrow(sessionId)
+
+    // Cancel any active request before deleting
+    const active = data.requests.getActiveForSession(sessionId)
+    if (active !== null) {
+      data.requests.update(active.id, { status: 'cancelled' })
+    }
+
+    // Cascade delete messages and requests
+    const messageIds = data.messages.listIdsBySession(sessionId)
+    const requestIds = data.requests.listIdsBySession(sessionId)
+
+    data.transaction(() => {
+      for (const mid of messageIds) {
+        data.messages.delete(mid)
+      }
+      for (const rid of requestIds) {
+        data.requests.delete(rid)
+      }
+      data.sessions.delete(sessionId)
+    })
+
+    // If we deleted the active session, select another or create a new one
+    const currentActive = data.store.getValue('activeSessionId') ?? ''
+    if (currentActive === sessionId) {
+      const remaining = data.sessions.listIdsByRecency()
+      if (remaining.length > 0 && remaining[0] !== undefined) {
+        data.store.setValue('activeSessionId', remaining[0])
+      } else {
+        this.createSession()
+      }
+    }
+
+    console.log('[operations:deleteSession]', 'deleted', { sessionId })
+  },
+
+  updateSession(sessionId: string, title: string) {
+    data.sessions.update(sessionId, { title })
+    console.log('[operations:updateSession]', 'updated', { sessionId, title })
   },
 
   selectSession(sessionId: string) {
@@ -101,7 +94,9 @@ export const bindOperations = (data: DataLayer) => ({
     console.log('[operations:selectSession]', 'selected', { sessionId })
   },
 
-  sendMessage(sessionId: string, text: string) {
+  // --- Message Operations ---
+
+  sendMessage(sessionId: string, text: string, config?: InferenceConfig) {
     const session = data.sessions.getOrThrow(sessionId)
 
     // Concurrency guard — one active request per session
@@ -110,6 +105,9 @@ export const bindOperations = (data: DataLayer) => ({
       console.log('[operations:sendMessage]', 'skipped — active request exists', { sessionId })
       return null
     }
+
+    // Resolve config: caller override → latest request → app default
+    const resolvedConfig = config ?? data.requests.getLatestConfigForSession(sessionId)
 
     const messageId = id.message()
     const assistantMessageId = id.message()
@@ -133,12 +131,12 @@ export const bindOperations = (data: DataLayer) => ({
     const isFirstMessage = session.lastSeq === 0
     const title = isFirstMessage ? generateTitle(text) : session.title
 
-    // Atomic: user msg + assistant placeholder + request, all linked
+    // Atomic: user msg + assistant placeholder + request with config snapshot
     data.transaction(() => {
       data.messages.insert(messageId, sessionId, userSeq, userMessage)
       data.messages.insert(assistantMessageId, sessionId, assistantSeq, assistantPlaceholder)
       data.sessions.update(sessionId, { lastSeq: assistantSeq, title })
-      data.requests.insert(requestId, sessionId, messageId, assistantMessageId)
+      data.requests.insert(requestId, sessionId, messageId, assistantMessageId, resolvedConfig)
     })
 
     console.log('[operations:sendMessage]', 'sent', {
@@ -151,7 +149,7 @@ export const bindOperations = (data: DataLayer) => ({
     return { assistantMessageId, messageId, requestId, seq: assistantSeq }
   },
 
-  regenerate(sessionId: string) {
+  regenerate(sessionId: string, config?: InferenceConfig) {
     // Guard: one active request per session
     const active = data.requests.getActiveForSession(sessionId)
     if (active !== null) {
@@ -173,6 +171,9 @@ export const bindOperations = (data: DataLayer) => ({
       return null
     }
 
+    // Resolve config: caller override → latest request → app default
+    const resolvedConfig = config ?? data.requests.getLatestConfigForSession(sessionId)
+
     const assistantMessageId = id.message()
     const requestId = id.request()
 
@@ -182,11 +183,11 @@ export const bindOperations = (data: DataLayer) => ({
       role: 'assistant',
     }
 
-    // Atomic: delete old assistant, insert new placeholder + request
+    // Atomic: delete old assistant, insert new placeholder + request with config
     data.transaction(() => {
       data.messages.delete(lastAssistant.id)
       data.messages.insert(assistantMessageId, sessionId, lastAssistant.seq, assistantPlaceholder)
-      data.requests.insert(requestId, sessionId, userMessage.id, assistantMessageId)
+      data.requests.insert(requestId, sessionId, userMessage.id, assistantMessageId, resolvedConfig)
     })
 
     console.log('[operations:regenerate]', 'regenerating', {
@@ -210,13 +211,8 @@ export const bindOperations = (data: DataLayer) => ({
 
 // --- Boot-only ---
 
-/** Seed defaults. Called once during boot, not exposed on Core. */
-export const ensureDefaults = (data: DataLayer, createSession: (agentId: string) => string) => {
-  // Seed default agent if missing
-  if (data.agents.get(DEFAULT_AGENT_ID) === null) {
-    data.agents.insertDefault()
-  }
-
+/** Ensure a valid active session exists. Called once during boot. */
+export const ensureDefaults = (data: DataLayer, createSession: () => string) => {
   // Validate or fix activeSessionId
   const activeSessionId = data.store.getValue('activeSessionId') ?? ''
   if (activeSessionId !== '' && data.sessions.get(activeSessionId) !== null) {
@@ -231,5 +227,5 @@ export const ensureDefaults = (data: DataLayer, createSession: (agentId: string)
   }
 
   // Create a fresh session
-  createSession(DEFAULT_AGENT_ID)
+  createSession()
 }

@@ -1,13 +1,7 @@
 import type { UIMessage } from 'ai'
-import { AlertCircleIcon, BotIcon, CopyIcon, Loader2Icon, RefreshCcwIcon } from 'lucide-react'
+import { AlertCircleIcon, CopyIcon, Loader2Icon, RefreshCcwIcon } from 'lucide-react'
 import { Fragment } from 'react'
 
-import {
-  Conversation,
-  ConversationContent,
-  ConversationEmptyState,
-  ConversationScrollButton,
-} from '@/components/ai-elements/conversation'
 import {
   Message,
   MessageAction,
@@ -15,39 +9,9 @@ import {
   MessageContent,
   MessageResponse,
 } from '@/components/ai-elements/message'
-import { useCore } from '@/components/core/use-core'
-import { useMessage, useSessionMessageIds } from '@/lib/core/data/messages'
+import { useMessage } from '@/lib/core/data/messages'
 import type { Request } from '@/lib/core/data/requests'
 import { useRequestForMessage } from '@/lib/core/data/requests'
-
-export function MessageList({ sessionId }: { sessionId: string }) {
-  const core = useCore()
-  const messageIds = useSessionMessageIds(sessionId)
-
-  return (
-    <Conversation>
-      <ConversationContent>
-        {messageIds.length === 0 ? (
-          <ConversationEmptyState
-            description="Send a message to get started."
-            icon={<BotIcon className="size-5" />}
-            title="No messages yet"
-          />
-        ) : (
-          messageIds.map((messageId, index) => (
-            <TimelineMessage
-              isLast={index === messageIds.length - 1}
-              key={messageId}
-              messageId={messageId}
-              onRegenerate={() => core.regenerate(sessionId)}
-            />
-          ))
-        )}
-      </ConversationContent>
-      <ConversationScrollButton />
-    </Conversation>
-  )
-}
 
 // Render each part of the message based on request state
 function MessageParts({ message, request }: { message: UIMessage; request: Request | null }) {
@@ -115,7 +79,7 @@ function getFullText(message: UIMessage): string {
     .join('')
 }
 
-function TimelineMessage({
+export function TimelineMessage({
   isLast,
   messageId,
   onRegenerate,

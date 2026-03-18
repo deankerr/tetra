@@ -9,6 +9,7 @@ export const tablesSchema = {
     provider: { default: '', type: 'string' },
     systemPrompt: { default: '', type: 'string' },
     temperature: { default: 0, type: 'number' },
+    updatedAt: { default: 0, type: 'number' },
   },
   messages: {
     createdAt: { default: 0, type: 'number' },
@@ -20,6 +21,7 @@ export const tablesSchema = {
   },
   requests: {
     assistantMessageId: { default: '', type: 'string' },
+    config: { default: '', type: 'string' },
     createdAt: { default: 0, type: 'number' },
     errorMessage: { default: '', type: 'string' },
     messageId: { default: '', type: 'string' },

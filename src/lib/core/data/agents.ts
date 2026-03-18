@@ -2,7 +2,6 @@ import type { Row } from 'tinybase/with-schemas'
 
 import type { Schemas } from '@/lib/core/data/schemas'
 import type { AppIndexes, AppStore } from '@/lib/core/data/stores'
-import { uiStore } from '@/lib/core/data/stores'
 
 // --- Codec ---
 
@@ -17,6 +16,7 @@ const decode = (id: string, row: AgentRow) => ({
   provider: row.provider,
   systemPrompt: row.systemPrompt,
   temperature: row.temperature,
+  updatedAt: row.updatedAt,
 })
 
 // --- Types ---
@@ -24,11 +24,11 @@ const decode = (id: string, row: AgentRow) => ({
 export const DEFAULT_AGENT_ID = 'agent-default'
 
 export type Agent = ReturnType<typeof decode>
-export type AgentPatch = Partial<Omit<Agent, 'createdAt' | 'id'>>
+export type AgentPatch = Partial<Omit<Agent, 'createdAt' | 'id' | 'updatedAt'>>
 
 // --- DAO ---
 
-const defaults: Omit<AgentRow, 'createdAt'> = {
+const defaults: Omit<AgentRow, 'createdAt' | 'updatedAt'> = {
   maxOutputTokens: 800,
   model: 'openai/gpt-4o-mini',
   name: 'Default Agent',
@@ -42,14 +42,13 @@ export type AgentDAO = {
   get: (id: string) => Agent | null
   getOrThrow: (id: string) => Agent
   listIds: () => string[]
-  listIdsByCreation: () => string[]
   insert: (id: string, row: AgentPatch) => void
   insertDefault: () => void
   update: (id: string, patch: AgentPatch) => void
   delete: (id: string) => void
 }
 
-export const createAgentDAO = (store: AppStore, indexes: AppIndexes): AgentDAO => ({
+export const createAgentDAO = (store: AppStore, _indexes: AppIndexes): AgentDAO => ({
   get(id) {
     if (!store.hasRow('agents', id)) {
       return null
@@ -69,22 +68,25 @@ export const createAgentDAO = (store: AppStore, indexes: AppIndexes): AgentDAO =
     return store.getRowIds('agents')
   },
 
-  listIdsByCreation() {
-    return indexes.getSliceRowIds('agentsByCreation', 'all')
-  },
-
   insert(id, row) {
-    store.setRow('agents', id, { ...defaults, ...row, createdAt: Date.now() })
+    const timestamp = Date.now()
+    store.setRow('agents', id, { ...defaults, ...row, createdAt: timestamp, updatedAt: timestamp })
   },
 
   insertDefault() {
-    // Preserve existing createdAt if re-seeding, otherwise stamp now
+    const timestamp = Date.now()
+    // Preserve existing timestamps if re-seeding
     const existing = store.hasRow('agents', DEFAULT_AGENT_ID)
-      ? store.getCell('agents', DEFAULT_AGENT_ID, 'createdAt')
-      : 0
+    const createdAt = existing
+      ? store.getCell('agents', DEFAULT_AGENT_ID, 'createdAt') || timestamp
+      : timestamp
+    const updatedAt = existing
+      ? store.getCell('agents', DEFAULT_AGENT_ID, 'updatedAt') || timestamp
+      : timestamp
     store.setRow('agents', DEFAULT_AGENT_ID, {
       ...defaults,
-      createdAt: existing || Date.now(),
+      createdAt,
+      updatedAt,
     })
   },
 
@@ -92,20 +94,10 @@ export const createAgentDAO = (store: AppStore, indexes: AppIndexes): AgentDAO =
     if (!store.hasRow('agents', id)) {
       throw new Error(`Agent not found: ${id}`)
     }
-    store.setPartialRow('agents', id, patch)
+    store.setPartialRow('agents', id, { ...patch, updatedAt: Date.now() })
   },
 
   delete(id) {
     store.delRow('agents', id)
   },
 })
-
-// --- Hooks ---
-
-export const useAgent = (id: string): Agent | null => {
-  const hasRow = uiStore.useHasRow('agents', id)
-  const row = uiStore.useRow('agents', id)
-  return hasRow ? decode(id, row) : null
-}
-
-export const useAgentIds = () => uiStore.useSliceRowIds('agentsByCreation', 'all')

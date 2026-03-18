@@ -49,11 +49,3 @@ export const createAppIndexes = (store: AppStore): AppIndexes =>
       (left, right) => Number(right) - Number(left),
     )
     .setIndexDefinition('requestByAssistantMessage', 'requests', 'assistantMessageId')
-    .setIndexDefinition(
-      'agentsByCreation',
-      'agents',
-      () => 'all',
-      (_, rowId) => store.getCell('agents', rowId, 'createdAt'),
-      undefined,
-      (left, right) => Number(left) - Number(right),
-    )

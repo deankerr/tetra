@@ -1,4 +1,5 @@
 import type { DataLayer } from '@/lib/core/data'
+import { DEFAULT_CONFIG } from '@/lib/core/data/config'
 import type { ChatTransport, StreamResult } from '@/lib/core/stream'
 import { streamResponse } from '@/lib/core/stream'
 
@@ -95,12 +96,15 @@ const executeRequest = async (
   controllers.set(requestId, controller)
 
   try {
-    // Read the assistant message ID from the request (set at creation time)
+    // Read the request and its config snapshot
     const request = data.requests.getOrThrow(requestId)
+    const config = request.config ?? DEFAULT_CONFIG
+
     const result: StreamResult = await streamResponse(
       data,
       sessionId,
       request.assistantMessageId,
+      config,
       transport,
       controller.signal,
     )

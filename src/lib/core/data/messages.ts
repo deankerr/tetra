@@ -114,6 +114,7 @@ export type MessagePatch = {
 export type MessageDAO = {
   get: (id: string) => Message | null
   getOrThrow: (id: string) => Message
+  listIdsBySession: (sessionId: string) => string[]
   listBySession: (sessionId: string) => Message[]
   latestAssistant: (sessionId: string) => Message | null
   insert: (id: string, sessionId: string, seq: number, message: UIMessage) => void
@@ -137,9 +138,12 @@ export const createMessageDAO = (store: AppStore, indexes: AppIndexes): MessageD
     return message
   },
 
+  listIdsBySession(sessionId) {
+    return indexes.getSliceRowIds('messagesBySession', sessionId)
+  },
+
   listBySession(sessionId) {
-    return indexes
-      .getSliceRowIds('messagesBySession', sessionId)
+    return this.listIdsBySession(sessionId)
       .map((id) => this.get(id))
       .filter((m): m is Message => m !== null)
   },
