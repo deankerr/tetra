@@ -54,7 +54,6 @@ Both stores are registered as named stores: `storesById={{ core, ui }}`. There i
 
 ## TinyBase Constraints
 
-- **`useRow` instability with object cells:** TinyBase rebuilds nested values on read, triggering `useSyncExternalStore` infinite loops. Use `useCell` subscriptions for tables with object cells (messages). Use `useRow` for scalar-only tables.
 - **Index gotcha:** Constant slice IDs like `'all'` must be passed as functions (`() => 'all'`), not string literals.
 - **Named stores require explicit IDs:** Every hook must pass a store or indexes ID as the last argument. No default store exists in the Provider.
 

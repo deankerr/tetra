@@ -190,29 +190,10 @@ export const createMessageDAO = (store: AppStore, indexes: AppIndexes): MessageD
 export const useSessionMessageIds = (sessionId: string) =>
   reactCoreStore.useSliceRowIds('messagesBySession', sessionId, CORE)
 
-// Per-cell subscriptions to avoid useRow instability with object cells.
-// useCell returns CellOrUndefined; hasRow guards at runtime but can't
-// narrow across separate hook calls. We assert after the guard.
 export const useMessage = (id: string): Message | null => {
-  const hasRow = reactCoreStore.useHasRow('messages', id, CORE)
-  const createdAt = reactCoreStore.useCell('messages', id, 'createdAt', CORE)
-  const message = reactCoreStore.useCell('messages', id, 'message', CORE)
-  const role = reactCoreStore.useCell('messages', id, 'role', CORE)
-  const seq = reactCoreStore.useCell('messages', id, 'seq', CORE)
-  const sessionId = reactCoreStore.useCell('messages', id, 'sessionId', CORE)
-  const updatedAt = reactCoreStore.useCell('messages', id, 'updatedAt', CORE)
-
-  if (
-    !hasRow ||
-    createdAt === undefined ||
-    message === undefined ||
-    role === undefined ||
-    seq === undefined ||
-    sessionId === undefined ||
-    updatedAt === undefined
-  ) {
+  const row = reactCoreStore.useRow('messages', id, CORE)
+  if (!row.createdAt) {
     return null
   }
-
-  return decode(id, { createdAt, message, role, seq, sessionId, updatedAt })
+  return decode(id, row)
 }

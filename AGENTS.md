@@ -17,7 +17,6 @@ LLM chat app for power users. Local-first, composable, built on TinyBase.
 
 TinyBase documentation: @reference/tinybase-docs
 
-- In React, do not use TinyBase `useRow` for rows that contain `object` or `array` cells such as `messages.message` or `commands.payload`. TinyBase rebuilds those nested values on read, which can make the hook snapshot unstable and trigger React `useSyncExternalStore` infinite-loop errors. Prefer `useCell` subscriptions and reconstruct the record in a local adapter layer. (This is probably a bug/oversight.)
 - Use domain types inferred from the decoders in the data access layer - create derived types if necessary, NEVER manually recreate type definitions.
 
 ## Workflow
