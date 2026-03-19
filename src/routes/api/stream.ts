@@ -9,7 +9,7 @@ import {
 import type { UIMessage } from 'ai'
 import { z } from 'zod'
 
-import { sessionConfigSchema } from '@/lib/shared/config'
+import { sessionConfigSchema } from '@/lib/shared/session-config'
 
 const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,

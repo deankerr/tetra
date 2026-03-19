@@ -3,8 +3,9 @@ import { createStore } from 'tinybase'
 import { createLocalPersister } from 'tinybase/persisters/persister-browser'
 import { useCell, useCellState, useRow, useStore, useValue, useValueState } from 'tinybase/ui-react'
 
-import { DEFAULT_CONFIG, sessionConfigSchema } from '@/lib/shared/config'
-import type { SessionConfig } from '@/lib/shared/config'
+import { DEFAULT_SESSION_CONFIG } from '@/lib/constants'
+import { sessionConfigSchema } from '@/lib/shared/session-config'
+import type { SessionConfig } from '@/lib/shared/session-config'
 
 // --- Store ID ---
 
@@ -40,11 +41,11 @@ export const useDraftCell = (sessionId: string, cellId: string): [string, (v: st
 
 // --- Draft Helpers ---
 
-/** Read draft config for a session. Falls back to DEFAULT_CONFIG. */
+/** Read draft config for a session. Falls back to DEFAULT_SESSION_CONFIG. */
 export const getDraftConfig = (uiStore: Store, sessionId: string): SessionConfig => {
   const row = uiStore.getRow('drafts', sessionId)
   const result = sessionConfigSchema.safeParse(row)
-  return result.success ? result.data : DEFAULT_CONFIG
+  return result.success ? result.data : DEFAULT_SESSION_CONFIG
 }
 
 /** Write config to drafts only if no draft exists yet (preserves in-progress edits). */

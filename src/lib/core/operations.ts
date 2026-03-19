@@ -2,7 +2,7 @@ import type { UIMessage } from 'ai'
 
 import type { DataLayer } from '@/lib/core/data'
 import { id } from '@/lib/core/id'
-import type { SessionConfig } from '@/lib/shared/config'
+import type { SessionConfig } from '@/lib/shared/session-config'
 
 // --- Text Helpers ---
 
@@ -186,14 +186,3 @@ export const bindOperations = (data: DataLayer) => ({
     console.log('[operations:cancelRequest]', 'cancelled', { requestId: active.id, sessionId })
   },
 })
-
-// --- Boot-only ---
-
-/** Ensure at least one session exists. Returns a valid sessionId. */
-export const ensureDefaultSession = (data: DataLayer, createSession: () => string): string => {
-  const existingIds = data.sessions.listIdsByRecency()
-  if (existingIds.length > 0 && existingIds[0] !== undefined) {
-    return existingIds[0]
-  }
-  return createSession()
-}

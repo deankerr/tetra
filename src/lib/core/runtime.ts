@@ -1,7 +1,7 @@
+import { DEFAULT_SESSION_CONFIG } from '@/lib/constants'
 import type { DataLayer } from '@/lib/core/data'
 import type { ChatTransport, StreamResult } from '@/lib/core/stream'
 import { streamResponse } from '@/lib/core/stream'
-import { DEFAULT_CONFIG } from '@/lib/shared/config'
 
 export type Runtime = { stop: () => void }
 
@@ -98,7 +98,7 @@ const executeRequest = async (
   try {
     // Read the request and its config snapshot
     const request = data.requests.getOrThrow(requestId)
-    const config = request.config ?? DEFAULT_CONFIG
+    const config = request.config ?? DEFAULT_SESSION_CONFIG
 
     const result: StreamResult = await streamResponse(
       data,

@@ -6,8 +6,8 @@ import { createRequestDAO } from '@/lib/core/data/requests'
 import type { RequestDAO } from '@/lib/core/data/requests'
 import { createSessionDAO } from '@/lib/core/data/sessions'
 import type { SessionDAO } from '@/lib/core/data/sessions'
-import type { AppIndexes, AppStore } from '@/lib/core/data/stores'
-import { createAppIndexes, createAppPersister, createAppStore } from '@/lib/core/data/stores'
+import type { AppIndexes, AppStore } from '@/lib/core/data/store'
+import { createAppIndexes, createAppPersister, createAppStore } from '@/lib/core/data/store'
 
 export type DataLayer = {
   agents: AgentDAO

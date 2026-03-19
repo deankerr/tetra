@@ -4,8 +4,8 @@ import type { Row } from 'tinybase/with-schemas'
 import { z } from 'zod'
 
 import type { Schemas } from '@/lib/core/data/schemas'
-import type { AppIndexes, AppStore } from '@/lib/core/data/stores'
-import { CORE, reactCoreStore } from '@/lib/core/data/stores'
+import type { AppIndexes, AppStore } from '@/lib/core/data/store'
+import { CORE, reactCoreStore } from '@/lib/core/data/store'
 
 // --- Codec ---
 
@@ -116,6 +116,7 @@ export type MessageDAO = {
   getOrThrow: (id: string) => Message
   listIdsBySession: (sessionId: string) => string[]
   listBySession: (sessionId: string) => Message[]
+  listRecentBySession: (sessionId: string, limit?: number, excludeIds?: string[]) => Message[]
   latestAssistant: (sessionId: string) => Message | null
   insert: (id: string, sessionId: string, seq: number, message: UIMessage) => void
   update: (id: string, patch: MessagePatch) => void
@@ -146,6 +147,20 @@ export const createMessageDAO = (store: AppStore, indexes: AppIndexes): MessageD
     return this.listIdsBySession(sessionId)
       .map((id) => this.get(id))
       .filter((m): m is Message => m !== null)
+  },
+
+  // Load only the last N messages, optionally excluding specific IDs (e.g. placeholder).
+  // Slices the ID array before decoding to avoid loading the full history.
+  listRecentBySession(sessionId, limit, excludeIds) {
+    let ids = this.listIdsBySession(sessionId)
+    if (excludeIds !== undefined && excludeIds.length > 0) {
+      const excluded = new Set(excludeIds)
+      ids = ids.filter((id) => !excluded.has(id))
+    }
+    if (limit !== undefined) {
+      ids = ids.slice(-limit)
+    }
+    return ids.map((id) => this.get(id)).filter((m): m is Message => m !== null)
   },
 
   latestAssistant(sessionId) {

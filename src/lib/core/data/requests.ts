@@ -2,11 +2,12 @@ import { useMemo } from 'react'
 import type { Row } from 'tinybase/with-schemas'
 import { z } from 'zod'
 
+import { DEFAULT_SESSION_CONFIG } from '@/lib/constants'
 import type { Schemas } from '@/lib/core/data/schemas'
-import type { AppIndexes, AppStore } from '@/lib/core/data/stores'
-import { CORE, reactCoreStore } from '@/lib/core/data/stores'
-import { DEFAULT_CONFIG, sessionConfigSchema } from '@/lib/shared/config'
-import type { SessionConfig } from '@/lib/shared/config'
+import type { AppIndexes, AppStore } from '@/lib/core/data/store'
+import { CORE, reactCoreStore } from '@/lib/core/data/store'
+import { sessionConfigSchema } from '@/lib/shared/session-config'
+import type { SessionConfig } from '@/lib/shared/session-config'
 
 // --- Codec ---
 
@@ -99,7 +100,7 @@ export const createRequestDAO = (store: AppStore, indexes: AppIndexes): RequestD
         return config
       }
     }
-    return DEFAULT_CONFIG
+    return DEFAULT_SESSION_CONFIG
   },
 
   insert(id, sessionId, messageId, assistantMessageId, config) {
@@ -173,7 +174,7 @@ export const useRequestForMessage = (messageId: string): Request | null => {
   return decode(requestId, row)
 }
 
-/** Returns the inference config from the most recent request for a session, or DEFAULT_CONFIG. */
+/** Returns the inference config from the most recent request for a session, or DEFAULT_SESSION_CONFIG. */
 export const useLatestConfig = (sessionId: string): SessionConfig => {
   const ids = reactCoreStore.useSliceRowIds('requestsBySession', sessionId, CORE)
   const latestId = ids[0] ?? ''
@@ -181,8 +182,8 @@ export const useLatestConfig = (sessionId: string): SessionConfig => {
 
   return useMemo(() => {
     if (latestId === '') {
-      return DEFAULT_CONFIG
+      return DEFAULT_SESSION_CONFIG
     }
-    return decodeConfig(raw) ?? DEFAULT_CONFIG
+    return decodeConfig(raw) ?? DEFAULT_SESSION_CONFIG
   }, [latestId, raw])
 }

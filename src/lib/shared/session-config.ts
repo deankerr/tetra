@@ -18,15 +18,3 @@ export const sessionConfigSchema = z.object({
 // --- Types ---
 
 export type SessionConfig = z.infer<typeof sessionConfigSchema>
-
-// --- Defaults ---
-
-export const DEFAULT_CONFIG: SessionConfig = {
-  modelId: 'openai/gpt-4o-mini',
-  providerOptions: {
-    max_tokens: 800,
-    temperature: 0.7,
-  },
-  systemPrompt:
-    'You are a concise assistant. Answer directly and prefer short, concrete responses.',
-}

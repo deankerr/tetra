@@ -2,7 +2,7 @@ import { DefaultChatTransport, readUIMessageStream } from 'ai'
 import type { UIMessage } from 'ai'
 
 import type { DataLayer } from '@/lib/core/data'
-import type { SessionConfig } from '@/lib/shared/config'
+import type { SessionConfig } from '@/lib/shared/session-config'
 
 // --- Transport Interface ---
 
@@ -82,9 +82,17 @@ export const streamResponse = async (
   transport: ChatTransport,
   signal?: AbortSignal,
 ): Promise<StreamResult> => {
-  const messages = data.messages.listBySession(sessionId)
+  // Load only recent history, excluding the empty assistant placeholder
+  const messages = data.messages.listRecentBySession(sessionId, config.maxMessages, [
+    assistantMessageId,
+  ])
 
-  console.log('[stream:streamResponse]', 'started', { assistantMessageId, sessionId })
+  console.log('[stream:streamResponse]', 'started', {
+    assistantMessageId,
+    maxMessages: config.maxMessages ?? 'all',
+    messageCount: messages.length,
+    sessionId,
+  })
 
   try {
     // Start the stream

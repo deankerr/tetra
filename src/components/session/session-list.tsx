@@ -115,7 +115,11 @@ function SessionListItem({
         />
       ) : (
         <SidebarMenuButton isActive={active} onClick={onSelect}>
-          <span>{session.title}</span>
+          {session.title ? (
+            <span>{session.title}</span>
+          ) : (
+            <span className="text-muted-foreground">Untitled</span>
+          )}
         </SidebarMenuButton>
       )}
       <DropdownMenu>

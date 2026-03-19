@@ -1,8 +1,8 @@
 import type { Row } from 'tinybase/with-schemas'
 
 import type { Schemas } from '@/lib/core/data/schemas'
-import type { AppIndexes, AppStore } from '@/lib/core/data/stores'
-import { CORE, reactCoreStore } from '@/lib/core/data/stores'
+import type { AppIndexes, AppStore } from '@/lib/core/data/store'
+import { CORE, reactCoreStore } from '@/lib/core/data/store'
 import { useUiValue } from '@/lib/ui'
 
 // --- Codec ---
