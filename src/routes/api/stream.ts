@@ -50,10 +50,7 @@ export const Route = createFileRoute('/api/stream')({
         // oxlint-disable-next-line no-unsafe-type-assertion -- system boundary: Zod-validated input
         const messages = parsed.data.messages as unknown as UIMessage[]
 
-        // Strip IDs before converting to model messages
-        const modelMessages = await convertToModelMessages(
-          messages.map(({ id: _id, ...message }) => message),
-        )
+        const modelMessages = await convertToModelMessages(messages)
 
         const result = streamText({
           messages: modelMessages,

@@ -6,7 +6,7 @@ const generate = customAlphabet(alphabet, ID_LENGTH)
 
 const prefixed = (prefix: string) => () => `${prefix}_${generate()}`
 
-export const id = {
+export const generateId = {
   agent: prefixed('agnt'),
   message: prefixed('mesg'),
   request: prefixed('rqst'),

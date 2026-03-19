@@ -13,7 +13,7 @@ export const tablesSchema = {
   },
   messages: {
     createdAt: { default: 0, type: 'number' },
-    message: { default: {}, type: 'object' },
+    parts: { default: [], type: 'array' },
     role: { default: 'user', type: 'string' },
     seq: { default: 0, type: 'number' },
     sessionId: { default: '', type: 'string' },

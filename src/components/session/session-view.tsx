@@ -1,4 +1,4 @@
-import { BotIcon, PanelRightIcon } from 'lucide-react'
+import { BotIcon, BugIcon, PanelRightIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import {
@@ -59,6 +59,19 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
           <span className="min-w-0 flex-1 truncate font-medium text-sm">
             {session.title || 'New session'}
           </span>
+          <Button
+            onClick={() => {
+              const sessionData = core.data.sessions.get(sessionId)
+              const messages = core.data.messages.listBySession(sessionId)
+              console.log('[session-view:dump]', { messages, session: sessionData })
+            }}
+            size="icon-sm"
+            title="Dump session data to console"
+            type="button"
+            variant="ghost"
+          >
+            <BugIcon />
+          </Button>
           <Button
             onClick={() => {
               setDetailOpen((prev) => !prev)

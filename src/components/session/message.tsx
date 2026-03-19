@@ -88,14 +88,13 @@ export function TimelineMessage({
   isLast: boolean
   onRegenerate: () => void
 }) {
-  const record = useMessage(messageId)
+  const message = useMessage(messageId)
   const request = useRequestForMessage(messageId)
 
-  if (record === null) {
+  if (message === null) {
     return null
   }
 
-  const { message } = record
   const isAssistant = message.role === 'assistant'
   const hasTextParts = message.parts.some((p) => p.type === 'text')
 

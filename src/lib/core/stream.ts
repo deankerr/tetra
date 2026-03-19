@@ -1,5 +1,5 @@
-import { DefaultChatTransport, readUIMessageStream } from 'ai'
 import type { UIMessage } from 'ai'
+import { DefaultChatTransport, readUIMessageStream } from 'ai'
 
 import type { DataLayer } from '@/lib/core/data'
 import type { SessionConfig } from '@/lib/shared/session-config'
@@ -99,7 +99,7 @@ export const streamResponse = async (
     const stream = await transport.stream({
       assistantMessageId,
       config,
-      messages: messages.map((m) => m.message),
+      messages,
       sessionId,
       signal,
     })
@@ -108,7 +108,7 @@ export const streamResponse = async (
     let received = false
     for await (const nextMessage of stream) {
       received = true
-      data.messages.update(assistantMessageId, { message: nextMessage })
+      data.messages.writeStreamChunk(assistantMessageId, nextMessage)
     }
 
     // Empty stream — model returned nothing

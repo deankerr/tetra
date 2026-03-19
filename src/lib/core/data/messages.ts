@@ -1,7 +1,6 @@
 import type { UIMessage } from 'ai'
 import * as R from 'remeda'
 import type { Row } from 'tinybase/with-schemas'
-import { z } from 'zod'
 
 import type { Schemas } from '@/lib/core/data/schemas'
 import type { AppIndexes, AppStore } from '@/lib/core/data/store'
@@ -11,103 +10,21 @@ import { CORE, reactCoreStore } from '@/lib/core/data/store'
 
 type MessageRow = Row<Schemas[0], 'messages'>
 
-// Zod schema for validating persisted message objects on read.
-// Validates structural integrity; the canonical type is AI SDK's UIMessage.
-const providerMetadata = z.record(z.string(), z.record(z.string(), z.unknown())).optional()
-
-const textPart = z.object({
-  providerMetadata,
-  state: z.enum(['streaming', 'done']).optional(),
-  text: z.string(),
-  type: z.literal('text'),
+const decode = (id: string, row: MessageRow) => ({
+  createdAt: row.createdAt,
+  id,
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+  parts: row.parts as UIMessage['parts'],
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+  role: row.role as UIMessage['role'],
+  seq: row.seq,
+  sessionId: row.sessionId,
+  updatedAt: row.updatedAt,
 })
-
-const reasoningPart = z.object({
-  providerMetadata,
-  state: z.enum(['streaming', 'done']).optional(),
-  text: z.string(),
-  type: z.literal('reasoning'),
-})
-
-const sourceUrlPart = z.object({
-  providerMetadata,
-  sourceId: z.string(),
-  title: z.string().optional(),
-  type: z.literal('source-url'),
-  url: z.string(),
-})
-
-const filePart = z.object({
-  filename: z.string().optional(),
-  mediaType: z.string(),
-  providerMetadata,
-  type: z.literal('file'),
-  url: z.string(),
-})
-
-const stepStartPart = z.object({
-  type: z.literal('step-start'),
-})
-
-// Catchall for tool parts, dynamic tool parts, data parts, and future types.
-// We validate structure at the part level when we need to render them.
-const unknownPart = z.looseObject({ type: z.string() })
-
-const uiMessagePartSchema = z.union([
-  textPart,
-  reasoningPart,
-  sourceUrlPart,
-  filePart,
-  stepStartPart,
-  unknownPart,
-])
-
-// Validates the minimum shape we need. The result is treated as UIMessage.
-const storedMessageSchema = z.object({
-  id: z.string(),
-  parts: z.array(uiMessagePartSchema),
-  role: z.enum(['user', 'assistant', 'system']),
-})
-
-// Validate a raw object cell as UIMessage. Zod schema is intentionally looser
-// than UIMessage (unknown catchalls, permissive providerMetadata) so it accepts
-// anything AI SDK might produce. After validation passes, we trust the data.
-const validateMessage = (raw: unknown): UIMessage | null => {
-  const result = storedMessageSchema.safeParse(raw)
-  // oxlint-disable-next-line no-unsafe-type-assertion -- Zod validates structure; UIMessage is the canonical type
-  return result.success ? (result.data as unknown as UIMessage) : null
-}
-
-const decode = (id: string, row: MessageRow) => {
-  const message = validateMessage(row.message)
-  if (message === null) {
-    return null
-  }
-
-  return {
-    createdAt: row.createdAt,
-    id,
-    message,
-    role: message.role,
-    seq: row.seq,
-    sessionId: row.sessionId,
-    updatedAt: row.updatedAt,
-  }
-}
-
-// UIMessage is an interface (no implicit index signature), but TinyBase's
-// object cells expect AnyObject ({ [key: string]: unknown }). Spreading
-// into a plain object satisfies the constraint at the DAO boundary.
-const toObjectCell = (message: UIMessage) => ({ ...message })
 
 // --- Types ---
 
-export type Message = NonNullable<ReturnType<typeof decode>>
-
-export type MessagePatch = {
-  message?: UIMessage
-  role?: UIMessage['role']
-}
+export type Message = ReturnType<typeof decode>
 
 // --- DAO ---
 
@@ -118,8 +35,15 @@ export type MessageDAO = {
   listBySession: (sessionId: string) => Message[]
   listRecentBySession: (sessionId: string, limit?: number, excludeIds?: string[]) => Message[]
   latestAssistant: (sessionId: string) => Message | null
-  insert: (id: string, sessionId: string, seq: number, message: UIMessage) => void
-  update: (id: string, patch: MessagePatch) => void
+  insert: (
+    id: string,
+    sessionId: string,
+    seq: number,
+    role: UIMessage['role'],
+    parts: UIMessage['parts'],
+  ) => void
+  update: (id: string, role: string) => void
+  writeStreamChunk: (id: string, message: UIMessage) => void
   delete: (id: string) => void
 }
 
@@ -169,30 +93,33 @@ export const createMessageDAO = (store: AppStore, indexes: AppIndexes): MessageD
     return match === undefined ? null : this.get(match)
   },
 
-  insert(id, sessionId, seq, message) {
+  insert(id, sessionId, seq, role, parts) {
     const timestamp = Date.now()
     store.setRow('messages', id, {
       createdAt: timestamp,
-      message: toObjectCell(message),
-      role: message.role,
+      parts,
+      role,
       seq,
       sessionId,
       updatedAt: timestamp,
     })
   },
 
-  update(id, patch) {
+  // Update only the role of a message
+  update(id, role) {
     if (!store.hasRow('messages', id)) {
       return
     }
-    const partial: Record<string, unknown> = { updatedAt: Date.now() }
-    if (patch.role !== undefined) {
-      partial.role = patch.role
+    store.setPartialRow('messages', id, { role, updatedAt: Date.now() })
+  },
+
+  // Write a streamed UIMessage snapshot into the row
+  writeStreamChunk(id, message) {
+    if (!store.hasRow('messages', id)) {
+      return
     }
-    if (patch.message !== undefined) {
-      partial.message = toObjectCell(patch.message)
-    }
-    store.setPartialRow('messages', id, partial)
+
+    store.setPartialRow('messages', id, { parts: message.parts, updatedAt: Date.now() })
   },
 
   delete(id) {

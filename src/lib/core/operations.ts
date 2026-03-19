@@ -1,25 +1,11 @@
-import type { UIMessage } from 'ai'
-
 import type { DataLayer } from '@/lib/core/data'
-import { id } from '@/lib/core/id'
+import { generateId } from '@/lib/core/id'
 import type { SessionConfig } from '@/lib/shared/session-config'
 
 // --- Text Helpers ---
 
-const isTextPart = (part: UIMessage['parts'][number]): part is { text: string; type: 'text' } =>
-  part.type === 'text'
-
-export const getMessageText = (message: UIMessage) =>
-  message.parts
-    .filter(isTextPart)
-    .map((part) => part.text)
-    .join('')
-
 const generateTitle = (text: string, maxLength = 128) => {
   const normalized = text.replaceAll(/\s+/g, ' ').trim()
-  if (normalized === '') {
-    return 'New session'
-  }
   if (normalized.length <= maxLength) {
     return normalized
   }
@@ -34,7 +20,7 @@ export const bindOperations = (data: DataLayer) => ({
   // --- Session Operations ---
 
   createSession() {
-    const sessionId = id.session()
+    const sessionId = generateId.session()
     data.sessions.insert(sessionId)
 
     console.log('[operations:createSession]', 'created', { sessionId })
@@ -87,23 +73,11 @@ export const bindOperations = (data: DataLayer) => ({
     // Resolve config: caller override → latest request → app default
     const resolvedConfig = config ?? data.requests.getLatestConfigForSession(sessionId)
 
-    const messageId = id.message()
-    const assistantMessageId = id.message()
-    const requestId = id.request()
+    const messageId = generateId.message()
+    const assistantMessageId = generateId.message()
+    const requestId = generateId.request()
     const userSeq = session.lastSeq + 1
     const assistantSeq = session.lastSeq + 2
-
-    const userMessage: UIMessage = {
-      id: messageId,
-      parts: [{ text, type: 'text' }],
-      role: 'user',
-    }
-
-    const assistantPlaceholder: UIMessage = {
-      id: assistantMessageId,
-      parts: [],
-      role: 'assistant',
-    }
 
     // Auto-title: use first user message text
     const isFirstMessage = session.lastSeq === 0
@@ -111,8 +85,8 @@ export const bindOperations = (data: DataLayer) => ({
 
     // Atomic: user msg + assistant placeholder + request with config snapshot
     data.transaction(() => {
-      data.messages.insert(messageId, sessionId, userSeq, userMessage)
-      data.messages.insert(assistantMessageId, sessionId, assistantSeq, assistantPlaceholder)
+      data.messages.insert(messageId, sessionId, userSeq, 'user', [{ text, type: 'text' }])
+      data.messages.insert(assistantMessageId, sessionId, assistantSeq, 'assistant', [])
       data.sessions.update(sessionId, { lastSeq: assistantSeq, title })
       data.requests.insert(requestId, sessionId, messageId, assistantMessageId, resolvedConfig)
     })
@@ -137,14 +111,12 @@ export const bindOperations = (data: DataLayer) => ({
 
     // Find last assistant message and the user message before it
     const messages = data.messages.listBySession(sessionId)
-    const lastAssistant = messages.findLast((m) => m.message.role === 'assistant')
+    const lastAssistant = messages.findLast((m) => m.role === 'assistant')
     if (lastAssistant === undefined) {
       return null
     }
     const lastAssistantIdx = messages.indexOf(lastAssistant)
-    const userMessage = messages
-      .slice(0, lastAssistantIdx)
-      .findLast((m) => m.message.role === 'user')
+    const userMessage = messages.slice(0, lastAssistantIdx).findLast((m) => m.role === 'user')
     if (userMessage === undefined) {
       return null
     }
@@ -152,19 +124,13 @@ export const bindOperations = (data: DataLayer) => ({
     // Resolve config: caller override → latest request → app default
     const resolvedConfig = config ?? data.requests.getLatestConfigForSession(sessionId)
 
-    const assistantMessageId = id.message()
-    const requestId = id.request()
-
-    const assistantPlaceholder: UIMessage = {
-      id: assistantMessageId,
-      parts: [],
-      role: 'assistant',
-    }
+    const assistantMessageId = generateId.message()
+    const requestId = generateId.request()
 
     // Atomic: delete old assistant, insert new placeholder + request with config
     data.transaction(() => {
       data.messages.delete(lastAssistant.id)
-      data.messages.insert(assistantMessageId, sessionId, lastAssistant.seq, assistantPlaceholder)
+      data.messages.insert(assistantMessageId, sessionId, lastAssistant.seq, 'assistant', [])
       data.requests.insert(requestId, sessionId, userMessage.id, assistantMessageId, resolvedConfig)
     })
 
