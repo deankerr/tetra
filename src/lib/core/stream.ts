@@ -33,9 +33,11 @@ export const createDefaultTransport = (api = '/api/stream'): ChatTransport => {
         abortSignal: config.signal,
         body: {
           assistantMessageId: config.assistantMessageId,
-          modelId: config.config.modelId,
-          providerOptions: config.config.providerOptions,
-          systemPrompt: config.config.systemPrompt,
+          config: {
+            modelId: config.config.modelId,
+            providerOptions: config.config.providerOptions,
+            systemPrompt: config.config.systemPrompt,
+          },
         },
         chatId: config.sessionId,
         messageId: config.assistantMessageId,

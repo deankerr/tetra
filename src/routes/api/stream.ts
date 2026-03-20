@@ -21,8 +21,9 @@ const messageSchema = z.looseObject({
   role: z.enum(['user', 'assistant', 'system']),
 })
 
-const requestSchema = sessionConfigSchema.omit({ maxMessages: true }).extend({
+const requestSchema = z.object({
   assistantMessageId: z.string().min(1),
+  config: sessionConfigSchema.omit({ maxMessages: true }),
   messages: z.array(messageSchema).min(1),
 })
 
@@ -42,9 +43,10 @@ export const Route = createFileRoute('/api/stream')({
           return new Response(parsed.error.message, { status: 400 })
         }
 
-        const { assistantMessageId, modelId, providerOptions, systemPrompt } = parsed.data
+        const { assistantMessageId, config } = parsed.data
+        const { modelId, providerOptions, systemPrompt } = config
 
-        console.log('[api/stream]', 'start', { assistantMessageId, modelId })
+        console.log('[api/stream]', 'start', { assistantMessageId, config })
 
         // Zod validates structural integrity; UIMessage is the canonical type.
         // oxlint-disable-next-line no-unsafe-type-assertion -- system boundary: Zod-validated input
@@ -55,6 +57,7 @@ export const Route = createFileRoute('/api/stream')({
         const result = streamText({
           messages: modelMessages,
           model: openrouter(modelId),
+
           onAbort: () => {
             console.log('[api/stream]', 'abort', { assistantMessageId })
           },
@@ -62,10 +65,9 @@ export const Route = createFileRoute('/api/stream')({
             console.log('[api/stream]', 'finish', {
               assistantMessageId,
               finishReason,
-              tokens: usage.totalTokens,
+              usage: usage.raw,
             })
           },
-          // oxlint-disable-next-line no-unsafe-type-assertion -- system boundary: Zod-validated JSON
           providerOptions: providerOptions ? { openrouter: providerOptions } : undefined,
           system: systemPrompt,
         })

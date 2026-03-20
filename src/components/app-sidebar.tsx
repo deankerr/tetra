@@ -13,10 +13,14 @@ import {
   SidebarMenu,
 } from '@/components/ui/sidebar'
 import { useCore } from '@/components/use-core'
-import { useUiValueState } from '@/lib/ui'
+import { DEFAULT_SESSION_CONFIG } from '@/lib/constants'
+import { useActiveSessionId } from '@/lib/core/data/sessions'
+import { getDraftConfig, initDraft, useUiStore, useUiValueState } from '@/lib/ui'
 
 export function AppSidebar() {
   const core = useCore()
+  const uiStore = useUiStore()
+  const activeSessionId = useActiveSessionId()
   const [, setActiveSessionId] = useUiValueState('activeSessionId')
 
   return (
@@ -38,7 +42,15 @@ export function AppSidebar() {
           <SidebarGroupAction
             className="top-2.5"
             onClick={() => {
+              // Copy config from current session, or use defaults for first session
+              const config =
+                uiStore !== undefined && activeSessionId !== undefined && activeSessionId !== ''
+                  ? getDraftConfig(uiStore, activeSessionId)
+                  : DEFAULT_SESSION_CONFIG
               const sessionId = core.createSession()
+              if (uiStore) {
+                initDraft(uiStore, sessionId, config)
+              }
               setActiveSessionId(sessionId)
             }}
           >

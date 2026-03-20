@@ -1,5 +1,5 @@
-import { BotIcon, BugIcon, PanelRightIcon } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { BotIcon, PanelRightIcon } from 'lucide-react'
+import { useState } from 'react'
 
 import {
   Conversation,
@@ -11,14 +11,13 @@ import { Button } from '@/components/ui/button'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { useCore } from '@/components/use-core'
 import { useSessionMessageIds } from '@/lib/core/data/messages'
-import { useLatestConfig } from '@/lib/core/data/requests'
 import { useActiveSessionId, useSession } from '@/lib/core/data/sessions'
-import { initDraft, useUiStore } from '@/lib/ui'
 
 import { Composer } from './composer'
 import { DetailPanel } from './detail-panel'
 import { TimelineMessage } from './message'
 import { SessionConfig } from './session-config'
+import { SessionDump } from './session-dump'
 
 export function SessionView() {
   const activeSessionId = useActiveSessionId()
@@ -37,15 +36,6 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
   const messageIds = useSessionMessageIds(sessionId)
   const [detailOpen, setDetailOpen] = useState(true)
 
-  // Initialize draft config from last committed config (only if no draft exists yet)
-  const uiStore = useUiStore()
-  const latestConfig = useLatestConfig(sessionId)
-  useEffect(() => {
-    if (uiStore) {
-      initDraft(uiStore, sessionId, latestConfig)
-    }
-  }, [sessionId]) // eslint-disable-line react-hooks/exhaustive-deps -- runs once per session mount
-
   if (session === null) {
     return null
   }
@@ -59,19 +49,7 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
           <span className="min-w-0 flex-1 truncate font-medium text-sm">
             {session.title || 'New session'}
           </span>
-          <Button
-            onClick={() => {
-              const sessionData = core.data.sessions.get(sessionId)
-              const messages = core.data.messages.listBySession(sessionId)
-              console.log('[session-view:dump]', { messages, session: sessionData })
-            }}
-            size="icon-sm"
-            title="Dump session data to console"
-            type="button"
-            variant="ghost"
-          >
-            <BugIcon />
-          </Button>
+          <SessionDump sessionId={sessionId} />
           <Button
             onClick={() => {
               setDetailOpen((prev) => !prev)

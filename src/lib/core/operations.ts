@@ -70,8 +70,12 @@ export const bindOperations = (data: DataLayer) => ({
       return null
     }
 
-    // Resolve config: caller override → latest request → app default
+    // Resolve config: caller override → latest request. No silent default.
     const resolvedConfig = config ?? data.requests.getLatestConfigForSession(sessionId)
+    if (resolvedConfig === null) {
+      console.error('[operations:sendMessage]', 'no config available', { sessionId })
+      return null
+    }
 
     const messageId = generateId.message()
     const assistantMessageId = generateId.message()
@@ -121,8 +125,12 @@ export const bindOperations = (data: DataLayer) => ({
       return null
     }
 
-    // Resolve config: caller override → latest request → app default
+    // Resolve config: caller override → latest request. No silent default.
     const resolvedConfig = config ?? data.requests.getLatestConfigForSession(sessionId)
+    if (resolvedConfig === null) {
+      console.error('[operations:regenerate]', 'no config available', { sessionId })
+      return null
+    }
 
     const assistantMessageId = generateId.message()
     const requestId = generateId.request()

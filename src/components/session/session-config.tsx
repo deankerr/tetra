@@ -1,4 +1,6 @@
 import { ModelPicker } from '@/components/model-picker'
+import { ProviderOptionsEditor } from '@/components/session/provider-options-editor'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldGroup, FieldTitle } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
 import { useDraftCell } from '@/lib/ui'
@@ -24,6 +26,14 @@ export function SessionConfig({ sessionId }: { sessionId: string }) {
           value={systemPrompt}
         />
       </Field>
+      <Card size="sm">
+        <CardHeader>
+          <CardTitle className="text-xs">Provider Options</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ProviderOptionsEditor sessionId={sessionId} />
+        </CardContent>
+      </Card>
     </FieldGroup>
   )
 }

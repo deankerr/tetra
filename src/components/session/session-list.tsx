@@ -11,11 +11,13 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { SidebarMenuAction, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar'
 import { useCore } from '@/components/use-core'
+import { DEFAULT_SESSION_CONFIG } from '@/lib/constants'
 import { useActiveSessionId, useSession, useSessionIds } from '@/lib/core/data/sessions'
-import { useUiValueState } from '@/lib/ui'
+import { initDraft, useUiStore, useUiValueState } from '@/lib/ui'
 
 export function SessionList() {
   const core = useCore()
+  const uiStore = useUiStore()
   const sessionIds = useSessionIds()
   const activeSessionId = useActiveSessionId()
   const [, setActiveSessionId] = useUiValueState('activeSessionId')
@@ -36,6 +38,9 @@ export function SessionList() {
                 setActiveSessionId(remaining[0])
               } else {
                 const newId = core.createSession()
+                if (uiStore) {
+                  initDraft(uiStore, newId, DEFAULT_SESSION_CONFIG)
+                }
                 setActiveSessionId(newId)
               }
             }
