@@ -30,6 +30,19 @@ export const useUiCellState = (tableId: string, rowId: string, cellId: string) =
   useCellState(tableId, rowId, cellId, UI)
 export const useUiRow = (tableId: string, rowId: string) => useRow(tableId, rowId, UI)
 
+// --- API Key Hook ---
+
+export const useApiKey = (): [string, (v: string) => void] => {
+  const [value, setter] = useValueState('openrouterApiKey', UI)
+  const str = typeof value === 'string' ? value : ''
+  return [str, setter]
+}
+
+export const getApiKey = (uiStore: Store): string => {
+  const value = uiStore.getValue('openrouterApiKey')
+  return typeof value === 'string' ? value : ''
+}
+
 // --- Draft Cell Hook ---
 // Narrowed to string for draft config fields (all stored as string/number scalars).
 

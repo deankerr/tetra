@@ -1,6 +1,7 @@
 import { PlusIcon } from 'lucide-react'
 
 import { SessionList } from '@/components/session/session-list'
+import { SettingsDialog } from '@/components/settings-dialog'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import {
   SidebarContent,
@@ -66,7 +67,8 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
-        <div>
+        <div className="flex items-center gap-2">
+          <SettingsDialog />
           <ThemeSwitcher />
         </div>
       </SidebarFooter>

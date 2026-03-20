@@ -1,5 +1,4 @@
 import type { UIMessage } from 'ai'
-import { DefaultChatTransport, readUIMessageStream } from 'ai'
 
 import type { DataLayer } from '@/lib/core/data'
 import type { SessionConfig } from '@/lib/shared/session-config'
@@ -16,49 +15,6 @@ export type StreamConfig = {
 
 export type ChatTransport = {
   stream: (config: StreamConfig) => Promise<AsyncIterable<UIMessage>>
-}
-
-// --- Default Transport (AI SDK + OpenRouter) ---
-
-/**
- * Wraps AI SDK's DefaultChatTransport for the /api/stream endpoint.
- * Spreads inference config into the request body for the server to consume.
- */
-export const createDefaultTransport = (api = '/api/stream'): ChatTransport => {
-  const inner = new DefaultChatTransport<UIMessage>({ api })
-
-  return {
-    async stream(config) {
-      const rawStream = await inner.sendMessages({
-        abortSignal: config.signal,
-        body: {
-          assistantMessageId: config.assistantMessageId,
-          config: {
-            modelId: config.config.modelId,
-            providerOptions: config.config.providerOptions,
-            systemPrompt: config.config.systemPrompt,
-          },
-        },
-        chatId: config.sessionId,
-        messageId: config.assistantMessageId,
-        messages: config.messages,
-        trigger: 'submit-message',
-      })
-
-      // readUIMessageStream yields incremental UIMessage snapshots
-      const seed: UIMessage = {
-        id: config.assistantMessageId,
-        parts: [],
-        role: 'assistant',
-      }
-
-      return readUIMessageStream<UIMessage>({
-        message: seed,
-        stream: rawStream,
-        terminateOnError: true,
-      })
-    },
-  }
 }
 
 // --- Result Type ---

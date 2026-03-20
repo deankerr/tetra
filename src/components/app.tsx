@@ -23,7 +23,7 @@ export function App() {
     (store) => createLocalPersister(store, 'tetra-ui'),
     [],
     async (persister) => {
-      await persister.startAutoLoad([{}, { activeSessionId: '' }])
+      await persister.startAutoLoad([{}, { activeSessionId: '', openrouterApiKey: '' }])
       await persister.startAutoSave()
     },
   )
@@ -34,6 +34,27 @@ export function App() {
     }
     void init()
   }, [])
+
+  // Sync API key from UI store → core transport ref
+  useEffect(() => {
+    if (core === null) {
+      return
+    }
+
+    const sync = () => {
+      const key = uiStore.getValue('openrouterApiKey')
+      core.setApiKey(typeof key === 'string' && key !== '' ? key : undefined)
+    }
+
+    // Initial sync
+    sync()
+
+    // Keep in sync when key changes
+    const listenerId = uiStore.addValueListener('openrouterApiKey', sync)
+    return () => {
+      uiStore.delListener(listenerId)
+    }
+  }, [core, uiStore])
 
   // Loading state — core initializes store + persistence
   if (core === null) {

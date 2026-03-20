@@ -15,7 +15,7 @@ Structured in layers:
 1. **Schema + Store** — Table/value definitions, store creation, persistence, indexes → `lib/core/data/stores.ts`, `lib/core/data/schemas.ts`
 2. **DAOs + Codecs** — Type-safe read/write per entity. Codecs separate persisted row shape from domain types. Types inferred from decode functions → `lib/core/data/{agents,sessions,messages,requests}.ts`
 3. **Operations** — Named business actions (`createSession`, `sendMessage`, `regenerate`). Multi-entity writes. Pure domain logic — operations do not read or write UI state → `lib/core/operations.ts`
-4. **Runtime** — Watches for pending requests, manages abort controllers, writes streamed responses back to the store. Not aware of React → `lib/core/runtime.ts`, `lib/core/stream.ts`
+4. **Runtime** — Watches for pending requests, manages abort controllers, writes streamed responses back to the store. Not aware of React → `lib/core/runtime.ts`, `lib/core/stream.ts`, `lib/core/browser-transport.ts`
 5. **Core Singleton** — Composes data layer, operations, and runtime. Single entry point for React → `lib/core/index.ts`
 
 **Entities:**
@@ -27,7 +27,7 @@ Structured in layers:
 
 ### UI Store
 
-Local-only UI state. Which session is active, draft inference configs, panel visibility. Persisted to localStorage so it survives refresh, but would never sync — you wouldn't want another device to inherit your sidebar toggle or half-edited system prompt.
+Local-only UI state. Which session is active, draft inference configs, API keys, panel visibility. Persisted to localStorage so it survives refresh, but would never sync — you wouldn't want another device to inherit your sidebar toggle, API key, or half-edited system prompt.
 
 Created inside the React tree (`useCreateStore` + `useCreatePersister`). No schema, no DAOs, no operations layer. Components work directly with TinyBase primitives through thin hook wrappers in `lib/ui.ts` that hard-code the store ID.
 
@@ -57,9 +57,11 @@ Both stores are registered as named stores: `storesById={{ core, ui }}`. There i
 
 - **Index gotcha:** Constant slice IDs like `'all'` must be passed as functions (`() => 'all'`), not string literals.
 
-## Server
+## Inference
 
-- `routes/api/stream.ts` — SSE endpoint. Wraps `streamText` in `createUIMessageStream` to catch provider errors and send them as error chunks over the stream protocol.
+Inference runs entirely in the browser. `streamText()` from the AI SDK is called directly via `createBrowserTransport` in `lib/core/browser-transport.ts` — no server endpoint.
+
+The user provides their own OpenRouter API key, stored as a value in the UI store (`openrouterApiKey`). The core singleton initializes before the UI store hydrates, so the transport uses a late-binding getter: `app.tsx` syncs the key from the UI store to a mutable ref via a TinyBase value listener, and the transport reads it at stream time.
 
 ## Open Questions
 

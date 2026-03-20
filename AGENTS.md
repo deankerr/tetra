@@ -2,7 +2,7 @@
 
 LLM chat app for power users. Local-first, composable, built on TinyBase.
 
-- `AI SDK` with `OpenRouter` provider
+- `AI SDK` with `OpenRouter` provider — inference runs client-side, user provides their own API key
 - `TanStack Start`, `Tailwind`, `shadcn/ui` with `Base UI` and theme preset (Mira, Teal/Mist)
 - `AI Elements` Chatbot/Agent components from the `shadcn` component registry
 - Use `zod` for validation - not manual checking
