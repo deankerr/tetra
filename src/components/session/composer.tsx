@@ -50,6 +50,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
             }}
             placeholder="Send a message…"
             value={draft}
+            className="md:text-sm min-h-14"
           />
         </PromptInputBody>
         <PromptInputFooter>

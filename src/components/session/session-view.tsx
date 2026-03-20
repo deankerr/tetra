@@ -44,7 +44,7 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
     <div className="flex min-h-0 flex-1">
       {/* Main content */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <header className="flex shrink-0 items-center justify-between gap-2 border-b px-2 py-4">
+        <header className="flex h-(--header-height) shrink-0 items-center justify-between gap-2 border-b px-2">
           <SidebarTrigger />
           <span className="min-w-0 flex-1 truncate font-medium text-sm">
             {session.title || 'New session'}

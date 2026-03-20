@@ -1,11 +1,11 @@
 import { ThemeProvider } from '@lonik/themer'
 import { TanStackDevtools } from '@tanstack/react-devtools'
-import type { ErrorComponentProps } from '@tanstack/react-router'
-import { HeadContent, Scripts, createRootRoute, useRouter } from '@tanstack/react-router'
+import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
-import { AlertCircleIcon } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
+import { DebugMenu } from '@/components/debug-menu'
+import { RootErrorComponent } from '@/components/root-error'
+import { RootNotFoundComponent } from '@/components/root-not-found'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
 import appCss from '../styles.css?url'
@@ -41,52 +41,6 @@ export const Route = createRootRoute({
   shellComponent: RootDocument,
 })
 
-function RootErrorComponent({ error, reset }: ErrorComponentProps) {
-  const router = useRouter()
-
-  return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-4 bg-background p-8">
-      <AlertCircleIcon className="size-8 text-destructive" />
-      <div className="flex flex-col items-center gap-1 text-center">
-        <h1 className="font-medium text-lg">Something went wrong</h1>
-        <p className="max-w-md text-sm text-muted-foreground">
-          {error instanceof Error ? error.message : 'An unexpected error occurred.'}
-        </p>
-      </div>
-      <Button
-        onClick={() => {
-          reset()
-          void router.invalidate()
-        }}
-        variant="outline"
-      >
-        Try again
-      </Button>
-    </div>
-  )
-}
-
-function RootNotFoundComponent() {
-  const router = useRouter()
-
-  return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-4 bg-background p-8">
-      <div className="flex flex-col items-center gap-1 text-center">
-        <h1 className="font-medium text-lg">Page not found</h1>
-        <p className="text-sm text-muted-foreground">The page you're looking for doesn't exist.</p>
-      </div>
-      <Button
-        onClick={() => {
-          void router.navigate({ to: '/' })
-        }}
-        variant="outline"
-      >
-        Go home
-      </Button>
-    </div>
-  )
-}
-
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -97,6 +51,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <ThemeProvider defaultTheme="dark" enableSystem storageKey="tetra-theme">
           <TooltipProvider>{children}</TooltipProvider>
         </ThemeProvider>
+        <DebugMenu />
         <TanStackDevtools
           config={{
             openHotkey: ['Control', 'A'],

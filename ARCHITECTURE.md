@@ -40,6 +40,7 @@ Both stores are registered as named stores: `storesById={{ core, ui }}`. There i
 ## Data Flow
 
 **Send message:**
+
 1. Component reads draft config from UI store, calls `core.sendMessage(sessionId, text, config)`
 2. Operations write user message + assistant placeholder + pending request (with config snapshot)
 3. Runtime picks up pending request, streams response, writes partial updates
@@ -55,7 +56,6 @@ Both stores are registered as named stores: `storesById={{ core, ui }}`. There i
 ## TinyBase Constraints
 
 - **Index gotcha:** Constant slice IDs like `'all'` must be passed as functions (`() => 'all'`), not string literals.
-- **Named stores require explicit IDs:** Every hook must pass a store or indexes ID as the last argument. No default store exists in the Provider.
 
 ## Server
 
