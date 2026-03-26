@@ -8,7 +8,7 @@
     "**/_generated",
     "**/routeTree.gen.ts",
     "**/components/ui",
-    "**/components/ai-elements",
+    "**/components/ai-elements"
   ],
   "rules": {
     "func-style": "off",
@@ -20,6 +20,6 @@
     "no-void": "off",
     "no-warning-comments": "off",
     "import/no-relative-parent-imports": "off",
-    "require-await": "off",
-  },
+    "require-await": "off"
+  }
 }

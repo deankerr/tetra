@@ -39,6 +39,7 @@ ChatAgent is free to talk to the user or do other work while waiting. The runtim
 ## Mechanics
 
 **`spawn_agent` tool shape:**
+
 ```
 spawn_agent(
   type: string,        — agent config to use (e.g. 'seer', 'researcher')
@@ -53,6 +54,7 @@ spawn_agent(
 **Result flow:** Sub-session completion triggers a write to the parent session's pending tool call. For blocking calls, the parent waits. For non-blocking, the result is injected when ready.
 
 **No new infrastructure.** The runtime already manages concurrent sessions, processes commands reactively, and tracks session status. The only additions are:
+
 - A `spawn_agent` tool handler that writes commands
 - A `parentSessionId` field on sessions
 - A listener that bridges sub-session completion → parent tool result
@@ -62,6 +64,7 @@ spawn_agent(
 This pattern doesn't require advance planning in the data model — it falls out naturally from keeping sessions, commands, and tools as generic primitives. A system designed around "user sends message, LLM responds" would need significant rework to support this. A system designed around "sessions have agents, agents have tools, tools can create sessions" supports it as an extension.
 
 The key design constraints this implies:
+
 - Sessions are not coupled to "a user is chatting" — they're a context for an agent to operate in
 - The runtime doesn't assume one active session — it manages many concurrently
 - Tool execution is not synchronous-only — tools can create long-lived work

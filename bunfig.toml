@@ -1,0 +1,5 @@
+[install]
+linker = "isolated"
+
+[debug]
+console_depth = 6

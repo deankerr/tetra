@@ -19,6 +19,15 @@ TinyBase documentation: @reference/tinybase-docs
 
 - Use domain types inferred from the decoders in the data access layer - create derived types if necessary, NEVER manually recreate type definitions.
 
+## Monorepo
+
+Bun workspaces. Apps in `apps/`, packages in `packages/`.
+
+- `apps/web` — TanStack Start frontend (the main app)
+- `apps/sync` — TinyBase WebSocket sync server
+
+Run scripts from root with `bun run --filter <name> <script>`, e.g. `bun run --filter @tetra/web dev`.
+
 ## Workflow
 
 - Use `bun run check` to type check, lint with auto-fix, and format the project in <1 sec with `oxlint`/`oxfmt`. Never run `tsc` manually.
@@ -41,14 +50,14 @@ TinyBase documentation: @reference/tinybase-docs
 - Do not use `ai-elements@latest` directly.
 - When prompted about overwriting `src/components/ui/*`, answer `no`, then inspect changes with `bunx --bun shadcn@latest add <component> --diff <file>` and apply any needed updates manually.
 - Codex only: run shadcn registry commands outside of the sandbox.
-- We don't enforce our strict lint rules on external registry components. If a new registry has been added, update `.oxlintrc.json` with an ignore pattern.
+- We don't enforce our strict lint rules on external registry components. If a new registry has been added, update `apps/web/.oxlintrc.json` with an ignore pattern.
 - Never put padding directly on a ScrollArea component.
 
 ## Status
 
 Experimentation, iteration.
 
-Core: @src/lib/core @src/components/chat
+Core: @apps/web/src/lib/core @apps/web/src/components/chat
 
 ### Prototype Mode
 

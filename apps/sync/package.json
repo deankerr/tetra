@@ -1,0 +1,17 @@
+{
+  "name": "@tetra/sync",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun run sync.ts"
+  },
+  "dependencies": {
+    "tinybase": "^8.0.2",
+    "ws": "^8.20.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.11",
+    "@types/ws": "^8.18.1",
+    "typescript": "^5.9.3"
+  }
+}
