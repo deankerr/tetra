@@ -9,8 +9,8 @@ export function SessionDump({ sessionId }: { sessionId: string }) {
   return (
     <Button
       onClick={() => {
-        const sessionData = core.data.sessions.get(sessionId)
-        const messages = core.data.messages.listBySession(sessionId)
+        const sessionData = core.sessions.get(sessionId)
+        const messages = core.messages.listBySession(sessionId)
         console.log('[session-view:dump]', { messages, session: sessionData })
       }}
       size="icon-sm"

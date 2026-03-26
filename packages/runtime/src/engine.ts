@@ -2,17 +2,17 @@ import type { DataLayer } from './data/index.ts'
 import type { ChatTransport, StreamResult } from './stream.ts'
 import { streamResponse } from './stream.ts'
 
-export type Runtime = { stop: () => void }
+export type Engine = { stop: () => void }
 
 /**
- * Start the reactive runtime. Watches the requests table via TinyBase listeners
+ * Start the reactive engine. Watches the requests table via TinyBase listeners
  * and streams AI responses when pending requests appear.
  */
-export const startRuntime = (
+export const startEngine = (
   data: DataLayer,
   transport: ChatTransport,
   runtimeId: string,
-): Runtime => {
+): Engine => {
   const controllers = new Map<string, AbortController>()
 
   // Recovery: mark requests claimed by this runtime that were stuck from a previous session

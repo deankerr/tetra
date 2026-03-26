@@ -9,6 +9,13 @@ const coreStore = UiReact as unknown as UiReact.WithSchemas<Schemas>
 
 const CORE = 'core' as const
 
+// --- API Key ---
+
+export const useApiKey = (): [string, (v: string) => void] => {
+  const [value, setter] = coreStore.useValueState('openrouterApiKey', CORE)
+  return [value, setter]
+}
+
 // --- Session Hooks ---
 
 export const useSessionIds = () => coreStore.useSliceRowIds('sessionsByRecency', 'all', CORE)

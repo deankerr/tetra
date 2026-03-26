@@ -23,7 +23,7 @@ export function App() {
     (store) => createLocalPersister(store, 'tetra-ui'),
     [],
     async (persister) => {
-      await persister.startAutoLoad([{}, { activeSessionId: '', openrouterApiKey: '' }])
+      await persister.startAutoLoad([{}, { activeSessionId: '' }])
       await persister.startAutoSave()
     },
   )
@@ -34,27 +34,6 @@ export function App() {
     }
     void init()
   }, [])
-
-  // Sync API key from UI store → core transport ref
-  useEffect(() => {
-    if (core === null) {
-      return
-    }
-
-    const sync = () => {
-      const key = uiStore.getValue('openrouterApiKey')
-      core.setApiKey(typeof key === 'string' && key !== '' ? key : undefined)
-    }
-
-    // Initial sync
-    sync()
-
-    // Keep in sync when key changes
-    const listenerId = uiStore.addValueListener('openrouterApiKey', sync)
-    return () => {
-      uiStore.delListener(listenerId)
-    }
-  }, [core, uiStore])
 
   // Loading state — core initializes store + persistence
   if (core === null) {
@@ -70,9 +49,9 @@ export function App() {
 
   // Both stores are named — no defaults. Every hook must specify which store it targets.
   // oxlint-disable-next-line no-unsafe-type-assertion
-  const coreStore = core.data.store as unknown as TinyStore
+  const coreStore = core.store as unknown as TinyStore
   // oxlint-disable-next-line no-unsafe-type-assertion
-  const coreIndexes = core.data.indexes as unknown as TinyIndexes
+  const coreIndexes = core.indexes as unknown as TinyIndexes
 
   return (
     <CoreContext value={core}>

@@ -1,14 +1,15 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
-import type { ChatTransport } from '@tetra/runtime'
 import type { UIMessage } from 'ai'
 import { convertToModelMessages, readUIMessageStream, streamText } from 'ai'
 
+import type { ChatTransport } from './stream.ts'
+
 /**
- * Browser-side transport. Calls streamText() directly — no server endpoint.
+ * OpenRouter transport. Calls streamText() directly — no server endpoint.
  * Reads the API key lazily via getter so the transport can be constructed
- * before the UI store hydrates.
+ * before the key is available.
  */
-export const createBrowserTransport = (getApiKey: () => string | undefined): ChatTransport => ({
+export const createOpenRouterTransport = (getApiKey: () => string | undefined): ChatTransport => ({
   async stream(config) {
     // Resolve API key at stream time
     const apiKey = getApiKey()
@@ -19,7 +20,7 @@ export const createBrowserTransport = (getApiKey: () => string | undefined): Cha
     const { assistantMessageId, config: sessionConfig, messages } = config
     const { modelId, providerOptions, systemPrompt } = sessionConfig
 
-    console.log('[browser-transport]', 'start', { assistantMessageId, modelId })
+    console.log('[openrouter-transport]', 'start', { assistantMessageId, modelId })
 
     // Fresh provider instance per stream — key changes take effect immediately
     const openrouter = createOpenRouter({ apiKey })
@@ -30,7 +31,7 @@ export const createBrowserTransport = (getApiKey: () => string | undefined): Cha
       messages: modelMessages,
       model: openrouter(modelId),
       onFinish: ({ finishReason, usage }) => {
-        console.log('[browser-transport]', 'finish', {
+        console.log('[openrouter-transport]', 'finish', {
           assistantMessageId,
           finishReason,
           usage: usage.raw,

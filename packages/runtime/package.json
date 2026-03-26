@@ -6,6 +6,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@openrouter/ai-sdk-provider": "^2.3.3",
     "ai": "^6.0.116",
     "nanoid": "^5.1.7",
     "remeda": "^2.33.6",

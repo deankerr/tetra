@@ -16,9 +16,10 @@
  */
 import { mkdirSync } from 'node:fs'
 
-import { createAppIndexes, createAppStore, createDataLayer } from '@tetra/runtime'
-import type { DataLayer } from '@tetra/runtime'
+import { createRuntime } from '@tetra/runtime'
+import type { Runtime } from '@tetra/runtime'
 import type { MergeableStore, Store } from 'tinybase'
+import { createMergeableStore } from 'tinybase'
 import { createFilePersister } from 'tinybase/persisters/persister-file'
 import { createWsServer } from 'tinybase/synchronizers/synchronizer-ws-server'
 import { WebSocketServer } from 'ws'
@@ -29,17 +30,14 @@ const DATA_DIR = './data'
 
 mkdirSync(DATA_DIR, { recursive: true })
 
-// --- Store + DataLayer ---
+// --- Runtime ---
 
-// Schema-aware store so DAOs work correctly
-const store = createAppStore()
-const indexes = createAppIndexes(store)
-const data = createDataLayer(store, indexes)
+const runtime = createRuntime({ runtimeId: 'sync-server' })
 
-// File persistence for the server's copy
+// File persistence
 const persister = createFilePersister(
   // oxlint-disable-next-line no-unsafe-type-assertion -- schema-aware store is a superset of Store
-  store as unknown as MergeableStore & Store,
+  runtime.store as unknown as MergeableStore & Store,
   `${DATA_DIR}/default.json`,
 )
 await persister.startAutoLoad()
@@ -47,13 +45,15 @@ await persister.startAutoSave()
 
 console.log('[sync] store loaded from disk')
 
+// Start engine after persistence is loaded
+runtime.start()
+
 // --- WebSocket Sync ---
 
 const wss = new WebSocketServer({ port: WS_PORT })
 
 createWsServer(
   wss,
-  // Use the pre-created store's persister for the default path
   (pathId) => {
     if (pathId === '/') {
       return persister
@@ -62,8 +62,8 @@ createWsServer(
     const safeName = pathId.replaceAll(/[^a-zA-Z0-9-_]/g, '-')
     console.warn(`[sync] unexpected path "${pathId}", creating standalone store`)
     return createFilePersister(
-      // oxlint-disable-next-line no-unsafe-type-assertion -- schema-aware store is a superset of Store
-      createAppStore() as unknown as MergeableStore & Store,
+      // oxlint-disable-next-line no-unsafe-type-assertion -- standalone fallback store
+      createMergeableStore() as MergeableStore & Store,
       `${DATA_DIR}/${safeName}.json`,
     )
   },
@@ -89,49 +89,49 @@ function json(body: unknown, status = 200) {
   })
 }
 
-function handleRequest(layer: DataLayer, parts: string[]) {
+function handleRequest(rt: Runtime, parts: string[]) {
   const [route, id, extra] = parts
 
   // GET /tables — summary
   if (route === 'tables' && parts.length === 1) {
     const summary: Record<string, number> = {}
     for (const tid of TABLE_IDS) {
-      summary[tid] = layer.store.getRowIds(tid).length
+      summary[tid] = rt.store.getRowIds(tid).length
     }
     return json(summary)
   }
 
   // GET /sessions — all sessions, sorted by recency
   if (route === 'sessions' && id === undefined) {
-    const ids = layer.sessions.listIdsByRecency()
-    return json(ids.map((sid) => layer.sessions.get(sid)))
+    const ids = rt.sessions.listIdsByRecency()
+    return json(ids.map((sid) => rt.sessions.get(sid)))
   }
 
   // GET /sessions/:id — single session
   if (route === 'sessions' && id !== undefined) {
-    const session = layer.sessions.get(id)
+    const session = rt.sessions.get(id)
     return session ? json(session) : json({ error: 'session not found' }, 404)
   }
 
   // GET /messages/:sessionId — messages for a session
   if (route === 'messages' && id !== undefined) {
-    return json(layer.messages.listBySession(id))
+    return json(rt.messages.listBySession(id))
   }
 
   // GET /requests/:sessionId — requests for a session
   if (route === 'requests' && id !== undefined) {
-    const requestIds = layer.requests.listIdsBySession(id)
-    return json(requestIds.map((rid) => layer.requests.get(rid)))
+    const requestIds = rt.requests.listIdsBySession(id)
+    return json(requestIds.map((rid) => rt.requests.get(rid)))
   }
 
   // GET /table/:tableId — raw table dump (escape hatch)
   // GET /table/:tableId/:rowId — raw single row
   if (route === 'table' && id !== undefined && isTableId(id)) {
     if (extra !== undefined) {
-      const row = layer.store.getRow(id, extra)
+      const row = rt.store.getRow(id, extra)
       return Object.keys(row).length > 0 ? json(row) : json({ error: 'not found' }, 404)
     }
-    return json(layer.store.getTable(id))
+    return json(rt.store.getTable(id))
   }
 
   return json(
@@ -155,7 +155,7 @@ Bun.serve({
   fetch(req) {
     const url = new URL(req.url)
     const parts = url.pathname.split('/').filter(Boolean)
-    return handleRequest(data, parts)
+    return handleRequest(runtime, parts)
   },
   port: HTTP_PORT,
 })
