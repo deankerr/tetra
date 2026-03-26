@@ -21,6 +21,7 @@ export const tablesSchema = {
   },
   requests: {
     assistantMessageId: { default: '', type: 'string' },
+    claimedBy: { default: '', type: 'string' },
     config: { default: {}, type: 'object' },
     createdAt: { default: 0, type: 'number' },
     errorMessage: { default: '', type: 'string' },

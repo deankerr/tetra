@@ -25,6 +25,7 @@ const decodeConfig = (raw: unknown) => {
 
 const decode = (id: string, row: RequestRow) => ({
   assistantMessageId: row.assistantMessageId,
+  claimedBy: row.claimedBy,
   config: decodeConfig(row.config),
   createdAt: row.createdAt,
   errorMessage: row.errorMessage,
@@ -54,6 +55,7 @@ export type RequestDAO = {
     messageId: string,
     assistantMessageId: string,
     config: SessionConfig,
+    claimedBy: string,
   ) => void
   update: (id: string, patch: RequestPatch) => void
   delete: (id: string) => void
@@ -102,9 +104,10 @@ export const createRequestDAO = (store: AppStore, indexes: AppIndexes): RequestD
     return null
   },
 
-  insert(id, sessionId, messageId, assistantMessageId, config) {
+  insert(id, sessionId, messageId, assistantMessageId, config, claimedBy) {
     store.setRow('requests', id, {
       assistantMessageId,
+      claimedBy,
       config,
       createdAt: Date.now(),
       errorMessage: '',

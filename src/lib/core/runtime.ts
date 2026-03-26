@@ -8,11 +8,15 @@ export type Runtime = { stop: () => void }
  * Start the reactive runtime. Watches the requests table via TinyBase listeners
  * and streams AI responses when pending requests appear.
  */
-export const startRuntime = (data: DataLayer, transport: ChatTransport): Runtime => {
+export const startRuntime = (
+  data: DataLayer,
+  transport: ChatTransport,
+  runtimeId: string,
+): Runtime => {
   const controllers = new Map<string, AbortController>()
 
-  // Recovery: mark requests stuck from a previous session as errors
-  recoverStaleRequests(data)
+  // Recovery: mark requests claimed by this runtime that were stuck from a previous session
+  recoverStaleRequests(data, runtimeId)
 
   // Listener 1: detect new request rows (mutator — can write to store)
   const rowIdsListenerId = data.store.addRowIdsListener(
@@ -26,6 +30,11 @@ export const startRuntime = (data: DataLayer, transport: ChatTransport): Runtime
 
         const request = data.requests.get(requestId)
         if (request === null || request.status !== 'pending') {
+          continue
+        }
+
+        // Only process requests claimed by this runtime
+        if (request.claimedBy !== runtimeId) {
           continue
         }
 
@@ -63,7 +72,7 @@ export const startRuntime = (data: DataLayer, transport: ChatTransport): Runtime
     },
   )
 
-  console.log('[runtime]', 'started')
+  console.log('[runtime]', 'started', { runtimeId })
 
   return {
     // Currently unused — the runtime is a page-scoped singleton that lives
@@ -133,7 +142,7 @@ const executeRequest = async (
   }
 }
 
-const recoverStaleRequests = (data: DataLayer) => {
+const recoverStaleRequests = (data: DataLayer, runtimeId: string) => {
   const allRequestIds = data.store.getRowIds('requests')
 
   for (const id of allRequestIds) {
@@ -142,7 +151,12 @@ const recoverStaleRequests = (data: DataLayer) => {
       continue
     }
 
-    // Keep the empty placeholder so the error block renders in the message list
+    // Only recover requests claimed by this runtime
+    const claimedBy = data.store.getCell('requests', id, 'claimedBy')
+    if (claimedBy !== runtimeId) {
+      continue
+    }
+
     data.requests.update(id, {
       errorMessage: 'Interrupted by app restart',
       status: 'error',

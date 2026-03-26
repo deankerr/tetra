@@ -16,7 +16,7 @@ const generateTitle = (text: string, maxLength = 128) => {
 
 export type Operations = ReturnType<typeof bindOperations>
 
-export const bindOperations = (data: DataLayer) => ({
+export const bindOperations = (data: DataLayer, runtimeId: string) => ({
   // --- Session Operations ---
 
   createSession() {
@@ -92,7 +92,14 @@ export const bindOperations = (data: DataLayer) => ({
       data.messages.insert(messageId, sessionId, userSeq, 'user', [{ text, type: 'text' }])
       data.messages.insert(assistantMessageId, sessionId, assistantSeq, 'assistant', [])
       data.sessions.update(sessionId, { lastSeq: assistantSeq, title })
-      data.requests.insert(requestId, sessionId, messageId, assistantMessageId, resolvedConfig)
+      data.requests.insert(
+        requestId,
+        sessionId,
+        messageId,
+        assistantMessageId,
+        resolvedConfig,
+        runtimeId,
+      )
     })
 
     console.log('[operations:sendMessage]', 'sent', {
@@ -139,7 +146,14 @@ export const bindOperations = (data: DataLayer) => ({
     data.transaction(() => {
       data.messages.delete(lastAssistant.id)
       data.messages.insert(assistantMessageId, sessionId, lastAssistant.seq, 'assistant', [])
-      data.requests.insert(requestId, sessionId, userMessage.id, assistantMessageId, resolvedConfig)
+      data.requests.insert(
+        requestId,
+        sessionId,
+        userMessage.id,
+        assistantMessageId,
+        resolvedConfig,
+        runtimeId,
+      )
     })
 
     console.log('[operations:regenerate]', 'regenerating', {

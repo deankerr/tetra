@@ -10,5 +10,6 @@ export const generateId = {
   agent: prefixed('agnt'),
   message: prefixed('mesg'),
   request: prefixed('rqst'),
+  runtime: prefixed('rtme'),
   session: prefixed('sess'),
 }

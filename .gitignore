@@ -16,3 +16,4 @@ logs
 .env*.local
 
 reference/tinybase-docs
+server/data

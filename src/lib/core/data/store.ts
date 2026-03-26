@@ -1,9 +1,9 @@
 import { createIndexes } from 'tinybase/indexes/with-schemas'
 import type { Indexes } from 'tinybase/indexes/with-schemas'
-import { createIndexedDbPersister } from 'tinybase/persisters/persister-indexed-db/with-schemas'
+import type { MergeableStore } from 'tinybase/mergeable-store/with-schemas'
+import { createMergeableStore } from 'tinybase/mergeable-store/with-schemas'
+import { createOpfsPersister } from 'tinybase/persisters/persister-browser/with-schemas'
 import * as UiReact from 'tinybase/ui-react/with-schemas'
-import { createStore } from 'tinybase/with-schemas'
-import type { Store } from 'tinybase/with-schemas'
 
 import type { Schemas } from '@/lib/core/data/schemas'
 import { tablesSchema, valuesSchema } from '@/lib/core/data/schemas'
@@ -14,15 +14,17 @@ export const reactCoreStore = UiReact as unknown as UiReact.WithSchemas<Schemas>
 
 export const CORE = 'core' as const
 
-const DB_NAME = 'tetra'
-
-export type AppStore = Store<Schemas>
+export type AppStore = MergeableStore<Schemas>
 export type AppIndexes = Indexes<Schemas>
 
-export const createAppStore = (): AppStore => createStore().setSchema(tablesSchema, valuesSchema)
+export const createAppStore = (): AppStore =>
+  createMergeableStore().setSchema(tablesSchema, valuesSchema)
 
-export const createAppPersister = (store: AppStore) =>
-  createIndexedDbPersister(store, DB_NAME, 1, console.error)
+export async function createAppPersister(store: AppStore) {
+  const root = await navigator.storage.getDirectory()
+  const handle = await root.getFileHandle('tetra-core.json', { create: true })
+  return createOpfsPersister(store, handle)
+}
 
 export const createAppIndexes = (store: AppStore): AppIndexes =>
   createIndexes(store)
