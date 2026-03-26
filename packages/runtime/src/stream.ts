@@ -1,7 +1,7 @@
 import type { UIMessage } from 'ai'
 
-import type { DataLayer } from '@/lib/core/data'
-import type { SessionConfig } from '@/lib/shared/session-config'
+import type { SessionConfig } from './config.ts'
+import type { DataLayer } from './data/index.ts'
 
 // --- Transport Interface ---
 
@@ -24,7 +24,7 @@ export type StreamResult =
   | { status: 'aborted' }
   | { status: 'error'; errorMessage: string }
 
-// --- Streaming Runtime ---
+// --- Streaming ---
 
 /**
  * Stream an AI response into TinyBase for the given session.

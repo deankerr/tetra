@@ -1,6 +1,6 @@
-import type { DataLayer } from '@/lib/core/data'
-import type { ChatTransport, StreamResult } from '@/lib/core/stream'
-import { streamResponse } from '@/lib/core/stream'
+import type { DataLayer } from './data/index.ts'
+import type { ChatTransport, StreamResult } from './stream.ts'
+import { streamResponse } from './stream.ts'
 
 export type Runtime = { stop: () => void }
 
@@ -75,8 +75,6 @@ export const startRuntime = (
   console.log('[runtime]', 'started', { runtimeId })
 
   return {
-    // Currently unused — the runtime is a page-scoped singleton that lives
-    // until the tab closes. Kept for tests and future hot-swap scenarios.
     stop() {
       data.store.delListener(rowIdsListenerId)
       data.store.delListener(cellListenerId)
@@ -105,7 +103,8 @@ const executeRequest = async (
 
   try {
     // Read the request and its config snapshot
-    const { assistantMessageId, config } = data.requests.getOrThrow(requestId)
+    const request = data.requests.getOrThrow(requestId)
+    const { assistantMessageId, config } = request
     if (config === null) {
       data.requests.update(requestId, {
         errorMessage: 'Request missing config snapshot',

@@ -12,8 +12,8 @@ import {
 import { SidebarMenuAction, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar'
 import { useCore } from '@/components/use-core'
 import { DEFAULT_SESSION_CONFIG } from '@/lib/constants'
-import { useActiveSessionId, useSession, useSessionIds } from '@/lib/core/data/sessions'
-import { initDraft, useUiStore, useUiValueState } from '@/lib/ui'
+import { useSession, useSessionIds } from '@/lib/core/hooks'
+import { initDraft, useActiveSessionId, useUiStore, useUiValueState } from '@/lib/ui'
 
 export function SessionList() {
   const core = useCore()

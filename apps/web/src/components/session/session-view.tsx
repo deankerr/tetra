@@ -10,8 +10,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { useCore } from '@/components/use-core'
-import { useSessionMessageIds } from '@/lib/core/data/messages'
-import { useActiveSessionId, useSession } from '@/lib/core/data/sessions'
+import { useSession, useSessionMessageIds } from '@/lib/core/hooks'
+import { useActiveSessionId } from '@/lib/ui'
 
 import { Composer } from './composer'
 import { DetailPanel } from './detail-panel'

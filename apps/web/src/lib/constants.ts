@@ -1,4 +1,4 @@
-import type { SessionConfig } from '@/lib/shared/session-config'
+import type { SessionConfig } from '@tetra/runtime'
 
 export const DEFAULT_SESSION_CONFIG: SessionConfig = {
   modelId: 'openai/gpt-5.4-nano',

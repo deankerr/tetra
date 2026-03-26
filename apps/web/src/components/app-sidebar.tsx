@@ -15,8 +15,13 @@ import {
 } from '@/components/ui/sidebar'
 import { useCore } from '@/components/use-core'
 import { DEFAULT_SESSION_CONFIG } from '@/lib/constants'
-import { useActiveSessionId } from '@/lib/core/data/sessions'
-import { getDraftConfig, initDraft, useUiStore, useUiValueState } from '@/lib/ui'
+import {
+  getDraftConfig,
+  initDraft,
+  useActiveSessionId,
+  useUiStore,
+  useUiValueState,
+} from '@/lib/ui'
 
 export function AppSidebar() {
   const core = useCore()

@@ -24,6 +24,7 @@
     "@tanstack/react-router-ssr-query": "^1.166.9",
     "@tanstack/react-start": "^1.166.16",
     "@tanstack/router-plugin": "^1.166.13",
+    "@tetra/runtime": "workspace:*",
     "ai": "^6.0.116",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

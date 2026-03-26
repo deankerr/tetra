@@ -1,8 +1,7 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
+import type { ChatTransport } from '@tetra/runtime'
 import type { UIMessage } from 'ai'
 import { convertToModelMessages, readUIMessageStream, streamText } from 'ai'
-
-import type { ChatTransport } from '@/lib/core/stream'
 
 /**
  * Browser-side transport. Calls streamText() directly — no server endpoint.

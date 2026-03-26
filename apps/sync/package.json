@@ -6,6 +6,7 @@
     "start": "bun run sync.ts"
   },
   "dependencies": {
+    "@tetra/runtime": "workspace:*",
     "tinybase": "^8.0.2",
     "ws": "^8.20.0"
   },

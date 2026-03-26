@@ -1,13 +1,19 @@
+import type { AppStore, DataLayer, Operations, Runtime } from '@tetra/runtime'
+import {
+  bindOperations,
+  createAppIndexes,
+  createAppStore,
+  createDataLayer,
+  generateId,
+  startRuntime,
+} from '@tetra/runtime'
+import { createOpfsPersister } from 'tinybase/persisters/persister-browser/with-schemas'
+import { createWsSynchronizer } from 'tinybase/synchronizers/synchronizer-ws-client/with-schemas'
+
 import { createBrowserTransport } from '@/lib/core/browser-transport'
-import { createDataLayer } from '@/lib/core/data'
-import type { DataLayer } from '@/lib/core/data'
-import { generateId } from '@/lib/core/id'
-import type { Operations } from '@/lib/core/operations'
-import { bindOperations } from '@/lib/core/operations'
-import type { Runtime } from '@/lib/core/runtime'
-import { startRuntime } from '@/lib/core/runtime'
 
 const RUNTIME_ID_KEY = 'tetra-runtime-id'
+const SYNC_URL = 'ws://localhost:8048'
 
 /** Stable runtime ID for this browser — persisted so stale recovery works across restarts. */
 function getOrCreateRuntimeId(): string {
@@ -18,6 +24,24 @@ function getOrCreateRuntimeId(): string {
   const id = generateId.runtime()
   localStorage.setItem(RUNTIME_ID_KEY, id)
   return id
+}
+
+async function startPersistence(store: AppStore) {
+  const root = await navigator.storage.getDirectory()
+  const handle = await root.getFileHandle('tetra-core.json', { create: true })
+  const persister = createOpfsPersister(store, handle)
+  await persister.startAutoPersisting()
+}
+
+async function startSync(store: AppStore) {
+  try {
+    const ws = new WebSocket(SYNC_URL)
+    const synchronizer = await createWsSynchronizer(store, ws)
+    await synchronizer.startSync()
+    console.log('[core] sync connected', SYNC_URL)
+  } catch (error: unknown) {
+    console.warn('[core] sync unavailable, running local-only', error)
+  }
 }
 
 export type Core = Operations & {
@@ -42,8 +66,18 @@ export const getCore = (): Promise<Core> => {
 async function initialize(): Promise<Core> {
   const runtimeId = getOrCreateRuntimeId()
 
-  const data = createDataLayer()
-  await data.initialize()
+  // Store and indexes — schema definitions, environment-agnostic
+  const store = createAppStore()
+  const indexes = createAppIndexes(store)
+
+  // Browser persistence (OPFS) — must complete before runtime starts
+  await startPersistence(store)
+
+  // Sync to server (best-effort, non-blocking)
+  void startSync(store)
+
+  // Data layer — pure DAOs over the store
+  const data = createDataLayer(store, indexes)
 
   // Late-binding ref — the UI store syncs the key here after hydration
   const apiKeyRef: { current: string | undefined } = { current: undefined }

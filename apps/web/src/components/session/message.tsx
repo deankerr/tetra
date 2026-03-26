@@ -1,3 +1,4 @@
+import type { Request } from '@tetra/runtime'
 import type { UIMessage } from 'ai'
 import { AlertCircleIcon, CopyIcon, Loader2Icon, RefreshCcwIcon } from 'lucide-react'
 import { Fragment } from 'react'
@@ -9,9 +10,7 @@ import {
   MessageContent,
   MessageResponse,
 } from '@/components/ai-elements/message'
-import { useMessage } from '@/lib/core/data/messages'
-import type { Request } from '@/lib/core/data/requests'
-import { useRequestForMessage } from '@/lib/core/data/requests'
+import { useMessage, useRequestForMessage } from '@/lib/core/hooks'
 
 // Render each part of the message based on request state
 function MessageParts({ message, request }: { message: UIMessage; request: Request | null }) {

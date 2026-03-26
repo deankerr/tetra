@@ -1,3 +1,5 @@
+import type { SessionConfig } from '@tetra/runtime'
+import { sessionConfigSchema } from '@tetra/runtime'
 import { useCallback, useMemo } from 'react'
 import type { Store } from 'tinybase'
 import { createStore } from 'tinybase'
@@ -5,8 +7,6 @@ import { createLocalPersister } from 'tinybase/persisters/persister-browser'
 import { useCell, useCellState, useRow, useStore, useValue, useValueState } from 'tinybase/ui-react'
 
 import { DEFAULT_SESSION_CONFIG } from '@/lib/constants'
-import { sessionConfigSchema } from '@/lib/shared/session-config'
-import type { SessionConfig } from '@/lib/shared/session-config'
 
 // --- Store ID ---
 
@@ -29,6 +29,13 @@ export const useUiCell = (tableId: string, rowId: string, cellId: string) =>
 export const useUiCellState = (tableId: string, rowId: string, cellId: string) =>
   useCellState(tableId, rowId, cellId, UI)
 export const useUiRow = (tableId: string, rowId: string) => useRow(tableId, rowId, UI)
+
+// --- Active Session ---
+
+export const useActiveSessionId = () => {
+  const value = useUiValue('activeSessionId')
+  return typeof value === 'string' ? value : undefined
+}
 
 // --- API Key Hook ---
 

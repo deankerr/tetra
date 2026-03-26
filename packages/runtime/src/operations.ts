@@ -1,6 +1,6 @@
-import type { DataLayer } from '@/lib/core/data'
-import { generateId } from '@/lib/core/id'
-import type { SessionConfig } from '@/lib/shared/session-config'
+import type { SessionConfig } from './config.ts'
+import type { DataLayer } from './data/index.ts'
+import { generateId } from './id.ts'
 
 // --- Text Helpers ---
 
