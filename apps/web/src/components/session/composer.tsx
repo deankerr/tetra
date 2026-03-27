@@ -30,7 +30,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
     }
 
     // Read full draft config imperatively at submit time
-    const config = uiStore ? getDraftConfig(uiStore, sessionId) : undefined
+    const config = getDraftConfig(uiStore, sessionId)
     runtime.sendMessage(sessionId, message.text, config)
     setDraft('')
   }

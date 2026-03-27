@@ -1,4 +1,4 @@
-import { MoreHorizontalIcon } from 'lucide-react'
+import { MoreHorizontalIcon, PlusIcon } from 'lucide-react'
 import { useRef, useState } from 'react'
 
 import {
@@ -9,13 +9,28 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { SidebarMenuAction, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar'
+import {
+  SidebarGroup,
+  SidebarGroupAction,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuAction,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from '@/components/ui/sidebar'
 import { useRuntime } from '@/components/use-runtime'
 import { DEFAULT_SESSION_CONFIG } from '@/lib/constants'
 import { useSession, useSessionIds } from '@/lib/runtime/hooks'
-import { initDraft, useActiveSessionId, useUiStore, useUiValueState } from '@/lib/ui'
+import {
+  getDraftConfig,
+  initDraft,
+  useActiveSessionId,
+  useUiStore,
+  useUiValueState,
+} from '@/lib/ui'
 
-export function SessionList() {
+export function SessionGroup() {
   const runtime = useRuntime()
   const uiStore = useUiStore()
   const sessionIds = useSessionIds()
@@ -23,38 +38,57 @@ export function SessionList() {
   const [, setActiveSessionId] = useUiValueState('activeSessionId')
 
   return (
-    <>
-      {sessionIds.map((sessionId) => (
-        <SessionListItem
-          active={sessionId === activeSessionId}
-          key={sessionId}
-          onDelete={() => {
-            runtime.deleteSession(sessionId)
+    <SidebarGroup>
+      <SidebarGroupLabel>Sessions</SidebarGroupLabel>
+      <SidebarGroupAction
+        className="top-2.5"
+        onClick={() => {
+          // Copy config from current session, or use defaults for first session
+          const config =
+            activeSessionId !== undefined && activeSessionId !== ''
+              ? getDraftConfig(uiStore, activeSessionId)
+              : DEFAULT_SESSION_CONFIG
+          const sessionId = runtime.createSession()
+          initDraft(uiStore, sessionId, config)
+          setActiveSessionId(sessionId)
+        }}
+      >
+        <PlusIcon />
+        <span className="sr-only">New session</span>
+      </SidebarGroupAction>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {sessionIds.map((sessionId) => (
+            <SessionListItem
+              active={sessionId === activeSessionId}
+              key={sessionId}
+              onDelete={() => {
+                runtime.deleteSession(sessionId)
 
-            // If we deleted the active session, pick another or create one
-            if (sessionId === activeSessionId) {
-              const remaining = sessionIds.filter((id) => id !== sessionId)
-              if (remaining.length > 0 && remaining[0] !== undefined) {
-                setActiveSessionId(remaining[0])
-              } else {
-                const newId = runtime.createSession()
-                if (uiStore) {
-                  initDraft(uiStore, newId, DEFAULT_SESSION_CONFIG)
+                // If we deleted the active session, pick another or create one
+                if (sessionId === activeSessionId) {
+                  const remaining = sessionIds.filter((id) => id !== sessionId)
+                  if (remaining.length > 0 && remaining[0] !== undefined) {
+                    setActiveSessionId(remaining[0])
+                  } else {
+                    const newId = runtime.createSession()
+                    initDraft(uiStore, newId, DEFAULT_SESSION_CONFIG)
+                    setActiveSessionId(newId)
+                  }
                 }
-                setActiveSessionId(newId)
-              }
-            }
-          }}
-          onRename={(title) => {
-            runtime.updateSession(sessionId, title)
-          }}
-          onSelect={() => {
-            setActiveSessionId(sessionId)
-          }}
-          sessionId={sessionId}
-        />
-      ))}
-    </>
+              }}
+              onRename={(title) => {
+                runtime.updateSession(sessionId, title)
+              }}
+              onSelect={() => {
+                setActiveSessionId(sessionId)
+              }}
+              sessionId={sessionId}
+            />
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
   )
 }
 

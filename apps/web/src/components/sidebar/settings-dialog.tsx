@@ -20,8 +20,8 @@ export function SettingsDialog() {
     <Dialog>
       <DialogTrigger
         render={
-          <Button variant="ghost" size="icon" className="size-8">
-            <SettingsIcon className="size-4" />
+          <Button variant="ghost" size="icon">
+            <SettingsIcon />
           </Button>
         }
       />

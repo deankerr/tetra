@@ -8,7 +8,20 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { clearAllData } from '@/lib/debug'
+
+/** Wipe all persisted data (OPFS + localStorage) and reload. */
+export async function clearAllData() {
+  // OPFS — where the runtime store is persisted
+  const root = await navigator.storage.getDirectory()
+  try {
+    await root.removeEntry('tetra-runtime.json')
+  } catch {
+    // File may not exist
+  }
+  localStorage.removeItem('tetra-ui')
+  localStorage.removeItem('tetra-runtime-id')
+  location.reload()
+}
 
 export function DebugMenu() {
   return (
@@ -20,7 +33,7 @@ export function DebugMenu() {
         <DropdownMenuContent side="top" align="start">
           <DropdownMenuGroup>
             <DropdownMenuLabel>Debug</DropdownMenuLabel>
-            <DropdownMenuItem onClick={clearAllData}>
+            <DropdownMenuItem onClick={() => void clearAllData()}>
               <Trash2Icon />
               Clear all data
             </DropdownMenuItem>

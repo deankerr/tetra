@@ -1,8 +1,6 @@
 import type { SessionConfig } from '@tetra/runtime'
 import { sessionConfigSchema } from '@tetra/runtime'
 import type { Store } from 'tinybase'
-import { createStore } from 'tinybase'
-import { createLocalPersister } from 'tinybase/persisters/persister-browser'
 import { useCell, useCellState, useRow, useStore, useValue, useValueState } from 'tinybase/ui-react'
 
 import { DEFAULT_SESSION_CONFIG } from '@/lib/constants'
@@ -11,16 +9,18 @@ import { DEFAULT_SESSION_CONFIG } from '@/lib/constants'
 
 export const UI = 'ui' as const
 
-// --- Factory ---
-
-export const createUiStore = () => createStore()
-
-export const createUiPersister = (store: Store) => createLocalPersister(store, 'tetra-ui')
-
 // --- Hook Wrappers ---
 // Hard-code 'ui' store ID so callers can't accidentally hit the runtime store.
 
-export const useUiStore = () => useStore(UI)
+export const useUiStore = (): Store => {
+  const store = useStore(UI)
+  if (store === undefined) {
+    throw new Error(
+      'UI store not found — is the component inside <Provider storesById={{ ui: ... }}>?',
+    )
+  }
+  return store
+}
 export const useUiValue = (valueId: string) => useValue(valueId, UI)
 export const useUiValueState = (valueId: string) => useValueState(valueId, UI)
 export const useUiCell = (tableId: string, rowId: string, cellId: string) =>
