@@ -1,6 +1,5 @@
-import type { DataLayer } from './data/index.ts'
-import type { ChatTransport, StreamResult } from './stream.ts'
-import { streamResponse } from './stream.ts'
+import { infer } from './infer.ts'
+import type { DataLayer } from './tables/index.ts'
 
 export type Engine = { stop: () => void }
 
@@ -8,11 +7,7 @@ export type Engine = { stop: () => void }
  * Start the reactive engine. Watches the requests table via TinyBase listeners
  * and streams AI responses when pending requests appear.
  */
-export const startEngine = (
-  data: DataLayer,
-  transport: ChatTransport,
-  runtimeId: string,
-): Engine => {
+export const startEngine = (data: DataLayer, runtimeId: string): Engine => {
   const controllers = new Map<string, AbortController>()
 
   // Recovery: mark requests claimed by this runtime that were stuck from a previous session
@@ -44,7 +39,7 @@ export const startEngine = (
         // Defer to next microtask — indexes (messagesBySession) haven't
         // processed the transaction's writes yet during the mutator phase
         queueMicrotask(() => {
-          void executeRequest(data, transport, controllers, requestId, request.sessionId)
+          void executeRequest(data, controllers, requestId, request.sessionId)
         })
       }
     },
@@ -93,7 +88,6 @@ export const startEngine = (
 
 const executeRequest = async (
   data: DataLayer,
-  transport: ChatTransport,
   controllers: Map<string, AbortController>,
   requestId: string,
   sessionId: string,
@@ -102,7 +96,7 @@ const executeRequest = async (
   controllers.set(requestId, controller)
 
   try {
-    // Read the request and its config snapshot
+    // Validate request
     const request = data.requests.getOrThrow(requestId)
     const { assistantMessageId, config } = request
     if (config === null) {
@@ -114,28 +108,68 @@ const executeRequest = async (
       return
     }
 
-    const result: StreamResult = await streamResponse(
-      data,
+    // Resolve API key at execution time
+    const apiKey = data.store.getValue('openrouterApiKey')
+    if (typeof apiKey !== 'string' || apiKey === '') {
+      data.requests.update(requestId, {
+        errorMessage: 'OpenRouter API key not configured. Add your key in Settings.',
+        status: 'error',
+      })
+      console.error('[runtime]', 'missing API key', { requestId })
+      return
+    }
+
+    // Prepare context — collect recent messages, excluding the empty assistant placeholder
+    const messages = data.messages.listRecentBySession(sessionId, config.maxMessages, [
+      assistantMessageId,
+    ])
+
+    console.log('[runtime]', 'streaming', {
+      assistantMessageId,
+      maxMessages: config.maxMessages ?? 'all',
+      messageCount: messages.length,
+      modelId: config.modelId,
+      requestId,
       sessionId,
+    })
+
+    // Stream inference — write each snapshot to the store as it arrives
+    let received = false
+    for await (const snapshot of infer({
+      apiKey,
       assistantMessageId,
       config,
-      transport,
-      controller.signal,
-    )
-
-    // Map stream result to request status
-    if (result.status === 'completed') {
-      data.requests.update(requestId, { status: 'completed' })
-    } else if (result.status === 'aborted') {
-      data.requests.update(requestId, { status: 'cancelled' })
-    } else {
-      data.requests.update(requestId, { errorMessage: result.errorMessage, status: 'error' })
+      messages,
+      signal: controller.signal,
+    })) {
+      received = true
+      data.messages.writeStreamChunk(assistantMessageId, snapshot)
     }
+
+    // Empty stream — model returned nothing
+    if (!received) {
+      data.requests.update(requestId, {
+        errorMessage: 'Empty response from model',
+        status: 'error',
+      })
+      console.error('[runtime]', 'empty stream', { assistantMessageId, requestId })
+      return
+    }
+
+    data.requests.update(requestId, { status: 'completed' })
+    console.log('[runtime]', 'completed', { assistantMessageId, requestId })
   } catch (error) {
-    // Unexpected error not caught by streamResponse
-    const errorMessage = error instanceof Error ? error.message : 'Unknown runtime error'
+    // Abort — user cancelled or runtime stopped
+    if (controller.signal.aborted) {
+      data.requests.update(requestId, { status: 'cancelled' })
+      console.log('[runtime]', 'aborted', { requestId, sessionId })
+      return
+    }
+
+    // Streaming/network/provider error
+    const errorMessage = error instanceof Error ? error.message : 'Unknown streaming error'
     data.requests.update(requestId, { errorMessage, status: 'error' })
-    console.error('[runtime]', 'unexpected error', { errorMessage, requestId })
+    console.error('[runtime]', 'error', { errorMessage, requestId, sessionId })
   } finally {
     controllers.delete(requestId)
   }

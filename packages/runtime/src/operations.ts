@@ -1,16 +1,6 @@
-import type { SessionConfig } from './config.ts'
-import type { DataLayer } from './data/index.ts'
-import { generateId } from './id.ts'
-
-// --- Text Helpers ---
-
-const generateTitle = (text: string, maxLength = 128) => {
-  const normalized = text.replaceAll(/\s+/g, ' ').trim()
-  if (normalized.length <= maxLength) {
-    return normalized
-  }
-  return `${normalized.slice(0, maxLength - 1)}…`
-}
+import type { DataLayer } from './tables/index.ts'
+import type { SessionConfig } from './utils.ts'
+import { generateId, truncate } from './utils.ts'
 
 // --- Bound Operations ---
 
@@ -85,7 +75,7 @@ export const bindOperations = (data: DataLayer, runtimeId: string) => ({
 
     // Auto-title: use first user message text
     const isFirstMessage = session.lastSeq === 0
-    const title = isFirstMessage ? generateTitle(text) : session.title
+    const title = isFirstMessage ? truncate(text) : session.title
 
     // Atomic: user msg + assistant placeholder + request with config snapshot
     data.transaction(() => {

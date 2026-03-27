@@ -1,9 +1,7 @@
 import type { UIMessage } from 'ai'
-import * as R from 'remeda'
 import type { Row } from 'tinybase/with-schemas'
 
-import type { Schemas } from './schemas.ts'
-import type { AppIndexes, AppStore } from './store.ts'
+import type { AppIndexes, AppStore, Schemas } from '../store.ts'
 
 // --- Codec ---
 
@@ -25,36 +23,17 @@ export const decodeMessage = (id: string, row: MessageRow) => ({
 
 export type Message = ReturnType<typeof decodeMessage>
 
-// --- DAO ---
+// --- Table ---
 
-export type MessageDAO = {
-  get: (id: string) => Message | null
-  getOrThrow: (id: string) => Message
-  listIdsBySession: (sessionId: string) => string[]
-  listBySession: (sessionId: string) => Message[]
-  listRecentBySession: (sessionId: string, limit?: number, excludeIds?: string[]) => Message[]
-  latestAssistant: (sessionId: string) => Message | null
-  insert: (
-    id: string,
-    sessionId: string,
-    seq: number,
-    role: UIMessage['role'],
-    parts: UIMessage['parts'],
-  ) => void
-  update: (id: string, role: string) => void
-  writeStreamChunk: (id: string, message: UIMessage) => void
-  delete: (id: string) => void
-}
-
-export const createMessageDAO = (store: AppStore, indexes: AppIndexes): MessageDAO => ({
-  get(id) {
+export const createMessages = (store: AppStore, indexes: AppIndexes) => ({
+  get(id: string) {
     if (!store.hasRow('messages', id)) {
       return null
     }
     return decodeMessage(id, store.getRow('messages', id))
   },
 
-  getOrThrow(id) {
+  getOrThrow(id: string) {
     const message = this.get(id)
     if (message === null) {
       throw new Error(`Message not found: ${id}`)
@@ -62,19 +41,19 @@ export const createMessageDAO = (store: AppStore, indexes: AppIndexes): MessageD
     return message
   },
 
-  listIdsBySession(sessionId) {
+  listIdsBySession(sessionId: string) {
     return indexes.getSliceRowIds('messagesBySession', sessionId)
   },
 
-  listBySession(sessionId) {
+  listBySession(sessionId: string) {
     return this.listIdsBySession(sessionId)
       .map((id) => this.get(id))
       .filter((m): m is Message => m !== null)
   },
 
-  // Load only the last N messages, optionally excluding specific IDs (e.g. placeholder).
+  // Context-gathering: load only the last N messages, optionally excluding specific IDs.
   // Slices the ID array before decoding to avoid loading the full history.
-  listRecentBySession(sessionId, limit, excludeIds) {
+  listRecentBySession(sessionId: string, limit?: number, excludeIds?: string[]) {
     let ids = this.listIdsBySession(sessionId)
     if (excludeIds !== undefined && excludeIds.length > 0) {
       const excluded = new Set(excludeIds)
@@ -86,13 +65,13 @@ export const createMessageDAO = (store: AppStore, indexes: AppIndexes): MessageD
     return ids.map((id) => this.get(id)).filter((m): m is Message => m !== null)
   },
 
-  latestAssistant(sessionId) {
-    const ids = indexes.getSliceRowIds('messagesBySession', sessionId)
-    const match = R.findLast(ids, (mid) => store.getCell('messages', mid, 'role') === 'assistant')
-    return match === undefined ? null : this.get(match)
-  },
-
-  insert(id, sessionId, seq, role, parts) {
+  insert(
+    id: string,
+    sessionId: string,
+    seq: number,
+    role: UIMessage['role'],
+    parts: UIMessage['parts'],
+  ) {
     const timestamp = Date.now()
     store.setRow('messages', id, {
       createdAt: timestamp,
@@ -104,16 +83,8 @@ export const createMessageDAO = (store: AppStore, indexes: AppIndexes): MessageD
     })
   },
 
-  // Update only the role of a message
-  update(id, role) {
-    if (!store.hasRow('messages', id)) {
-      return
-    }
-    store.setPartialRow('messages', id, { role, updatedAt: Date.now() })
-  },
-
   // Write a streamed UIMessage snapshot into the row
-  writeStreamChunk(id, message) {
+  writeStreamChunk(id: string, message: UIMessage) {
     if (!store.hasRow('messages', id)) {
       return
     }
@@ -121,7 +92,7 @@ export const createMessageDAO = (store: AppStore, indexes: AppIndexes): MessageD
     store.setPartialRow('messages', id, { parts: message.parts, updatedAt: Date.now() })
   },
 
-  delete(id) {
+  delete(id: string) {
     store.delRow('messages', id)
   },
 })

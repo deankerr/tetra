@@ -1,10 +1,9 @@
 import type { Row } from 'tinybase/with-schemas'
 import { z } from 'zod'
 
-import { sessionConfigSchema } from '../config.ts'
-import type { SessionConfig } from '../config.ts'
-import type { Schemas } from './schemas.ts'
-import type { AppIndexes, AppStore } from './store.ts'
+import type { AppIndexes, AppStore, Schemas } from '../store.ts'
+import { sessionConfigSchema } from '../utils.ts'
+import type { SessionConfig } from '../utils.ts'
 
 // --- Codec ---
 
@@ -39,35 +38,17 @@ export type RequestStatus = z.infer<typeof requestStatusSchema>
 export type Request = ReturnType<typeof decodeRequest>
 export type RequestPatch = Partial<Pick<Request, 'errorMessage' | 'status'>>
 
-// --- DAO ---
+// --- Table ---
 
-export type RequestDAO = {
-  get: (id: string) => Request | null
-  getOrThrow: (id: string) => Request
-  getActiveForSession: (sessionId: string) => Request | null
-  getLatestConfigForSession: (sessionId: string) => SessionConfig | null
-  listIdsBySession: (sessionId: string) => string[]
-  insert: (
-    id: string,
-    sessionId: string,
-    messageId: string,
-    assistantMessageId: string,
-    config: SessionConfig,
-    claimedBy: string,
-  ) => void
-  update: (id: string, patch: RequestPatch) => void
-  delete: (id: string) => void
-}
-
-export const createRequestDAO = (store: AppStore, indexes: AppIndexes): RequestDAO => ({
-  get(id) {
+export const createRequests = (store: AppStore, indexes: AppIndexes) => ({
+  get(id: string) {
     if (!store.hasRow('requests', id)) {
       return null
     }
     return decodeRequest(id, store.getRow('requests', id))
   },
 
-  getOrThrow(id) {
+  getOrThrow(id: string) {
     const request = this.get(id)
     if (request === null) {
       throw new Error(`Request not found: ${id}`)
@@ -75,11 +56,11 @@ export const createRequestDAO = (store: AppStore, indexes: AppIndexes): RequestD
     return request
   },
 
-  listIdsBySession(sessionId) {
+  listIdsBySession(sessionId: string) {
     return indexes.getSliceRowIds('requestsBySession', sessionId)
   },
 
-  getActiveForSession(sessionId) {
+  getActiveForSession(sessionId: string) {
     const ids = indexes.getSliceRowIds('requestsBySession', sessionId)
     for (const id of ids) {
       const status = store.getCell('requests', id, 'status')
@@ -90,7 +71,7 @@ export const createRequestDAO = (store: AppStore, indexes: AppIndexes): RequestD
     return null
   },
 
-  getLatestConfigForSession(sessionId) {
+  getLatestConfigForSession(sessionId: string) {
     const ids = indexes.getSliceRowIds('requestsBySession', sessionId)
     for (const id of ids) {
       const raw = store.getCell('requests', id, 'config')
@@ -102,7 +83,14 @@ export const createRequestDAO = (store: AppStore, indexes: AppIndexes): RequestD
     return null
   },
 
-  insert(id, sessionId, messageId, assistantMessageId, config, claimedBy) {
+  insert(
+    id: string,
+    sessionId: string,
+    messageId: string,
+    assistantMessageId: string,
+    config: SessionConfig,
+    claimedBy: string,
+  ) {
     store.setRow('requests', id, {
       assistantMessageId,
       claimedBy,
@@ -115,14 +103,14 @@ export const createRequestDAO = (store: AppStore, indexes: AppIndexes): RequestD
     })
   },
 
-  update(id, patch) {
+  update(id: string, patch: RequestPatch) {
     if (!store.hasRow('requests', id)) {
       return
     }
     store.setPartialRow('requests', id, patch)
   },
 
-  delete(id) {
+  delete(id: string) {
     store.delRow('requests', id)
   },
 })

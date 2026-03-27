@@ -77,7 +77,7 @@ console.log(`[sync] ws://localhost:${WS_PORT}`)
 
 // --- HTTP API ---
 
-const TABLE_IDS = ['agents', 'messages', 'requests', 'sessions'] as const
+const TABLE_IDS = ['messages', 'requests', 'sessions'] as const
 type TableId = (typeof TABLE_IDS)[number]
 
 const isTableId = (value: string): value is TableId => TABLE_IDS.some((t) => t === value)

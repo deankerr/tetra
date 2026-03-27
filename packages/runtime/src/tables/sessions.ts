@@ -1,14 +1,12 @@
 import type { Row } from 'tinybase/with-schemas'
 
-import type { Schemas } from './schemas.ts'
-import type { AppIndexes, AppStore } from './store.ts'
+import type { AppIndexes, AppStore, Schemas } from '../store.ts'
 
 // --- Codec ---
 
 type SessionRow = Row<Schemas[0], 'sessions'>
 
 export const decodeSession = (id: string, row: SessionRow) => ({
-  agentId: row.agentId,
   createdAt: row.createdAt,
   id,
   lastSeq: row.lastSeq,
@@ -21,28 +19,17 @@ export const decodeSession = (id: string, row: SessionRow) => ({
 export type Session = ReturnType<typeof decodeSession>
 export type SessionPatch = Partial<Omit<Session, 'createdAt' | 'id' | 'updatedAt'>>
 
-// --- DAO ---
+// --- Table ---
 
-export type SessionDAO = {
-  get: (id: string) => Session | null
-  getOrThrow: (id: string) => Session
-  listIds: () => string[]
-  listIdsByRecency: () => string[]
-  hasSessionsForAgent: (agentId: string) => boolean
-  insert: (id: string, title?: string) => void
-  update: (id: string, patch: SessionPatch) => void
-  delete: (id: string) => void
-}
-
-export const createSessionDAO = (store: AppStore, indexes: AppIndexes): SessionDAO => ({
-  get(id) {
+export const createSessions = (store: AppStore, indexes: AppIndexes) => ({
+  get(id: string) {
     if (!store.hasRow('sessions', id)) {
       return null
     }
     return decodeSession(id, store.getRow('sessions', id))
   },
 
-  getOrThrow(id) {
+  getOrThrow(id: string) {
     const session = this.get(id)
     if (session === null) {
       throw new Error(`Session not found: ${id}`)
@@ -58,14 +45,9 @@ export const createSessionDAO = (store: AppStore, indexes: AppIndexes): SessionD
     return indexes.getSliceRowIds('sessionsByRecency', 'all')
   },
 
-  hasSessionsForAgent(agentId) {
-    return this.listIds().some((id) => store.getCell('sessions', id, 'agentId') === agentId)
-  },
-
-  insert(id, title) {
+  insert(id: string, title?: string) {
     const timestamp = Date.now()
     store.setRow('sessions', id, {
-      agentId: '',
       createdAt: timestamp,
       lastSeq: 0,
       title: title ?? '',
@@ -73,14 +55,14 @@ export const createSessionDAO = (store: AppStore, indexes: AppIndexes): SessionD
     })
   },
 
-  update(id, patch) {
+  update(id: string, patch: SessionPatch) {
     if (!store.hasRow('sessions', id)) {
       return
     }
     store.setPartialRow('sessions', id, { ...patch, updatedAt: Date.now() })
   },
 
-  delete(id) {
+  delete(id: string) {
     store.delRow('sessions', id)
   },
 })
