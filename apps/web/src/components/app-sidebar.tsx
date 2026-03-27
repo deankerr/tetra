@@ -12,7 +12,7 @@ import {
   SidebarHeader,
   SidebarMenu,
 } from '@/components/ui/sidebar'
-import { useCore } from '@/components/use-core'
+import { useRuntime } from '@/components/use-runtime'
 import { ThemeSwitcher } from '@/components/util/theme-switcher'
 import { DEFAULT_SESSION_CONFIG } from '@/lib/constants'
 import {
@@ -24,7 +24,7 @@ import {
 } from '@/lib/ui'
 
 export function AppSidebar() {
-  const core = useCore()
+  const runtime = useRuntime()
   const uiStore = useUiStore()
   const activeSessionId = useActiveSessionId()
   const [, setActiveSessionId] = useUiValueState('activeSessionId')
@@ -53,7 +53,7 @@ export function AppSidebar() {
                 uiStore !== undefined && activeSessionId !== undefined && activeSessionId !== ''
                   ? getDraftConfig(uiStore, activeSessionId)
                   : DEFAULT_SESSION_CONFIG
-              const sessionId = core.createSession()
+              const sessionId = runtime.createSession()
               if (uiStore) {
                 initDraft(uiStore, sessionId, config)
               }

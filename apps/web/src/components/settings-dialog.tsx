@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useApiKey } from '@/lib/core/hooks'
+import { useApiKey } from '@/lib/runtime/hooks'
 
 export function SettingsDialog() {
   const [apiKey, setApiKey] = useApiKey()
@@ -29,8 +29,8 @@ export function SettingsDialog() {
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
           <DialogDescription>
-            Inference runs entirely in your browser. Your API key is stored in the core data store
-            and syncs across connected devices.
+            Inference runs entirely in your browser. Your API key is stored locally and syncs across
+            connected devices.
           </DialogDescription>
         </DialogHeader>
 

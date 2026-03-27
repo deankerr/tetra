@@ -9,8 +9,8 @@ import {
 } from '@/components/ai-elements/conversation'
 import { Button } from '@/components/ui/button'
 import { SidebarTrigger } from '@/components/ui/sidebar'
-import { useCore } from '@/components/use-core'
-import { useSession, useSessionMessageIds } from '@/lib/core/hooks'
+import { useRuntime } from '@/components/use-runtime'
+import { useSession, useSessionMessageIds } from '@/lib/runtime/hooks'
 import { useActiveSessionId } from '@/lib/ui'
 
 import { Composer } from './composer'
@@ -31,7 +31,7 @@ export function SessionView() {
 
 /** Renders the active session. Guards session existence — children can assume valid sessionId. */
 function ActiveSession({ sessionId }: { sessionId: string }) {
-  const core = useCore()
+  const runtime = useRuntime()
   const session = useSession(sessionId)
   const messageIds = useSessionMessageIds(sessionId)
   const [detailOpen, setDetailOpen] = useState(true)
@@ -77,7 +77,7 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
                   isLast={index === messageIds.length - 1}
                   key={messageId}
                   messageId={messageId}
-                  onRegenerate={() => core.regenerate(sessionId)}
+                  onRegenerate={() => runtime.regenerate(sessionId)}
                 />
               ))
             )}

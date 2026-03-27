@@ -18,7 +18,7 @@ export const createUiStore = () => createStore()
 export const createUiPersister = (store: Store) => createLocalPersister(store, 'tetra-ui')
 
 // --- Hook Wrappers ---
-// Hard-code 'ui' store ID so callers can't accidentally hit the core store.
+// Hard-code 'ui' store ID so callers can't accidentally hit the runtime store.
 
 export const useUiStore = () => useStore(UI)
 export const useUiValue = (valueId: string) => useValue(valueId, UI)

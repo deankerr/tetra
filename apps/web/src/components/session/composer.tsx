@@ -10,13 +10,13 @@ import {
 } from '@/components/ai-elements/prompt-input'
 import type { PromptInputMessage } from '@/components/ai-elements/prompt-input'
 import { ModelPicker } from '@/components/model-picker'
-import { useCore } from '@/components/use-core'
+import { useRuntime } from '@/components/use-runtime'
 import { getDraftConfig, useDraftCell, useUiStore } from '@/lib/ui'
 
 import { useIsStreaming } from './hooks'
 
 export function Composer({ sessionId }: { sessionId: string }) {
-  const core = useCore()
+  const runtime = useRuntime()
   const uiStore = useUiStore()
   const isStreaming = useIsStreaming(sessionId)
   const [draft, setDraft] = useState('')
@@ -31,12 +31,12 @@ export function Composer({ sessionId }: { sessionId: string }) {
 
     // Read full draft config imperatively at submit time
     const config = uiStore ? getDraftConfig(uiStore, sessionId) : undefined
-    core.sendMessage(sessionId, message.text, config)
+    runtime.sendMessage(sessionId, message.text, config)
     setDraft('')
   }
 
   const handleStop = () => {
-    core.cancelRequest(sessionId)
+    runtime.cancelRequest(sessionId)
   }
 
   return (

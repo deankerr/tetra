@@ -10,13 +10,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { SidebarMenuAction, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar'
-import { useCore } from '@/components/use-core'
+import { useRuntime } from '@/components/use-runtime'
 import { DEFAULT_SESSION_CONFIG } from '@/lib/constants'
-import { useSession, useSessionIds } from '@/lib/core/hooks'
+import { useSession, useSessionIds } from '@/lib/runtime/hooks'
 import { initDraft, useActiveSessionId, useUiStore, useUiValueState } from '@/lib/ui'
 
 export function SessionList() {
-  const core = useCore()
+  const runtime = useRuntime()
   const uiStore = useUiStore()
   const sessionIds = useSessionIds()
   const activeSessionId = useActiveSessionId()
@@ -29,7 +29,7 @@ export function SessionList() {
           active={sessionId === activeSessionId}
           key={sessionId}
           onDelete={() => {
-            core.deleteSession(sessionId)
+            runtime.deleteSession(sessionId)
 
             // If we deleted the active session, pick another or create one
             if (sessionId === activeSessionId) {
@@ -37,7 +37,7 @@ export function SessionList() {
               if (remaining.length > 0 && remaining[0] !== undefined) {
                 setActiveSessionId(remaining[0])
               } else {
-                const newId = core.createSession()
+                const newId = runtime.createSession()
                 if (uiStore) {
                   initDraft(uiStore, newId, DEFAULT_SESSION_CONFIG)
                 }
@@ -46,7 +46,7 @@ export function SessionList() {
             }
           }}
           onRename={(title) => {
-            core.updateSession(sessionId, title)
+            runtime.updateSession(sessionId, title)
           }}
           onSelect={() => {
             setActiveSessionId(sessionId)

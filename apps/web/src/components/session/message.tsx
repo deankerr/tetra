@@ -11,7 +11,7 @@ import {
   MessageResponse,
 } from '@/components/ai-elements/message'
 import { Reasoning, ReasoningContent, ReasoningTrigger } from '@/components/ai-elements/reasoning'
-import { useMessage, useRequestForMessage } from '@/lib/core/hooks'
+import { useMessage, useRequestForMessage } from '@/lib/runtime/hooks'
 
 // Render each part of the message based on request state
 function MessageParts({ message, request }: { message: UIMessage; request: Request | null }) {

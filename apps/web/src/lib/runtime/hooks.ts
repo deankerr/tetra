@@ -5,34 +5,34 @@ import * as UiReact from 'tinybase/ui-react/with-schemas'
 
 // Schema-aware TinyBase React hooks.
 // oxlint-disable-next-line no-unsafe-type-assertion -- TinyBase WithSchemas pattern
-const coreStore = UiReact as unknown as UiReact.WithSchemas<Schemas>
+const runtimeStore = UiReact as unknown as UiReact.WithSchemas<Schemas>
 
-const CORE = 'core' as const
+const RUNTIME = 'runtime' as const
 
 // --- API Key ---
 
 export const useApiKey = (): [string, (v: string) => void] => {
-  const [value, setter] = coreStore.useValueState('openrouterApiKey', CORE)
+  const [value, setter] = runtimeStore.useValueState('openrouterApiKey', RUNTIME)
   return [value, setter]
 }
 
 // --- Session Hooks ---
 
-export const useSessionIds = () => coreStore.useSliceRowIds('sessionsByRecency', 'all', CORE)
+export const useSessionIds = () => runtimeStore.useSliceRowIds('sessionsByRecency', 'all', RUNTIME)
 
 export const useSession = (id: string): Session | null => {
-  const hasRow = coreStore.useHasRow('sessions', id, CORE)
-  const row = coreStore.useRow('sessions', id, CORE)
+  const hasRow = runtimeStore.useHasRow('sessions', id, RUNTIME)
+  const row = runtimeStore.useRow('sessions', id, RUNTIME)
   return hasRow ? decodeSession(id, row) : null
 }
 
 // --- Message Hooks ---
 
 export const useSessionMessageIds = (sessionId: string) =>
-  coreStore.useSliceRowIds('messagesBySession', sessionId, CORE)
+  runtimeStore.useSliceRowIds('messagesBySession', sessionId, RUNTIME)
 
 export const useMessage = (id: string): Message | null => {
-  const row = coreStore.useRow('messages', id, CORE)
+  const row = runtimeStore.useRow('messages', id, RUNTIME)
   if (!row.createdAt) {
     return null
   }
@@ -43,10 +43,10 @@ export const useMessage = (id: string): Message | null => {
 
 /** Returns the currently active (pending/streaming) request for a session, or null. */
 export const useActiveRequest = (sessionId: string): Request | null => {
-  const ids = coreStore.useSliceRowIds('requestsBySession', sessionId, CORE)
+  const ids = runtimeStore.useSliceRowIds('requestsBySession', sessionId, RUNTIME)
   const latestId = ids[0] ?? ''
-  const hasRow = coreStore.useHasRow('requests', latestId, CORE)
-  const row = coreStore.useRow('requests', latestId, CORE)
+  const hasRow = runtimeStore.useHasRow('requests', latestId, RUNTIME)
+  const row = runtimeStore.useRow('requests', latestId, RUNTIME)
 
   if (!hasRow || latestId === '') {
     return null
@@ -60,10 +60,10 @@ export const useActiveRequest = (sessionId: string): Request | null => {
 
 /** Returns the most recent request for a session regardless of status. */
 export const useLatestRequest = (sessionId: string): Request | null => {
-  const ids = coreStore.useSliceRowIds('requestsBySession', sessionId, CORE)
+  const ids = runtimeStore.useSliceRowIds('requestsBySession', sessionId, RUNTIME)
   const latestId = ids[0] ?? ''
-  const hasRow = coreStore.useHasRow('requests', latestId, CORE)
-  const row = coreStore.useRow('requests', latestId, CORE)
+  const hasRow = runtimeStore.useHasRow('requests', latestId, RUNTIME)
+  const row = runtimeStore.useRow('requests', latestId, RUNTIME)
 
   if (!hasRow || latestId === '') {
     return null
@@ -74,10 +74,10 @@ export const useLatestRequest = (sessionId: string): Request | null => {
 
 /** Looks up the request linked to an assistant message. Returns null for user messages. */
 export const useRequestForMessage = (messageId: string): Request | null => {
-  const ids = coreStore.useSliceRowIds('requestByAssistantMessage', messageId, CORE)
+  const ids = runtimeStore.useSliceRowIds('requestByAssistantMessage', messageId, RUNTIME)
   const requestId = ids[0] ?? ''
-  const hasRow = coreStore.useHasRow('requests', requestId, CORE)
-  const row = coreStore.useRow('requests', requestId, CORE)
+  const hasRow = runtimeStore.useHasRow('requests', requestId, RUNTIME)
+  const row = runtimeStore.useRow('requests', requestId, RUNTIME)
 
   if (!hasRow || requestId === '') {
     return null
@@ -88,9 +88,9 @@ export const useRequestForMessage = (messageId: string): Request | null => {
 
 /** Returns the inference config from the most recent request for a session, or null. */
 export const useLatestConfig = (sessionId: string): SessionConfig | null => {
-  const ids = coreStore.useSliceRowIds('requestsBySession', sessionId, CORE)
+  const ids = runtimeStore.useSliceRowIds('requestsBySession', sessionId, RUNTIME)
   const latestId = ids[0] ?? ''
-  const raw = coreStore.useCell('requests', latestId, 'config', CORE)
+  const raw = runtimeStore.useCell('requests', latestId, 'config', RUNTIME)
 
   return useMemo(() => {
     if (latestId === '') {

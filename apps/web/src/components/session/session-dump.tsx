@@ -1,16 +1,16 @@
 import { BugIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { useCore } from '@/components/use-core'
+import { useRuntime } from '@/components/use-runtime'
 
 export function SessionDump({ sessionId }: { sessionId: string }) {
-  const core = useCore()
+  const runtime = useRuntime()
 
   return (
     <Button
       onClick={() => {
-        const sessionData = core.sessions.get(sessionId)
-        const messages = core.messages.listBySession(sessionId)
+        const sessionData = runtime.sessions.get(sessionId)
+        const messages = runtime.messages.listBySession(sessionId)
         console.log('[session-view:dump]', { messages, session: sessionData })
       }}
       size="icon-sm"

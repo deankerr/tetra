@@ -9,12 +9,12 @@ import { AppSidebar } from '@/components/app-sidebar'
 import { SessionView } from '@/components/session/session-view'
 import { Sidebar, SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { Spinner } from '@/components/ui/spinner'
-import { CoreContext } from '@/components/use-core'
-import type { Core } from '@/lib/core'
-import { getCore } from '@/lib/core'
+import { RuntimeContext } from '@/components/use-runtime'
+import type { Runtime } from '@/lib/runtime'
+import { getRuntime } from '@/lib/runtime'
 
 export function App() {
-  const [core, setCore] = useState<Core | null>(null)
+  const [runtime, setRuntime] = useState<Runtime | null>(null)
 
   // UI store — ephemeral state (activeSessionId, draft configs, panel visibility)
   const uiStore = useCreateStore(createStore)
@@ -30,13 +30,13 @@ export function App() {
 
   useEffect(() => {
     const init = async () => {
-      setCore(await getCore())
+      setRuntime(await getRuntime())
     }
     void init()
   }, [])
 
-  // Loading state — core initializes store + persistence
-  if (core === null) {
+  // Loading state — runtime initializes store + persistence
+  if (runtime === null) {
     return (
       <div className="flex min-h-svh items-center justify-center bg-background">
         <div className="flex items-center gap-3">
@@ -49,13 +49,16 @@ export function App() {
 
   // Both stores are named — no defaults. Every hook must specify which store it targets.
   // oxlint-disable-next-line no-unsafe-type-assertion
-  const coreStore = core.store as unknown as TinyStore
+  const runtimeStore = runtime.store as unknown as TinyStore
   // oxlint-disable-next-line no-unsafe-type-assertion
-  const coreIndexes = core.indexes as unknown as TinyIndexes
+  const runtimeIndexes = runtime.indexes as unknown as TinyIndexes
 
   return (
-    <CoreContext value={core}>
-      <Provider indexesById={{ core: coreIndexes }} storesById={{ core: coreStore, ui: uiStore }}>
+    <RuntimeContext value={runtime}>
+      <Provider
+        indexesById={{ runtime: runtimeIndexes }}
+        storesById={{ runtime: runtimeStore, ui: uiStore }}
+      >
         <SidebarProvider>
           <Sidebar>
             <AppSidebar />
@@ -72,6 +75,6 @@ export function App() {
 
         <Inspector />
       </Provider>
-    </CoreContext>
+    </RuntimeContext>
   )
 }

@@ -17,18 +17,18 @@ function getOrCreateRuntimeId(): string {
   return id
 }
 
-export type { Runtime as Core }
+export type { Runtime }
 
-let corePromise: Promise<Runtime> | null = null
+let runtimePromise: Promise<Runtime> | null = null
 
 /**
- * Get the Core singleton. Initializes on first call, returns the
+ * Get the Runtime singleton. Initializes on first call, returns the
  * same instance on subsequent calls. Safe to call concurrently.
  */
 // oxlint-disable-next-line typescript/promise-function-async -- This is a singleton promise accessor; making it async adds no value and conflicts with require-await.
-export const getCore = (): Promise<Runtime> => {
-  corePromise ??= initialize()
-  return corePromise
+export const getRuntime = (): Promise<Runtime> => {
+  runtimePromise ??= initialize()
+  return runtimePromise
 }
 
 async function initialize(): Promise<Runtime> {
@@ -36,7 +36,7 @@ async function initialize(): Promise<Runtime> {
 
   // OPFS persistence — must complete before engine starts
   const root = await navigator.storage.getDirectory()
-  const handle = await root.getFileHandle('tetra-core.json', { create: true })
+  const handle = await root.getFileHandle('tetra-runtime.json', { create: true })
   const persister = createOpfsPersister(runtime.store, handle)
   await persister.startAutoPersisting()
 
@@ -45,9 +45,9 @@ async function initialize(): Promise<Runtime> {
     const ws = new WebSocket(SYNC_URL)
     const synchronizer = await createWsSynchronizer(runtime.store, ws)
     await synchronizer.startSync()
-    console.log('[core] sync connected', SYNC_URL)
+    console.log('[runtime] sync connected', SYNC_URL)
   } catch (error: unknown) {
-    console.warn('[core] sync unavailable, running local-only', error)
+    console.warn('[runtime] sync unavailable, running local-only', error)
   }
 
   // Start engine after persistence is loaded
