@@ -12,9 +12,11 @@ import {
   SidebarHeader,
   SidebarMenu,
 } from '@/components/ui/sidebar'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useRuntime } from '@/components/use-runtime'
 import { ThemeSwitcher } from '@/components/util/theme-switcher'
 import { DEFAULT_SESSION_CONFIG } from '@/lib/constants'
+import { useSyncStatus } from '@/lib/runtime/hooks'
 import {
   getDraftConfig,
   initDraft,
@@ -22,6 +24,26 @@ import {
   useUiStore,
   useUiValueState,
 } from '@/lib/ui'
+
+const SYNC_CONFIG = {
+  connected: { color: 'bg-emerald-500', label: 'Synced' },
+  disconnected: { color: 'bg-amber-500', label: 'Disconnected' },
+  off: { color: 'bg-zinc-400', label: 'Local only' },
+} as const
+
+function SyncIndicator() {
+  const status = useSyncStatus()
+  const { color, label } = SYNC_CONFIG[status]
+
+  return (
+    <Tooltip>
+      <TooltipTrigger className="ml-auto cursor-default">
+        <span className={`block size-2 rounded-full ${color}`} />
+      </TooltipTrigger>
+      <TooltipContent side="top">{label}</TooltipContent>
+    </Tooltip>
+  )
+}
 
 export function AppSidebar() {
   const runtime = useRuntime()
@@ -75,6 +97,7 @@ export function AppSidebar() {
         <div className="flex items-center gap-2">
           <SettingsDialog />
           <ThemeSwitcher />
+          <SyncIndicator />
         </div>
       </SidebarFooter>
     </>

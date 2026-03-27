@@ -1,9 +1,9 @@
 {
-  "name": "@tetra/sync",
+  "name": "@tetra/repl",
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "bun run sync.ts"
+    "start": "bun run repl.ts"
   },
   "dependencies": {
     "@tetra/runtime": "workspace:*",

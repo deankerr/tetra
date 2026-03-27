@@ -1,7 +1,10 @@
 import { decodeMessage, decodeRequest, decodeRequestConfig, decodeSession } from '@tetra/runtime'
 import type { Message, Request, Schemas, Session, SessionConfig } from '@tetra/runtime'
-import { useMemo } from 'react'
+import { useMemo, useSyncExternalStore } from 'react'
 import * as UiReact from 'tinybase/ui-react/with-schemas'
+
+import { getSyncStatus, subscribeSyncStatus } from '@/lib/runtime'
+import type { SyncStatus } from '@/lib/runtime'
 
 // Schema-aware TinyBase React hooks.
 // oxlint-disable-next-line no-unsafe-type-assertion -- TinyBase WithSchemas pattern
@@ -99,3 +102,8 @@ export const useLatestConfig = (sessionId: string): SessionConfig | null => {
     return decodeRequestConfig(raw)
   }, [latestId, raw])
 }
+
+// --- Sync Status ---
+
+export const useSyncStatus = (): SyncStatus =>
+  useSyncExternalStore(subscribeSyncStatus, getSyncStatus)

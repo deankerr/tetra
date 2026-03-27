@@ -6,6 +6,33 @@ import { createWsSynchronizer } from 'tinybase/synchronizers/synchronizer-ws-cli
 const RUNTIME_ID_KEY = 'tetra-runtime-id'
 const SYNC_URL = 'ws://localhost:8048'
 
+// --- Sync Status ---
+
+export type SyncStatus = 'connected' | 'disconnected' | 'off'
+
+type SyncStatusListener = (status: SyncStatus) => void
+
+let currentSyncStatus: SyncStatus = 'off'
+const syncStatusListeners = new Set<SyncStatusListener>()
+
+function setSyncStatus(status: SyncStatus) {
+  currentSyncStatus = status
+  for (const listener of syncStatusListeners) {
+    listener(status)
+  }
+}
+
+export function getSyncStatus(): SyncStatus {
+  return currentSyncStatus
+}
+
+export function subscribeSyncStatus(listener: SyncStatusListener): () => void {
+  syncStatusListeners.add(listener)
+  return () => syncStatusListeners.delete(listener)
+}
+
+// --- Runtime ---
+
 /** Stable runtime ID for this browser — persisted so stale recovery works across restarts. */
 function getOrCreateRuntimeId(): string {
   const existing = localStorage.getItem(RUNTIME_ID_KEY)
@@ -45,8 +72,16 @@ async function initialize(): Promise<Runtime> {
     const ws = new WebSocket(SYNC_URL)
     const synchronizer = await createWsSynchronizer(runtime.store, ws)
     await synchronizer.startSync()
+    setSyncStatus('connected')
     console.log('[runtime] sync connected', SYNC_URL)
+
+    // Monitor WebSocket connection state
+    ws.addEventListener('close', () => {
+      setSyncStatus('disconnected')
+      console.warn('[runtime] sync disconnected')
+    })
   } catch (error: unknown) {
+    setSyncStatus('off')
     console.warn('[runtime] sync unavailable, running local-only', error)
   }
 
