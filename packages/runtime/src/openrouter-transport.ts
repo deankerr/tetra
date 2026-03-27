@@ -53,6 +53,7 @@ export const createOpenRouterTransport = (getApiKey: () => string | undefined): 
       stream: result.toUIMessageStream({
         generateMessageId: () => assistantMessageId,
         originalMessages: messages,
+        sendReasoning: true,
       }),
       terminateOnError: true,
     })

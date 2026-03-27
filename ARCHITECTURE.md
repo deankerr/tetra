@@ -1,70 +1,105 @@
 # Architecture
 
-TinyBase is the synchronization boundary between the UI and the runtime. React and the runtime never call each other — both read from and write to TinyBase. This decouples streams from navigation: a stream survives unmount, session switching, and remount without any handshake.
+## Runtime
 
-Nothing is synced today, but the architecture separates state into two stores based on whether it _should_ sync: domain data that belongs on every device vs. local UI state that doesn't.
+`@tetra/runtime` is the core package. It runs in any JS environment — browser, server, service worker. No React dependency.
+
+`createRuntime({ runtimeId })` returns a flat object: store, indexes, DAOs, operations, and lifecycle methods (`start` / `stop`). Creation is synchronous. The consumer wires persistence and sync, then calls `start()` to begin processing requests.
+
+```
+createRuntime()  →  wire persistence/sync  →  runtime.start()
+```
+
+The engine (reactive request processing) and transport (LLM API integration) are internal. Consumers interact through operations (`sendMessage`, `createSession`, etc.) and DAOs (`sessions.get()`, `messages.listBySession()`, etc.). The store is exposed for persistence and sync wiring only.
+
+### Reactive Engine
+
+The engine watches the requests table via TinyBase listeners. When a pending request appears, it claims it, streams the response via the transport, and writes chunks back to the store. Cancellation works by writing a status change — the engine detects it and aborts the in-flight stream.
+
+This is request-based signaling: the UI (or any consumer) writes a request row, the engine picks it up. They never call each other directly.
+
+### Lifecycle
+
+- `start()` — attaches listeners, recovers stale requests from previous sessions, begins processing. Idempotent.
+- `stop()` — removes listeners, aborts in-flight streams.
+- Stale recovery uses `runtimeId` to identify requests that were interrupted by a crash or restart.
+
+## TinyBase as Synchronization Boundary
+
+TinyBase is the synchronization boundary between consumers and the runtime. In the browser, React and the engine never call each other — both read from and write to TinyBase.
+
+```
+Consumer (React, server, etc.)  ◄──►  TinyBase Store  ◄──►  Engine
+```
+
+This decouples streams from navigation: a stream survives unmount, session switching, and remount without any handshake. The consumer shows whatever state is in the store when it reads — no initialization protocol needed.
 
 ## Stores
 
 ### Core Store
 
-Domain data. Sessions, messages, requests, agents. Persisted to IndexedDB. Typed schema (`with-schemas`). This is the data you'd sync across devices — conversation history, agent configurations, request records.
-
-Structured in layers:
-
-1. **Schema + Store** — Table/value definitions, store creation, persistence, indexes → `lib/core/data/stores.ts`, `lib/core/data/schemas.ts`
-2. **DAOs + Codecs** — Type-safe read/write per entity. Codecs separate persisted row shape from domain types. Types inferred from decode functions → `lib/core/data/{agents,sessions,messages,requests}.ts`
-3. **Operations** — Named business actions (`createSession`, `sendMessage`, `regenerate`). Multi-entity writes. Pure domain logic — operations do not read or write UI state → `lib/core/operations.ts`
-4. **Runtime** — Watches for pending requests, manages abort controllers, writes streamed responses back to the store. Not aware of React → `lib/core/runtime.ts`, `lib/core/stream.ts`, `lib/core/browser-transport.ts`
-5. **Core Singleton** — Composes data layer, operations, and runtime. Single entry point for React → `lib/core/index.ts`
+Domain data. Sessions, messages, requests, agents. Typed schema (`with-schemas`). MergeableStore for sync capability.
 
 **Entities:**
 
 - **Sessions** — Conversation context
-- **Messages** — Ordered per-session, stores full AI SDK UIMessage as object cell
-- **Requests** — Signaling between UI and runtime (pending → streaming → completed/error/cancelled). Each request snapshots its inference config at creation time.
+- **Messages** — Ordered per-session, stores AI SDK UIMessage parts
+- **Requests** — Signaling between consumer and engine (pending → streaming → completed/error/cancelled). Each request snapshots its inference config at creation time.
 - **Agents** — LLM configuration (model, provider, system prompt, inference params)
 
-### UI Store
+Structured in layers:
 
-Local-only UI state. Which session is active, draft inference configs, API keys, panel visibility. Persisted to localStorage so it survives refresh, but would never sync — you wouldn't want another device to inherit your sidebar toggle, API key, or half-edited system prompt.
+1. **Schema + Store** — Table/value definitions, store creation, indexes
+2. **DAOs + Codecs** — Type-safe read/write per entity. Codecs separate persisted row shape from domain types. Types inferred from decode functions.
+3. **Operations** — Named business actions (`createSession`, `sendMessage`, `regenerate`). Multi-entity writes. Pure domain logic.
+4. **Engine** — Watches for pending requests, manages abort controllers, writes streamed responses. Internal to the runtime.
 
-Created inside the React tree (`useCreateStore` + `useCreatePersister`). No schema, no DAOs, no operations layer. Components work directly with TinyBase primitives through thin hook wrappers in `lib/ui.ts` that hard-code the store ID.
+### UI Store (web app only)
+
+Local-only state. Active session, draft inference configs, panel visibility. Persisted to localStorage. Never synced — you wouldn't want another device to inherit your sidebar toggle or half-edited system prompt.
+
+No schema, no DAOs. Components work directly with TinyBase primitives through thin hook wrappers that hard-code the store ID.
 
 **The mental test:** if I change this value, should I see it on another device? If yes → core store. If no → UI store.
 
-### Provider
+### Provider (web app)
 
-Both stores are registered as named stores: `storesById={{ core, ui }}`. There is no default store. Every hook call must specify which store it targets. The `CORE` constant and `lib/ui.ts` wrappers enforce this so you can't accidentally hit the wrong store.
+Both stores are registered as named stores. No default store — every hook call specifies which store it targets.
 
 ## Data Flow
 
 **Send message:**
 
-1. Component reads draft config from UI store, calls `core.sendMessage(sessionId, text, config)`
+1. Consumer reads config, calls `runtime.sendMessage(sessionId, text, config)`
 2. Operations write user message + assistant placeholder + pending request (with config snapshot)
-3. Runtime picks up pending request, streams response, writes partial updates
-4. Components re-render reactively as cells change
-5. On complete/error/abort: runtime updates request status
+3. Engine picks up pending request, streams response, writes partial updates
+4. Consumers re-render/react as cells change
+5. On complete/error/abort: engine updates request status
 
-**Cancel:** Component calls `core.cancelRequest(sessionId)` → runtime aborts active controller → request marked cancelled
+**Cancel:** Consumer calls `runtime.cancelRequest(sessionId)` → engine aborts active controller → request marked cancelled
 
-**Switch session:** Component writes `activeSessionId` to UI store → components re-render → stream in original session continues unaffected
+**Switch session (web app):** Component writes `activeSessionId` to UI store → components re-render → stream in original session continues unaffected
 
-**Draft config:** Each session has a row in the UI store's `drafts` table. Components subscribe to individual cells, so editing model doesn't re-render the system prompt field. Drafts initialize from the latest committed request config when a session is first opened, and are preserved across session switches.
+## Inference
+
+Inference uses `streamText()` from the AI SDK with the OpenRouter provider. The transport is internal to the runtime — it reads the API key from the store's `openrouterApiKey` value at stream time (lazy resolution, no restart needed to switch keys).
+
+Inference can run in any environment where the runtime runs. The web app runs it client-side; a server could run it identically.
+
+## Persistence
+
+Consumers bring their own persisters. The runtime creates the store; the consumer decides how to persist and sync it.
+
+- **Web app** — OPFS persistence + WebSocket sync to server
+- **Sync server** — File persistence + WebSocket sync to clients
 
 ## TinyBase Constraints
 
 - **Index gotcha:** Constant slice IDs like `'all'` must be passed as functions (`() => 'all'`), not string literals.
-
-## Inference
-
-Inference runs entirely in the browser. `streamText()` from the AI SDK is called directly via `createBrowserTransport` in `lib/core/browser-transport.ts` — no server endpoint.
-
-The user provides their own OpenRouter API key, stored as a value in the UI store (`openrouterApiKey`). The core singleton initializes before the UI store hydrates, so the transport uses a late-binding getter: `app.tsx` syncs the key from the UI store to a mutable ref via a TinyBase value listener, and the transport reads it at stream time.
+- **Type casts:** TinyBase's `with-schemas` generics require `as unknown as` casts at initialization boundaries. This is a known rough edge.
 
 ## Open Questions
 
 - Streaming write volume: does replacing the entire message object cell on every token cause performance issues at scale?
 - Schema evolution: how does TinyBase handle schema changes across app versions?
-- Large conversations: at what point does message volume stress TinyBase or IndexedDB?
+- Large conversations: at what point does message volume stress TinyBase or the persistence layer?

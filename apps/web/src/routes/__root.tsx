@@ -3,10 +3,10 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 
-import { DebugMenu } from '@/components/debug-menu'
-import { RootErrorComponent } from '@/components/root-error'
-import { RootNotFoundComponent } from '@/components/root-not-found'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { DebugMenu } from '@/components/util/debug-menu'
+import { RootErrorComponent } from '@/components/util/root-error'
+import { RootNotFoundComponent } from '@/components/util/root-not-found'
 
 import appCss from '../styles.css?url'
 

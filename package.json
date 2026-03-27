@@ -6,7 +6,8 @@
     "packages/*"
   ],
   "scripts": {
-    "check": "oxlint --type-aware --type-check --fix . && oxfmt --write ."
+    "check": "oxlint --type-aware --type-check --fix . && oxfmt --write .",
+    "dev": "bun run --filter @tetra/web dev"
   },
   "devDependencies": {
     "oxfmt": "0.40.0",

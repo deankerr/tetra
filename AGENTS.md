@@ -2,7 +2,7 @@
 
 LLM chat app for power users. Local-first, composable, built on TinyBase.
 
-- `AI SDK` with `OpenRouter` provider — inference runs client-side, user provides their own API key
+- `AI SDK` with `OpenRouter` provider — user provides their own API key
 - `TanStack Start`, `Tailwind`, `shadcn/ui` with `Base UI` and theme preset (Mira, Teal/Mist)
 - `AI Elements` Chatbot/Agent components from the `shadcn` component registry
 - Use `zod` for validation - not manual checking
@@ -15,8 +15,10 @@ LLM chat app for power users. Local-first, composable, built on TinyBase.
 
 ## TinyBase
 
-TinyBase documentation: @reference/tinybase-docs
+Full TinyBase documentation: @reference/tinybase-docs/index.md
 
+- Prefer searching here to exa/context7
+- Important updates reference/tinybase-docs/guides/releases/article.md Object/array types, State Hooks
 - Use domain types inferred from the decoders in the data access layer - create derived types if necessary, NEVER manually recreate type definitions.
 
 ## Monorepo
@@ -24,7 +26,7 @@ TinyBase documentation: @reference/tinybase-docs
 Bun workspaces. Apps in `apps/`, packages in `packages/`.
 
 - `apps/web` — TanStack Start frontend (the main app)
-- `apps/sync` — TinyBase WebSocket sync server
+- `apps/sync` — Server-side runtime demo (sync, persistence, HTTP API)
 
 Run scripts from root with `bun run --filter <name> <script>`, e.g. `bun run --filter @tetra/web dev`.
 
@@ -56,8 +58,6 @@ Run scripts from root with `bun run --filter <name> <script>`, e.g. `bun run --f
 ## Status
 
 Experimentation, iteration.
-
-Core: @apps/web/src/lib/core @apps/web/src/components/chat
 
 ### Prototype Mode
 

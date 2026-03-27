@@ -10,15 +10,16 @@ import {
   MessageContent,
   MessageResponse,
 } from '@/components/ai-elements/message'
+import { Reasoning, ReasoningContent, ReasoningTrigger } from '@/components/ai-elements/reasoning'
 import { useMessage, useRequestForMessage } from '@/lib/core/hooks'
 
 // Render each part of the message based on request state
 function MessageParts({ message, request }: { message: UIMessage; request: Request | null }) {
   const { parts } = message
-  const hasTextParts = parts.some((p) => p.type === 'text')
+  const hasContentParts = parts.some((p) => p.type === 'text' || p.type === 'reasoning')
 
   // Empty assistant message — render based on request status
-  if (message.role === 'assistant' && !hasTextParts) {
+  if (message.role === 'assistant' && !hasContentParts) {
     const status = request?.status
 
     // Actively streaming, just no content yet
@@ -36,12 +37,31 @@ function MessageParts({ message, request }: { message: UIMessage; request: Reque
     return null
   }
 
+  // Consolidate reasoning parts into a single block
+  const reasoningParts = parts.filter((p) => p.type === 'reasoning')
+  const reasoningText = reasoningParts.map((p) => ('text' in p ? p.text : '')).join('\n\n')
+  const hasReasoning = reasoningParts.length > 0
+
+  // Reasoning is streaming when the last part is a reasoning part and the request is active
+  const lastPart = parts.at(-1)
+  const isReasoningStreaming =
+    lastPart?.type === 'reasoning' &&
+    (request?.status === 'pending' || request?.status === 'streaming')
+
   return (
     <>
+      {/* Consolidated reasoning block */}
+      {hasReasoning && (
+        <Reasoning className="w-full" isStreaming={isReasoningStreaming}>
+          <ReasoningTrigger />
+          <ReasoningContent>{reasoningText}</ReasoningContent>
+        </Reasoning>
+      )}
+
       {parts.map((part, i) => {
         const key = `${message.id}-${String(i)}`
 
-        // oxlint-disable-next-line @typescript-eslint/switch-exhaustiveness-check -- TODO: render reasoning, tool, file, source parts
+        // oxlint-disable-next-line @typescript-eslint/switch-exhaustiveness-check -- TODO: render tool, file, source parts
         switch (part.type) {
           case 'text': {
             if (message.role === 'user') {
@@ -95,10 +115,10 @@ export function TimelineMessage({
   }
 
   const isAssistant = message.role === 'assistant'
-  const hasTextParts = message.parts.some((p) => p.type === 'text')
+  const hasContentParts = message.parts.some((p) => p.type === 'text' || p.type === 'reasoning')
 
   // Empty assistant message with error — standalone error block with retry
-  if (isAssistant && !hasTextParts && request?.status === 'error') {
+  if (isAssistant && !hasContentParts && request?.status === 'error') {
     return (
       <div className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
         <div className="flex items-center gap-2">
@@ -117,7 +137,7 @@ export function TimelineMessage({
   }
 
   // Empty assistant message cancelled — minimal block with retry
-  if (isAssistant && !hasTextParts && request?.status === 'cancelled') {
+  if (isAssistant && !hasContentParts && request?.status === 'cancelled') {
     return (
       <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
         <span>Cancelled</span>
@@ -131,7 +151,7 @@ export function TimelineMessage({
   // Empty assistant message with no active stream and no terminal state — render nothing
   if (
     isAssistant &&
-    !hasTextParts &&
+    !hasContentParts &&
     request?.status !== 'pending' &&
     request?.status !== 'streaming'
   ) {
@@ -147,7 +167,7 @@ export function TimelineMessage({
       </Message>
 
       {/* Copy on all assistant messages with content, regenerate on last only */}
-      {isAssistant && hasTextParts && (
+      {isAssistant && hasContentParts && (
         <MessageActions>
           {isLast && (
             <MessageAction label="Regenerate" onClick={onRegenerate}>

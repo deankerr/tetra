@@ -8,22 +8,22 @@ Evaluate and prove TinyBase as the reactive data layer for an agent runtime — 
 
 ## Core Principle
 
-TinyBase is the synchronization boundary between the UI and the runtime.
+TinyBase is the synchronization boundary between consumers and the runtime engine.
 
 ```
-React UI  ◄──reads/writes──►  TinyBase Store  ◄──reads/writes──►  Runtime
+Consumer  ◄──reads/writes──►  TinyBase Store  ◄──reads/writes──►  Engine
 ```
 
-React and the runtime never call each other. Both read from and write to TinyBase. React observes state reactively via hooks. The runtime manages async work independently.
+Consumers and the engine never call each other. Both read from and write to TinyBase. The runtime runs in any JS environment — browser, server, service worker — with no React dependency. Consumers bring their own persistence and sync.
 
 This is a decoupling strategy:
 
 - Streams survive navigation, unmounts, and remounts
 - Switching conversations does not kill active requests
-- The UI shows whatever state is in the store when it mounts — no handshake needed
-- The runtime can move to a service worker or remote server without changing the UI contract
+- The consumer shows whatever state is in the store when it reads — no handshake needed
+- The same runtime runs client-side or server-side with identical behavior
 
-**The key test:** Start a stream in session A. Switch to session B. Switch back. The stream is still running. Cancel it. This works because React never held the stream — TinyBase did.
+**The key test:** Start a stream in session A. Switch to session B. Switch back. The stream is still running. Cancel it. This works because the consumer never held the stream — TinyBase did.
 
 ## Feature Layers
 

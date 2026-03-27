@@ -1,6 +1,5 @@
 import type { SessionConfig } from '@tetra/runtime'
 import { sessionConfigSchema } from '@tetra/runtime'
-import { useCallback, useMemo } from 'react'
 import type { Store } from 'tinybase'
 import { createStore } from 'tinybase'
 import { createLocalPersister } from 'tinybase/persisters/persister-browser'
@@ -48,37 +47,16 @@ export const useDraftCell = (sessionId: string, cellId: string): [string, (v: st
 }
 
 // --- Draft Provider Options Hook ---
-// providerOptions is stored as a JSON string in TinyBase (cells are primitives).
+// TinyBase v8 supports native object cells — no JSON serialization needed.
 
 export const useDraftProviderOptions = (
   sessionId: string,
 ): [Record<string, unknown>, (opts: Record<string, unknown>) => void] => {
-  const [raw, setRaw] = useCellState('drafts', sessionId, 'providerOptions', UI)
-
-  const options = useMemo((): Record<string, unknown> => {
-    if (typeof raw !== 'string') {
-      return {}
-    }
-    try {
-      const parsed: unknown = JSON.parse(raw)
-      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
-        // oxlint-disable-next-line no-unsafe-type-assertion -- JSON-parsed object
-        return parsed as Record<string, unknown>
-      }
-      return {}
-    } catch {
-      return {}
-    }
-  }, [raw])
-
-  const setOptions = useCallback(
-    (opts: Record<string, unknown>) => {
-      setRaw(JSON.stringify(opts))
-    },
-    [setRaw],
-  )
-
-  return [options, setOptions]
+  const [value, setter] = useCellState('drafts', sessionId, 'providerOptions', UI)
+  const isObject = typeof value === 'object' && value !== null && !Array.isArray(value)
+  // oxlint-disable-next-line no-unsafe-type-assertion -- we only write plain objects to this cell
+  const options: Record<string, unknown> = isObject ? (value as Record<string, unknown>) : {}
+  return [options, setter]
 }
 
 // --- Draft Helpers ---
@@ -86,18 +64,7 @@ export const useDraftProviderOptions = (
 /** Read draft config for a session. Falls back to DEFAULT_SESSION_CONFIG. */
 export const getDraftConfig = (uiStore: Store, sessionId: string): SessionConfig => {
   const row = uiStore.getRow('drafts', sessionId)
-
-  // Parse providerOptions from JSON string (TinyBase cells are primitives)
-  let providerOptions: unknown
-  if (typeof row.providerOptions === 'string') {
-    try {
-      providerOptions = JSON.parse(row.providerOptions)
-    } catch {
-      // Invalid JSON — fall through as undefined
-    }
-  }
-
-  const result = sessionConfigSchema.safeParse({ ...row, providerOptions })
+  const result = sessionConfigSchema.safeParse(row)
   if (!result.success) {
     console.error('[ui:getDraftConfig]', 'draft parse failed — using default', { row, sessionId })
   }
@@ -111,7 +78,7 @@ export const initDraft = (uiStore: Store, sessionId: string, config: SessionConf
   }
   uiStore.setRow('drafts', sessionId, {
     modelId: config.modelId,
-    providerOptions: JSON.stringify(config.providerOptions ?? {}),
+    providerOptions: config.providerOptions ?? {},
     systemPrompt: config.systemPrompt ?? '',
   })
 }

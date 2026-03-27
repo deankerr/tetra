@@ -2,7 +2,6 @@ import { PlusIcon } from 'lucide-react'
 
 import { SessionList } from '@/components/session/session-list'
 import { SettingsDialog } from '@/components/settings-dialog'
-import { ThemeSwitcher } from '@/components/theme-switcher'
 import {
   SidebarContent,
   SidebarFooter,
@@ -14,6 +13,7 @@ import {
   SidebarMenu,
 } from '@/components/ui/sidebar'
 import { useCore } from '@/components/use-core'
+import { ThemeSwitcher } from '@/components/util/theme-switcher'
 import { DEFAULT_SESSION_CONFIG } from '@/lib/constants'
 import {
   getDraftConfig,
