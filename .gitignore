@@ -16,4 +16,4 @@ logs
 .env*.local
 
 reference/tinybase-docs
-data
+**/sync/data
