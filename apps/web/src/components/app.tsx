@@ -12,12 +12,17 @@ import { Spinner } from '@/components/ui/spinner'
 import { RuntimeContext } from '@/components/use-runtime'
 import type { Runtime } from '@/lib/runtime'
 import { getRuntime } from '@/lib/runtime'
+import { setupUiStore } from '@/lib/ui'
 
 export function App() {
   const [runtime, setRuntime] = useState<Runtime | null>(null)
 
   // UI store — ephemeral state (activeSessionId, draft configs, panel visibility)
-  const uiStore = useCreateStore(createStore)
+  const uiStore = useCreateStore(() => {
+    const store = createStore()
+    setupUiStore(store)
+    return store
+  })
   useCreatePersister(
     uiStore,
     (store) => createLocalPersister(store, 'tetra-ui'),

@@ -20,19 +20,11 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import { useRuntime } from '@/components/use-runtime'
-import { DEFAULT_SESSION_CONFIG } from '@/lib/constants'
 import { useSession, useSessionIds } from '@/lib/runtime/hooks'
-import {
-  getDraftConfig,
-  initDraft,
-  useActiveSessionId,
-  useUiStore,
-  useUiValueState,
-} from '@/lib/ui'
+import { useActiveSessionId, useUiValueState } from '@/lib/ui'
 
 export function SessionGroup() {
   const runtime = useRuntime()
-  const uiStore = useUiStore()
   const sessionIds = useSessionIds()
   const activeSessionId = useActiveSessionId()
   const [, setActiveSessionId] = useUiValueState('activeSessionId')
@@ -43,13 +35,7 @@ export function SessionGroup() {
       <SidebarGroupAction
         className="top-2.5"
         onClick={() => {
-          // Copy config from current session, or use defaults for first session
-          const config =
-            activeSessionId !== undefined && activeSessionId !== ''
-              ? getDraftConfig(uiStore, activeSessionId)
-              : DEFAULT_SESSION_CONFIG
           const sessionId = runtime.createSession()
-          initDraft(uiStore, sessionId, config)
           setActiveSessionId(sessionId)
         }}
       >
@@ -72,7 +58,6 @@ export function SessionGroup() {
                     setActiveSessionId(remaining[0])
                   } else {
                     const newId = runtime.createSession()
-                    initDraft(uiStore, newId, DEFAULT_SESSION_CONFIG)
                     setActiveSessionId(newId)
                   }
                 }

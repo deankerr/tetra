@@ -41,7 +41,7 @@ export const useActiveSessionId = () => {
 
 export const useDraftCell = (sessionId: string, cellId: string): [string, (v: string) => void] => {
   const [value, setter] = useCellState('drafts', sessionId, cellId, UI)
-  // Draft cells are always written as strings via initDraft. Non-string is unexpected.
+  // Draft cells are always strings. Non-string is unexpected — fall back to empty.
   const str = typeof value === 'string' ? value : ''
   return [str, setter]
 }
@@ -71,14 +71,27 @@ export const getDraftConfig = (uiStore: Store, sessionId: string): SessionConfig
   return result.success ? result.data : DEFAULT_SESSION_CONFIG
 }
 
-/** Write config to drafts only if no draft exists yet (preserves in-progress edits). */
-export const initDraft = (uiStore: Store, sessionId: string, config: SessionConfig) => {
-  if (uiStore.hasRow('drafts', sessionId)) {
-    return
-  }
-  uiStore.setRow('drafts', sessionId, {
-    modelId: config.modelId,
-    providerOptions: config.providerOptions ?? {},
-    systemPrompt: config.systemPrompt ?? '',
-  })
+// --- Store Setup ---
+
+/** Wire listeners on the UI store. Call once after creation. */
+export const setupUiStore = (store: Store) => {
+  // When the active session changes, ensure a draft config row exists with defaults.
+  // Mutator flag allows writing back to the store within the same transaction.
+  store.addValueListener(
+    'activeSessionId',
+    (s, _valueId, newValue) => {
+      if (typeof newValue !== 'string' || newValue === '') {
+        return
+      }
+      if (s.hasRow('drafts', newValue)) {
+        return
+      }
+      s.setRow('drafts', newValue, {
+        modelId: DEFAULT_SESSION_CONFIG.modelId,
+        providerOptions: DEFAULT_SESSION_CONFIG.providerOptions ?? {},
+        systemPrompt: DEFAULT_SESSION_CONFIG.systemPrompt ?? '',
+      })
+    },
+    true,
+  )
 }
