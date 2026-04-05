@@ -6,6 +6,7 @@
     "packages/*"
   ],
   "scripts": {
+    "build:vercel": "rm -rf .vercel/output apps/web/.vercel/output && NITRO_PRESET=vercel bun run --filter @tetra/web build && mkdir -p .vercel && mv apps/web/.vercel/output .vercel/output",
     "check": "oxlint --type-aware --type-check --fix . && oxfmt --write .",
     "dev": "bun run --filter @tetra/web dev",
     "repl": "bun run --cwd apps/repl repl.ts"

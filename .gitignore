@@ -8,6 +8,7 @@ build
 .cache
 tmp
 .output
+.vercel
 
 logs
 *.log
