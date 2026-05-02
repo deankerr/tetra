@@ -71,13 +71,26 @@ async function initialize(): Promise<Runtime> {
   try {
     const ws = new WebSocket(SYNC_URL)
     const synchronizer = await createWsSynchronizer(runtime.store, ws)
+
+    // TinyBase resolves the synchronizer after an initial socket error, so
+    // guard before enabling auto-sync against a socket that is already closed.
+    if (ws.readyState !== WebSocket.OPEN) {
+      await synchronizer.destroy()
+      setSyncStatus('off')
+      console.warn('[runtime] sync unavailable, running local-only')
+      runtime.start()
+      return runtime
+    }
+
     await synchronizer.startSync()
     setSyncStatus('connected')
     console.log('[runtime] sync connected', SYNC_URL)
 
-    // Monitor WebSocket connection state
+    // Tear down TinyBase auto-sync when the socket closes so later local
+    // writes, especially streamed chunks, do not send into a closed socket.
     ws.addEventListener('close', () => {
       setSyncStatus('disconnected')
+      void synchronizer.destroy()
       console.warn('[runtime] sync disconnected')
     })
   } catch (error: unknown) {
