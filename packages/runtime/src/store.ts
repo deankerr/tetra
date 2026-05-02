@@ -17,13 +17,13 @@ export const tablesSchema = {
   },
   requests: {
     assistantMessageId: { default: '', type: 'string' },
-    claimedBy: { default: '', type: 'string' },
     config: { default: {}, type: 'object' },
     createdAt: { default: 0, type: 'number' },
     errorMessage: { default: '', type: 'string' },
     messageId: { default: '', type: 'string' },
     sessionId: { default: '', type: 'string' },
     status: { default: 'pending', type: 'string' },
+    targetRuntimeId: { default: '', type: 'string' },
   },
   sessions: {
     createdAt: { default: 0, type: 'number' },
@@ -33,9 +33,7 @@ export const tablesSchema = {
   },
 } as const satisfies TablesSchema
 
-export const valuesSchema = {
-  openrouterApiKey: { default: '', type: 'string' },
-} as const satisfies ValuesSchema
+export const valuesSchema = {} as const satisfies ValuesSchema
 
 export type Schemas = [typeof tablesSchema, typeof valuesSchema]
 

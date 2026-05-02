@@ -3,14 +3,20 @@ import type { DataLayer } from './tables/index.ts'
 
 export type Engine = { stop: () => void }
 
+type EngineConfig = {
+  getOpenRouterApiKey?: () => Promise<string | null | undefined> | string | null | undefined
+  runtimeId: string
+}
+
 /**
  * Start the reactive engine. Watches the requests table via TinyBase listeners
  * and streams AI responses when pending requests appear.
  */
-export const startEngine = (data: DataLayer, runtimeId: string): Engine => {
+export const startEngine = (data: DataLayer, config: EngineConfig): Engine => {
+  const { runtimeId } = config
   const controllers = new Map<string, AbortController>()
 
-  // Recovery: mark requests claimed by this runtime that were stuck from a previous session
+  // Recovery: mark requests targeted to this runtime that were stuck from a previous session
   recoverStaleRequests(data, runtimeId)
 
   // Listener 1: detect new request rows (mutator — can write to store)
@@ -28,18 +34,18 @@ export const startEngine = (data: DataLayer, runtimeId: string): Engine => {
           continue
         }
 
-        // Only process requests claimed by this runtime
-        if (request.claimedBy !== runtimeId) {
+        // Only process requests targeted to this runtime.
+        if (request.targetRuntimeId !== runtimeId) {
           continue
         }
 
-        // Claim: mark as streaming
+        // Transition the targeted request into execution.
         data.requests.update(requestId, { status: 'streaming' })
 
         // Defer to next microtask — indexes (messagesBySession) haven't
         // processed the transaction's writes yet during the mutator phase
         queueMicrotask(() => {
-          void executeRequest(data, controllers, requestId, request.sessionId)
+          void executeRequest(data, config, controllers, requestId, request.sessionId)
         })
       }
     },
@@ -88,6 +94,7 @@ export const startEngine = (data: DataLayer, runtimeId: string): Engine => {
 
 const executeRequest = async (
   data: DataLayer,
+  engineConfig: EngineConfig,
   controllers: Map<string, AbortController>,
   requestId: string,
   sessionId: string,
@@ -98,8 +105,8 @@ const executeRequest = async (
   try {
     // Validate request
     const request = data.requests.getOrThrow(requestId)
-    const { assistantMessageId, config } = request
-    if (config === null) {
+    const { assistantMessageId, config: requestConfig } = request
+    if (requestConfig === null) {
       data.requests.update(requestId, {
         errorMessage: 'Request missing config snapshot',
         status: 'error',
@@ -109,7 +116,7 @@ const executeRequest = async (
     }
 
     // Resolve API key at execution time
-    const apiKey = data.store.getValue('openrouterApiKey')
+    const apiKey = await engineConfig.getOpenRouterApiKey?.()
     if (typeof apiKey !== 'string' || apiKey === '') {
       data.requests.update(requestId, {
         errorMessage: 'OpenRouter API key not configured. Add your key in Settings.',
@@ -120,15 +127,15 @@ const executeRequest = async (
     }
 
     // Prepare context — collect recent messages, excluding the empty assistant placeholder
-    const messages = data.messages.listRecentBySession(sessionId, config.maxMessages, [
+    const messages = data.messages.listRecentBySession(sessionId, requestConfig.maxMessages, [
       assistantMessageId,
     ])
 
     console.log('[runtime]', 'streaming', {
       assistantMessageId,
-      maxMessages: config.maxMessages ?? 'all',
+      maxMessages: requestConfig.maxMessages ?? 'all',
       messageCount: messages.length,
-      modelId: config.modelId,
+      modelId: requestConfig.modelId,
       requestId,
       sessionId,
     })
@@ -138,7 +145,7 @@ const executeRequest = async (
     for await (const snapshot of infer({
       apiKey,
       assistantMessageId,
-      config,
+      config: requestConfig,
       messages,
       signal: controller.signal,
     })) {
@@ -184,9 +191,9 @@ const recoverStaleRequests = (data: DataLayer, runtimeId: string) => {
       continue
     }
 
-    // Only recover requests claimed by this runtime
-    const claimedBy = data.store.getCell('requests', id, 'claimedBy')
-    if (claimedBy !== runtimeId) {
+    // Only recover requests targeted to this runtime.
+    const targetRuntimeId = data.store.getCell('requests', id, 'targetRuntimeId')
+    if (targetRuntimeId !== runtimeId) {
       continue
     }
 

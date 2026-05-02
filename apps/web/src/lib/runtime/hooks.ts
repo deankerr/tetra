@@ -12,13 +12,6 @@ const runtimeStore = UiReact as unknown as UiReact.WithSchemas<Schemas>
 
 const RUNTIME = 'runtime' as const
 
-// --- API Key ---
-
-export const useApiKey = (): [string, (v: string) => void] => {
-  const [value, setter] = runtimeStore.useValueState('openrouterApiKey', RUNTIME)
-  return [value, setter]
-}
-
 // --- Session Hooks ---
 
 export const useSessionIds = () => runtimeStore.useSliceRowIds('sessionsByRecency', 'all', RUNTIME)

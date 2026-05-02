@@ -22,7 +22,6 @@ export const decodeRequestConfig = (raw: unknown) => {
 
 export const decodeRequest = (id: string, row: RequestRow) => ({
   assistantMessageId: row.assistantMessageId,
-  claimedBy: row.claimedBy,
   config: decodeRequestConfig(row.config),
   createdAt: row.createdAt,
   errorMessage: row.errorMessage,
@@ -30,6 +29,7 @@ export const decodeRequest = (id: string, row: RequestRow) => ({
   messageId: row.messageId,
   sessionId: row.sessionId,
   status: isStatus(row.status) ? row.status : ('pending' as const),
+  targetRuntimeId: row.targetRuntimeId,
 })
 
 // --- Types ---
@@ -89,17 +89,17 @@ export const createRequests = (store: AppStore, indexes: AppIndexes) => ({
     messageId: string,
     assistantMessageId: string,
     config: SessionConfig,
-    claimedBy: string,
+    targetRuntimeId: string,
   ) {
     store.setRow('requests', id, {
       assistantMessageId,
-      claimedBy,
       config,
       createdAt: Date.now(),
       errorMessage: '',
       messageId,
       sessionId,
       status: 'pending',
+      targetRuntimeId,
     })
   },
 

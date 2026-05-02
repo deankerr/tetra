@@ -6,7 +6,7 @@
  *
  * Usage: bun run --filter @tetra/repl start
  */
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import * as readline from 'node:readline/promises'
 
 import { createRuntime } from '@tetra/runtime'
@@ -15,6 +15,7 @@ import type { MergeableStore, Store } from 'tinybase'
 import { createFilePersister } from 'tinybase/persisters/persister-file'
 import { createWsServer } from 'tinybase/synchronizers/synchronizer-ws-server'
 import { WebSocketServer } from 'ws'
+import { z } from 'zod'
 
 // --- ANSI ---
 
@@ -31,10 +32,31 @@ const cyan = (s: string) => `${ESC}[36m${s}${RESET}`
 
 const WS_PORT = 8048
 const DATA_DIR = './data'
+const SECRETS_FILE = `${DATA_DIR}/secrets.json`
 
 mkdirSync(DATA_DIR, { recursive: true })
 
-const runtime = createRuntime({ runtimeId: 'repl' })
+const localSecretsSchema = z.object({
+  openrouterApiKey: z.string().optional(),
+})
+
+function readLocalSecrets() {
+  try {
+    return localSecretsSchema.parse(JSON.parse(readFileSync(SECRETS_FILE, 'utf8')))
+  } catch {
+    return {}
+  }
+}
+
+function writeLocalSecrets(secrets: z.infer<typeof localSecretsSchema>) {
+  writeFileSync(SECRETS_FILE, `${JSON.stringify(secrets, null, 2)}\n`)
+}
+
+function getOpenRouterApiKey() {
+  return readLocalSecrets().openrouterApiKey ?? ''
+}
+
+const runtime = createRuntime({ getOpenRouterApiKey, runtimeId: 'repl' })
 
 // File persistence
 const persister = createFilePersister(
@@ -376,7 +398,7 @@ function cmdSystem(arg: string) {
 
 function cmdKey(arg: string) {
   if (arg === '') {
-    const current = runtime.store.getValue('openrouterApiKey')
+    const current = getOpenRouterApiKey()
     if (typeof current === 'string' && current.length > 0) {
       console.log(`API key: ${current.slice(0, 8)}...${current.slice(-4)}`)
     } else {
@@ -385,7 +407,7 @@ function cmdKey(arg: string) {
     return
   }
 
-  runtime.store.setValue('openrouterApiKey', arg)
+  writeLocalSecrets({ openrouterApiKey: arg })
   console.log(green('API key set.'))
 }
 
@@ -398,7 +420,7 @@ function cmdCancel() {
 }
 
 function cmdConfig() {
-  const apiKey = runtime.store.getValue('openrouterApiKey')
+  const apiKey = getOpenRouterApiKey()
   const keyDisplay =
     typeof apiKey === 'string' && apiKey.length > 0
       ? `${apiKey.slice(0, 8)}...${apiKey.slice(-4)}`

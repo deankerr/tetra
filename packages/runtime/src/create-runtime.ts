@@ -5,6 +5,7 @@ import { createAppIndexes, createAppStore } from './store.ts'
 import { createTables } from './tables/index.ts'
 
 export type RuntimeConfig = {
+  getOpenRouterApiKey?: () => Promise<string | null | undefined> | string | null | undefined
   runtimeId: string
 }
 
@@ -30,7 +31,10 @@ export function createRuntime(config: RuntimeConfig) {
         return
       }
 
-      engine = startEngine(data, config.runtimeId)
+      engine = startEngine(data, {
+        getOpenRouterApiKey: config.getOpenRouterApiKey,
+        runtimeId: config.runtimeId,
+      })
     },
 
     stop() {

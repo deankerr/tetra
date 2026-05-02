@@ -4,7 +4,7 @@
 
 `@tetra/runtime` is the core package. It runs in any JS environment — browser, server, service worker. No React dependency.
 
-`createRuntime({ runtimeId })` returns a flat object: store, indexes, DAOs, operations, and lifecycle methods (`start` / `stop`). Creation is synchronous. The consumer wires persistence and sync, then calls `start()` to begin processing requests.
+`createRuntime({ runtimeId, getOpenRouterApiKey })` returns a flat object: store, indexes, DAOs, operations, and lifecycle methods (`start` / `stop`). Creation is synchronous. The consumer wires persistence and sync, then calls `start()` to begin processing requests.
 
 ```
 createRuntime()  →  wire persistence/sync  →  runtime.start()
@@ -14,15 +14,17 @@ The engine (reactive request processing) and transport (LLM API integration) are
 
 ### Reactive Engine
 
-The engine watches the requests table via TinyBase listeners. When a pending request appears, it claims it, streams the response via the transport, and writes chunks back to the store. Cancellation works by writing a status change — the engine detects it and aborts the in-flight stream.
+The engine watches the requests table via TinyBase listeners. When a pending request targeted to this `runtimeId` appears, it streams the response via the transport and writes chunks back to the store. Cancellation works by writing a status change — the engine detects it and aborts the in-flight stream.
 
 This is request-based signaling: the UI (or any consumer) writes a request row, the engine picks it up. They never call each other directly.
+
+Requests use `targetRuntimeId`, not a claim lease. A co-located consumer can create work for its own long-lived runtime while every synced peer remains free to observe the same rows and streamed updates.
 
 ### Lifecycle
 
 - `start()` — attaches listeners, recovers stale requests from previous sessions, begins processing. Idempotent.
 - `stop()` — removes listeners, aborts in-flight streams.
-- Stale recovery uses `runtimeId` to identify requests that were interrupted by a crash or restart.
+- Stale recovery uses `runtimeId` to identify targeted requests that were interrupted by a crash or restart.
 
 ## TinyBase as Synchronization Boundary
 
@@ -82,7 +84,7 @@ Both stores are registered as named stores. No default store — every hook call
 
 ## Inference
 
-Inference uses `streamText()` from the AI SDK with the OpenRouter provider. The transport is internal to the runtime — it reads the API key from the store's `openrouterApiKey` value at stream time (lazy resolution, no restart needed to switch keys).
+Inference uses `streamText()` from the AI SDK with the OpenRouter provider. The transport is internal to the runtime, but provider secrets are supplied by the host through `getOpenRouterApiKey` at stream time. Secrets are local host state, not syncable core-store data.
 
 Inference can run in any environment where the runtime runs. The web app runs it client-side; a server could run it identically.
 

@@ -3,6 +3,8 @@ import { createRuntime } from '@tetra/runtime'
 import { createOpfsPersister } from 'tinybase/persisters/persister-browser/with-schemas'
 import { createWsSynchronizer } from 'tinybase/synchronizers/synchronizer-ws-client/with-schemas'
 
+import { getOpenRouterApiKey } from '@/lib/local-secrets'
+
 const RUNTIME_ID_KEY = 'tetra-runtime-id'
 const SYNC_URL = 'ws://localhost:8048'
 
@@ -59,7 +61,10 @@ export const getRuntime = (): Promise<Runtime> => {
 }
 
 async function initialize(): Promise<Runtime> {
-  const runtime = createRuntime({ runtimeId: getOrCreateRuntimeId() })
+  const runtime = createRuntime({
+    getOpenRouterApiKey,
+    runtimeId: getOrCreateRuntimeId(),
+  })
 
   // OPFS persistence — must complete before engine starts
   const root = await navigator.storage.getDirectory()

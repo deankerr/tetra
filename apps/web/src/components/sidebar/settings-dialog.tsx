@@ -11,10 +11,10 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useApiKey } from '@/lib/runtime/hooks'
+import { useOpenRouterApiKey } from '@/lib/local-secrets'
 
 export function SettingsDialog() {
-  const [apiKey, setApiKey] = useApiKey()
+  const [apiKey, setApiKey] = useOpenRouterApiKey()
 
   return (
     <Dialog>
@@ -29,8 +29,7 @@ export function SettingsDialog() {
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
           <DialogDescription>
-            Inference runs entirely in your browser. Your API key is stored locally and syncs across
-            connected devices.
+            Inference runs entirely in your browser. Your API key is stored locally on this device.
           </DialogDescription>
         </DialogHeader>
 
