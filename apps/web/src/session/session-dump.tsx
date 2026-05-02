@@ -1,7 +1,7 @@
 import { BugIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { useRuntime } from '@/components/use-runtime'
+import { useRuntime } from '@/runtime/use-runtime'
 
 export function SessionDump({ sessionId }: { sessionId: string }) {
   const runtime = useRuntime()

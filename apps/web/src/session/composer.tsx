@@ -9,9 +9,9 @@ import {
   PromptInputTools,
 } from '@/components/ai-elements/prompt-input'
 import type { PromptInputMessage } from '@/components/ai-elements/prompt-input'
-import { ModelPicker } from '@/components/model-picker'
-import { useRuntime } from '@/components/use-runtime'
-import { getDraftConfig, useDraftCell, useUiStore } from '@/lib/ui'
+import { getDraftConfig, useDraftCell, useUiStore } from '@/local-store/ui'
+import { ModelPicker } from '@/models/model-picker'
+import { useRuntime } from '@/runtime/use-runtime'
 
 import { useIsStreaming } from './hooks'
 

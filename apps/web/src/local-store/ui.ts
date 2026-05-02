@@ -3,7 +3,7 @@ import { sessionConfigSchema } from '@tetra/store'
 import type { Store } from 'tinybase'
 import { useCell, useCellState, useRow, useStore, useValue, useValueState } from 'tinybase/ui-react'
 
-import { DEFAULT_SESSION_CONFIG } from '@/lib/constants'
+import { DEFAULT_SESSION_CONFIG } from '@/constants'
 
 // --- Store ID ---
 

@@ -1,9 +1,9 @@
-import { ModelPicker } from '@/components/model-picker'
-import { ProviderOptionsEditor } from '@/components/session/provider-options-editor'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldGroup, FieldTitle } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
-import { useDraftCell } from '@/lib/ui'
+import { useDraftCell } from '@/local-store/ui'
+import { ModelPicker } from '@/models/model-picker'
+import { ProviderOptionsEditor } from '@/session/provider-options-editor'
 
 export function SessionConfig({ sessionId }: { sessionId: string }) {
   // Each cell is an independent subscription — editing one field doesn't re-render others.

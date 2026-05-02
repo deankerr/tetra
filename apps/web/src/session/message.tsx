@@ -11,7 +11,7 @@ import {
   MessageResponse,
 } from '@/components/ai-elements/message'
 import { Reasoning, ReasoningContent, ReasoningTrigger } from '@/components/ai-elements/reasoning'
-import { useMessage, useRequestForMessage } from '@/lib/runtime/hooks'
+import { useMessage, useRequestForMessage } from '@/runtime/hooks'
 
 // Render each part of the message based on request state
 function MessageParts({ message, request }: { message: UIMessage; request: Request | null }) {
@@ -123,7 +123,7 @@ export function TimelineMessage({
       <div className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
         <div className="flex items-center gap-2">
           <AlertCircleIcon className="size-4 shrink-0" />
-          <span>{request.errorMessage || 'Unknown error'}</span>
+          <span>{request.errorMessage ?? 'Unknown error'}</span>
         </div>
         <button
           className="text-muted-foreground hover:text-foreground"

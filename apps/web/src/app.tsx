@@ -5,14 +5,14 @@ import { createLocalPersister } from 'tinybase/persisters/persister-browser'
 import { Provider, useCreatePersister, useCreateStore } from 'tinybase/ui-react'
 import { Inspector } from 'tinybase/ui-react-inspector'
 
-import { AppSidebar } from '@/components/app-sidebar'
-import { SessionView } from '@/components/session/session-view'
 import { Sidebar, SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { Spinner } from '@/components/ui/spinner'
-import { RuntimeContext } from '@/components/use-runtime'
-import type { TetraClient } from '@/lib/runtime'
-import { getTetra } from '@/lib/runtime'
-import { setupUiStore } from '@/lib/ui'
+import { setupUiStore } from '@/local-store/ui'
+import type { TetraClient } from '@/runtime'
+import { getTetra } from '@/runtime'
+import { RuntimeContext } from '@/runtime/use-runtime'
+import { SessionView } from '@/session/session-view'
+import { AppSidebar } from '@/sidebar/app-sidebar'
 
 export function App() {
   const [tetra, setTetra] = useState<TetraClient | null>(null)

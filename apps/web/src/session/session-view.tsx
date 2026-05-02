@@ -9,9 +9,9 @@ import {
 } from '@/components/ai-elements/conversation'
 import { Button } from '@/components/ui/button'
 import { SidebarTrigger } from '@/components/ui/sidebar'
-import { useRuntime } from '@/components/use-runtime'
-import { useSession, useSessionMessageIds } from '@/lib/runtime/hooks'
-import { useActiveSessionId } from '@/lib/ui'
+import { useActiveSessionId } from '@/local-store/ui'
+import { useSession, useSessionMessageIds } from '@/runtime/hooks'
+import { useRuntime } from '@/runtime/use-runtime'
 
 import { Composer } from './composer'
 import { DetailPanel } from './detail-panel'
@@ -47,7 +47,7 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
         <header className="flex h-(--header-height) shrink-0 items-center justify-between gap-2 border-b px-2">
           <SidebarTrigger />
           <span className="min-w-0 flex-1 truncate font-medium text-sm">
-            {session.title || 'New session'}
+            {session.title ?? 'New session'}
           </span>
           <SessionDump sessionId={sessionId} />
           <Button

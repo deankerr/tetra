@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react'
 
-import type { TetraClient } from '@/lib/runtime'
+import type { TetraClient } from '@/runtime'
 
 export const RuntimeContext = createContext<TetraClient | null>(null)
 

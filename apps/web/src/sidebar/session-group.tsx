@@ -19,9 +19,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
-import { useRuntime } from '@/components/use-runtime'
-import { useSession, useSessionIds } from '@/lib/runtime/hooks'
-import { useActiveSessionId, useUiValueState } from '@/lib/ui'
+import { useActiveSessionId, useUiValueState } from '@/local-store/ui'
+import { useSession, useSessionIds } from '@/runtime/hooks'
+import { useRuntime } from '@/runtime/use-runtime'
 
 export function SessionGroup() {
   const runtime = useRuntime()

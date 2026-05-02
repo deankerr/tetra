@@ -1,8 +1,8 @@
-import { SessionGroup } from '@/components/sidebar/session-group'
-import { SettingsDialog } from '@/components/sidebar/settings-dialog'
-import { SyncIndicator } from '@/components/sidebar/sync-indicator'
 import { SidebarContent, SidebarFooter, SidebarHeader } from '@/components/ui/sidebar'
 import { ThemeSwitcher } from '@/components/util/theme-switcher'
+import { SessionGroup } from '@/sidebar/session-group'
+import { SettingsDialog } from '@/sidebar/settings-dialog'
+import { SyncIndicator } from '@/sidebar/sync-indicator'
 
 export function AppSidebar() {
   return (

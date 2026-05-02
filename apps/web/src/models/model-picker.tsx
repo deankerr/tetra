@@ -14,8 +14,9 @@ import {
   ModelSelectorTrigger,
 } from '@/components/ai-elements/model-selector'
 import { Button } from '@/components/ui/button'
-import { useModels } from '@/lib/models'
 import { cn } from '@/lib/utils'
+
+import { useModels } from './models'
 
 type ModelPickerProps = {
   className?: string

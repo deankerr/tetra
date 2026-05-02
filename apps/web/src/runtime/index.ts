@@ -5,7 +5,7 @@ import type { TetraStore } from '@tetra/store'
 import { createOpfsPersister } from 'tinybase/persisters/persister-browser/with-schemas'
 import { createWsSynchronizer } from 'tinybase/synchronizers/synchronizer-ws-client/with-schemas'
 
-import { getOpenRouterApiKey } from '@/lib/local-secrets'
+import { getOpenRouterApiKey } from '@/local-store/local-secrets'
 
 const EXECUTOR_ID_KEY = 'tetra-runtime-id'
 const SYNC_URL = 'ws://localhost:8048'

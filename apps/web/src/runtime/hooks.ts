@@ -3,8 +3,8 @@ import type { Message, Request, Schemas, Session, SessionConfig } from '@tetra/s
 import { useMemo, useSyncExternalStore } from 'react'
 import * as UiReact from 'tinybase/ui-react/with-schemas'
 
-import { getSyncStatus, subscribeSyncStatus } from '@/lib/runtime'
-import type { SyncStatus } from '@/lib/runtime'
+import { getSyncStatus, subscribeSyncStatus } from '@/runtime'
+import type { SyncStatus } from '@/runtime'
 
 // Schema-aware TinyBase React hooks.
 // oxlint-disable-next-line no-unsafe-type-assertion -- TinyBase WithSchemas pattern

@@ -4,7 +4,7 @@ import type { Dispatch } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useDraftProviderOptions } from '@/lib/ui'
+import { useDraftProviderOptions } from '@/local-store/ui'
 
 // --- Types ---
 

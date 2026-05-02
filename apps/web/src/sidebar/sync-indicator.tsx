@@ -1,5 +1,5 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { useSyncStatus } from '@/lib/runtime/hooks'
+import { useSyncStatus } from '@/runtime/hooks'
 
 const SYNC_CONFIG = {
   connected: { color: 'bg-emerald-500', label: 'Synced' },
