@@ -1,17 +1,8 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
+import type { SessionConfig } from '@tetra/store'
 import type { UIMessage } from 'ai'
 import { convertToModelMessages, readUIMessageStream, streamText } from 'ai'
 
-import type { SessionConfig } from './utils.ts'
-
-/**
- * Stream an AI response as an async generator of UIMessage snapshots.
- *
- * Pure function: messages + config in, UIMessage snapshots out.
- * Throws on any error (network, provider, abort). Caller handles.
- *
- * @yields {UIMessage} Incremental message snapshots as the response streams.
- */
 export async function* infer(options: {
   apiKey: string
   assistantMessageId: string
@@ -22,11 +13,11 @@ export async function* infer(options: {
   const { apiKey, assistantMessageId, config, messages, signal } = options
   const { modelId, providerOptions, systemPrompt } = config
 
-  // Build provider and convert messages to model format
+  // Build provider and convert messages to model format.
   const openrouter = createOpenRouter({ apiKey })
   const modelMessages = await convertToModelMessages(messages)
 
-  // Start streaming inference
+  // Start streaming inference.
   const result = streamText({
     abortSignal: signal,
     messages: modelMessages,
@@ -35,7 +26,7 @@ export async function* infer(options: {
     system: systemPrompt,
   })
 
-  // Convert to async iterable of UIMessage snapshots
+  // Convert to async iterable of UIMessage snapshots.
   const stream = readUIMessageStream<UIMessage>({
     message: {
       id: assistantMessageId,

@@ -4,11 +4,11 @@ import { createRequests } from './requests.ts'
 import { createSessions } from './sessions.ts'
 
 export type DataLayer = {
+  indexes: AppIndexes
   messages: ReturnType<typeof createMessages>
   requests: ReturnType<typeof createRequests>
   sessions: ReturnType<typeof createSessions>
   store: AppStore
-  indexes: AppIndexes
   transaction: (fn: () => void) => void
 }
 

@@ -1,4 +1,4 @@
-import type { SessionConfig } from '@tetra/runtime'
+import type { SessionConfig } from '@tetra/store'
 
 export const DEFAULT_SESSION_CONFIG: SessionConfig = {
   modelId: 'openai/gpt-5.4-nano',

@@ -2,8 +2,6 @@ import type { Row } from 'tinybase/with-schemas'
 
 import type { AppIndexes, AppStore, Schemas } from '../store.ts'
 
-// --- Codec ---
-
 type SessionRow = Row<Schemas[0], 'sessions'>
 
 export const decodeSession = (id: string, row: SessionRow) => ({
@@ -14,12 +12,8 @@ export const decodeSession = (id: string, row: SessionRow) => ({
   updatedAt: row.updatedAt,
 })
 
-// --- Types ---
-
 export type Session = ReturnType<typeof decodeSession>
 export type SessionPatch = Partial<Omit<Session, 'createdAt' | 'id' | 'updatedAt'>>
-
-// --- Table ---
 
 export const createSessions = (store: AppStore, indexes: AppIndexes) => ({
   get(id: string) {

@@ -4,8 +4,6 @@ import type { Indexes } from 'tinybase/indexes/with-schemas'
 import type { MergeableStore } from 'tinybase/mergeable-store/with-schemas'
 import { createMergeableStore } from 'tinybase/mergeable-store/with-schemas'
 
-// --- Schema ---
-
 export const tablesSchema = {
   messages: {
     createdAt: { default: 0, type: 'number' },
@@ -23,7 +21,7 @@ export const tablesSchema = {
     messageId: { default: '', type: 'string' },
     sessionId: { default: '', type: 'string' },
     status: { default: 'pending', type: 'string' },
-    targetRuntimeId: { default: '', type: 'string' },
+    targetExecutorId: { default: '', type: 'string' },
   },
   sessions: {
     createdAt: { default: 0, type: 'number' },
@@ -36,8 +34,6 @@ export const tablesSchema = {
 export const valuesSchema = {} as const satisfies ValuesSchema
 
 export type Schemas = [typeof tablesSchema, typeof valuesSchema]
-
-// --- Store & Indexes ---
 
 export type AppStore = MergeableStore<Schemas>
 export type AppIndexes = Indexes<Schemas>

@@ -1,5 +1,5 @@
-import { decodeMessage, decodeRequest, decodeRequestConfig, decodeSession } from '@tetra/runtime'
-import type { Message, Request, Schemas, Session, SessionConfig } from '@tetra/runtime'
+import { decodeMessage, decodeRequest, decodeRequestConfig, decodeSession } from '@tetra/store'
+import type { Message, Request, Schemas, Session, SessionConfig } from '@tetra/store'
 import { useMemo, useSyncExternalStore } from 'react'
 import * as UiReact from 'tinybase/ui-react/with-schemas'
 

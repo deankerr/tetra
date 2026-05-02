@@ -1,5 +1,5 @@
-import type { SessionConfig } from '@tetra/runtime'
-import { sessionConfigSchema } from '@tetra/runtime'
+import type { SessionConfig } from '@tetra/store'
+import { sessionConfigSchema } from '@tetra/store'
 import type { Store } from 'tinybase'
 import { useCell, useCellState, useRow, useStore, useValue, useValueState } from 'tinybase/ui-react'
 

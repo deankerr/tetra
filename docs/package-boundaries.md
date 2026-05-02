@@ -6,7 +6,7 @@ This note captures the current intention for splitting the early runtime into de
 
 Tetra uses TinyBase as both database and conduit. Clients write intentions into the store and receive reactive updates as work progresses. The inference loop is one participant attached to that store, not the store itself.
 
-The current `@tetra/runtime` package mixes those ideas:
+The original `@tetra/runtime` package mixed those ideas:
 
 - TinyBase schema, indexes, codecs, and data access
 - domain commands such as session creation and message sending
@@ -138,7 +138,7 @@ Preferred terms:
 - `inference runtime` for the package that hosts the execution loop
 - `store` for the TinyBase-backed model and conduit
 
-The current `targetRuntimeId` name is an intermediate step. It should likely become `targetExecutorId` as the package split lands.
+The package split uses `targetExecutorId` for new request rows.
 
 ## Composition
 

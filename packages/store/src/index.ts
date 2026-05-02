@@ -1,12 +1,9 @@
-// Runtime — primary entry point
-export { createRuntime } from './create-runtime.ts'
-export type { Runtime, RuntimeConfig } from './create-runtime.ts'
+export { createTetraStore } from './create-tetra-store.ts'
+export type { TetraStore } from './create-tetra-store.ts'
 
-// Config
 export { sessionConfigSchema } from './utils.ts'
 export type { SessionConfig } from './utils.ts'
 
-// Domain types + decoders (used by React hooks and components)
 export type { Schemas } from './store.ts'
 export type { Message } from './tables/messages.ts'
 export { decodeMessage } from './tables/messages.ts'

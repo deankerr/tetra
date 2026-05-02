@@ -10,12 +10,12 @@ import { SessionView } from '@/components/session/session-view'
 import { Sidebar, SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { Spinner } from '@/components/ui/spinner'
 import { RuntimeContext } from '@/components/use-runtime'
-import type { Runtime } from '@/lib/runtime'
-import { getRuntime } from '@/lib/runtime'
+import type { TetraClient } from '@/lib/runtime'
+import { getTetra } from '@/lib/runtime'
 import { setupUiStore } from '@/lib/ui'
 
 export function App() {
-  const [runtime, setRuntime] = useState<Runtime | null>(null)
+  const [tetra, setTetra] = useState<TetraClient | null>(null)
 
   // UI store — ephemeral state (activeSessionId, draft configs, panel visibility)
   const uiStore = useCreateStore(() => {
@@ -35,13 +35,13 @@ export function App() {
 
   useEffect(() => {
     const init = async () => {
-      setRuntime(await getRuntime())
+      setTetra(await getTetra())
     }
     void init()
   }, [])
 
   // Loading state — runtime initializes store + persistence
-  if (runtime === null) {
+  if (tetra === null) {
     return (
       <div className="flex min-h-svh items-center justify-center bg-background">
         <div className="flex items-center gap-3">
@@ -54,12 +54,12 @@ export function App() {
 
   // Both stores are named — no defaults. Every hook must specify which store it targets.
   // oxlint-disable-next-line no-unsafe-type-assertion
-  const runtimeStore = runtime.store as unknown as TinyStore
+  const runtimeStore = tetra.tinybase.store as unknown as TinyStore
   // oxlint-disable-next-line no-unsafe-type-assertion
-  const runtimeIndexes = runtime.indexes as unknown as TinyIndexes
+  const runtimeIndexes = tetra.tinybase.indexes as unknown as TinyIndexes
 
   return (
-    <RuntimeContext value={runtime}>
+    <RuntimeContext value={tetra}>
       <Provider
         indexesById={{ runtime: runtimeIndexes }}
         storesById={{ runtime: runtimeStore, ui: uiStore }}

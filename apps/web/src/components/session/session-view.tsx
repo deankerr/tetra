@@ -77,7 +77,12 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
                   isLast={index === messageIds.length - 1}
                   key={messageId}
                   messageId={messageId}
-                  onRegenerate={() => runtime.regenerate(sessionId)}
+                  onRegenerate={() =>
+                    runtime.commands.regenerate({
+                      sessionId,
+                      targetExecutorId: runtime.executorId,
+                    })
+                  }
                 />
               ))
             )}

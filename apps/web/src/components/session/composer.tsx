@@ -31,12 +31,17 @@ export function Composer({ sessionId }: { sessionId: string }) {
 
     // Read full draft config imperatively at submit time
     const config = getDraftConfig(uiStore, sessionId)
-    runtime.sendMessage(sessionId, message.text, config)
+    runtime.commands.sendMessage({
+      config,
+      sessionId,
+      targetExecutorId: runtime.executorId,
+      text: message.text,
+    })
     setDraft('')
   }
 
   const handleStop = () => {
-    runtime.cancelRequest(sessionId)
+    runtime.commands.cancelRequest({ sessionId })
   }
 
   return (

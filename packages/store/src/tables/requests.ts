@@ -5,8 +5,6 @@ import type { AppIndexes, AppStore, Schemas } from '../store.ts'
 import { sessionConfigSchema } from '../utils.ts'
 import type { SessionConfig } from '../utils.ts'
 
-// --- Codec ---
-
 type RequestRow = Row<Schemas[0], 'requests'>
 
 const REQUEST_STATUSES = ['pending', 'streaming', 'completed', 'cancelled', 'error'] as const
@@ -29,16 +27,12 @@ export const decodeRequest = (id: string, row: RequestRow) => ({
   messageId: row.messageId,
   sessionId: row.sessionId,
   status: isStatus(row.status) ? row.status : ('pending' as const),
-  targetRuntimeId: row.targetRuntimeId,
+  targetExecutorId: row.targetExecutorId,
 })
-
-// --- Types ---
 
 export type RequestStatus = z.infer<typeof requestStatusSchema>
 export type Request = ReturnType<typeof decodeRequest>
 export type RequestPatch = Partial<Pick<Request, 'errorMessage' | 'status'>>
-
-// --- Table ---
 
 export const createRequests = (store: AppStore, indexes: AppIndexes) => ({
   get(id: string) {
@@ -89,7 +83,7 @@ export const createRequests = (store: AppStore, indexes: AppIndexes) => ({
     messageId: string,
     assistantMessageId: string,
     config: SessionConfig,
-    targetRuntimeId: string,
+    targetExecutorId: string,
   ) {
     store.setRow('requests', id, {
       assistantMessageId,
@@ -99,7 +93,7 @@ export const createRequests = (store: AppStore, indexes: AppIndexes) => ({
       messageId,
       sessionId,
       status: 'pending',
-      targetRuntimeId,
+      targetExecutorId,
     })
   },
 

@@ -9,8 +9,9 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import * as readline from 'node:readline/promises'
 
-import { createRuntime } from '@tetra/runtime'
-import type { Message, SessionConfig } from '@tetra/runtime'
+import { createInferenceRuntime } from '@tetra/inference-runtime'
+import { createTetraStore } from '@tetra/store'
+import type { Message, SessionConfig } from '@tetra/store'
 import type { MergeableStore, Store } from 'tinybase'
 import { createFilePersister } from 'tinybase/persisters/persister-file'
 import { createWsServer } from 'tinybase/synchronizers/synchronizer-ws-server'
@@ -32,6 +33,7 @@ const cyan = (s: string) => `${ESC}[36m${s}${RESET}`
 
 const WS_PORT = 8048
 const DATA_DIR = './data'
+const EXECUTOR_ID = 'repl'
 const SECRETS_FILE = `${DATA_DIR}/secrets.json`
 
 mkdirSync(DATA_DIR, { recursive: true })
@@ -56,12 +58,17 @@ function getOpenRouterApiKey() {
   return readLocalSecrets().openrouterApiKey ?? ''
 }
 
-const runtime = createRuntime({ getOpenRouterApiKey, runtimeId: 'repl' })
+const tetra = createTetraStore()
+const inference = createInferenceRuntime({
+  executorId: EXECUTOR_ID,
+  getOpenRouterApiKey,
+  tetra,
+})
 
 // File persistence
 const persister = createFilePersister(
   // oxlint-disable-next-line no-unsafe-type-assertion -- schema-aware store is a superset of Store
-  runtime.store as unknown as MergeableStore & Store,
+  tetra.tinybase.store as unknown as MergeableStore & Store,
   `${DATA_DIR}/repl.json`,
 )
 await persister.startAutoLoad()
@@ -84,7 +91,7 @@ createWsServer(
   },
 )
 
-runtime.start()
+inference.start()
 console.log(dim(`[repl] listening on ws://localhost:${WS_PORT}`))
 
 // --- State ---
@@ -147,19 +154,19 @@ async function waitForCompletion(requestId: string): Promise<string> {
   // oxlint-disable-next-line promise/avoid-new -- wrapping TinyBase's callback-based listener API
   return new Promise((resolve) => {
     // Check if already terminal (race condition guard)
-    const current = runtime.store.getCell('requests', requestId, 'status')
+    const current = tetra.tinybase.store.getCell('requests', requestId, 'status')
     if (current === 'completed' || current === 'error' || current === 'cancelled') {
       resolve(current)
       return
     }
 
-    const listenerId = runtime.store.addCellListener(
+    const listenerId = tetra.tinybase.store.addCellListener(
       'requests',
       requestId,
       'status',
       (_store, _tableId, _rowId, _cellId, newValue) => {
         if (newValue === 'completed' || newValue === 'error' || newValue === 'cancelled') {
-          runtime.store.delListener(listenerId)
+          tetra.tinybase.store.delListener(listenerId)
           // oxlint-disable-next-line no-unsafe-type-assertion -- status is a known string union
           resolve(newValue as string)
         }
@@ -172,7 +179,7 @@ async function streamResponse(assistantMessageId: string, requestId: string) {
   // Ctrl+C → cancel
   const onSigint = () => {
     if (activeSessionId !== null) {
-      runtime.cancelRequest(activeSessionId)
+      tetra.commands.cancelRequest({ sessionId: activeSessionId })
     }
   }
   process.on('SIGINT', onSigint)
@@ -181,12 +188,12 @@ async function streamResponse(assistantMessageId: string, requestId: string) {
   const tracker: number[] = []
   process.stdout.write(`\n${cyan('Assistant')}: `)
 
-  const cellListener = runtime.store.addCellListener(
+  const cellListener = tetra.tinybase.store.addCellListener(
     'messages',
     assistantMessageId,
     'parts',
     () => {
-      const msg = runtime.messages.get(assistantMessageId)
+      const msg = tetra.queries.messages.get(assistantMessageId)
       if (msg === null) {
         return
       }
@@ -197,11 +204,11 @@ async function streamResponse(assistantMessageId: string, requestId: string) {
   // Wait for terminal state
   const status = await waitForCompletion(requestId)
 
-  runtime.store.delListener(cellListener)
+  tetra.tinybase.store.delListener(cellListener)
   process.removeListener('SIGINT', onSigint)
 
   if (status === 'error') {
-    const req = runtime.requests.get(requestId)
+    const req = tetra.queries.requests.get(requestId)
     process.stdout.write(`\n${red(`Error: ${req?.errorMessage ?? 'unknown'}`)}`)
   } else if (status === 'cancelled') {
     process.stdout.write(`\n${dim('[cancelled]')}`)
@@ -218,7 +225,12 @@ async function cmdSend(text: string) {
     return
   }
 
-  const result = runtime.sendMessage(activeSessionId, text, config)
+  const result = tetra.commands.sendMessage({
+    config,
+    sessionId: activeSessionId,
+    targetExecutorId: EXECUTOR_ID,
+    text,
+  })
   if (result === null) {
     console.log(red('Failed to send — active request exists or no config available.'))
     return
@@ -233,7 +245,11 @@ async function cmdRetry() {
     return
   }
 
-  const result = runtime.regenerate(activeSessionId, config)
+  const result = tetra.commands.regenerate({
+    config,
+    sessionId: activeSessionId,
+    targetExecutorId: EXECUTOR_ID,
+  })
   if (result === null) {
     console.log(red('Nothing to retry — no assistant message found or active request exists.'))
     return
@@ -243,19 +259,19 @@ async function cmdRetry() {
 }
 
 function cmdNew() {
-  activeSessionId = runtime.createSession()
+  activeSessionId = tetra.commands.createSession()
   console.log(green(`Created session ${activeSessionId}`))
 }
 
 function cmdSessions() {
-  const ids = runtime.sessions.listIdsByRecency()
+  const ids = tetra.queries.sessions.listIdsByRecency()
   if (ids.length === 0) {
     console.log(dim('No sessions.'))
     return
   }
 
   for (const id of ids) {
-    const session = runtime.sessions.get(id)
+    const session = tetra.queries.sessions.get(id)
     if (session === null) {
       continue
     }
@@ -273,7 +289,7 @@ function cmdSwitch(arg: string) {
   }
 
   // Prefix match
-  const ids = runtime.sessions.listIds()
+  const ids = tetra.queries.sessions.listIds()
   const matches = ids.filter((id) => id.startsWith(arg))
 
   if (matches.length === 0) {
@@ -290,12 +306,12 @@ function cmdSwitch(arg: string) {
     return
   }
   activeSessionId = matchedId
-  const session = runtime.sessions.get(activeSessionId)
+  const session = tetra.queries.sessions.get(activeSessionId)
   const titleSuffix = session !== null && session.title.length > 0 ? ` — ${session.title}` : ''
   console.log(`${green(`Switched to ${activeSessionId}`)}${titleSuffix}`)
 
   // Show last few messages as context
-  const messages = runtime.messages.listRecentBySession(activeSessionId, 4)
+  const messages = tetra.queries.messages.listRecentBySession(activeSessionId, 4)
   if (messages.length > 0) {
     console.log()
     for (const msg of messages) {
@@ -313,7 +329,7 @@ function cmdDelete(arg: string) {
   }
 
   // Prefix match
-  const ids = runtime.sessions.listIds()
+  const ids = tetra.queries.sessions.listIds()
   const matches = ids.filter((id) => id.startsWith(target))
 
   if (matches.length === 0) {
@@ -329,12 +345,12 @@ function cmdDelete(arg: string) {
   if (deleteId === undefined) {
     return
   }
-  runtime.deleteSession(deleteId)
+  tetra.commands.deleteSession({ sessionId: deleteId })
   console.log(dim(`Deleted ${deleteId}`))
 
   if (deleteId === activeSessionId) {
     activeSessionId = null
-    const recent = runtime.sessions.listIdsByRecency()
+    const recent = tetra.queries.sessions.listIdsByRecency()
     if (recent.length > 0) {
       const [nextId] = recent
       if (nextId !== undefined) {
@@ -352,7 +368,7 @@ function cmdHistory(arg: string) {
   }
 
   const limit = Number.parseInt(arg, 10) || 20
-  const messages = runtime.messages.listRecentBySession(activeSessionId, limit)
+  const messages = tetra.queries.messages.listRecentBySession(activeSessionId, limit)
 
   if (messages.length === 0) {
     console.log(dim('No messages in this session.'))
@@ -415,7 +431,7 @@ function cmdCancel() {
   if (activeSessionId === null) {
     return
   }
-  runtime.cancelRequest(activeSessionId)
+  tetra.commands.cancelRequest({ sessionId: activeSessionId })
   console.log(dim('[cancelled]'))
 }
 
@@ -468,13 +484,13 @@ function cmdTitle(arg: string) {
   }
 
   if (arg === '') {
-    const session = runtime.sessions.get(activeSessionId)
+    const session = tetra.queries.sessions.get(activeSessionId)
     const title = session?.title
     console.log(title !== undefined && title.length > 0 ? `Title: ${title}` : dim('(untitled)'))
     return
   }
 
-  runtime.updateSession(activeSessionId, arg)
+  tetra.commands.updateSession({ sessionId: activeSessionId, title: arg })
   console.log(green(`Title → ${arg}`))
 }
 
@@ -517,13 +533,13 @@ const rl = readline.createInterface({
 })
 
 // Startup: resume most recent session if one exists
-const recentSessions = runtime.sessions.listIdsByRecency()
+const recentSessions = tetra.queries.sessions.listIdsByRecency()
 const [resumeId] = recentSessions
 if (resumeId === undefined) {
   console.log(dim('No sessions found. Use /new to create one.'))
 } else {
   activeSessionId = resumeId
-  const session = runtime.sessions.get(activeSessionId)
+  const session = tetra.queries.sessions.get(activeSessionId)
   const titleSuffix = session !== null && session.title.length > 0 ? ` — ${session.title}` : ''
   console.log(`${dim(`Resumed ${activeSessionId}`)}${titleSuffix}`)
 }
@@ -619,7 +635,7 @@ while (true) {
       }
       case '/quit':
       case '/q': {
-        runtime.stop()
+        inference.stop()
         rl.close()
         // oxlint-disable-next-line no-process-exit
         process.exit(0)
@@ -637,5 +653,5 @@ while (true) {
 }
 
 // EOF cleanup
-runtime.stop()
+inference.stop()
 console.log(dim('\n[repl] stopped'))

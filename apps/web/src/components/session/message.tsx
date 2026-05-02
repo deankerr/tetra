@@ -1,4 +1,4 @@
-import type { Request } from '@tetra/runtime'
+import type { Request } from '@tetra/store'
 import type { UIMessage } from 'ai'
 import { AlertCircleIcon, CopyIcon, Loader2Icon, RefreshCcwIcon } from 'lucide-react'
 import { Fragment } from 'react'

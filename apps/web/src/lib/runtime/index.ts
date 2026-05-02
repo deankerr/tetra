@@ -1,11 +1,13 @@
-import type { Runtime } from '@tetra/runtime'
-import { createRuntime } from '@tetra/runtime'
+import { createInferenceRuntime } from '@tetra/inference-runtime'
+import type { InferenceRuntime } from '@tetra/inference-runtime'
+import { createTetraStore } from '@tetra/store'
+import type { TetraStore } from '@tetra/store'
 import { createOpfsPersister } from 'tinybase/persisters/persister-browser/with-schemas'
 import { createWsSynchronizer } from 'tinybase/synchronizers/synchronizer-ws-client/with-schemas'
 
 import { getOpenRouterApiKey } from '@/lib/local-secrets'
 
-const RUNTIME_ID_KEY = 'tetra-runtime-id'
+const EXECUTOR_ID_KEY = 'tetra-runtime-id'
 const SYNC_URL = 'ws://localhost:8048'
 
 // --- Sync Status ---
@@ -33,49 +35,55 @@ export function subscribeSyncStatus(listener: SyncStatusListener): () => void {
   return () => syncStatusListeners.delete(listener)
 }
 
-// --- Runtime ---
+// --- Store + Executor ---
 
-/** Stable runtime ID for this browser — persisted so stale recovery works across restarts. */
-function getOrCreateRuntimeId(): string {
-  const existing = localStorage.getItem(RUNTIME_ID_KEY)
+/** Stable executor ID for this browser — persisted so stale recovery works across restarts. */
+function getOrCreateExecutorId(): string {
+  const existing = localStorage.getItem(EXECUTOR_ID_KEY)
   if (existing !== null) {
     return existing
   }
   const id = crypto.randomUUID()
-  localStorage.setItem(RUNTIME_ID_KEY, id)
+  localStorage.setItem(EXECUTOR_ID_KEY, id)
   return id
 }
 
-export type { Runtime }
+export type TetraClient = TetraStore & {
+  executorId: string
+  inference: InferenceRuntime
+}
 
-let runtimePromise: Promise<Runtime> | null = null
+let tetraPromise: Promise<TetraClient> | null = null
 
 /**
- * Get the Runtime singleton. Initializes on first call, returns the
+ * Get the Tetra singleton. Initializes on first call, returns the
  * same instance on subsequent calls. Safe to call concurrently.
  */
 // oxlint-disable-next-line typescript/promise-function-async -- This is a singleton promise accessor; making it async adds no value and conflicts with require-await.
-export const getRuntime = (): Promise<Runtime> => {
-  runtimePromise ??= initialize()
-  return runtimePromise
+export const getTetra = (): Promise<TetraClient> => {
+  tetraPromise ??= initialize()
+  return tetraPromise
 }
 
-async function initialize(): Promise<Runtime> {
-  const runtime = createRuntime({
+async function initialize(): Promise<TetraClient> {
+  const executorId = getOrCreateExecutorId()
+  const tetra = createTetraStore()
+  const inference = createInferenceRuntime({
+    executorId,
     getOpenRouterApiKey,
-    runtimeId: getOrCreateRuntimeId(),
+    tetra,
   })
 
   // OPFS persistence — must complete before engine starts
   const root = await navigator.storage.getDirectory()
   const handle = await root.getFileHandle('tetra-runtime.json', { create: true })
-  const persister = createOpfsPersister(runtime.store, handle)
+  const persister = createOpfsPersister(tetra.tinybase.store, handle)
   await persister.startAutoPersisting()
 
   // Sync to server (best-effort, non-blocking)
   try {
     const ws = new WebSocket(SYNC_URL)
-    const synchronizer = await createWsSynchronizer(runtime.store, ws)
+    const synchronizer = await createWsSynchronizer(tetra.tinybase.store, ws)
 
     // TinyBase resolves the synchronizer after an initial socket error, so
     // guard before enabling auto-sync against a socket that is already closed.
@@ -83,8 +91,8 @@ async function initialize(): Promise<Runtime> {
       await synchronizer.destroy()
       setSyncStatus('off')
       console.warn('[runtime] sync unavailable, running local-only')
-      runtime.start()
-      return runtime
+      inference.start()
+      return { ...tetra, executorId, inference }
     }
 
     await synchronizer.startSync()
@@ -104,7 +112,7 @@ async function initialize(): Promise<Runtime> {
   }
 
   // Start engine after persistence is loaded
-  runtime.start()
+  inference.start()
 
-  return runtime
+  return { ...tetra, executorId, inference }
 }

@@ -3,8 +3,6 @@ import type { Row } from 'tinybase/with-schemas'
 
 import type { AppIndexes, AppStore, Schemas } from '../store.ts'
 
-// --- Codec ---
-
 type MessageRow = Row<Schemas[0], 'messages'>
 
 export const decodeMessage = (id: string, row: MessageRow) => ({
@@ -19,11 +17,7 @@ export const decodeMessage = (id: string, row: MessageRow) => ({
   updatedAt: row.updatedAt,
 })
 
-// --- Types ---
-
 export type Message = ReturnType<typeof decodeMessage>
-
-// --- Table ---
 
 export const createMessages = (store: AppStore, indexes: AppIndexes) => ({
   get(id: string) {
@@ -52,7 +46,6 @@ export const createMessages = (store: AppStore, indexes: AppIndexes) => ({
   },
 
   // Context-gathering: load only the last N messages, optionally excluding specific IDs.
-  // Slices the ID array before decoding to avoid loading the full history.
   listRecentBySession(sessionId: string, limit?: number, excludeIds?: string[]) {
     let ids = this.listIdsBySession(sessionId)
     if (excludeIds !== undefined && excludeIds.length > 0) {
@@ -83,12 +76,10 @@ export const createMessages = (store: AppStore, indexes: AppIndexes) => ({
     })
   },
 
-  // Write a streamed UIMessage snapshot into the row
   writeStreamChunk(id: string, message: UIMessage) {
     if (!store.hasRow('messages', id)) {
       return
     }
-
     store.setPartialRow('messages', id, { parts: message.parts, updatedAt: Date.now() })
   },
 

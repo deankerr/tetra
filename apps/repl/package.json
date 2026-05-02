@@ -6,7 +6,8 @@
     "start": "bun run repl.ts"
   },
   "dependencies": {
-    "@tetra/runtime": "workspace:*",
+    "@tetra/inference-runtime": "workspace:*",
+    "@tetra/store": "workspace:*",
     "tinybase": "^8.0.2",
     "ws": "^8.20.0",
     "zod": "^4.3.6"
