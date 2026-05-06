@@ -20,8 +20,8 @@ export type UpdateSessionArgs = {
 export type SendMessageArgs = {
   config?: SessionConfig
   sessionId: string
-  targetExecutorId: string
   text: string
+  targetExecutorId: string
 }
 
 export type RegenerateArgs = {
@@ -74,6 +74,31 @@ export const bindCommands = (data: DataLayer) => ({
     const { sessionId, title } = args
     data.sessions.update(sessionId, { title })
     console.log('[store:updateSession]', 'updated', { sessionId, title })
+  },
+
+  addMessage(args: { sessionId: string; text: string }) {
+    const { sessionId, text } = args
+    const session = data.sessions.getOrThrow(sessionId)
+
+    const messageId = generateId.message()
+    const userSeq = session.lastSeq + 1
+
+    // Auto-title: use first user message text.
+    const isFirstMessage = session.lastSeq === 0
+    const title = isFirstMessage ? truncate(text) : session.title
+
+    data.transaction(() => {
+      data.messages.insert(messageId, sessionId, userSeq, 'user', [{ text, type: 'text' }])
+      data.sessions.update(sessionId, { lastSeq: userSeq, title })
+    })
+
+    console.log('[store:addMessage]', {
+      messageId,
+      sessionId,
+      userSeq,
+    })
+
+    return { messageId, seq: userSeq }
   },
 
   sendMessage(args: SendMessageArgs) {
@@ -192,5 +217,37 @@ export const bindCommands = (data: DataLayer) => ({
 
     data.requests.update(active.id, { status: 'cancelled' })
     console.log('[store:cancelRequest]', 'cancelled', { requestId: active.id, sessionId })
+  },
+
+  deleteMessage(args: { messageId: string }) {
+    const { messageId } = args
+    const message = data.messages.get(messageId)
+    if (message === null) {
+      return
+    }
+
+    const requestIds = data.requests.listIdsBySession(message.sessionId)
+
+    data.transaction(() => {
+      for (const rid of requestIds) {
+        const req = data.requests.get(rid)
+        if (req === null) {
+          continue
+        }
+        if (req.assistantMessageId === messageId || req.messageId === messageId) {
+          data.requests.delete(rid)
+          if (req.assistantMessageId !== messageId) {
+            data.messages.delete(req.assistantMessageId)
+          }
+          if (req.messageId !== messageId) {
+            data.messages.delete(req.messageId)
+          }
+          break
+        }
+      }
+      data.messages.delete(messageId)
+    })
+
+    console.log('[store:deleteMessage]', 'deleted', { messageId })
   },
 })

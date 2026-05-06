@@ -1,8 +1,10 @@
+import { PlusIcon } from 'lucide-react'
 import { useState } from 'react'
 
 import {
   PromptInput,
   PromptInputBody,
+  PromptInputButton,
   PromptInputFooter,
   PromptInputSubmit,
   PromptInputTextarea,
@@ -23,6 +25,17 @@ export function Composer({ sessionId }: { sessionId: string }) {
 
   // Subscribe to modelId for display — changes in SessionConfig update this reactively
   const [modelId, setModelId] = useDraftCell(sessionId, 'modelId')
+
+  const handleAdd = () => {
+    if (!draft.trim()) {
+      return
+    }
+    runtime.commands.addMessage({
+      sessionId,
+      text: draft,
+    })
+    setDraft('')
+  }
 
   const handleSubmit = (message: PromptInputMessage) => {
     if (!message.text.trim()) {
@@ -62,11 +75,23 @@ export function Composer({ sessionId }: { sessionId: string }) {
           <PromptInputTools>
             <ModelPicker onValueChange={setModelId} value={modelId} />
           </PromptInputTools>
-          <PromptInputSubmit
-            disabled={!isStreaming && !draft.trim()}
-            onStop={handleStop}
-            status={isStreaming ? 'streaming' : 'ready'}
-          />
+
+          <div className="flex items-center gap-1">
+            <PromptInputButton
+              aria-label="Add"
+              onClick={handleAdd}
+              size="icon-sm"
+              variant="secondary"
+            >
+              <PlusIcon className="size-4" />
+            </PromptInputButton>
+
+            <PromptInputSubmit
+              disabled={!isStreaming && !draft.trim()}
+              onStop={handleStop}
+              status={isStreaming ? 'streaming' : 'ready'}
+            />
+          </div>
         </PromptInputFooter>
       </PromptInput>
     </div>

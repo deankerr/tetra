@@ -11,11 +11,10 @@ import { Button } from '@/components/ui/button'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { useActiveSessionId } from '@/local-store/ui'
 import { useSession, useSessionMessageIds } from '@/runtime/hooks'
-import { useRuntime } from '@/runtime/use-runtime'
 
 import { Composer } from './composer'
 import { DetailPanel } from './detail-panel'
-import { TimelineMessage } from './message'
+import { Message2 } from './message2'
 import { SessionConfig } from './session-config'
 import { SessionDump } from './session-dump'
 
@@ -31,7 +30,6 @@ export function SessionView() {
 
 /** Renders the active session. Guards session existence — children can assume valid sessionId. */
 function ActiveSession({ sessionId }: { sessionId: string }) {
-  const runtime = useRuntime()
   const session = useSession(sessionId)
   const messageIds = useSessionMessageIds(sessionId)
   const [detailOpen, setDetailOpen] = useState(true)
@@ -72,19 +70,7 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
                 title="No messages yet"
               />
             ) : (
-              messageIds.map((messageId, index) => (
-                <TimelineMessage
-                  isLast={index === messageIds.length - 1}
-                  key={messageId}
-                  messageId={messageId}
-                  onRegenerate={() =>
-                    runtime.commands.regenerate({
-                      sessionId,
-                      targetExecutorId: runtime.executorId,
-                    })
-                  }
-                />
-              ))
+              messageIds.map((messageId) => <Message2 key={messageId} messageId={messageId} />)
             )}
           </ConversationContent>
           <ConversationScrollButton />
