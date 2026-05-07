@@ -1,29 +1,38 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldGroup, FieldTitle } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
-import { useDraftCell } from '@/local-store/ui'
 import { ModelPicker } from '@/models/model-picker'
+import { useSessionConfig } from '@/runtime/hooks'
+import { useRuntime } from '@/runtime/use-runtime'
 import { ProviderOptionsEditor } from '@/session/provider-options-editor'
 
 export function SessionConfig({ sessionId }: { sessionId: string }) {
-  // Each cell is an independent subscription — editing one field doesn't re-render others.
-  const [modelId, setModelId] = useDraftCell(sessionId, 'modelId')
-  const [systemPrompt, setSystemPrompt] = useDraftCell(sessionId, 'systemPrompt')
+  const runtime = useRuntime()
+  const config = useSessionConfig(sessionId)
 
   return (
     <FieldGroup>
       <Field>
         <FieldTitle>Model</FieldTitle>
-        <ModelPicker className="w-full" onValueChange={setModelId} value={modelId} />
+        <ModelPicker
+          className="w-full"
+          onValueChange={(modelId) => {
+            runtime.commands.updateSessionConfig({ patch: { modelId }, sessionId })
+          }}
+          value={config.modelId}
+        />
       </Field>
       <Field>
         <FieldTitle>System Prompt</FieldTitle>
         <Textarea
           onChange={(e) => {
-            setSystemPrompt(e.currentTarget.value)
+            runtime.commands.updateSessionConfig({
+              patch: { systemPrompt: e.currentTarget.value },
+              sessionId,
+            })
           }}
           placeholder="You are a helpful assistant."
-          value={systemPrompt}
+          value={config.systemPrompt ?? ''}
         />
       </Field>
       <Card size="sm">

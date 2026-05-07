@@ -9,14 +9,12 @@ import {
 } from '@/components/ai-elements/conversation'
 import { Button } from '@/components/ui/button'
 import { SidebarTrigger } from '@/components/ui/sidebar'
-import { useActiveSessionId } from '@/local-store/ui'
-import { useSession, useSessionMessageIds } from '@/runtime/hooks'
+import { useActiveSessionId, useSession, useSessionMessageIds } from '@/runtime/hooks'
 
 import { Composer } from './composer'
 import { DetailPanel } from './detail-panel'
 import { Message2 } from './message2'
 import { SessionConfig } from './session-config'
-import { SessionDump } from './session-dump'
 
 export function SessionView() {
   const activeSessionId = useActiveSessionId()
@@ -47,7 +45,6 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
           <span className="min-w-0 flex-1 truncate font-medium text-sm">
             {session.title ?? 'New session'}
           </span>
-          <SessionDump sessionId={sessionId} />
           <Button
             onClick={() => {
               setDetailOpen((prev) => !prev)

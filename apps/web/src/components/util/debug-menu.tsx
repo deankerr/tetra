@@ -18,8 +18,6 @@ export async function clearAllData() {
   } catch {
     // File may not exist
   }
-  localStorage.removeItem('tetra-ui')
-  localStorage.removeItem('tetra-runtime-id')
   location.reload()
 }
 

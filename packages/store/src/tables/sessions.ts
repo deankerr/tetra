@@ -1,10 +1,18 @@
 import type { Row } from 'tinybase/with-schemas'
 
 import type { AppIndexes, AppStore, Schemas } from '../store.ts'
+import { DEFAULT_SESSION_CONFIG, sessionConfigSchema } from '../utils.ts'
+import type { SessionConfig } from '../utils.ts'
 
 type SessionRow = Row<Schemas[0], 'sessions'>
 
+export const decodeSessionConfig = (raw: unknown): SessionConfig => {
+  const result = sessionConfigSchema.safeParse(raw)
+  return result.success ? result.data : DEFAULT_SESSION_CONFIG
+}
+
 export const decodeSession = (id: string, row: SessionRow) => ({
+  config: decodeSessionConfig(row.config),
   createdAt: row.createdAt,
   id,
   lastSeq: row.lastSeq,
@@ -42,6 +50,7 @@ export const createSessions = (store: AppStore, indexes: AppIndexes) => ({
   insert(id: string, title?: string) {
     const timestamp = Date.now()
     store.setRow('sessions', id, {
+      config: DEFAULT_SESSION_CONFIG,
       createdAt: timestamp,
       lastSeq: 0,
       title: title ?? '',

@@ -26,6 +26,15 @@ export const sessionConfigSchema = z.object({
 
 export type SessionConfig = z.infer<typeof sessionConfigSchema>
 
+export const DEFAULT_SESSION_CONFIG: SessionConfig = {
+  modelId: 'openai/gpt-5.4-nano',
+  providerOptions: {
+    max_tokens: 10_240,
+    temperature: 0.5,
+  },
+  systemPrompt: 'Be concise.',
+}
+
 export const truncate = (text: string, maxLength = 128) => {
   const normalized = text.replaceAll(/\s+/g, ' ').trim()
   if (normalized.length <= maxLength) {

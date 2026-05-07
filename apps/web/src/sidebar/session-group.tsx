@@ -19,15 +19,19 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
-import { useActiveSessionId, useUiValueState } from '@/local-store/ui'
-import { useSession, useSessionIds } from '@/runtime/hooks'
+import {
+  useActiveSessionId,
+  useActiveSessionIdState,
+  useSession,
+  useSessionIds,
+} from '@/runtime/hooks'
 import { useRuntime } from '@/runtime/use-runtime'
 
 export function SessionGroup() {
   const runtime = useRuntime()
   const sessionIds = useSessionIds()
   const activeSessionId = useActiveSessionId()
-  const [, setActiveSessionId] = useUiValueState('activeSessionId')
+  const [, setActiveSessionId] = useActiveSessionIdState()
 
   return (
     <SidebarGroup>

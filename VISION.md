@@ -8,22 +8,22 @@ Evaluate and prove TinyBase as the reactive data layer for an agent runtime — 
 
 ## Core Principle
 
-TinyBase is the synchronization boundary between consumers and the runtime engine.
+TinyBase is the process boundary between consumers and the runtime engine.
 
 ```
 Consumer  ◄──reads/writes──►  TinyBase Store  ◄──reads/writes──►  Engine
 ```
 
-Consumers and the engine never call each other. Both read from and write to TinyBase. The runtime runs in any JS environment — browser, server, service worker — with no React dependency. Consumers bring their own persistence and sync.
+Consumers and the engine never call each other. Both read from and write to TinyBase. The runtime has no React dependency. The web app persists the core store to OPFS.
 
 This is a decoupling strategy:
 
 - Streams survive navigation, unmounts, and remounts
 - Switching conversations does not kill active requests
 - The consumer shows whatever state is in the store when it reads — no handshake needed
-- The same runtime runs client-side or server-side with identical behavior
+- Inference remains outside the React lifecycle
 
-**The key test:** Start a stream in session A. Switch to session B. Switch back. The stream is still running. Cancel it. This works because the consumer never held the stream — TinyBase did.
+**The key test:** Start a stream in session A. Switch to session B. Switch back. The stream is still running. This works because the consumer never held the stream — TinyBase did.
 
 ## Feature Layers
 
@@ -33,7 +33,7 @@ Schema, typed data access, codecs, persistence, reactive hooks, indexes.
 
 ### Layer 1: Chat Runtime
 
-Session lifecycle, streaming, cancel, retry. Request-based signaling between UI and runtime.
+Session lifecycle and streaming. Request-based signaling between UI and runtime.
 
 ### Layer 2: Agent Configuration
 
@@ -61,8 +61,6 @@ Power-user-first. Slash commands and command palette as primary interaction surf
 
 ```
 /new              — create session
-/retry            — regenerate last response
-/cancel           — abort active request
 /model sonnet     — switch model
 /agent <name>     — switch agent
 /clear            — clear history

@@ -26,7 +26,6 @@ Full TinyBase documentation: @reference/tinybase-docs/index.md
 Bun workspaces. Apps in `apps/`, packages in `packages/`.
 
 - `apps/web` — TanStack Start frontend (the main app)
-- `apps/sync` — Server-side runtime demo (sync, persistence, HTTP API)
 
 Run scripts from root with `bun run --filter <name> <script>`, e.g. `bun run --filter @tetra/web dev`.
 

@@ -11,20 +11,17 @@ import {
   PromptInputTools,
 } from '@/components/ai-elements/prompt-input'
 import type { PromptInputMessage } from '@/components/ai-elements/prompt-input'
-import { getDraftConfig, useDraftCell, useUiStore } from '@/local-store/ui'
 import { ModelPicker } from '@/models/model-picker'
+import { useSessionConfig } from '@/runtime/hooks'
 import { useRuntime } from '@/runtime/use-runtime'
 
 import { useIsStreaming } from './hooks'
 
 export function Composer({ sessionId }: { sessionId: string }) {
   const runtime = useRuntime()
-  const uiStore = useUiStore()
   const isStreaming = useIsStreaming(sessionId)
+  const config = useSessionConfig(sessionId)
   const [draft, setDraft] = useState('')
-
-  // Subscribe to modelId for display — changes in SessionConfig update this reactively
-  const [modelId, setModelId] = useDraftCell(sessionId, 'modelId')
 
   const handleAdd = () => {
     if (!draft.trim()) {
@@ -42,19 +39,11 @@ export function Composer({ sessionId }: { sessionId: string }) {
       return
     }
 
-    // Read full draft config imperatively at submit time
-    const config = getDraftConfig(uiStore, sessionId)
     runtime.commands.sendMessage({
-      config,
       sessionId,
-      targetExecutorId: runtime.executorId,
       text: message.text,
     })
     setDraft('')
-  }
-
-  const handleStop = () => {
-    runtime.commands.cancelRequest({ sessionId })
   }
 
   return (
@@ -73,7 +62,12 @@ export function Composer({ sessionId }: { sessionId: string }) {
         </PromptInputBody>
         <PromptInputFooter>
           <PromptInputTools>
-            <ModelPicker onValueChange={setModelId} value={modelId} />
+            <ModelPicker
+              onValueChange={(modelId) => {
+                runtime.commands.updateSessionConfig({ patch: { modelId }, sessionId })
+              }}
+              value={config.modelId}
+            />
           </PromptInputTools>
 
           <div className="flex items-center gap-1">
@@ -88,7 +82,6 @@ export function Composer({ sessionId }: { sessionId: string }) {
 
             <PromptInputSubmit
               disabled={!isStreaming && !draft.trim()}
-              onStop={handleStop}
               status={isStreaming ? 'streaming' : 'ready'}
             />
           </div>

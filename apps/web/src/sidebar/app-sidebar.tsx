@@ -2,7 +2,6 @@ import { SidebarContent, SidebarFooter, SidebarHeader } from '@/components/ui/si
 import { ThemeSwitcher } from '@/components/util/theme-switcher'
 import { SessionGroup } from '@/sidebar/session-group'
 import { SettingsDialog } from '@/sidebar/settings-dialog'
-import { SyncIndicator } from '@/sidebar/sync-indicator'
 
 export function AppSidebar() {
   return (
@@ -26,7 +25,6 @@ export function AppSidebar() {
         <div className="flex justify-center items-center gap-2">
           <SettingsDialog />
           <ThemeSwitcher />
-          <SyncIndicator />
         </div>
       </SidebarFooter>
     </>

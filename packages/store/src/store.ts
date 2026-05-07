@@ -1,8 +1,7 @@
-import type { TablesSchema, ValuesSchema } from 'tinybase'
 import { createIndexes } from 'tinybase/indexes/with-schemas'
 import type { Indexes } from 'tinybase/indexes/with-schemas'
-import type { MergeableStore } from 'tinybase/mergeable-store/with-schemas'
-import { createMergeableStore } from 'tinybase/mergeable-store/with-schemas'
+import { createStore } from 'tinybase/with-schemas'
+import type { Store, TablesSchema, ValuesSchema } from 'tinybase/with-schemas'
 
 export const tablesSchema = {
   messages: {
@@ -21,9 +20,9 @@ export const tablesSchema = {
     messageId: { default: '', type: 'string' },
     sessionId: { default: '', type: 'string' },
     status: { default: 'pending', type: 'string' },
-    targetExecutorId: { default: '', type: 'string' },
   },
   sessions: {
+    config: { default: {}, type: 'object' },
     createdAt: { default: 0, type: 'number' },
     lastSeq: { default: 0, type: 'number' },
     title: { default: '', type: 'string' },
@@ -31,15 +30,16 @@ export const tablesSchema = {
   },
 } as const satisfies TablesSchema
 
-export const valuesSchema = {} as const satisfies ValuesSchema
+export const valuesSchema = {
+  activeSessionId: { default: '', type: 'string' },
+} as const satisfies ValuesSchema
 
 export type Schemas = [typeof tablesSchema, typeof valuesSchema]
 
-export type AppStore = MergeableStore<Schemas>
+export type AppStore = Store<Schemas>
 export type AppIndexes = Indexes<Schemas>
 
-export const createAppStore = (): AppStore =>
-  createMergeableStore().setSchema(tablesSchema, valuesSchema)
+export const createAppStore = (): AppStore => createStore().setSchema(tablesSchema, valuesSchema)
 
 export const createAppIndexes = (store: AppStore): AppIndexes =>
   createIndexes(store)

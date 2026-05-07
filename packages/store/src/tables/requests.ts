@@ -7,7 +7,7 @@ import type { SessionConfig } from '../utils.ts'
 
 type RequestRow = Row<Schemas[0], 'requests'>
 
-const REQUEST_STATUSES = ['pending', 'streaming', 'completed', 'cancelled', 'error'] as const
+const REQUEST_STATUSES = ['pending', 'streaming', 'completed', 'error'] as const
 const requestStatusSchema = z.enum(REQUEST_STATUSES)
 
 const isStatus = (value: string): value is RequestStatus =>
@@ -27,7 +27,6 @@ export const decodeRequest = (id: string, row: RequestRow) => ({
   messageId: row.messageId,
   sessionId: row.sessionId,
   status: isStatus(row.status) ? row.status : ('pending' as const),
-  targetExecutorId: row.targetExecutorId,
 })
 
 export type RequestStatus = z.infer<typeof requestStatusSchema>
@@ -65,25 +64,12 @@ export const createRequests = (store: AppStore, indexes: AppIndexes) => ({
     return null
   },
 
-  getLatestConfigForSession(sessionId: string) {
-    const ids = indexes.getSliceRowIds('requestsBySession', sessionId)
-    for (const id of ids) {
-      const raw = store.getCell('requests', id, 'config')
-      const config = decodeRequestConfig(raw)
-      if (config !== null) {
-        return config
-      }
-    }
-    return null
-  },
-
   insert(
     id: string,
     sessionId: string,
     messageId: string,
     assistantMessageId: string,
     config: SessionConfig,
-    targetExecutorId: string,
   ) {
     store.setRow('requests', id, {
       assistantMessageId,
@@ -93,7 +79,6 @@ export const createRequests = (store: AppStore, indexes: AppIndexes) => ({
       messageId,
       sessionId,
       status: 'pending',
-      targetExecutorId,
     })
   },
 

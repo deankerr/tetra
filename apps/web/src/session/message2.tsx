@@ -60,9 +60,6 @@ function statusBadgeVariant(status: string) {
     case 'completed': {
       return 'outline'
     }
-    case 'cancelled': {
-      return 'ghost'
-    }
     case 'error': {
       return 'destructive'
     }

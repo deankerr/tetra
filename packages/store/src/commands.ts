@@ -17,21 +17,14 @@ export type UpdateSessionArgs = {
   title: string
 }
 
+export type UpdateSessionConfigArgs = {
+  patch: Partial<SessionConfig>
+  sessionId: string
+}
+
 export type SendMessageArgs = {
-  config?: SessionConfig
   sessionId: string
   text: string
-  targetExecutorId: string
-}
-
-export type RegenerateArgs = {
-  config?: SessionConfig
-  sessionId: string
-  targetExecutorId: string
-}
-
-export type CancelRequestArgs = {
-  sessionId: string
 }
 
 export const bindCommands = (data: DataLayer) => ({
@@ -46,12 +39,6 @@ export const bindCommands = (data: DataLayer) => ({
   deleteSession(args: DeleteSessionArgs) {
     const { sessionId } = args
     data.sessions.getOrThrow(sessionId)
-
-    // Cancel any active request before deleting.
-    const active = data.requests.getActiveForSession(sessionId)
-    if (active !== null) {
-      data.requests.update(active.id, { status: 'cancelled' })
-    }
 
     // Cascade delete messages and requests.
     const messageIds = data.messages.listIdsBySession(sessionId)
@@ -74,6 +61,14 @@ export const bindCommands = (data: DataLayer) => ({
     const { sessionId, title } = args
     data.sessions.update(sessionId, { title })
     console.log('[store:updateSession]', 'updated', { sessionId, title })
+  },
+
+  updateSessionConfig(args: UpdateSessionConfigArgs) {
+    const { patch, sessionId } = args
+    const session = data.sessions.getOrThrow(sessionId)
+    const nextConfig = { ...session.config, ...patch }
+    data.sessions.update(sessionId, { config: nextConfig })
+    console.log('[store:updateSessionConfig]', 'updated', { sessionId })
   },
 
   addMessage(args: { sessionId: string; text: string }) {
@@ -102,20 +97,13 @@ export const bindCommands = (data: DataLayer) => ({
   },
 
   sendMessage(args: SendMessageArgs) {
-    const { config, sessionId, targetExecutorId, text } = args
+    const { sessionId, text } = args
     const session = data.sessions.getOrThrow(sessionId)
 
     // Concurrency guard: one active request per session.
     const active = data.requests.getActiveForSession(sessionId)
     if (active !== null) {
       console.log('[store:sendMessage]', 'skipped: active request exists', { sessionId })
-      return null
-    }
-
-    // Resolve config: caller override -> latest request. No silent default.
-    const resolvedConfig = config ?? data.requests.getLatestConfigForSession(sessionId)
-    if (resolvedConfig === null) {
-      console.error('[store:sendMessage]', 'no config available', { sessionId })
       return null
     }
 
@@ -134,14 +122,7 @@ export const bindCommands = (data: DataLayer) => ({
       data.messages.insert(messageId, sessionId, userSeq, 'user', [{ text, type: 'text' }])
       data.messages.insert(assistantMessageId, sessionId, assistantSeq, 'assistant', [])
       data.sessions.update(sessionId, { lastSeq: assistantSeq, title })
-      data.requests.insert(
-        requestId,
-        sessionId,
-        messageId,
-        assistantMessageId,
-        resolvedConfig,
-        targetExecutorId,
-      )
+      data.requests.insert(requestId, sessionId, messageId, assistantMessageId, session.config)
     })
 
     console.log('[store:sendMessage]', 'sent', {
@@ -152,71 +133,6 @@ export const bindCommands = (data: DataLayer) => ({
       userSeq,
     })
     return { assistantMessageId, messageId, requestId, seq: assistantSeq }
-  },
-
-  regenerate(args: RegenerateArgs) {
-    const { config, sessionId, targetExecutorId } = args
-
-    // Guard: one active request per session.
-    const active = data.requests.getActiveForSession(sessionId)
-    if (active !== null) {
-      console.log('[store:regenerate]', 'skipped: active request exists', { sessionId })
-      return null
-    }
-
-    // Find last assistant message and the user message before it.
-    const messages = data.messages.listBySession(sessionId)
-    const lastAssistant = messages.findLast((m) => m.role === 'assistant')
-    if (lastAssistant === undefined) {
-      return null
-    }
-    const lastAssistantIdx = messages.indexOf(lastAssistant)
-    const userMessage = messages.slice(0, lastAssistantIdx).findLast((m) => m.role === 'user')
-    if (userMessage === undefined) {
-      return null
-    }
-
-    // Resolve config: caller override -> latest request. No silent default.
-    const resolvedConfig = config ?? data.requests.getLatestConfigForSession(sessionId)
-    if (resolvedConfig === null) {
-      console.error('[store:regenerate]', 'no config available', { sessionId })
-      return null
-    }
-
-    const assistantMessageId = generateId.message()
-    const requestId = generateId.request()
-
-    // Atomic: delete old assistant, insert new placeholder and targeted request.
-    data.transaction(() => {
-      data.messages.delete(lastAssistant.id)
-      data.messages.insert(assistantMessageId, sessionId, lastAssistant.seq, 'assistant', [])
-      data.requests.insert(
-        requestId,
-        sessionId,
-        userMessage.id,
-        assistantMessageId,
-        resolvedConfig,
-        targetExecutorId,
-      )
-    })
-
-    console.log('[store:regenerate]', 'regenerating', {
-      assistantMessageId,
-      requestId,
-      sessionId,
-    })
-    return { assistantMessageId, requestId }
-  },
-
-  cancelRequest(args: CancelRequestArgs) {
-    const { sessionId } = args
-    const active = data.requests.getActiveForSession(sessionId)
-    if (active === null) {
-      return
-    }
-
-    data.requests.update(active.id, { status: 'cancelled' })
-    console.log('[store:cancelRequest]', 'cancelled', { requestId: active.id, sessionId })
   },
 
   deleteMessage(args: { messageId: string }) {

@@ -1,10 +1,13 @@
+import type { SessionConfig } from '@tetra/store'
 import { BracesIcon, PlusIcon, XIcon } from 'lucide-react'
 import { useEffect, useReducer, useRef } from 'react'
 import type { Dispatch } from 'react'
+import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useDraftProviderOptions } from '@/local-store/ui'
+import { useSessionConfig } from '@/runtime/hooks'
+import { useRuntime } from '@/runtime/use-runtime'
 
 // --- Types ---
 
@@ -23,6 +26,10 @@ interface ObjectEntry {
 }
 
 type Entry = ObjectEntry | ScalarEntry
+type ProviderOptions = NonNullable<SessionConfig['providerOptions']>
+type ProviderOption = ProviderOptions[string]
+
+const providerOptionSchema = z.json()
 
 type Action =
   | { field: 'key' | 'value'; id: string; type: 'update'; value: string }
@@ -39,7 +46,7 @@ type Action =
 
 // Parse input string to a typed value. Commas signal a string array; numbers and booleans are
 // preserved via JSON.parse; everything else stays as a string.
-function parseValue(str: string): unknown {
+function parseValue(str: string): ProviderOption {
   const trimmed = str.trim()
   if (trimmed === '') {
     return ''
@@ -52,7 +59,8 @@ function parseValue(str: string): unknown {
       .filter(Boolean)
   }
   try {
-    return JSON.parse(trimmed)
+    const parsed = JSON.parse(trimmed) as unknown
+    return providerOptionSchema.parse(parsed)
   } catch {
     return str
   }
@@ -98,8 +106,8 @@ function optionsToEntries(options: Record<string, unknown>): Entry[] {
   })
 }
 
-function entriesToOptions(entries: Entry[]): Record<string, unknown> {
-  const result: Record<string, unknown> = {}
+function entriesToOptions(entries: Entry[]): ProviderOptions {
+  const result: ProviderOptions = {}
   for (const entry of entries) {
     const k = entry.key.trim()
     if (!k) {
@@ -108,7 +116,7 @@ function entriesToOptions(entries: Entry[]): Record<string, unknown> {
     if (entry.type === 'scalar') {
       result[k] = parseValue(entry.value)
     } else {
-      const obj: Record<string, unknown> = {}
+      const obj: ProviderOptions = {}
       for (const child of entry.children) {
         const ck = child.key.trim()
         if (ck) {
@@ -314,7 +322,8 @@ function ObjectRow({ dispatch, entry }: { dispatch: Dispatch<Action>; entry: Obj
 // --- Editor ---
 
 export function ProviderOptionsEditor({ sessionId }: { sessionId: string }) {
-  const [options, setOptions] = useDraftProviderOptions(sessionId)
+  const runtime = useRuntime()
+  const options = useSessionConfig(sessionId).providerOptions ?? {}
   const [entries, dispatch] = useReducer(entriesReducer, options, optionsToEntries)
   const prevSessionId = useRef(sessionId)
   const isInitialRender = useRef(true)
@@ -335,8 +344,11 @@ export function ProviderOptionsEditor({ sessionId }: { sessionId: string }) {
       isInitialRender.current = false
       return
     }
-    setOptions(entriesToOptions(entries))
-  }, [entries, setOptions])
+    runtime.commands.updateSessionConfig({
+      patch: { providerOptions: entriesToOptions(entries) },
+      sessionId,
+    })
+  }, [entries, runtime.commands, sessionId])
 
   return (
     <div className="flex flex-col gap-1.5">

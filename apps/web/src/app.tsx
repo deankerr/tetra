@@ -1,13 +1,10 @@
 import { useEffect, useState } from 'react'
 import type { Indexes as TinyIndexes, Store as TinyStore } from 'tinybase'
-import { createStore } from 'tinybase'
-import { createLocalPersister } from 'tinybase/persisters/persister-browser'
-import { Provider, useCreatePersister, useCreateStore } from 'tinybase/ui-react'
+import { Provider } from 'tinybase/ui-react'
 import { Inspector } from 'tinybase/ui-react-inspector'
 
 import { Sidebar, SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { Spinner } from '@/components/ui/spinner'
-import { setupUiStore } from '@/local-store/ui'
 import type { TetraClient } from '@/runtime'
 import { getTetra } from '@/runtime'
 import { RuntimeContext } from '@/runtime/use-runtime'
@@ -16,22 +13,6 @@ import { AppSidebar } from '@/sidebar/app-sidebar'
 
 export function App() {
   const [tetra, setTetra] = useState<TetraClient | null>(null)
-
-  // UI store — ephemeral state (activeSessionId, draft configs, panel visibility)
-  const uiStore = useCreateStore(() => {
-    const store = createStore()
-    setupUiStore(store)
-    return store
-  })
-  useCreatePersister(
-    uiStore,
-    (store) => createLocalPersister(store, 'tetra-ui'),
-    [],
-    async (persister) => {
-      await persister.startAutoLoad([{}, { activeSessionId: '' }])
-      await persister.startAutoSave()
-    },
-  )
 
   useEffect(() => {
     const init = async () => {
@@ -52,7 +33,7 @@ export function App() {
     )
   }
 
-  // Both stores are named — no defaults. Every hook must specify which store it targets.
+  // The store is named — no default. Every hook must specify its target store.
   // oxlint-disable-next-line no-unsafe-type-assertion
   const runtimeStore = tetra.tinybase.store as unknown as TinyStore
   // oxlint-disable-next-line no-unsafe-type-assertion
@@ -60,10 +41,7 @@ export function App() {
 
   return (
     <RuntimeContext value={tetra}>
-      <Provider
-        indexesById={{ runtime: runtimeIndexes }}
-        storesById={{ runtime: runtimeStore, ui: uiStore }}
-      >
+      <Provider indexesById={{ runtime: runtimeIndexes }} storesById={{ runtime: runtimeStore }}>
         <SidebarProvider>
           <Sidebar>
             <AppSidebar />

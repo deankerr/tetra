@@ -1,16 +1,21 @@
-import { decodeMessage, decodeRequest, decodeRequestConfig, decodeSession } from '@tetra/store'
+import { DEFAULT_SESSION_CONFIG, decodeMessage, decodeRequest, decodeSession } from '@tetra/store'
 import type { Message, Request, Schemas, Session, SessionConfig } from '@tetra/store'
-import { useMemo, useSyncExternalStore } from 'react'
 import * as UiReact from 'tinybase/ui-react/with-schemas'
-
-import { getSyncStatus, subscribeSyncStatus } from '@/runtime'
-import type { SyncStatus } from '@/runtime'
 
 // Schema-aware TinyBase React hooks.
 // oxlint-disable-next-line no-unsafe-type-assertion -- TinyBase WithSchemas pattern
 const runtimeStore = UiReact as unknown as UiReact.WithSchemas<Schemas>
 
 const RUNTIME = 'runtime' as const
+
+// --- App State Hooks ---
+
+export const useActiveSessionId = () => {
+  const value = runtimeStore.useValue('activeSessionId', RUNTIME)
+  return typeof value === 'string' ? value : undefined
+}
+
+export const useActiveSessionIdState = () => runtimeStore.useValueState('activeSessionId', RUNTIME)
 
 // --- Session Hooks ---
 
@@ -20,6 +25,11 @@ export const useSession = (id: string): Session | null => {
   const hasRow = runtimeStore.useHasRow('sessions', id, RUNTIME)
   const row = runtimeStore.useRow('sessions', id, RUNTIME)
   return hasRow ? decodeSession(id, row) : null
+}
+
+export const useSessionConfig = (id: string): SessionConfig => {
+  const session = useSession(id)
+  return session?.config ?? DEFAULT_SESSION_CONFIG
 }
 
 // --- Message Hooks ---
@@ -81,22 +91,3 @@ export const useRequestForMessage = (messageId: string): Request | null => {
 
   return decodeRequest(requestId, row)
 }
-
-/** Returns the inference config from the most recent request for a session, or null. */
-export const useLatestConfig = (sessionId: string): SessionConfig | null => {
-  const ids = runtimeStore.useSliceRowIds('requestsBySession', sessionId, RUNTIME)
-  const latestId = ids[0] ?? ''
-  const raw = runtimeStore.useCell('requests', latestId, 'config', RUNTIME)
-
-  return useMemo(() => {
-    if (latestId === '') {
-      return null
-    }
-    return decodeRequestConfig(raw)
-  }, [latestId, raw])
-}
-
-// --- Sync Status ---
-
-export const useSyncStatus = (): SyncStatus =>
-  useSyncExternalStore(subscribeSyncStatus, getSyncStatus)

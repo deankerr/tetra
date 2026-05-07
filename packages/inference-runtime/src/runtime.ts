@@ -5,7 +5,6 @@ import { infer } from './infer.ts'
 export type InferenceRuntime = { start: () => void; stop: () => void }
 
 export type InferenceRuntimeConfig = {
-  executorId: string
   getOpenRouterApiKey?: () => Promise<string | null | undefined> | string | null | undefined
   tetra: TetraStore
 }
@@ -14,11 +13,10 @@ export const createInferenceRuntime = (config: InferenceRuntimeConfig): Inferenc
   const { data } = config.tetra.internal
   const controllers = new Map<string, AbortController>()
   let rowIdsListenerId: string | undefined
-  let cellListenerId: string | undefined
 
   return {
     start() {
-      if (rowIdsListenerId !== undefined || cellListenerId !== undefined) {
+      if (rowIdsListenerId !== undefined) {
         return
       }
 
@@ -39,12 +37,7 @@ export const createInferenceRuntime = (config: InferenceRuntimeConfig): Inferenc
               continue
             }
 
-            // Only process requests targeted to this executor.
-            if (request.targetExecutorId !== config.executorId) {
-              continue
-            }
-
-            // Transition the targeted request into execution.
+            // Transition the request into execution.
             data.requests.update(requestId, { status: 'streaming' })
 
             // Defer to next microtask because indexes may still be catching up
@@ -57,28 +50,7 @@ export const createInferenceRuntime = (config: InferenceRuntimeConfig): Inferenc
         true,
       )
 
-      // Listener 2: detect cancel signals.
-      cellListenerId = data.store.addCellListener(
-        'requests',
-        null,
-        'status',
-        (_store, _tableId, requestId, _cellId, newValue) => {
-          if (newValue !== 'cancelled') {
-            return
-          }
-
-          const controller = controllers.get(requestId)
-          if (controller === undefined) {
-            return
-          }
-
-          controller.abort()
-          controllers.delete(requestId)
-          console.log('[inference-runtime]', 'cancel signal received', { requestId })
-        },
-      )
-
-      console.log('[inference-runtime]', 'started', { executorId: config.executorId })
+      console.log('[inference-runtime]', 'started')
     },
 
     stop() {
@@ -86,11 +58,6 @@ export const createInferenceRuntime = (config: InferenceRuntimeConfig): Inferenc
         data.store.delListener(rowIdsListenerId)
         rowIdsListenerId = undefined
       }
-      if (cellListenerId !== undefined) {
-        data.store.delListener(cellListenerId)
-        cellListenerId = undefined
-      }
-
       // Abort all in-flight streams.
       for (const controller of controllers.values()) {
         controller.abort()
@@ -175,9 +142,12 @@ const executeRequest = async (
     data.requests.update(requestId, { status: 'completed' })
     console.log('[inference-runtime]', 'completed', { assistantMessageId, requestId })
   } catch (error) {
-    // Abort means user cancelled or runtime stopped.
+    // Abort means the runtime stopped.
     if (controller.signal.aborted) {
-      data.requests.update(requestId, { status: 'cancelled' })
+      data.requests.update(requestId, {
+        errorMessage: 'Interrupted by app shutdown',
+        status: 'error',
+      })
       console.log('[inference-runtime]', 'aborted', { requestId, sessionId })
       return
     }
@@ -198,12 +168,6 @@ const recoverStaleRequests = (runtimeConfig: InferenceRuntimeConfig) => {
   for (const id of allRequestIds) {
     const status = data.store.getCell('requests', id, 'status')
     if (status !== 'pending' && status !== 'streaming') {
-      continue
-    }
-
-    // Only recover requests targeted to this executor.
-    const targetExecutorId = data.store.getCell('requests', id, 'targetExecutorId')
-    if (targetExecutorId !== runtimeConfig.executorId) {
       continue
     }
 
