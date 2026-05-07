@@ -2,39 +2,46 @@
 
 ## Store
 
-`@tetra/store` is the core data package. It owns the TinyBase schema, indexes, codecs, domain queries, and commands. It runs in any JS environment. No React dependency.
+`@tetra/store` is the TinyBase model package. It owns the schema, indexes, decoders, and store creation. It runs in any JS environment. No React dependency.
 
-`createTetraStore()` returns a store object with commands, queries, TinyBase integration handles, and internal data access used by executor packages. Creation is synchronous. The web app persists `tetra.tinybase.store` to OPFS.
+`createTetraStore()` returns TinyBase integration handles and a transaction helper. Creation is synchronous. The web app persists `tetra.tinybase.store` to OPFS.
 
 ```
-createTetraStore()  →  wire OPFS persistence  →  attach inference runtime
+createTetraStore()  →  wire OPFS persistence  →  create runtime
 ```
 
-Consumers interact through commands (`sendMessage`, `createSession`, etc.) and queries (`sessions.get()`, `messages.listBySession()`, etc.). The raw TinyBase store and indexes are exposed for persistence and reactive framework adapters.
+Consumers read from TinyBase directly using the shared schema, indexes, and decoders. React uses TinyBase hooks; runtime uses the same store/index handles imperatively.
 
-## Inference Runtime
+## Runtime
 
-`@tetra/inference-runtime` attaches to a `TetraStore`, watches request rows, and runs local browser inference for pending requests.
+`@tetra/runtime` owns Tetra processes. It receives a `TetraStore` plus an inference adapter, then exposes user-intention commands such as `createSession`, `updateSessionConfig`, and `sendMessage`.
 
-The inference runtime watches the requests table via TinyBase listeners. When a pending request appears, it streams the response via the transport and writes chunks back to the store.
+`sendMessage` is the core turn process. It writes the user message, assistant placeholder, and request/run row, then starts inference outside the React lifecycle and streams snapshots back into the store.
 
-This is request-based signaling: the UI writes a request row, and the inference runtime picks it up. React and inference still do not call each other directly.
+Requests are persisted run records, not the primary execution trigger.
 
 ### Lifecycle
 
-- `start()` — attaches listeners, recovers stale requests, begins processing. Idempotent.
-- `stop()` — removes listeners and aborts in-flight streams.
+- `start()` — recovers stale requests after persistence loads.
+- `stop()` — aborts in-flight streams.
 - Stale recovery marks pending or streaming requests as errored after an app restart.
 
-## TinyBase as Process Boundary
+## Inference
 
-TinyBase is the process boundary between React and inference. In the browser, React and the inference runtime never call each other — both read from and write to TinyBase.
+`@tetra/inference` owns the AI SDK/OpenRouter adapter. It has no TinyBase dependency. Given provider credentials, config, messages, and an abort signal, it yields AI SDK `UIMessage` snapshots.
+
+Provider secrets are supplied by the host through `getOpenRouterApiKey` at stream time. Secrets are local host state, not persisted domain data.
+
+## TinyBase as Reactive State
+
+TinyBase is the durable reactive state shared by React and the runtime. React calls runtime commands for user intentions and reads TinyBase through hooks. The runtime writes process state back to TinyBase.
 
 ```
-React  ◄──►  TinyBase Store  ◄──►  Inference Runtime
+React actions  ──►  Runtime  ──►  Inference
+React reads    ◄──  TinyBase  ◄──  Runtime writes
 ```
 
-This decouples streams from navigation: a stream survives unmount, session switching, and remount without any handshake. The consumer shows whatever state is in the store when it reads — no initialization protocol needed.
+This decouples streams from navigation: a stream survives unmount, session switching, and remount without any handshake. The consumer shows whatever state is in the store when it reads.
 
 ## Stores
 
@@ -46,15 +53,14 @@ Domain data. Sessions, messages, requests, agents. Typed schema (`with-schemas`)
 
 - **Sessions** — Conversation context and current inference config
 - **Messages** — Ordered per-session, stores AI SDK UIMessage parts
-- **Requests** — Signaling between consumer and engine (pending → streaming → completed/error). Each request snapshots its inference config at creation time.
+- **Requests** — Persisted run records (pending → streaming → completed/error). Each request snapshots its inference config at creation time.
 - **Agents** — LLM configuration (model, provider, system prompt, inference params)
 
 Structured internally:
 
 1. **Schema + Store** — Table/value definitions, store creation, indexes
-2. **DAOs + Codecs** — Type-safe read/write per entity. Codecs separate persisted row shape from domain types. Types inferred from decode functions.
-3. **Commands** — Named business actions (`createSession`, `sendMessage`). Multi-entity writes. Pure domain logic.
-4. **Inference internals** — Narrow data access used by packages such as `@tetra/inference-runtime`.
+2. **Decoders** — Shared row-to-domain decoding for React and runtime
+3. **Utilities** — ID generation, default config, and config validation
 
 Session config lives in the core store because it is conversation state. Requests keep config snapshots for historical execution, but the current editable config belongs to the session.
 
@@ -66,17 +72,13 @@ The store is registered as a named TinyBase store. No default store — every ho
 
 **Send message:**
 
-1. Consumer calls `tetra.commands.sendMessage({ sessionId, text })`
-2. Commands write user message + assistant placeholder + pending request (with config snapshot)
-3. Inference runtime picks up the pending request, streams response, writes partial updates
+1. Consumer calls `runtime.commands.sendMessage({ sessionId, text })`
+2. Runtime writes user message + assistant placeholder + request/run row (with config snapshot)
+3. Runtime calls the inference adapter and writes partial updates
 4. Consumers re-render/react as cells change
-5. On complete/error/interruption: inference runtime updates request status
+5. On complete/error/interruption: runtime updates request status
 
 **Switch session (web app):** Component writes `activeSessionId` to the store → components re-render → stream in original session continues unaffected
-
-## Inference
-
-Inference uses `streamText()` from the AI SDK with the OpenRouter provider. The transport is internal to `@tetra/inference-runtime`, but provider secrets are supplied by the host through `getOpenRouterApiKey` at stream time. Secrets are local host state, not syncable core-store data.
 
 Inference currently runs client-side in the web app.
 

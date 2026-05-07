@@ -8,13 +8,14 @@ Evaluate and prove TinyBase as the reactive data layer for an agent runtime — 
 
 ## Core Principle
 
-TinyBase is the process boundary between consumers and the runtime engine.
+TinyBase is the durable reactive state between consumers and the runtime.
 
 ```
-Consumer  ◄──reads/writes──►  TinyBase Store  ◄──reads/writes──►  Engine
+Consumer actions  ──►  Runtime  ──►  Inference
+Consumer reads    ◄──  TinyBase  ◄──  Runtime writes
 ```
 
-Consumers and the engine never call each other. Both read from and write to TinyBase. The runtime has no React dependency. The web app persists the core store to OPFS.
+Consumers call runtime commands for user intentions and read from TinyBase for reactive state. The runtime has no React dependency. The inference adapter has no TinyBase dependency. The web app persists the core store to OPFS.
 
 This is a decoupling strategy:
 
@@ -33,7 +34,7 @@ Schema, typed data access, codecs, persistence, reactive hooks, indexes.
 
 ### Layer 1: Chat Runtime
 
-Session lifecycle and streaming. Request-based signaling between UI and runtime.
+Session lifecycle, streaming, and manual transcript editing. A session is an editable conversation record, not only the byproduct of provider calls. Users can add or adjust messages without starting inference, preserving the distinction between transcript state and AI execution.
 
 ### Layer 2: Agent Configuration
 

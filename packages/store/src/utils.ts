@@ -34,11 +34,3 @@ export const DEFAULT_SESSION_CONFIG: SessionConfig = {
   },
   systemPrompt: 'Be concise.',
 }
-
-export const truncate = (text: string, maxLength = 128) => {
-  const normalized = text.replaceAll(/\s+/g, ' ').trim()
-  if (normalized.length <= maxLength) {
-    return normalized
-  }
-  return `${normalized.slice(0, maxLength - 1)}…`
-}

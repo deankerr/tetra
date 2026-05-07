@@ -1,15 +1,48 @@
+import type { JSONObject } from '@ai-sdk/provider'
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
-import type { SessionConfig } from '@tetra/store'
 import type { UIMessage } from 'ai'
 import { convertToModelMessages, readUIMessageStream, streamText } from 'ai'
 
-export async function* infer(options: {
+export type InferenceConfig = {
+  maxMessages?: number
+  modelId: string
+  providerOptions?: JSONObject
+  systemPrompt?: string
+}
+
+export type StreamInferenceArgs = {
   apiKey: string
   assistantMessageId: string
-  config: SessionConfig
+  config: InferenceConfig
   messages: UIMessage[]
   signal?: AbortSignal
-}): AsyncGenerator<UIMessage> {
+}
+
+export type Inference = {
+  streamText: (args: Omit<StreamInferenceArgs, 'apiKey'>) => AsyncGenerator<UIMessage>
+}
+
+export class MissingProviderSecretError extends Error {
+  constructor() {
+    super('OpenRouter API key not configured. Add your key in Settings.')
+    this.name = 'MissingProviderSecretError'
+  }
+}
+
+export const createInference = (config: {
+  getOpenRouterApiKey?: () => Promise<string | null | undefined> | string | null | undefined
+}): Inference => ({
+  async *streamText(args) {
+    const apiKey = await config.getOpenRouterApiKey?.()
+    if (typeof apiKey !== 'string' || apiKey === '') {
+      throw new MissingProviderSecretError()
+    }
+
+    yield* streamInference({ ...args, apiKey })
+  },
+})
+
+export async function* streamInference(options: StreamInferenceArgs): AsyncGenerator<UIMessage> {
   const { apiKey, assistantMessageId, config, messages, signal } = options
   const { modelId, providerOptions, systemPrompt } = config
 
@@ -26,7 +59,7 @@ export async function* infer(options: {
     system: systemPrompt,
   })
 
-  // Convert to async iterable of UIMessage snapshots.
+  // Convert the provider stream into AI SDK UIMessage snapshots.
   const stream = readUIMessageStream<UIMessage>({
     message: {
       id: assistantMessageId,

@@ -1,13 +1,13 @@
 {
-  "name": "@tetra/inference-runtime",
+  "name": "@tetra/inference",
   "private": true,
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@ai-sdk/provider": "^3.0.8",
     "@openrouter/ai-sdk-provider": "^2.3.3",
-    "@tetra/store": "workspace:*",
     "ai": "^6.0.116"
   },
   "devDependencies": {

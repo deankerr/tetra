@@ -1,0 +1,17 @@
+{
+  "name": "@tetra/runtime",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@tetra/inference": "workspace:*",
+    "@tetra/store": "workspace:*",
+    "ai": "^6.0.116"
+  },
+  "devDependencies": {
+    "bun-types": "^1.3.11",
+    "typescript": "^5.9.3"
+  }
+}
