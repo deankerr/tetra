@@ -1,6 +1,5 @@
+import { ScrollArea } from '@tetra/ui/components/ui/scroll-area'
 import type { ReactNode } from 'react'
-
-import { ScrollArea } from '@/components/ui/scroll-area'
 
 export function DetailPanel({ children, open }: { children: ReactNode; open: boolean }) {
   if (!open) {

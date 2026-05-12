@@ -1,7 +1,6 @@
 import { useTheme } from '@lonik/themer'
+import { cn } from '@tetra/ui/lib/utils'
 import { MonitorIcon, MoonIcon, SunIcon } from 'lucide-react'
-
-import { cn } from '@/lib/utils'
 
 const themes = [
   { icon: MonitorIcon, label: 'Switch to system theme', value: 'system' },

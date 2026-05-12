@@ -1,14 +1,14 @@
-import { BotIcon, PanelRightIcon } from 'lucide-react'
-import { useState } from 'react'
-
 import {
   Conversation,
   ConversationContent,
   ConversationEmptyState,
   ConversationScrollButton,
-} from '@/components/ai-elements/conversation'
-import { Button } from '@/components/ui/button'
-import { SidebarTrigger } from '@/components/ui/sidebar'
+} from '@tetra/ui/components/ai-elements/conversation'
+import { Button } from '@tetra/ui/components/ui/button'
+import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
+import { BotIcon, PanelRightIcon } from 'lucide-react'
+import { useState } from 'react'
+
 import { useActiveSessionId, useSession, useSessionMessageIds } from '@/runtime/hooks'
 
 import { Composer } from './composer'

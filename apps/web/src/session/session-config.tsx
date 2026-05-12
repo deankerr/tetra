@@ -1,6 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Field, FieldGroup, FieldTitle } from '@/components/ui/field'
-import { Textarea } from '@/components/ui/textarea'
+import { Card, CardContent, CardHeader, CardTitle } from '@tetra/ui/components/ui/card'
+import { Field, FieldGroup, FieldTitle } from '@tetra/ui/components/ui/field'
+import { Textarea } from '@tetra/ui/components/ui/textarea'
+
 import { ModelPicker } from '@/models/model-picker'
 import { useSessionConfig } from '@/runtime/hooks'
 import { useRuntime } from '@/runtime/use-runtime'

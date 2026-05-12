@@ -1,8 +1,8 @@
 import type { ErrorComponentProps } from '@tanstack/react-router'
 import { useRouter } from '@tanstack/react-router'
+import { Button } from '@tetra/ui/components/ui/button'
 import { AlertCircleIcon, Trash2Icon } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
 import { clearAllData } from '@/components/util/debug-menu'
 
 export function RootErrorComponent({ error, reset }: ErrorComponentProps) {

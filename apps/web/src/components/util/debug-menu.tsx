@@ -1,5 +1,3 @@
-import { BugIcon, Trash2Icon } from 'lucide-react'
-
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -7,7 +5,8 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+} from '@tetra/ui/components/ui/dropdown-menu'
+import { BugIcon, Trash2Icon } from 'lucide-react'
 
 /** Wipe all persisted data (OPFS + localStorage) and reload. */
 export async function clearAllData() {

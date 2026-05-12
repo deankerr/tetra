@@ -1,4 +1,7 @@
 import type { Message, Request } from '@tetra/store'
+import { Badge } from '@tetra/ui/components/ui/badge'
+import { Button } from '@tetra/ui/components/ui/button'
+import { cn } from '@tetra/ui/lib/utils'
 import type {
   DynamicToolUIPart,
   FileUIPart,
@@ -20,9 +23,6 @@ import {
   WrenchIcon,
 } from 'lucide-react'
 
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
 import { useMessage, useRequestForMessage } from '@/runtime/hooks'
 import { useRuntime } from '@/runtime/use-runtime'
 

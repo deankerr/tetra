@@ -3,7 +3,7 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 
-import { TooltipProvider } from '@/components/ui/tooltip'
+import { TooltipProvider } from '@tetra/ui/components/ui/tooltip'
 import { DebugMenu } from '@/components/util/debug-menu'
 import { RootErrorComponent } from '@/components/util/root-error'
 import { RootNotFoundComponent } from '@/components/util/root-not-found'

@@ -1,11 +1,11 @@
 import type { SessionConfig } from '@tetra/store'
+import { Button } from '@tetra/ui/components/ui/button'
+import { Input } from '@tetra/ui/components/ui/input'
 import { BracesIcon, PlusIcon, XIcon } from 'lucide-react'
 import { useEffect, useReducer, useRef } from 'react'
 import type { Dispatch } from 'react'
 import { z } from 'zod'
 
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { useSessionConfig } from '@/runtime/hooks'
 import { useRuntime } from '@/runtime/use-runtime'
 
