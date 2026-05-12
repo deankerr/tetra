@@ -1,7 +1,6 @@
 import { createIndexes } from 'tinybase/indexes/with-schemas'
-import type { Indexes } from 'tinybase/indexes/with-schemas'
+import type { TablesSchema, ValuesSchema } from 'tinybase/with-schemas'
 import { createStore } from 'tinybase/with-schemas'
-import type { Store, TablesSchema, ValuesSchema } from 'tinybase/with-schemas'
 
 export const tablesSchema = {
   messages: {
@@ -36,13 +35,11 @@ export const valuesSchema = {
 
 export type Schemas = [typeof tablesSchema, typeof valuesSchema]
 
-export type AppStore = Store<Schemas>
-export type AppIndexes = Indexes<Schemas>
+export type TetraStore = ReturnType<typeof createTetraStore>
 
-export const createAppStore = (): AppStore => createStore().setSchema(tablesSchema, valuesSchema)
-
-export const createAppIndexes = (store: AppStore): AppIndexes =>
-  createIndexes(store)
+export function createTetraStore() {
+  const store = createStore().setSchema(tablesSchema, valuesSchema)
+  const indexes = createIndexes(store)
     .setIndexDefinition(
       'sessionsByRecency',
       'sessions',
@@ -68,3 +65,6 @@ export const createAppIndexes = (store: AppStore): AppIndexes =>
       (left, right) => Number(right) - Number(left),
     )
     .setIndexDefinition('requestByAssistantMessage', 'requests', 'assistantMessageId')
+
+  return { indexes, store }
+}

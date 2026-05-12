@@ -30,7 +30,7 @@
         "@tanstack/react-router-ssr-query": "^1.166.9",
         "@tanstack/react-start": "^1.166.16",
         "@tanstack/router-plugin": "^1.166.13",
-        "@tetra/inference": "workspace:*",
+        "@tetra/key-store": "workspace:*",
         "@tetra/runtime": "workspace:*",
         "@tetra/store": "workspace:*",
         "ai": "^6.0.116",
@@ -82,10 +82,18 @@
         "typescript": "^5.9.3",
       },
     },
+    "packages/key-store": {
+      "name": "@tetra/key-store",
+      "devDependencies": {
+        "bun-types": "^1.3.11",
+        "typescript": "^5.9.3",
+      },
+    },
     "packages/runtime": {
       "name": "@tetra/runtime",
       "dependencies": {
         "@tetra/inference": "workspace:*",
+        "@tetra/key-store": "workspace:*",
         "@tetra/store": "workspace:*",
         "ai": "^6.0.116",
       },
@@ -702,6 +710,8 @@
     "@testing-library/react": ["@testing-library/react@16.3.2", "", { "dependencies": { "@babel/runtime": "^7.12.5" }, "peerDependencies": { "@testing-library/dom": "^10.0.0", "@types/react": "^18.0.0 || ^19.0.0", "@types/react-dom": "^18.0.0 || ^19.0.0", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["@types/react", "@types/react-dom"] }, "sha512-XU5/SytQM+ykqMnAnvB2umaJNIOsLF3PVv//1Ew4CTcpz0/BRyy/af40qqrt7SjKpDdT1saBMc42CUok5gaw+g=="],
 
     "@tetra/inference": ["@tetra/inference@workspace:packages/inference"],
+
+    "@tetra/key-store": ["@tetra/key-store@workspace:packages/key-store"],
 
     "@tetra/runtime": ["@tetra/runtime@workspace:packages/runtime"],
 

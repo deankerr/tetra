@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useOpenRouterApiKey } from '@/local-store/local-secrets'
+import { useOpenRouterApiKey } from '@/hooks/use-key-store'
 
 export function SettingsDialog() {
   const [apiKey, setApiKey] = useOpenRouterApiKey()

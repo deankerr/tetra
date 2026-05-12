@@ -1,3 +1,5 @@
+import { streamInference, MissingProviderSecretError } from '@tetra/inference'
+import { getOpenRouterApiKey } from '@tetra/key-store'
 import { decodeMessage, decodeRequest } from '@tetra/store'
 
 import type { RuntimeContext } from './types.ts'
@@ -6,7 +8,7 @@ export const executeRequest = async (
   context: RuntimeContext,
   args: { requestId: string; sessionId: string },
 ) => {
-  const { indexes, inference, store } = context
+  const { indexes, store } = context
   const { requestId, sessionId } = args
   const controller = new AbortController()
   context.controllers.set(requestId, controller)
@@ -37,6 +39,10 @@ export const executeRequest = async (
     const messages = messageIds
       .filter((id) => store.hasRow('messages', id))
       .map((id) => decodeMessage(id, store.getRow('messages', id)))
+    const apiKey = getOpenRouterApiKey()
+    if (apiKey === '') {
+      throw new MissingProviderSecretError()
+    }
 
     console.log('[runtime]', 'streaming', {
       assistantMessageId,
@@ -49,7 +55,8 @@ export const executeRequest = async (
 
     // Stream provider snapshots into the assistant message.
     let received = false
-    for await (const snapshot of inference.streamText({
+    for await (const snapshot of streamInference({
+      apiKey,
       assistantMessageId,
       config: requestConfig,
       messages,

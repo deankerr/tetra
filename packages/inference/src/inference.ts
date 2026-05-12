@@ -18,29 +18,12 @@ export type StreamInferenceArgs = {
   signal?: AbortSignal
 }
 
-export type Inference = {
-  streamText: (args: Omit<StreamInferenceArgs, 'apiKey'>) => AsyncGenerator<UIMessage>
-}
-
 export class MissingProviderSecretError extends Error {
   constructor() {
     super('OpenRouter API key not configured. Add your key in Settings.')
     this.name = 'MissingProviderSecretError'
   }
 }
-
-export const createInference = (config: {
-  getOpenRouterApiKey?: () => Promise<string | null | undefined> | string | null | undefined
-}): Inference => ({
-  async *streamText(args) {
-    const apiKey = await config.getOpenRouterApiKey?.()
-    if (typeof apiKey !== 'string' || apiKey === '') {
-      throw new MissingProviderSecretError()
-    }
-
-    yield* streamInference({ ...args, apiKey })
-  },
-})
 
 export async function* streamInference(options: StreamInferenceArgs): AsyncGenerator<UIMessage> {
   const { apiKey, assistantMessageId, config, messages, signal } = options

@@ -1,4 +1,3 @@
-import type { Inference } from '@tetra/inference'
 import type { TetraStore } from '@tetra/store'
 
 import { createCommands } from './commands.ts'
@@ -6,14 +5,13 @@ import type { RuntimeContext } from './types.ts'
 
 export type TetraRuntime = ReturnType<typeof createTetraRuntime>
 
-export const createTetraRuntime = (config: { inference: Inference; store: TetraStore }) => {
+export const createTetraRuntime = (config: { store: TetraStore }) => {
   const context: RuntimeContext = {
     controllers: new Map(),
-    indexes: config.store.tinybase.indexes,
-    inference: config.inference,
-    store: config.store.tinybase.store,
+    indexes: config.store.indexes,
+    store: config.store.store,
     transaction: (fn) => {
-      config.store.transaction(fn)
+      config.store.store.transaction(fn)
     },
   }
 

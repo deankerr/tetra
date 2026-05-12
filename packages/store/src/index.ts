@@ -1,5 +1,5 @@
-export { createTetraStore } from './create-tetra-store.ts'
-export type { TetraStore } from './create-tetra-store.ts'
+export { createTetraStore } from './store.ts'
+export type { TetraStore } from './store.ts'
 
 export { DEFAULT_SESSION_CONFIG, generateId, sessionConfigSchema } from './utils.ts'
 export type { SessionConfig } from './utils.ts'

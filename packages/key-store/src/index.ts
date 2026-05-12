@@ -1,5 +1,3 @@
-import { useSyncExternalStore } from 'react'
-
 const OPENROUTER_API_KEY = 'tetra-openrouter-api-key'
 
 type Listener = () => void
@@ -40,9 +38,4 @@ export function subscribeOpenRouterApiKey(listener: Listener): () => void {
     listeners.delete(listener)
     window.removeEventListener('storage', onStorage)
   }
-}
-
-export function useOpenRouterApiKey(): [string, (value: string) => void] {
-  const value = useSyncExternalStore(subscribeOpenRouterApiKey, getOpenRouterApiKey, () => '')
-  return [value, setOpenRouterApiKey]
 }

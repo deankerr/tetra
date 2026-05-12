@@ -5,8 +5,8 @@ import { Inspector } from 'tinybase/ui-react-inspector'
 
 import { Sidebar, SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { Spinner } from '@/components/ui/spinner'
-import type { TetraClient } from '@/runtime'
-import { getTetra } from '@/runtime'
+import type { TetraClient } from '@/runtime/tetra-client'
+import { getTetra } from '@/runtime/tetra-client'
 import { RuntimeContext } from '@/runtime/use-runtime'
 import { SessionView } from '@/session/session-view'
 import { AppSidebar } from '@/sidebar/app-sidebar'
@@ -33,11 +33,11 @@ export function App() {
     )
   }
 
-  // The store is named — no default. Every hook must specify its target store.
+  // TinyBase uses the single-store provider form for the app runtime store.
   // oxlint-disable-next-line no-unsafe-type-assertion
-  const runtimeStore = tetra.tinybase.store as unknown as TinyStore
+  const runtimeStore = tetra.store as unknown as TinyStore
   // oxlint-disable-next-line no-unsafe-type-assertion
-  const runtimeIndexes = tetra.tinybase.indexes as unknown as TinyIndexes
+  const runtimeIndexes = tetra.indexes as unknown as TinyIndexes
 
   return (
     <RuntimeContext value={tetra}>

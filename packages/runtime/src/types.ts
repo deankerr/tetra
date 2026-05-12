@@ -1,12 +1,10 @@
-import type { Inference } from '@tetra/inference'
 import type { SessionConfig, TetraStore } from '@tetra/store'
 
 export type RuntimeContext = {
   controllers: Map<string, AbortController>
-  indexes: TetraStore['tinybase']['indexes']
-  inference: Inference
-  store: TetraStore['tinybase']['store']
-  transaction: TetraStore['transaction']
+  indexes: TetraStore['indexes']
+  store: TetraStore['store']
+  transaction: (fn: () => void) => void
 }
 
 export type CreateSessionArgs = {

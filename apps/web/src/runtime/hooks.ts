@@ -4,24 +4,24 @@ import * as UiReact from 'tinybase/ui-react/with-schemas'
 
 // Schema-aware TinyBase React hooks.
 // oxlint-disable-next-line no-unsafe-type-assertion -- TinyBase WithSchemas pattern
-const runtimeStore = UiReact as unknown as UiReact.WithSchemas<Schemas>
+const store = UiReact as unknown as UiReact.WithSchemas<Schemas>
 
 // --- App State Hooks ---
 
 export const useActiveSessionId = () => {
-  const value = runtimeStore.useValue('activeSessionId')
+  const value = store.useValue('activeSessionId')
   return typeof value === 'string' ? value : undefined
 }
 
-export const useActiveSessionIdState = () => runtimeStore.useValueState('activeSessionId')
+export const useActiveSessionIdState = () => store.useValueState('activeSessionId')
 
 // --- Session Hooks ---
 
-export const useSessionIds = () => runtimeStore.useSliceRowIds('sessionsByRecency', 'all')
+export const useSessionIds = () => store.useSliceRowIds('sessionsByRecency', 'all')
 
 export const useSession = (id: string): Session | null => {
-  const hasRow = runtimeStore.useHasRow('sessions', id)
-  const row = runtimeStore.useRow('sessions', id)
+  const hasRow = store.useHasRow('sessions', id)
+  const row = store.useRow('sessions', id)
   return hasRow ? decodeSession(id, row) : null
 }
 
@@ -33,10 +33,10 @@ export const useSessionConfig = (id: string): SessionConfig => {
 // --- Message Hooks ---
 
 export const useSessionMessageIds = (sessionId: string) =>
-  runtimeStore.useSliceRowIds('messagesBySession', sessionId)
+  store.useSliceRowIds('messagesBySession', sessionId)
 
 export const useMessage = (id: string): Message | null => {
-  const row = runtimeStore.useRow('messages', id)
+  const row = store.useRow('messages', id)
   if (!row.createdAt) {
     return null
   }
@@ -47,10 +47,10 @@ export const useMessage = (id: string): Message | null => {
 
 /** Returns the currently active (pending/streaming) request for a session, or null. */
 export const useActiveRequest = (sessionId: string): Request | null => {
-  const ids = runtimeStore.useSliceRowIds('requestsBySession', sessionId)
+  const ids = store.useSliceRowIds('requestsBySession', sessionId)
   const latestId = ids[0] ?? ''
-  const hasRow = runtimeStore.useHasRow('requests', latestId)
-  const row = runtimeStore.useRow('requests', latestId)
+  const hasRow = store.useHasRow('requests', latestId)
+  const row = store.useRow('requests', latestId)
 
   if (!hasRow || latestId === '') {
     return null
@@ -64,10 +64,10 @@ export const useActiveRequest = (sessionId: string): Request | null => {
 
 /** Looks up the request linked to an assistant message. Returns null for user messages. */
 export const useRequestForMessage = (messageId: string): Request | null => {
-  const ids = runtimeStore.useSliceRowIds('requestByAssistantMessage', messageId)
+  const ids = store.useSliceRowIds('requestByAssistantMessage', messageId)
   const requestId = ids[0] ?? ''
-  const hasRow = runtimeStore.useHasRow('requests', requestId)
-  const row = runtimeStore.useRow('requests', requestId)
+  const hasRow = store.useHasRow('requests', requestId)
+  const row = store.useRow('requests', requestId)
 
   if (!hasRow || requestId === '') {
     return null

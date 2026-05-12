@@ -7,6 +7,7 @@
   },
   "dependencies": {
     "@tetra/inference": "workspace:*",
+    "@tetra/key-store": "workspace:*",
     "@tetra/store": "workspace:*",
     "ai": "^6.0.116"
   },
