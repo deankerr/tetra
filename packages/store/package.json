@@ -6,7 +6,6 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "ai": "catalog:",
     "nanoid": "^5.1.7",
     "tinybase": "catalog:",
     "zod": "^4.3.6"

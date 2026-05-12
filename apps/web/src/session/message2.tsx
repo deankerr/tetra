@@ -1,4 +1,3 @@
-import type { Message, Request } from '@tetra/store'
 import { Badge } from '@tetra/ui/components/ui/badge'
 import { Button } from '@tetra/ui/components/ui/button'
 import { cn } from '@tetra/ui/lib/utils'
@@ -24,6 +23,7 @@ import {
 } from 'lucide-react'
 
 import { useMessage, useRequestForMessage } from '@/runtime/hooks'
+import type { Message, Request } from '@/runtime/hooks'
 import { useRuntime } from '@/runtime/use-runtime'
 
 // ------------------------------------------------------------------

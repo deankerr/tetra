@@ -1,7 +1,24 @@
 import { useNavigate, useSearch } from '@tanstack/react-router'
-import { DEFAULT_REQUEST_CONFIG, decodeMessage, decodeRequest, decodeSession } from '@tetra/store'
-import type { Message, Request, RequestConfig, Schemas, Session } from '@tetra/store'
+import { DEFAULT_REQUEST_CONFIG, parseRequestConfig } from '@tetra/store'
+import type { MessageRow, RequestConfig, RequestRow, Schemas, SessionRow } from '@tetra/store'
+import type { UIMessage } from 'ai'
 import * as UiReact from 'tinybase/ui-react/with-schemas'
+
+export type Message = Omit<MessageRow, 'parts' | 'role'> & {
+  id: string
+  parts: UIMessage['parts']
+  role: UIMessage['role']
+}
+
+export type Request = Omit<RequestRow, 'config'> & {
+  config: RequestConfig
+  id: string
+}
+
+export type Session = Omit<SessionRow, 'config'> & {
+  config: RequestConfig
+  id: string
+}
 
 // Schema-aware TinyBase React hooks.
 // oxlint-disable-next-line no-unsafe-type-assertion -- TinyBase WithSchemas pattern
@@ -34,7 +51,7 @@ export const useSessionIds = () => store.useSliceRowIds('sessionsByRecency', 'al
 export const useSession = (id: string): Session | null => {
   const hasRow = store.useHasRow('sessions', id)
   const row = store.useRow('sessions', id)
-  return hasRow ? decodeSession(id, row) : null
+  return hasRow ? { ...row, config: parseRequestConfig(row.config), id } : null
 }
 
 export const useSessionConfig = (id: string): RequestConfig => {
@@ -52,7 +69,14 @@ export const useMessage = (id: string): Message | null => {
   if (!row.createdAt) {
     return null
   }
-  return decodeMessage(id, row)
+  return {
+    ...row,
+    id,
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- TinyBase stores AI SDK parts in an array cell.
+    parts: row.parts as UIMessage['parts'],
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Runtime writers constrain message roles.
+    role: row.role as UIMessage['role'],
+  }
 }
 
 // --- Request Hooks ---
@@ -71,7 +95,7 @@ export const useActiveRequest = (sessionId: string): Request | null => {
     return null
   }
 
-  return decodeRequest(latestId, row)
+  return { ...row, config: parseRequestConfig(row.config), id: latestId }
 }
 
 /** Looks up the request linked to an assistant message. Returns null for user messages. */
@@ -85,5 +109,5 @@ export const useRequestForMessage = (messageId: string): Request | null => {
     return null
   }
 
-  return decodeRequest(requestId, row)
+  return { ...row, config: parseRequestConfig(row.config), id: requestId }
 }

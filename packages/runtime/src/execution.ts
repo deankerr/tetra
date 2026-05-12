@@ -1,6 +1,7 @@
 import { streamInference, MissingProviderSecretError } from '@tetra/inference'
 import { getOpenRouterApiKey } from '@tetra/key-store'
-import { decodeMessage, decodeRequest } from '@tetra/store'
+import { parseRequestConfig } from '@tetra/store'
+import type { UIMessage } from 'ai'
 
 import type { RuntimeContext } from './types.ts'
 
@@ -19,8 +20,9 @@ export const executeRequest = async (
       throw new Error(`Request not found: ${requestId}`)
     }
 
-    const request = decodeRequest(requestId, store.getRow('requests', requestId))
-    const { assistantMessageId, config: requestConfig } = request
+    const request = store.getRow('requests', requestId)
+    const { assistantMessageId } = request
+    const requestConfig = parseRequestConfig(request.config)
 
     // Gather context immediately before the provider call.
     let messageIds = indexes.getSliceRowIds('messagesBySession', sessionId)
@@ -30,7 +32,20 @@ export const executeRequest = async (
     }
     const messages = messageIds
       .filter((id) => store.hasRow('messages', id))
-      .map((id) => decodeMessage(id, store.getRow('messages', id)))
+      .map((id) => {
+        const row = store.getRow('messages', id)
+        return {
+          createdAt: row.createdAt,
+          id,
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- TinyBase stores AI SDK parts in an array cell.
+          parts: row.parts as UIMessage['parts'],
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Runtime writers constrain message roles.
+          role: row.role as UIMessage['role'],
+          seq: row.seq,
+          sessionId: row.sessionId,
+          updatedAt: row.updatedAt,
+        }
+      })
     const apiKey = getOpenRouterApiKey()
     if (apiKey === '') {
       throw new MissingProviderSecretError()

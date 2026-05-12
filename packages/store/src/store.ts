@@ -1,5 +1,5 @@
 import { createIndexes } from 'tinybase/indexes/with-schemas'
-import type { TablesSchema, ValuesSchema } from 'tinybase/with-schemas'
+import type { Row, TablesSchema, ValuesSchema } from 'tinybase/with-schemas'
 import { createStore } from 'tinybase/with-schemas'
 
 export const tablesSchema = {
@@ -32,6 +32,9 @@ export const tablesSchema = {
 export const valuesSchema = {} as const satisfies ValuesSchema
 
 export type Schemas = [typeof tablesSchema, typeof valuesSchema]
+export type MessageRow = Row<Schemas[0], 'messages'>
+export type RequestRow = Row<Schemas[0], 'requests'>
+export type SessionRow = Row<Schemas[0], 'sessions'>
 
 export type TetraStore = ReturnType<typeof createTetraStore>
 

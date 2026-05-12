@@ -1,10 +1,4 @@
-import {
-  DEFAULT_REQUEST_CONFIG,
-  decodeMessage,
-  decodeRequest,
-  decodeSession,
-  generateId,
-} from '@tetra/store'
+import { DEFAULT_REQUEST_CONFIG, generateId, parseRequestConfig } from '@tetra/store'
 
 import { executeRequest } from './execution.ts'
 import { titleFromText } from './title.ts'
@@ -27,7 +21,7 @@ export const createCommands = (context: RuntimeContext) => {
         throw new Error(`Session not found: ${sessionId}`)
       }
 
-      const session = decodeSession(sessionId, store.getRow('sessions', sessionId))
+      const session = store.getRow('sessions', sessionId)
 
       // Manual transcript edits append a user message without inference.
       const messageId = generateId.message()
@@ -84,7 +78,7 @@ export const createCommands = (context: RuntimeContext) => {
       }
 
       // Delete a request-linked message with its paired transcript row.
-      const message = decodeMessage(messageId, store.getRow('messages', messageId))
+      const message = store.getRow('messages', messageId)
       const requestIds = indexes.getSliceRowIds('requestsBySession', message.sessionId)
 
       transaction(() => {
@@ -93,7 +87,7 @@ export const createCommands = (context: RuntimeContext) => {
             continue
           }
 
-          const req = decodeRequest(rid, store.getRow('requests', rid))
+          const req = store.getRow('requests', rid)
           if (req.assistantMessageId === messageId || req.messageId === messageId) {
             store.delRow('requests', rid)
             if (req.assistantMessageId !== messageId) {
@@ -140,7 +134,7 @@ export const createCommands = (context: RuntimeContext) => {
         throw new Error(`Session not found: ${sessionId}`)
       }
 
-      const session = decodeSession(sessionId, store.getRow('sessions', sessionId))
+      const session = store.getRow('sessions', sessionId)
 
       // Only one inference turn can be active in a session.
       for (const requestId of indexes.getSliceRowIds('requestsBySession', sessionId)) {
@@ -185,7 +179,7 @@ export const createCommands = (context: RuntimeContext) => {
         })
         store.setRow('requests', requestId, {
           assistantMessageId,
-          config: session.config,
+          config: parseRequestConfig(session.config),
           createdAt: Date.now(),
           errorMessage: '',
           messageId,
@@ -224,8 +218,8 @@ export const createCommands = (context: RuntimeContext) => {
         throw new Error(`Session not found: ${sessionId}`)
       }
 
-      const session = decodeSession(sessionId, store.getRow('sessions', sessionId))
-      const nextConfig = { ...session.config, ...patch }
+      const session = store.getRow('sessions', sessionId)
+      const nextConfig = { ...parseRequestConfig(session.config), ...patch }
       store.setPartialRow('sessions', sessionId, { config: nextConfig, updatedAt: Date.now() })
       console.log('[runtime:updateSessionConfig]', 'updated', { sessionId })
     },
