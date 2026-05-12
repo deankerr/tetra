@@ -1,5 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { z } from 'zod'
 
 import { App } from '@/app'
 
-export const Route = createFileRoute('/')({ component: App })
+const searchSchema = z.object({
+  session: z.string().optional(),
+})
+
+export const Route = createFileRoute('/')({
+  component: App,
+  validateSearch: searchSchema,
+})

@@ -21,7 +21,7 @@ import { useRef, useState } from 'react'
 
 import {
   useActiveSessionId,
-  useActiveSessionIdState,
+  useSetActiveSessionId,
   useSession,
   useSessionIds,
 } from '@/runtime/hooks'
@@ -31,7 +31,7 @@ export function SessionGroup() {
   const runtime = useRuntime()
   const sessionIds = useSessionIds()
   const activeSessionId = useActiveSessionId()
-  const [, setActiveSessionId] = useActiveSessionIdState()
+  const setActiveSessionId = useSetActiveSessionId()
 
   return (
     <SidebarGroup>

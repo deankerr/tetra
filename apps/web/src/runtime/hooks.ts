@@ -1,3 +1,4 @@
+import { useNavigate, useSearch } from '@tanstack/react-router'
 import { DEFAULT_REQUEST_CONFIG, decodeMessage, decodeRequest, decodeSession } from '@tetra/store'
 import type { Message, Request, RequestConfig, Schemas, Session } from '@tetra/store'
 import * as UiReact from 'tinybase/ui-react/with-schemas'
@@ -9,11 +10,22 @@ const store = UiReact as unknown as UiReact.WithSchemas<Schemas>
 // --- App State Hooks ---
 
 export const useActiveSessionId = () => {
-  const value = store.useValue('activeSessionId')
-  return typeof value === 'string' ? value : undefined
+  const search = useSearch({ from: '/' })
+  return search.session
 }
 
-export const useActiveSessionIdState = () => store.useValueState('activeSessionId')
+export const useSetActiveSessionId = () => {
+  const navigate = useNavigate({ from: '/' })
+
+  return (sessionId: string | undefined) => {
+    void navigate({
+      search: (current) => ({
+        ...current,
+        session: sessionId,
+      }),
+    })
+  }
+}
 
 // --- Session Hooks ---
 
