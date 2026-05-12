@@ -267,14 +267,6 @@ function PartContent({ part }: { part: MessagePart }) {
 // ------------------------------------------------------------------
 
 function PartBlock({ index, part }: { index: number; part: MessagePart }) {
-  if (part.type === 'step-start') {
-    return (
-      <div className={cn('border-l-2 bg-muted/30 px-2 py-0.5', partBorderColors[part.type])}>
-        <span className="text-[0.625rem] text-muted-foreground">{index}</span>
-      </div>
-    )
-  }
-
   return (
     <div
       className={cn(
@@ -286,7 +278,7 @@ function PartBlock({ index, part }: { index: number; part: MessagePart }) {
         <span className="text-[0.625rem] text-muted-foreground">{part.type}</span>
         <span className="text-[0.625rem] text-muted-foreground">{index}</span>
       </div>
-      <div className="mt-2">
+      <div className="mt-2 empty:hidden">
         <PartContent part={part} />
       </div>
     </div>

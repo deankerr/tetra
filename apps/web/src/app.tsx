@@ -41,7 +41,7 @@ export function App() {
 
   return (
     <RuntimeContext value={tetra}>
-      <Provider indexesById={{ runtime: runtimeIndexes }} storesById={{ runtime: runtimeStore }}>
+      <Provider store={runtimeStore} indexes={runtimeIndexes}>
         <SidebarProvider>
           <Sidebar>
             <AppSidebar />

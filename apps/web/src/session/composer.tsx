@@ -12,14 +12,12 @@ import {
 } from '@/components/ai-elements/prompt-input'
 import type { PromptInputMessage } from '@/components/ai-elements/prompt-input'
 import { ModelPicker } from '@/models/model-picker'
-import { useSessionConfig } from '@/runtime/hooks'
+import { useActiveRequest, useSessionConfig } from '@/runtime/hooks'
 import { useRuntime } from '@/runtime/use-runtime'
-
-import { useIsStreaming } from './hooks'
 
 export function Composer({ sessionId }: { sessionId: string }) {
   const runtime = useRuntime()
-  const isStreaming = useIsStreaming(sessionId)
+  const isStreaming = useActiveRequest(sessionId) !== null
   const config = useSessionConfig(sessionId)
   const [draft, setDraft] = useState('')
 
