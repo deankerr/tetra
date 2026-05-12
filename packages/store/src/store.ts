@@ -42,14 +42,6 @@ export function createTetraStore() {
   const store = createStore().setSchema(tablesSchema, valuesSchema)
   const indexes = createIndexes(store)
     .setIndexDefinition(
-      'sessionsByRecency',
-      'sessions',
-      () => 'all',
-      (_, rowId) => store.getCell('sessions', rowId, 'updatedAt'),
-      undefined,
-      (left, right) => Number(right) - Number(left),
-    )
-    .setIndexDefinition(
       'messagesBySession',
       'messages',
       'sessionId',

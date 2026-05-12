@@ -2,6 +2,7 @@ import { useNavigate, useSearch } from '@tanstack/react-router'
 import { DEFAULT_REQUEST_CONFIG, parseRequestConfig } from '@tetra/store'
 import type { MessageRow, RequestConfig, RequestRow, Schemas, SessionRow } from '@tetra/store'
 import type { UIMessage } from 'ai'
+import { useMemo } from 'react'
 import * as UiReact from 'tinybase/ui-react/with-schemas'
 
 export type Message = Omit<MessageRow, 'parts' | 'role'> & {
@@ -46,7 +47,30 @@ export const useSetActiveSessionId = () => {
 
 // --- Session Hooks ---
 
-export const useSessionIds = () => store.useSliceRowIds('sessionsByRecency', 'all')
+export const useSessionIds = () => {
+  const messages = store.useTable('messages')
+  const sessions = store.useTable('sessions')
+
+  return useMemo(() => {
+    const latestMessageTimeBySessionId = new Map<string, number>()
+
+    // Derive each session's recency from its transcript instead of mutable session metadata.
+    for (const message of Object.values(messages)) {
+      const previous = latestMessageTimeBySessionId.get(message.sessionId) ?? 0
+      const next = Math.max(message.updatedAt, message.createdAt, previous)
+      latestMessageTimeBySessionId.set(message.sessionId, next)
+    }
+
+    // Keep empty sessions in creation order, then sort active conversations by latest message.
+    return Object.entries(sessions)
+      .toSorted(([leftSessionId, leftSession], [rightSessionId, rightSession]) => {
+        const left = latestMessageTimeBySessionId.get(leftSessionId) ?? leftSession.createdAt
+        const right = latestMessageTimeBySessionId.get(rightSessionId) ?? rightSession.createdAt
+        return right - left
+      })
+      .map(([sessionId]) => sessionId)
+  }, [messages, sessions])
+}
 
 export const useSession = (id: string): Session | null => {
   const hasRow = store.useHasRow('sessions', id)
