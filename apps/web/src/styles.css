@@ -1,1 +1,2 @@
 @import '@tetra/ui/globals.css';
+@source './**/*.{ts,tsx}';
