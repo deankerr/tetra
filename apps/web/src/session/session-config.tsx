@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@tetra/ui/components/ui/card'
 import { Field, FieldGroup, FieldTitle } from '@tetra/ui/components/ui/field'
+import { Switch } from '@tetra/ui/components/ui/switch'
 import { Textarea } from '@tetra/ui/components/ui/textarea'
 
 import { ModelPicker } from '@/models/model-picker'
@@ -10,6 +11,9 @@ import { ProviderOptionsEditor } from '@/session/provider-options-editor'
 export function SessionConfig({ sessionId }: { sessionId: string }) {
   const runtime = useRuntime()
   const config = useSessionConfig(sessionId)
+  const currentDateTimeEnabled = config.toolIds.includes('getCurrentDateTime')
+  const jinaToolsEnabled =
+    config.toolIds.includes('jinaReadUrl') && config.toolIds.includes('jinaSearchWeb')
 
   return (
     <FieldGroup>
@@ -34,6 +38,34 @@ export function SessionConfig({ sessionId }: { sessionId: string }) {
           }}
           placeholder="You are a helpful assistant."
           value={config.systemPrompt ?? ''}
+        />
+      </Field>
+      <Field orientation="horizontal">
+        <FieldTitle>Current Date/Time Tool</FieldTitle>
+        <Switch
+          checked={currentDateTimeEnabled}
+          onCheckedChange={(checked) => {
+            const toolIds = config.toolIds.filter((toolId) => toolId !== 'getCurrentDateTime')
+            runtime.commands.updateSessionConfig({
+              patch: { toolIds: checked ? [...toolIds, 'getCurrentDateTime'] : toolIds },
+              sessionId,
+            })
+          }}
+        />
+      </Field>
+      <Field orientation="horizontal">
+        <FieldTitle>Jina Web Tools</FieldTitle>
+        <Switch
+          checked={jinaToolsEnabled}
+          onCheckedChange={(checked) => {
+            const toolIds = config.toolIds.filter(
+              (toolId) => toolId !== 'jinaReadUrl' && toolId !== 'jinaSearchWeb',
+            )
+            runtime.commands.updateSessionConfig({
+              patch: { toolIds: checked ? [...toolIds, 'jinaReadUrl', 'jinaSearchWeb'] : toolIds },
+              sessionId,
+            })
+          }}
         />
       </Field>
       <Card size="sm">

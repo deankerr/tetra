@@ -11,10 +11,11 @@ import { Input } from '@tetra/ui/components/ui/input'
 import { Label } from '@tetra/ui/components/ui/label'
 import { SettingsIcon } from 'lucide-react'
 
-import { useOpenRouterApiKey } from '@/hooks/use-key-store'
+import { useJinaApiKey, useOpenRouterApiKey } from '@/hooks/use-key-store'
 
 export function SettingsDialog() {
-  const [apiKey, setApiKey] = useOpenRouterApiKey()
+  const [jinaApiKey, setJinaApiKey] = useJinaApiKey()
+  const [openRouterApiKey, setOpenRouterApiKey] = useOpenRouterApiKey()
 
   return (
     <Dialog>
@@ -34,14 +35,14 @@ export function SettingsDialog() {
         </DialogHeader>
 
         <div className="grid gap-2">
-          <Label htmlFor="api-key">OpenRouter API Key</Label>
+          <Label htmlFor="openrouter-api-key">OpenRouter API Key</Label>
           <Input
-            id="api-key"
+            id="openrouter-api-key"
             type="password"
             placeholder="sk-or-v1-..."
-            value={apiKey}
+            value={openRouterApiKey}
             onChange={(e) => {
-              setApiKey(e.target.value)
+              setOpenRouterApiKey(e.target.value)
             }}
           />
           <p className="text-muted-foreground text-xs">
@@ -53,6 +54,30 @@ export function SettingsDialog() {
               className="underline"
             >
               openrouter.ai/keys
+            </a>
+          </p>
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="jina-api-key">Jina API Key</Label>
+          <Input
+            id="jina-api-key"
+            type="password"
+            placeholder="jina_..."
+            value={jinaApiKey}
+            onChange={(e) => {
+              setJinaApiKey(e.target.value)
+            }}
+          />
+          <p className="text-muted-foreground text-xs">
+            Used by Reader and Search tools. Get a key at{' '}
+            <a
+              href="https://jina.ai/reader/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              jina.ai/reader
             </a>
           </p>
         </div>

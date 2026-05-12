@@ -1,5 +1,5 @@
 import { streamInference, MissingProviderSecretError } from '@tetra/inference'
-import { getOpenRouterApiKey } from '@tetra/key-store'
+import { getJinaApiKey, getOpenRouterApiKey } from '@tetra/key-store'
 import { parseRequestConfig } from '@tetra/store'
 import type { UIMessage } from 'ai'
 
@@ -50,6 +50,7 @@ export const executeRequest = async (
     if (apiKey === '') {
       throw new MissingProviderSecretError()
     }
+    const jinaApiKey = getJinaApiKey()
 
     console.log('[runtime]', 'streaming', {
       assistantMessageId,
@@ -58,6 +59,7 @@ export const executeRequest = async (
       modelId: requestConfig.modelId,
       requestId,
       sessionId,
+      toolIds: requestConfig.toolIds,
     })
 
     // Stream provider snapshots into the assistant message.
@@ -66,6 +68,7 @@ export const executeRequest = async (
       apiKey,
       assistantMessageId,
       config: requestConfig,
+      jinaApiKey,
       messages,
       signal: controller.signal,
     })) {

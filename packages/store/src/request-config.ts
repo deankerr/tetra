@@ -7,6 +7,7 @@ export const requestConfigSchema = z.object({
   // Includes standard LLM params and provider-specific options.
   providerOptions: z.record(z.string(), z.json()).optional(),
   systemPrompt: z.string().optional(),
+  toolIds: z.array(z.string().min(1)).default([]),
 })
 
 export type RequestConfig = z.infer<typeof requestConfigSchema>
@@ -18,6 +19,7 @@ export const DEFAULT_REQUEST_CONFIG: RequestConfig = {
     temperature: 0.5,
   },
   systemPrompt: 'Be concise.',
+  toolIds: [],
 }
 
 export const parseRequestConfig = (raw: unknown): RequestConfig => requestConfigSchema.parse(raw)
