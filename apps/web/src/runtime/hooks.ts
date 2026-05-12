@@ -59,37 +59,6 @@ export const useSessionConfig = (id: string): RequestConfig => {
   return session?.config ?? DEFAULT_REQUEST_CONFIG
 }
 
-export const useSessionExport = (id: string) => {
-  const session = useSession(id)
-  const messageIds = store.useSliceRowIds('messagesBySession', id)
-  const requestIds = store.useSliceRowIds('requestsBySession', id)
-  const messages = messageIds.map((messageId) => useMessageExportRow(messageId)).filter(Boolean)
-  const requests = requestIds.map((requestId) => useRequestExportRow(requestId)).filter(Boolean)
-
-  if (session === null) {
-    return null
-  }
-
-  return {
-    exportedAt: new Date().toISOString(),
-    messages,
-    requests,
-    session,
-  }
-}
-
-const useMessageExportRow = (id: string) => {
-  const hasRow = store.useHasRow('messages', id)
-  const row = store.useRow('messages', id)
-  return hasRow ? { ...row, id } : null
-}
-
-const useRequestExportRow = (id: string) => {
-  const hasRow = store.useHasRow('requests', id)
-  const row = store.useRow('requests', id)
-  return hasRow ? { ...row, config: parseRequestConfig(row.config), id } : null
-}
-
 // --- Message Hooks ---
 
 export const useSessionMessageIds = (sessionId: string) =>
