@@ -6,16 +6,20 @@ import {
 } from '@tetra/ui/components/ai-elements/conversation'
 import { Button } from '@tetra/ui/components/ui/button'
 import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
-import { BotIcon, PanelRightIcon } from 'lucide-react'
+import { Toggle } from '@tetra/ui/components/ui/toggle'
+import { BotIcon, Code2Icon, MessagesSquareIcon, PanelRightIcon } from 'lucide-react'
 import { useState } from 'react'
 
 import { useActiveSessionId, useSession, useSessionMessageIds } from '@/runtime/hooks'
 
 import { Composer } from './composer'
 import { DetailPanel } from './detail-panel'
-import { Message2 } from './message2'
+import { MessageInspector } from './message-inspector'
 import { SessionConfig } from './session-config'
 import { SessionExport } from './session-export'
+import { SessionMessage } from './session-message'
+
+type MessageView = 'chat' | 'debug'
 
 export function SessionView() {
   const activeSessionId = useActiveSessionId()
@@ -32,6 +36,7 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
   const session = useSession(sessionId)
   const messageIds = useSessionMessageIds(sessionId)
   const [detailOpen, setDetailOpen] = useState(true)
+  const [messageView, setMessageView] = useState<MessageView>('debug')
 
   if (session === null) {
     return null
@@ -46,6 +51,20 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
           <span className="min-w-0 flex-1 truncate text-sm font-medium">
             {session.title ?? 'New session'}
           </span>
+          <Toggle
+            aria-label={messageView === 'chat' ? 'Show debug view' : 'Show chat view'}
+            onPressedChange={() => {
+              setMessageView((view) => (view === 'chat' ? 'debug' : 'chat'))
+            }}
+            pressed={messageView === 'chat'}
+            size="sm"
+            variant="outline"
+          >
+            {messageView === 'chat' ? <Code2Icon /> : <MessagesSquareIcon />}
+            <span className="sr-only">
+              {messageView === 'chat' ? 'Show debug view' : 'Show chat view'}
+            </span>
+          </Toggle>
           <SessionExport sessionId={sessionId} />
           <Button
             onClick={() => {
@@ -69,7 +88,13 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
                 title="No messages yet"
               />
             ) : (
-              messageIds.map((messageId) => <Message2 key={messageId} messageId={messageId} />)
+              messageIds.map((messageId) =>
+                messageView === 'debug' ? (
+                  <MessageInspector key={messageId} messageId={messageId} />
+                ) : (
+                  <SessionMessage key={messageId} messageId={messageId} />
+                ),
+              )
             )}
           </ConversationContent>
           <ConversationScrollButton />

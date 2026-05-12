@@ -16,6 +16,9 @@ export const DEFAULT_REQUEST_CONFIG: RequestConfig = {
   modelId: 'openai/gpt-5.4-nano',
   providerOptions: {
     max_tokens: 10_240,
+    reasoning: {
+      enabled: true,
+    },
     temperature: 0.5,
   },
   systemPrompt: 'Be concise.',
