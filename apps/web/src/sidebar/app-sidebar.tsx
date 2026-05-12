@@ -1,4 +1,5 @@
-import { SidebarContent, SidebarFooter, SidebarHeader } from '@/components/ui/sidebar'
+import { SidebarContent, SidebarFooter, SidebarHeader } from '@tetra/ui/components/ui/sidebar'
+
 import { ThemeSwitcher } from '@/components/util/theme-switcher'
 import { SessionGroup } from '@/sidebar/session-group'
 import { SettingsDialog } from '@/sidebar/settings-dialog'

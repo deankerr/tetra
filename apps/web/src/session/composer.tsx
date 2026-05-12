@@ -1,6 +1,3 @@
-import { PlusIcon } from 'lucide-react'
-import { useState } from 'react'
-
 import {
   PromptInput,
   PromptInputBody,
@@ -9,8 +6,11 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
   PromptInputTools,
-} from '@/components/ai-elements/prompt-input'
-import type { PromptInputMessage } from '@/components/ai-elements/prompt-input'
+} from '@tetra/ui/components/ai-elements/prompt-input'
+import type { PromptInputMessage } from '@tetra/ui/components/ai-elements/prompt-input'
+import { PlusIcon } from 'lucide-react'
+import { useState } from 'react'
+
 import { ModelPicker } from '@/models/model-picker'
 import { useActiveRequest, useSessionConfig } from '@/runtime/hooks'
 import { useRuntime } from '@/runtime/use-runtime'

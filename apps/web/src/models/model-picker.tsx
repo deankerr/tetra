@@ -1,6 +1,3 @@
-import { CheckIcon } from 'lucide-react'
-import { useState } from 'react'
-
 import {
   ModelSelector,
   ModelSelectorContent,
@@ -12,9 +9,11 @@ import {
   ModelSelectorLogo,
   ModelSelectorName,
   ModelSelectorTrigger,
-} from '@/components/ai-elements/model-selector'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+} from '@tetra/ui/components/ai-elements/model-selector'
+import { Button } from '@tetra/ui/components/ui/button'
+import { cn } from '@tetra/ui/lib/utils'
+import { CheckIcon } from 'lucide-react'
+import { useState } from 'react'
 
 import { useModels } from './models'
 

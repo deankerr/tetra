@@ -1,6 +1,4 @@
-import { SettingsIcon } from 'lucide-react'
-
-import { Button } from '@/components/ui/button'
+import { Button } from '@tetra/ui/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -8,9 +6,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+} from '@tetra/ui/components/ui/dialog'
+import { Input } from '@tetra/ui/components/ui/input'
+import { Label } from '@tetra/ui/components/ui/label'
+import { SettingsIcon } from 'lucide-react'
+
 import { useOpenRouterApiKey } from '@/hooks/use-key-store'
 
 export function SettingsDialog() {

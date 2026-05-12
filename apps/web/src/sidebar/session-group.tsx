@@ -1,6 +1,3 @@
-import { MoreHorizontalIcon, PlusIcon } from 'lucide-react'
-import { useRef, useState } from 'react'
-
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,7 +5,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+} from '@tetra/ui/components/ui/dropdown-menu'
 import {
   SidebarGroup,
   SidebarGroupAction,
@@ -18,7 +15,10 @@ import {
   SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
-} from '@/components/ui/sidebar'
+} from '@tetra/ui/components/ui/sidebar'
+import { MoreHorizontalIcon, PlusIcon } from 'lucide-react'
+import { useRef, useState } from 'react'
+
 import {
   useActiveSessionId,
   useActiveSessionIdState,

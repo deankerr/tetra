@@ -1,6 +1,5 @@
 import { useRouter } from '@tanstack/react-router'
-
-import { Button } from '@/components/ui/button'
+import { Button } from '@tetra/ui/components/ui/button'
 
 export function RootNotFoundComponent() {
   const router = useRouter()

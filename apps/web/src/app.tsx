@@ -1,10 +1,10 @@
+import { Sidebar, SidebarInset, SidebarProvider } from '@tetra/ui/components/ui/sidebar'
+import { Spinner } from '@tetra/ui/components/ui/spinner'
 import { useEffect, useState } from 'react'
 import type { Indexes as TinyIndexes, Store as TinyStore } from 'tinybase'
 import { Provider } from 'tinybase/ui-react'
 import { Inspector } from 'tinybase/ui-react-inspector'
 
-import { Sidebar, SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
-import { Spinner } from '@/components/ui/spinner'
 import type { TetraClient } from '@/runtime/tetra-client'
 import { getTetra } from '@/runtime/tetra-client'
 import { RuntimeContext } from '@/runtime/use-runtime'
