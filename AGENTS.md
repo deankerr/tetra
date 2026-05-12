@@ -1,40 +1,42 @@
 # Tetra
 
-LLM chat app for power users. Local-first, composable, built on TinyBase.
+Local-first LLM chat app for power users. The project is in a core-simplification pass.
 
-- `AI SDK` with `OpenRouter` provider — user provides their own API key
-- `TanStack Start`, `Tailwind`, `shadcn/ui` with `Base UI` and theme preset (Mira, Teal/Mist)
-- `AI Elements` Chatbot/Agent components from the `shadcn` component registry
-- Use `zod` for validation - not manual checking
-- Use `import * as R from 'remeda'` to write compact, type safe functions (this is tree-shaken)
+Read `VISION.md` and `ARCHITECTURE.md` for context, but do not treat the extended VISION layers as implementation priorities right now. Current priority is a clean, well-designed core: remove stale complexity, inline thin abstractions, and avoid adding new layers until the boundary is obvious.
 
-@VISION.md @ARCHITECTURE.md
+## Current Posture
 
-- Feature exploration `docs/sub-agents.md`
-- Single user, no auth.
+- Prefer deleting, inlining, or relocating code over inventing new abstractions.
+- Keep the core flow easy to trace: consumer action -> runtime process -> store updates -> reactive UI reads.
+- Preserve core chat functionality while simplifying; pause and discuss if a cleanup changes the model rather than only clarifying it.
+- Use `zod` at data boundaries and infer types from schemas. Do not hand-write duplicate shape types.
+- Use `import * as R from 'remeda'` when it makes transformations clearer.
 
 ## TinyBase
 
-Full TinyBase documentation: @reference/tinybase-docs/index.md
+Full TinyBase docs live at `reference/tinybase-docs/index.md`; prefer them before web search.
 
-- Prefer searching here to exa/context7
-- Important updates reference/tinybase-docs/guides/releases/article.md Object/array types, State Hooks
-- Use domain types inferred from the decoders in the data access layer - create derived types if necessary, NEVER manually recreate type definitions.
+- Important release notes: `reference/tinybase-docs/guides/releases/article.md` covers object/array types and State Hooks.
+- Use domain types inferred from the store decoders when available; create derived types only when needed.
 
 ## Monorepo
 
-Bun workspaces. Apps in `apps/`, packages in `packages/`.
+Bun workspaces. Run scripts from the root.
 
-- `apps/web` — TanStack Start frontend (the main app)
+- Check only: `bun run check`
+- Auto-fix lint/format/type-aware issues: `bun run fix`
+- App-specific scripts: `bun run --filter <name> <script>`, e.g. `bun run --filter @tetra/web dev`
 
-Run scripts from root with `bun run --filter <name> <script>`, e.g. `bun run --filter @tetra/web dev`.
+## Linting
 
-## OXC
+- The ruleset is strict and type-aware via Ultracite/Oxlint.
+- Inline disables are allowed only when the local reason is written in the disable comment.
+- `sort-keys` is enabled; let tooling reorder object keys.
 
-- Use `bun run fix` type check, lint, and format with `oxlint`/`oxlint-tsgolint`/`oxfmt`
-- Inline disables may be used if the reasoning is justified
-- Vendored code like `shadcn-ui` is added to ignorePatterns, e.g. `**/components/ui/**`
-- `sort-keys` is enabled - allow it to re-order object keys.
+## TypeScript 6
+
+- `@types/*` packages are manually specified `"types": ["bun"]`, only if required
+- Subpath Imports support, e.g. `"#/*": "./dist/*"`, replace deep relative paths `../../utils.js` with `#root/utils.js`
 
 ### agent-browser
 
@@ -52,7 +54,6 @@ Run scripts from root with `bun run --filter <name> <script>`, e.g. `bun run --f
 - Do not use `ai-elements@latest` directly.
 - When prompted about overwriting `src/components/ui/*`, answer `no`, then inspect changes with `bunx --bun shadcn@latest add <component> --diff <file>` and apply any needed updates manually.
 - Codex only: run shadcn registry commands outside of the sandbox.
-- We don't enforce our strict lint rules on external registry components. If a new registry has been added, update `apps/web/.oxlintrc.json` with an ignore pattern.
 - Never put padding directly on a ScrollArea component.
 
 ## Status
@@ -70,5 +71,4 @@ The primary goal is rapid design iteration, not building a user-facing app.
 
 - Optimize for change.
 - Fail fast.
-- Write decoupled, modular components.
 - Prefer using existing libraries/solutions over writing our own.

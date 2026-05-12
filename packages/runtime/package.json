@@ -8,11 +8,9 @@
   "dependencies": {
     "@tetra/inference": "workspace:*",
     "@tetra/key-store": "workspace:*",
-    "@tetra/store": "workspace:*",
-    "ai": "^6.0.116"
+    "@tetra/store": "workspace:*"
   },
   "devDependencies": {
-    "@types/bun": "catalog:",
     "typescript": "catalog:"
   }
 }

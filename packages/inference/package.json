@@ -8,10 +8,9 @@
   "dependencies": {
     "@ai-sdk/provider": "^3.0.8",
     "@openrouter/ai-sdk-provider": "^2.3.3",
-    "ai": "^6.0.116"
+    "ai": "catalog:"
   },
   "devDependencies": {
-    "@types/bun": "catalog:",
     "typescript": "catalog:"
   }
 }

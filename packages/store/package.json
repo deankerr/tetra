@@ -6,13 +6,12 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "ai": "^6.0.116",
+    "ai": "catalog:",
     "nanoid": "^5.1.7",
-    "tinybase": "^8.0.2",
+    "tinybase": "catalog:",
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/bun": "catalog:",
     "typescript": "catalog:"
   }
 }

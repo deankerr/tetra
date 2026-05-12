@@ -4,7 +4,10 @@ export default defineConfig({
   ignorePatterns: [
     // ── Generated ────────────────────────────────────────────────
     '**/.alchemy/**',
+    '**/.conductor/**',
+    '**/.context/**',
     '**/.next/**',
+    '**/.output/**',
     '**/.turbo/**',
     '**/.vercel/**',
     '**/.vite/**',

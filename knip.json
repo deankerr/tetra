@@ -1,0 +1,30 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignoreExportsUsedInFile": {
+    "interface": true,
+    "type": true
+  },
+  "ignoreIssues": {
+    "packages/ui/src/components/ai-elements/**": ["exports", "types"],
+    "packages/ui/src/components/ui/**": ["exports", "types"]
+  },
+  "workspaces": {
+    ".": {
+      "entry": ["package.json"],
+      "project": ["*.{js,cjs,mjs,ts,cts,mts}"]
+    },
+    "apps/web": {
+      "entry": ["src/router.tsx", "src/routes/**/*.{ts,tsx}"],
+      "project": ["src/**/*.{ts,tsx}", "*.{js,cjs,mjs,ts,cts,mts}"]
+    },
+    "packages/*": {
+      "includeEntryExports": true,
+      "project": ["src/**/*.ts"]
+    },
+    "packages/ui": {
+      "includeEntryExports": true,
+      "project": ["src/**/*.{ts,tsx}"],
+      "ignoreDependencies": ["streamdown", "@streamdown/*"]
+    }
+  }
+}
