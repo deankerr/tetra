@@ -76,3 +76,4 @@ The primary goal is rapid design iteration, not building a user-facing app.
 - Optimize for change.
 - Fail fast.
 - Prefer using existing libraries/solutions over writing our own.
+- Lockfile changes are acceptable even if they seem unrelated, do not edit manually.

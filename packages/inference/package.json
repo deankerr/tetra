@@ -8,7 +8,8 @@
   "dependencies": {
     "@ai-sdk/provider": "^3.0.8",
     "@openrouter/ai-sdk-provider": "^2.3.3",
-    "ai": "catalog:"
+    "ai": "catalog:",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "typescript": "catalog:"

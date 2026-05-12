@@ -14,9 +14,7 @@
     "@tanstack/react-devtools": "^0.10.2",
     "@tanstack/react-router": "^1.169.2",
     "@tanstack/react-router-devtools": "^1.166.13",
-    "@tanstack/react-router-ssr-query": "^1.166.12",
     "@tanstack/react-start": "^1.167.65",
-    "@tanstack/router-plugin": "^1.167.35",
     "@tetra/key-store": "workspace:*",
     "@tetra/runtime": "workspace:*",
     "@tetra/store": "workspace:*",
@@ -27,15 +25,11 @@
     "react": "catalog:",
     "react-dom": "catalog:",
     "remeda": "^2.34.0",
-    "tailwindcss": "catalog:",
     "tinybase": "catalog:",
-    "vite-tsconfig-paths": "^6.1.1",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tanstack/devtools-vite": "^0.6.0",
-    "@testing-library/dom": "^10.4.1",
-    "@testing-library/react": "^16.3.2",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
@@ -43,7 +37,6 @@
     "jsdom": "^29.1.1",
     "typescript": "catalog:",
     "vite": "^8.0.11",
-    "vitest": "^4.1.5",
-    "web-vitals": "^5.2.0"
+    "vitest": "^4.1.5"
   }
 }
