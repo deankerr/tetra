@@ -1,5 +1,5 @@
 import {
-  DEFAULT_SESSION_CONFIG,
+  DEFAULT_REQUEST_CONFIG,
   decodeMessage,
   decodeRequest,
   decodeSession,
@@ -66,7 +66,7 @@ export const createCommands = (context: RuntimeContext) => {
       const timestamp = Date.now()
 
       store.setRow('sessions', sessionId, {
-        config: DEFAULT_SESSION_CONFIG,
+        config: DEFAULT_REQUEST_CONFIG,
         createdAt: timestamp,
         lastSeq: 0,
         title: args.title ?? '',

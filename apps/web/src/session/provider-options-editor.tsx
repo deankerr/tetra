@@ -1,4 +1,4 @@
-import type { SessionConfig } from '@tetra/store'
+import type { RequestConfig } from '@tetra/store'
 import { Button } from '@tetra/ui/components/ui/button'
 import { Input } from '@tetra/ui/components/ui/input'
 import { BracesIcon, PlusIcon, XIcon } from 'lucide-react'
@@ -26,7 +26,7 @@ interface ObjectEntry {
 }
 
 type Entry = ObjectEntry | ScalarEntry
-type ProviderOptions = NonNullable<SessionConfig['providerOptions']>
+type ProviderOptions = NonNullable<RequestConfig['providerOptions']>
 type ProviderOption = ProviderOptions[string]
 
 const EMPTY_PROVIDER_OPTIONS: ProviderOptions = {}

@@ -1,4 +1,4 @@
-import type { SessionConfig, TetraStore } from '@tetra/store'
+import type { RequestConfig, TetraStore } from '@tetra/store'
 
 export interface RuntimeContext {
   controllers: Map<string, AbortController>
@@ -21,7 +21,7 @@ export interface UpdateSessionArgs {
 }
 
 export interface UpdateSessionConfigArgs {
-  patch: Partial<SessionConfig>
+  patch: Partial<RequestConfig>
   sessionId: string
 }
 

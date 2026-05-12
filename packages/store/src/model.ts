@@ -2,9 +2,8 @@ import type { UIMessage } from 'ai'
 import type { Row } from 'tinybase/with-schemas'
 import { z } from 'zod'
 
+import { parseRequestConfig } from './request-config.ts'
 import type { Schemas } from './store.ts'
-import { DEFAULT_SESSION_CONFIG, sessionConfigSchema } from './utils.ts'
-import type { SessionConfig } from './utils.ts'
 
 type MessageRow = Row<Schemas[0], 'messages'>
 type RequestRow = Row<Schemas[0], 'requests'>
@@ -28,14 +27,9 @@ export const decodeMessage = (id: string, row: MessageRow) => ({
   updatedAt: row.updatedAt,
 })
 
-export const decodeRequestConfig = (raw: unknown) => {
-  const result = sessionConfigSchema.safeParse(raw)
-  return result.success ? result.data : null
-}
-
 export const decodeRequest = (id: string, row: RequestRow) => ({
   assistantMessageId: row.assistantMessageId,
-  config: decodeRequestConfig(row.config),
+  config: parseRequestConfig(row.config),
   createdAt: row.createdAt,
   errorMessage: row.errorMessage,
   id,
@@ -44,13 +38,8 @@ export const decodeRequest = (id: string, row: RequestRow) => ({
   status: isStatus(row.status) ? row.status : ('pending' as const),
 })
 
-export const decodeSessionConfig = (raw: unknown): SessionConfig => {
-  const result = sessionConfigSchema.safeParse(raw)
-  return result.success ? result.data : DEFAULT_SESSION_CONFIG
-}
-
 export const decodeSession = (id: string, row: SessionRow) => ({
-  config: decodeSessionConfig(row.config),
+  config: parseRequestConfig(row.config),
   createdAt: row.createdAt,
   id,
   lastSeq: row.lastSeq,

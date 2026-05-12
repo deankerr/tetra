@@ -38,6 +38,10 @@ Bun workspaces. Run scripts from the root.
 - `@types/*` packages are manually specified `"types": ["bun"]`, only if required
 - Subpath Imports support, e.g. `"#/*": "./dist/*"`, replace deep relative paths `../../utils.js` with `#root/utils.js`
 
+## Knip
+
+- A perfect (dev/)dependencies result is a non-goal - expect testing/frontend/tanstack deps to go unused for periods of time.
+
 ### agent-browser
 
 - ALWAYS activate the `agent-browser` skill for browser automation or browser-based testing.

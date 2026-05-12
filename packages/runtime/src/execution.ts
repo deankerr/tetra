@@ -21,14 +21,6 @@ export const executeRequest = async (
 
     const request = decodeRequest(requestId, store.getRow('requests', requestId))
     const { assistantMessageId, config: requestConfig } = request
-    if (requestConfig === null) {
-      store.setPartialRow('requests', requestId, {
-        errorMessage: 'Request missing config snapshot',
-        status: 'error',
-      })
-      console.error('[runtime]', 'request missing config', { requestId })
-      return
-    }
 
     // Gather context immediately before the provider call.
     let messageIds = indexes.getSliceRowIds('messagesBySession', sessionId)

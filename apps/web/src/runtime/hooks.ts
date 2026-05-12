@@ -1,5 +1,5 @@
-import { DEFAULT_SESSION_CONFIG, decodeMessage, decodeRequest, decodeSession } from '@tetra/store'
-import type { Message, Request, Schemas, Session, SessionConfig } from '@tetra/store'
+import { DEFAULT_REQUEST_CONFIG, decodeMessage, decodeRequest, decodeSession } from '@tetra/store'
+import type { Message, Request, RequestConfig, Schemas, Session } from '@tetra/store'
 import * as UiReact from 'tinybase/ui-react/with-schemas'
 
 // Schema-aware TinyBase React hooks.
@@ -25,9 +25,9 @@ export const useSession = (id: string): Session | null => {
   return hasRow ? decodeSession(id, row) : null
 }
 
-export const useSessionConfig = (id: string): SessionConfig => {
+export const useSessionConfig = (id: string): RequestConfig => {
   const session = useSession(id)
-  return session?.config ?? DEFAULT_SESSION_CONFIG
+  return session?.config ?? DEFAULT_REQUEST_CONFIG
 }
 
 // --- Message Hooks ---
