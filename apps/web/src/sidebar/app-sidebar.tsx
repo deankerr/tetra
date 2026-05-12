@@ -7,13 +7,13 @@ export function AppSidebar() {
   return (
     <>
       <SidebarHeader className="p-0">
-        <div className="flex items-center gap-2 px-4 border-b h-(--header-height)">
+        <div className="flex h-(--header-height) items-center gap-2 border-b px-4">
           <svg className="size-5" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
             <polygon fill="#0f766e" points="16,2 2,28 16,19" />
             <polygon fill="#14b8a6" points="16,2 16,19 30,28" />
             <polygon fill="#5eead4" points="2,28 30,28 16,19" />
           </svg>
-          <span className="font-semibold text-sm">Tetra</span>
+          <span className="text-sm font-semibold">Tetra</span>
         </div>
       </SidebarHeader>
 
@@ -22,7 +22,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
-        <div className="flex justify-center items-center gap-2">
+        <div className="flex items-center justify-center gap-2">
           <SettingsDialog />
           <ThemeSwitcher />
         </div>

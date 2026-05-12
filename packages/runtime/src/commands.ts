@@ -21,65 +21,6 @@ export const createCommands = (context: RuntimeContext) => {
   const { indexes, store, transaction } = context
 
   return {
-    createSession(args: CreateSessionArgs = {}) {
-      const sessionId = generateId.session()
-      const timestamp = Date.now()
-
-      store.setRow('sessions', sessionId, {
-        config: DEFAULT_SESSION_CONFIG,
-        createdAt: timestamp,
-        lastSeq: 0,
-        title: args.title ?? '',
-        updatedAt: timestamp,
-      })
-
-      console.log('[runtime:createSession]', 'created', { sessionId })
-      return sessionId
-    },
-
-    deleteSession(args: DeleteSessionArgs) {
-      const { sessionId } = args
-      if (!store.hasRow('sessions', sessionId)) {
-        throw new Error(`Session not found: ${sessionId}`)
-      }
-
-      // Cascade session deletion through messages and request records.
-      const messageIds = indexes.getSliceRowIds('messagesBySession', sessionId)
-      const requestIds = indexes.getSliceRowIds('requestsBySession', sessionId)
-
-      transaction(() => {
-        for (const mid of messageIds) {
-          store.delRow('messages', mid)
-        }
-        for (const rid of requestIds) {
-          store.delRow('requests', rid)
-        }
-        store.delRow('sessions', sessionId)
-      })
-
-      console.log('[runtime:deleteSession]', 'deleted', { sessionId })
-    },
-
-    updateSession(args: UpdateSessionArgs) {
-      const { sessionId, title } = args
-      if (store.hasRow('sessions', sessionId)) {
-        store.setPartialRow('sessions', sessionId, { title, updatedAt: Date.now() })
-      }
-      console.log('[runtime:updateSession]', 'updated', { sessionId, title })
-    },
-
-    updateSessionConfig(args: UpdateSessionConfigArgs) {
-      const { patch, sessionId } = args
-      if (!store.hasRow('sessions', sessionId)) {
-        throw new Error(`Session not found: ${sessionId}`)
-      }
-
-      const session = decodeSession(sessionId, store.getRow('sessions', sessionId))
-      const nextConfig = { ...session.config, ...patch }
-      store.setPartialRow('sessions', sessionId, { config: nextConfig, updatedAt: Date.now() })
-      console.log('[runtime:updateSessionConfig]', 'updated', { sessionId })
-    },
-
     addMessage(args: { sessionId: string; text: string }) {
       const { sessionId, text } = args
       if (!store.hasRow('sessions', sessionId)) {
@@ -118,6 +59,79 @@ export const createCommands = (context: RuntimeContext) => {
       })
 
       return { messageId, seq: userSeq }
+    },
+
+    createSession(args: CreateSessionArgs = {}) {
+      const sessionId = generateId.session()
+      const timestamp = Date.now()
+
+      store.setRow('sessions', sessionId, {
+        config: DEFAULT_SESSION_CONFIG,
+        createdAt: timestamp,
+        lastSeq: 0,
+        title: args.title ?? '',
+        updatedAt: timestamp,
+      })
+
+      console.log('[runtime:createSession]', 'created', { sessionId })
+      return sessionId
+    },
+
+    deleteMessage(args: { messageId: string }) {
+      const { messageId } = args
+      if (!store.hasRow('messages', messageId)) {
+        return
+      }
+
+      // Delete a request-linked message with its paired transcript row.
+      const message = decodeMessage(messageId, store.getRow('messages', messageId))
+      const requestIds = indexes.getSliceRowIds('requestsBySession', message.sessionId)
+
+      transaction(() => {
+        for (const rid of requestIds) {
+          if (!store.hasRow('requests', rid)) {
+            continue
+          }
+
+          const req = decodeRequest(rid, store.getRow('requests', rid))
+          if (req.assistantMessageId === messageId || req.messageId === messageId) {
+            store.delRow('requests', rid)
+            if (req.assistantMessageId !== messageId) {
+              store.delRow('messages', req.assistantMessageId)
+            }
+            if (req.messageId !== messageId) {
+              store.delRow('messages', req.messageId)
+            }
+            break
+          }
+        }
+        store.delRow('messages', messageId)
+      })
+
+      console.log('[runtime:deleteMessage]', 'deleted', { messageId })
+    },
+
+    deleteSession(args: DeleteSessionArgs) {
+      const { sessionId } = args
+      if (!store.hasRow('sessions', sessionId)) {
+        throw new Error(`Session not found: ${sessionId}`)
+      }
+
+      // Cascade session deletion through messages and request records.
+      const messageIds = indexes.getSliceRowIds('messagesBySession', sessionId)
+      const requestIds = indexes.getSliceRowIds('requestsBySession', sessionId)
+
+      transaction(() => {
+        for (const mid of messageIds) {
+          store.delRow('messages', mid)
+        }
+        for (const rid of requestIds) {
+          store.delRow('requests', rid)
+        }
+        store.delRow('sessions', sessionId)
+      })
+
+      console.log('[runtime:deleteSession]', 'deleted', { sessionId })
     },
 
     sendMessage(args: SendMessageArgs) {
@@ -196,38 +210,24 @@ export const createCommands = (context: RuntimeContext) => {
       return { assistantMessageId, messageId, requestId, seq: assistantSeq }
     },
 
-    deleteMessage(args: { messageId: string }) {
-      const { messageId } = args
-      if (!store.hasRow('messages', messageId)) {
-        return
+    updateSession(args: UpdateSessionArgs) {
+      const { sessionId, title } = args
+      if (store.hasRow('sessions', sessionId)) {
+        store.setPartialRow('sessions', sessionId, { title, updatedAt: Date.now() })
+      }
+      console.log('[runtime:updateSession]', 'updated', { sessionId, title })
+    },
+
+    updateSessionConfig(args: UpdateSessionConfigArgs) {
+      const { patch, sessionId } = args
+      if (!store.hasRow('sessions', sessionId)) {
+        throw new Error(`Session not found: ${sessionId}`)
       }
 
-      // Delete a request-linked message with its paired transcript row.
-      const message = decodeMessage(messageId, store.getRow('messages', messageId))
-      const requestIds = indexes.getSliceRowIds('requestsBySession', message.sessionId)
-
-      transaction(() => {
-        for (const rid of requestIds) {
-          if (!store.hasRow('requests', rid)) {
-            continue
-          }
-
-          const req = decodeRequest(rid, store.getRow('requests', rid))
-          if (req.assistantMessageId === messageId || req.messageId === messageId) {
-            store.delRow('requests', rid)
-            if (req.assistantMessageId !== messageId) {
-              store.delRow('messages', req.assistantMessageId)
-            }
-            if (req.messageId !== messageId) {
-              store.delRow('messages', req.messageId)
-            }
-            break
-          }
-        }
-        store.delRow('messages', messageId)
-      })
-
-      console.log('[runtime:deleteMessage]', 'deleted', { messageId })
+      const session = decodeSession(sessionId, store.getRow('sessions', sessionId))
+      const nextConfig = { ...session.config, ...patch }
+      store.setPartialRow('sessions', sessionId, { config: nextConfig, updatedAt: Date.now() })
+      console.log('[runtime:updateSessionConfig]', 'updated', { sessionId })
     },
   }
 }

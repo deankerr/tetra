@@ -31,7 +31,7 @@ export function ThemeSwitcher({ className, ...props }: React.ComponentProps<'div
           }}
           className="group relative size-6 rounded-full transition duration-200 ease-out"
         >
-          {theme === value && <div className="-z-1 absolute inset-0 rounded-full bg-muted" />}
+          {theme === value && <div className="bg-muted absolute inset-0 -z-1 rounded-full" />}
           <Icon
             className={cn(
               'relative m-auto size-3.5 transition duration-200 ease-out',

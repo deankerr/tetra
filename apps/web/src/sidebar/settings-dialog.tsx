@@ -44,7 +44,7 @@ export function SettingsDialog() {
               setApiKey(e.target.value)
             }}
           />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             Get a key at{' '}
             <a
               href="https://openrouter.ai/keys"

@@ -8,7 +8,7 @@ export function DetailPanel({ children, open }: { children: ReactNode; open: boo
   }
 
   return (
-    <aside className="flex w-80 shrink-0 flex-col border-l bg-muted/40">
+    <aside className="bg-muted/40 flex w-80 shrink-0 flex-col border-l">
       <ScrollArea className="flex-1">
         <div className="p-4">{children}</div>
       </ScrollArea>

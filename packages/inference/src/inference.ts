@@ -3,14 +3,14 @@ import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 import type { UIMessage } from 'ai'
 import { convertToModelMessages, readUIMessageStream, streamText } from 'ai'
 
-export type InferenceConfig = {
+export interface InferenceConfig {
   maxMessages?: number
   modelId: string
   providerOptions?: JSONObject
   systemPrompt?: string
 }
 
-export type StreamInferenceArgs = {
+export interface StreamInferenceArgs {
   apiKey: string
   assistantMessageId: string
   config: InferenceConfig

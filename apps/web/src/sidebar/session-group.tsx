@@ -125,7 +125,7 @@ function SessionListItem({
     <SidebarMenuItem>
       {renaming ? (
         <input
-          className="h-8 w-full rounded-md bg-transparent px-2 text-sm outline-none ring-1 ring-ring"
+          className="ring-ring h-8 w-full rounded-md bg-transparent px-2 text-sm ring-1 outline-none"
           onBlur={commitRename}
           onChange={(e) => {
             setDraft(e.target.value)

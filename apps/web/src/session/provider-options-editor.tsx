@@ -29,6 +29,7 @@ type Entry = ObjectEntry | ScalarEntry
 type ProviderOptions = NonNullable<SessionConfig['providerOptions']>
 type ProviderOption = ProviderOptions[string]
 
+const EMPTY_PROVIDER_OPTIONS: ProviderOptions = {}
 const providerOptionSchema = z.json()
 
 type Action =
@@ -239,7 +240,7 @@ function ScalarRow({ dispatch, entry }: { dispatch: Dispatch<Action>; entry: Sca
 
 function ObjectRow({ dispatch, entry }: { dispatch: Dispatch<Action>; entry: ObjectEntry }) {
   return (
-    <div className="flex flex-col gap-1.5 mb-1">
+    <div className="mb-1 flex flex-col gap-1.5">
       {/* Group header */}
       <div className="flex items-center gap-1.5">
         <Input
@@ -261,7 +262,7 @@ function ObjectRow({ dispatch, entry }: { dispatch: Dispatch<Action>; entry: Obj
         </Button>
       </div>
       {/* Children */}
-      <div className="ml-3 flex flex-col gap-1.5 border-l border-border pl-3">
+      <div className="border-border ml-3 flex flex-col gap-1.5 border-l pl-3">
         {entry.children.map((child) => (
           <div key={child.id} className="flex items-center gap-1.5">
             <Input
@@ -323,7 +324,7 @@ function ObjectRow({ dispatch, entry }: { dispatch: Dispatch<Action>; entry: Obj
 
 export function ProviderOptionsEditor({ sessionId }: { sessionId: string }) {
   const runtime = useRuntime()
-  const options = useSessionConfig(sessionId).providerOptions ?? {}
+  const options = useSessionConfig(sessionId).providerOptions ?? EMPTY_PROVIDER_OPTIONS
   const [entries, dispatch] = useReducer(entriesReducer, options, optionsToEntries)
   const prevSessionId = useRef(sessionId)
   const isInitialRender = useRef(true)

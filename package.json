@@ -1,20 +1,31 @@
 {
   "name": "tetra",
   "private": true,
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "workspaces": {
+    "packages": [
+      "apps/*",
+      "packages/*"
+    ],
+    "catalog": {
+      "@types/bun": "^1",
+      "@types/node": "^24",
+      "typescript": "^6"
+    }
+  },
+  "type": "module",
   "scripts": {
     "build:vercel": "rm -rf .vercel/output apps/web/.vercel/output && NITRO_PRESET=vercel bun run --filter @tetra/web build && mkdir -p .vercel && mv apps/web/.vercel/output .vercel/output",
-    "check": "oxlint --type-aware --type-check --fix . && oxfmt --write .",
-    "dev": "bun run --filter @tetra/web dev"
+    "check": "ultracite check --type-aware --type-check",
+    "dev": "bun run --filter @tetra/web dev",
+    "fix": "ultracite fix --type-aware --type-check"
   },
   "devDependencies": {
-    "oxfmt": "0.40.0",
-    "oxlint": "1.50.0",
-    "oxlint-tsgolint": "0.15.0",
-    "ultracite": "^7.3.2"
+    "lefthook": "^2.1.6",
+    "oxfmt": "0.48.0",
+    "oxlint": "1.63.0",
+    "oxlint-tsgolint": "0.22.1",
+    "typescript": "catalog:",
+    "ultracite": "7.6.4"
   },
-  "packageManager": "bun@1.3.10"
+  "packageManager": "bun@1.3.13"
 }

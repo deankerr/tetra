@@ -14,7 +14,8 @@ let tetraPromise: Promise<TetraClient> | null = null
  * Get the Tetra singleton. Initializes on first call, returns the
  * same instance on subsequent calls. Safe to call concurrently.
  */
-export const getTetra = async (): Promise<TetraClient> => {
+// oxlint-disable-next-line promise-function-async -- Singleton accessor should return the stored initialization promise directly.
+export const getTetra = (): Promise<TetraClient> => {
   tetraPromise ??= initialize()
   return tetraPromise
 }

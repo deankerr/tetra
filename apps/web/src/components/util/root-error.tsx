@@ -9,11 +9,11 @@ export function RootErrorComponent({ error, reset }: ErrorComponentProps) {
   const router = useRouter()
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-4 bg-background p-8">
-      <AlertCircleIcon className="size-8 text-destructive" />
+    <div className="bg-background flex min-h-svh flex-col items-center justify-center gap-4 p-8">
+      <AlertCircleIcon className="text-destructive size-8" />
       <div className="flex flex-col items-center gap-1 text-center">
-        <h1 className="font-medium text-lg">Something went wrong</h1>
-        <p className="max-w-md text-sm text-muted-foreground">
+        <h1 className="text-lg font-medium">Something went wrong</h1>
+        <p className="text-muted-foreground max-w-md text-sm">
           {error instanceof Error ? error.message : 'An unexpected error occurred.'}
         </p>
       </div>

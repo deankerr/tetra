@@ -4,13 +4,13 @@ import { z } from 'zod'
 
 // --- Types ---
 
-export type Model = {
+export interface Model {
   id: string
   name: string
   provider: string
 }
 
-export type ModelGroup = {
+export interface ModelGroup {
   displayName: string
   models: Model[]
   provider: string
@@ -60,16 +60,19 @@ async function fetchModels(): Promise<ModelGroup[]> {
   return groupByProvider(models)
 }
 
-async function getModels(): Promise<ModelGroup[]> {
+// oxlint-disable-next-line promise-function-async -- Promise cache accessor should return the stored promise directly.
+function getModels(): Promise<ModelGroup[]> {
   if (cache) {
-    return cache
+    return Promise.resolve(cache)
   }
+
   pending ??= (async () => {
     const groups = await fetchModels()
     cache = groups
     pending = null
     return groups
   })()
+
   return pending
 }
 

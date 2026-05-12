@@ -1,31 +1,31 @@
 import type { SessionConfig, TetraStore } from '@tetra/store'
 
-export type RuntimeContext = {
+export interface RuntimeContext {
   controllers: Map<string, AbortController>
   indexes: TetraStore['indexes']
   store: TetraStore['store']
   transaction: (fn: () => void) => void
 }
 
-export type CreateSessionArgs = {
+export interface CreateSessionArgs {
   title?: string
 }
 
-export type DeleteSessionArgs = {
+export interface DeleteSessionArgs {
   sessionId: string
 }
 
-export type UpdateSessionArgs = {
+export interface UpdateSessionArgs {
   sessionId: string
   title: string
 }
 
-export type UpdateSessionConfigArgs = {
+export interface UpdateSessionConfigArgs {
   patch: Partial<SessionConfig>
   sessionId: string
 }
 
-export type SendMessageArgs = {
+export interface SendMessageArgs {
   sessionId: string
   text: string
 }

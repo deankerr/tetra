@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils'
 
 import { useModels } from './models'
 
-type ModelPickerProps = {
+interface ModelPickerProps {
   className?: string
   onValueChange: (modelId: string) => void
   value: string

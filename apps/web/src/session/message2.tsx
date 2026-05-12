@@ -41,7 +41,10 @@ type KnownPart =
   | DynamicToolUIPart
 
 // Fallback for data-* and future types
-type UnknownPart = { type: `data-${string}`; [key: string]: unknown }
+interface UnknownPart {
+  type: `data-${string}`
+  [key: string]: unknown
+}
 
 type MessagePart = KnownPart | UnknownPart
 
@@ -76,11 +79,11 @@ function statusBadgeVariant(status: string) {
 function RawJson({ label, value }: { label: string; value: unknown }) {
   return (
     <div className="space-y-0.5">
-      <div className="flex items-center gap-1 text-[0.625rem] font-semibold uppercase tracking-wider text-muted-foreground">
+      <div className="text-muted-foreground flex items-center gap-1 text-[0.625rem] font-semibold tracking-wider uppercase">
         <BracesIcon className="size-3" />
         {label}
       </div>
-      <pre className="max-h-48 overflow-auto rounded bg-background/50 p-1.5 text-[0.625rem] leading-relaxed whitespace-pre-wrap break-all text-muted-foreground">
+      <pre className="bg-background/50 text-muted-foreground max-h-48 overflow-auto rounded p-1.5 text-[0.625rem] leading-relaxed break-all whitespace-pre-wrap">
         {JSON.stringify(value, null, 2)}
       </pre>
     </div>
@@ -108,7 +111,7 @@ const partBorderColors: Partial<Record<string, string>> = {
 function TextPartContent({ part }: { part: TextUIPart }) {
   return (
     <div className="space-y-1">
-      <div className="whitespace-pre-wrap break-all text-foreground">{part.text}</div>
+      <div className="text-foreground break-all whitespace-pre-wrap">{part.text}</div>
       {part.providerMetadata !== undefined && (
         <RawJson label="providerMetadata" value={part.providerMetadata} />
       )}
@@ -119,7 +122,7 @@ function TextPartContent({ part }: { part: TextUIPart }) {
 function ReasoningPartContent({ part }: { part: ReasoningUIPart }) {
   return (
     <div className="space-y-1">
-      <div className="whitespace-pre-wrap break-all text-foreground">{part.text}</div>
+      <div className="text-foreground break-all whitespace-pre-wrap">{part.text}</div>
       {part.providerMetadata !== undefined && (
         <RawJson label="providerMetadata" value={part.providerMetadata} />
       )}
@@ -133,9 +136,9 @@ function FilePartContent({ part }: { part: FileUIPart }) {
       <div className="flex items-center gap-2">
         <FileIcon className="size-3 text-pink-500" />
         {part.filename !== undefined && (
-          <span className="font-medium text-foreground">{part.filename}</span>
+          <span className="text-foreground font-medium">{part.filename}</span>
         )}
-        <span className="text-[0.625rem] text-muted-foreground">{part.mediaType}</span>
+        <span className="text-muted-foreground text-[0.625rem]">{part.mediaType}</span>
       </div>
       <a
         className="inline-flex items-center gap-1.5 text-sky-400 underline hover:text-sky-300"
@@ -172,11 +175,11 @@ function SourceDocumentPartContent({ part }: { part: SourceDocumentUIPart }) {
     <div className="space-y-1">
       <div className="flex items-center gap-2">
         <FileIcon className="size-3 text-sky-500" />
-        <span className="font-medium text-foreground">{part.title}</span>
+        <span className="text-foreground font-medium">{part.title}</span>
         {part.filename !== undefined && (
-          <span className="text-[0.625rem] text-muted-foreground">{part.filename}</span>
+          <span className="text-muted-foreground text-[0.625rem]">{part.filename}</span>
         )}
-        <span className="text-[0.625rem] text-muted-foreground">{part.mediaType}</span>
+        <span className="text-muted-foreground text-[0.625rem]">{part.mediaType}</span>
       </div>
       {part.providerMetadata !== undefined && (
         <RawJson label="providerMetadata" value={part.providerMetadata} />
@@ -207,11 +210,11 @@ function ToolPartHeader({
   return (
     <div className="flex items-center gap-2">
       <WrenchIcon className="size-3 text-amber-500" />
-      <span className="font-semibold text-foreground">{toolName}</span>
+      <span className="text-foreground font-semibold">{toolName}</span>
       <Badge variant="outline" className="text-[0.625rem]">
         {state}
       </Badge>
-      <span className="text-[0.625rem] text-muted-foreground">id: {toolCallId}</span>
+      <span className="text-muted-foreground text-[0.625rem]">id: {toolCallId}</span>
     </div>
   )
 }
@@ -270,13 +273,13 @@ function PartBlock({ index, part }: { index: number; part: MessagePart }) {
   return (
     <div
       className={cn(
-        'border-l-2 bg-muted/30 p-3',
+        'bg-muted/30 border-l-2 p-3',
         partBorderColors[part.type] ?? 'border-l-muted-foreground',
       )}
     >
       <div className="flex items-center justify-between">
-        <span className="text-[0.625rem] text-muted-foreground">{part.type}</span>
-        <span className="text-[0.625rem] text-muted-foreground">{index}</span>
+        <span className="text-muted-foreground text-[0.625rem]">{part.type}</span>
+        <span className="text-muted-foreground text-[0.625rem]">{index}</span>
       </div>
       <div className="mt-2 empty:hidden">
         <PartContent part={part} />
@@ -342,7 +345,7 @@ export function Message2({
     return (
       <div
         className={cn(
-          'space-y-1 border border-destructive/30 bg-destructive/5 p-2 font-mono text-xs text-destructive',
+          'border-destructive/30 bg-destructive/5 text-destructive space-y-1 border p-2 font-mono text-xs',
           className,
         )}
         {...props}
@@ -359,7 +362,7 @@ export function Message2({
   return (
     <div className={cn('space-y-1 font-mono text-xs', className)} {...props}>
       {/* Header */}
-      <div className="flex items-center gap-2 border-b border-border/50 pb-1">
+      <div className="border-border/50 flex items-center gap-2 border-b pb-1">
         <Badge
           className={cn(
             'uppercase',
@@ -368,10 +371,10 @@ export function Message2({
         >
           {role}
         </Badge>
-        <span className="text-[0.625rem] text-muted-foreground/60">
+        <span className="text-muted-foreground/60 text-[0.625rem]">
           {id}-{seq.toString().padStart(3, '0')}
         </span>
-        <div className="ml-auto flex items-center gap-1.5 text-[0.625rem] text-muted-foreground/60">
+        <div className="text-muted-foreground/60 ml-auto flex items-center gap-1.5 text-[0.625rem]">
           <span>{new Date(createdAt).toLocaleTimeString()}</span>
           {createdAt !== updatedAt && <span>→ {new Date(updatedAt).toLocaleTimeString()}</span>}
         </div>
@@ -386,7 +389,7 @@ export function Message2({
 
       {/* Parts — never hide, even when empty */}
       {parts.length === 0 ? (
-        <div className="border-l-2 border-l-muted-foreground/30 bg-muted/30 px-2 py-2 italic text-muted-foreground">
+        <div className="border-l-muted-foreground/30 bg-muted/30 text-muted-foreground border-l-2 px-2 py-2 italic">
           no parts
         </div>
       ) : (
@@ -405,7 +408,7 @@ export function Message2({
             error
           </Badge>
           {request.errorMessage !== '' && (
-            <span className="break-all text-destructive">{request.errorMessage}</span>
+            <span className="text-destructive break-all">{request.errorMessage}</span>
           )}
         </div>
       )}

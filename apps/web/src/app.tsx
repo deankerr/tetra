@@ -24,10 +24,10 @@ export function App() {
   // Loading state — runtime initializes store + persistence
   if (tetra === null) {
     return (
-      <div className="flex min-h-svh items-center justify-center bg-background">
+      <div className="bg-background flex min-h-svh items-center justify-center">
         <div className="flex items-center gap-3">
           <Spinner className="text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">Loading…</span>
+          <span className="text-muted-foreground text-sm">Loading…</span>
         </div>
       </div>
     )
