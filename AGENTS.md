@@ -1,23 +1,28 @@
 # Tetra
 
-Local-first LLM chat app for power users. The project is in a core-simplification pass.
+Local-first LLM chat app for power users.
 
-Read `VISION.md` and `ARCHITECTURE.md` for context, but do not treat the extended VISION layers as implementation priorities right now. Current priority is a clean, well-designed core: remove stale complexity, inline thin abstractions, and avoid adding new layers until the boundary is obvious.
+## Prototype Mode
 
-## Current Posture
+The primary goal is rapid design iteration and experimentation, not building a user-facing app.
 
-- Prefer deleting, inlining, or relocating code over inventing new abstractions.
-- Keep the core flow easy to trace: consumer action -> runtime process -> store updates -> reactive UI reads.
-- Preserve core chat functionality while simplifying; pause and discuss if a cleanup changes the model rather than only clarifying it.
-- Use `zod` at data boundaries and infer types from schemas. Do not hand-write duplicate shape types.
-- Use `import * as R from 'remeda'` when it makes transformations clearer.
+Dev data is wiped and regenerated as needed. This app is not public. There are has no users.
+
+- NO backwards compatibility shims
+- NO migrations - break schemas without hesitation
+- NO accessibility or mobile UI support
+- NO premature optimization of code or bundle size
+- NO purist git hygiene - all parts of the app are in flux
+
+- Fail fast, throw exceptions, never swallow errors, use console.log/warn/error
+- Prefer using existing libraries/solutions over writing our own.
+- Lockfile changes are acceptable even if they seem unrelated, do not edit manually.
 
 ## TinyBase
 
 Full TinyBase docs live at `reference/tinybase-docs/index.md`; prefer them before web search.
 
 - Important release notes: `reference/tinybase-docs/guides/releases/article.md` covers object/array types and State Hooks.
-- Use domain types inferred from the store decoders when available; create derived types only when needed.
 
 ## Monorepo
 
@@ -42,38 +47,8 @@ Bun workspaces. Run scripts from the root.
 
 - A perfect (dev/)dependencies result is a non-goal - expect testing/frontend/tanstack deps to go unused for periods of time.
 
-### agent-browser
+## Project Docs
 
-- ALWAYS activate the `agent-browser` skill for browser automation or browser-based testing.
-- Codex only: run `agent-browser` commands outside of the sandbox.
-- Prefer `http://localhost:<port>` over `127.0.0.1` for local dev servers.
-- Verify if the dev server is already running before attempting to start it.
+@VISION.md
 
-### shadcn/ui and AI Elements
-
-- ALWAYS activate the `shadcn` skill when authoring, adding, reviewing, or using `shadcn/ui` components.
-- ALWAYS activate the `ai-elements` skill when adding, reviewing, or using AI Elements components.
-- Add `shadcn/ui` components with `bunx --bun shadcn@latest add <component>`.
-- Add AI Elements components with `bunx --bun shadcn@latest add @ai-elements/<component>`.
-- Do not use `ai-elements@latest` directly.
-- When prompted about overwriting `src/components/ui/*`, answer `no`, then inspect changes with `bunx --bun shadcn@latest add <component> --diff <file>` and apply any needed updates manually.
-- Codex only: run shadcn registry commands outside of the sandbox.
-- Never put padding directly on a ScrollArea component.
-
-## Status
-
-Experimentation, iteration.
-
-### Prototype Mode
-
-The primary goal is rapid design iteration, not building a user-facing app.
-
-- NO backwards compatibility
-- NO accessibility or mobile UI support
-- NO data migrations - wipe dev data when required
-- NO premature optimization, including bundle size
-
-- Optimize for change.
-- Fail fast.
-- Prefer using existing libraries/solutions over writing our own.
-- Lockfile changes are acceptable even if they seem unrelated, do not edit manually.
+@ARCHITECTURE.md

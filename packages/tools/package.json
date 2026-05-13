@@ -1,16 +1,14 @@
 {
-  "name": "@tetra/runtime",
+  "name": "@tetra/tools",
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    "./registry": "./src/registry.ts"
   },
   "dependencies": {
     "@tetra/credentials": "workspace:*",
-    "@tetra/inference": "workspace:*",
-    "@tetra/store": "workspace:*",
-    "@tetra/tools": "workspace:*",
-    "ai": "catalog:"
+    "ai": "catalog:",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "typescript": "catalog:"

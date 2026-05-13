@@ -1,3 +1,4 @@
+import { credentialIds, credentialsRegistryMap } from '@tetra/credentials/registry'
 import { Button } from '@tetra/ui/components/ui/button'
 import {
   Dialog,
@@ -11,12 +12,9 @@ import { Input } from '@tetra/ui/components/ui/input'
 import { Label } from '@tetra/ui/components/ui/label'
 import { SettingsIcon } from 'lucide-react'
 
-import { useJinaApiKey, useOpenRouterApiKey } from '@/hooks/use-key-store'
+import { useCredential } from '@/hooks/use-credential'
 
 export function SettingsDialog() {
-  const [jinaApiKey, setJinaApiKey] = useJinaApiKey()
-  const [openRouterApiKey, setOpenRouterApiKey] = useOpenRouterApiKey()
-
   return (
     <Dialog>
       <DialogTrigger
@@ -34,54 +32,46 @@ export function SettingsDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-2">
-          <Label htmlFor="openrouter-api-key">OpenRouter API Key</Label>
-          <Input
-            id="openrouter-api-key"
-            type="password"
-            placeholder="sk-or-v1-..."
-            value={openRouterApiKey}
-            onChange={(e) => {
-              setOpenRouterApiKey(e.target.value)
-            }}
-          />
-          <p className="text-muted-foreground text-xs">
-            Get a key at{' '}
-            <a
-              href="https://openrouter.ai/keys"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline"
-            >
-              openrouter.ai/keys
-            </a>
-          </p>
-        </div>
-
-        <div className="grid gap-2">
-          <Label htmlFor="jina-api-key">Jina API Key</Label>
-          <Input
-            id="jina-api-key"
-            type="password"
-            placeholder="jina_..."
-            value={jinaApiKey}
-            onChange={(e) => {
-              setJinaApiKey(e.target.value)
-            }}
-          />
-          <p className="text-muted-foreground text-xs">
-            Used by Reader and Search tools. Get a key at{' '}
-            <a
-              href="https://jina.ai/reader/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline"
-            >
-              jina.ai/reader
-            </a>
-          </p>
-        </div>
+        {credentialIds.map((credentialId) => (
+          <CredentialField key={credentialId} credentialId={credentialId} />
+        ))}
       </DialogContent>
     </Dialog>
+  )
+}
+
+function CredentialField({ credentialId }: { credentialId: string }) {
+  const [value, setValue] = useCredential(credentialId)
+  const definition = credentialsRegistryMap.get(credentialId)
+  if (definition === undefined) {
+    return null
+  }
+
+  const inputId = `credential-${credentialId}`
+
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor={inputId}>{definition.label}</Label>
+      <Input
+        id={inputId}
+        type="password"
+        placeholder={definition.placeholder}
+        value={value}
+        onChange={(e) => {
+          setValue(e.target.value)
+        }}
+      />
+      <p className="text-muted-foreground text-xs">
+        {definition.purpose} Get a key at{' '}
+        <a
+          href={definition.helpUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline"
+        >
+          {definition.helpLabel}
+        </a>
+      </p>
+    </div>
   )
 }

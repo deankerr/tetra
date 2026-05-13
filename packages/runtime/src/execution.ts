@@ -1,9 +1,19 @@
-import { streamInference, MissingProviderSecretError } from '@tetra/inference'
-import { getJinaApiKey, getOpenRouterApiKey } from '@tetra/key-store'
+import type { CredentialId } from '@tetra/credentials/registry'
+import { getCredential } from '@tetra/credentials/store'
+import { streamInference } from '@tetra/inference'
 import { parseRequestConfig } from '@tetra/store'
-import type { UIMessage } from 'ai'
+import { toolsRegistryMap } from '@tetra/tools/registry'
+import type { ToolDefinition } from '@tetra/tools/registry'
+import type { ToolSet, UIMessage } from 'ai'
 
 import type { RuntimeContext } from './types.ts'
+
+class MissingProviderSecretError extends Error {
+  constructor() {
+    super('OpenRouter API key not configured. Add your key in Settings.')
+    this.name = 'MissingProviderSecretError'
+  }
+}
 
 export const executeRequest = async (
   context: RuntimeContext,
@@ -46,11 +56,40 @@ export const executeRequest = async (
           updatedAt: row.updatedAt,
         }
       })
-    const apiKey = getOpenRouterApiKey()
+
+    const apiKey = getCredential('openRouterApiKey')
     if (apiKey === '') {
       throw new MissingProviderSecretError()
     }
-    const jinaApiKey = getJinaApiKey()
+
+    const credentialIds = new Set<CredentialId>()
+    const selectedTools = new Map<string, ToolDefinition>()
+
+    // Treat stored tool ids like user input at the request boundary.
+    for (const rawToolId of requestConfig.toolIds) {
+      const toolDefinition = toolsRegistryMap.get(rawToolId)
+      if (toolDefinition === undefined) {
+        console.warn('[runtime]', 'unknown tool id ignored', { toolId: rawToolId })
+        continue
+      }
+
+      for (const credentialId of toolDefinition.credentialIds) {
+        credentialIds.add(credentialId)
+      }
+
+      selectedTools.set(rawToolId, toolDefinition)
+    }
+
+    const selectedToolIds = [...selectedTools.keys()]
+    const tools: ToolSet = Object.fromEntries(
+      [...selectedTools].map(([toolId, toolDefinition]) => [toolId, toolDefinition.aiTool]),
+    )
+
+    const toolContext = {
+      credentials: Object.fromEntries(
+        [...credentialIds].map((credentialId) => [credentialId, getCredential(credentialId)]),
+      ),
+    }
 
     console.log('[runtime]', 'streaming', {
       assistantMessageId,
@@ -59,18 +98,19 @@ export const executeRequest = async (
       modelId: requestConfig.modelId,
       requestId,
       sessionId,
-      toolIds: requestConfig.toolIds,
+      toolIds: selectedToolIds,
     })
 
     // Stream provider snapshots into the assistant message.
     let received = false
     for await (const snapshot of streamInference({
-      apiKey,
       assistantMessageId,
       config: requestConfig,
-      jinaApiKey,
       messages,
+      providerCredentials: { openRouterApiKey: apiKey },
       signal: controller.signal,
+      toolContext,
+      tools,
     })) {
       received = true
       if (store.hasRow('messages', assistantMessageId)) {

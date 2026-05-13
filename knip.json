@@ -23,8 +23,7 @@
     },
     "packages/ui": {
       "includeEntryExports": true,
-      "project": ["src/**/*.{ts,tsx}"],
-      "ignoreDependencies": ["streamdown", "@streamdown/*"]
+      "project": ["src/**/*.{ts,tsx}"]
     }
   }
 }
