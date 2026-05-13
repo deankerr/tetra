@@ -78,6 +78,12 @@
   --sidebar-ring: oklch(0.56 0.021 213.5);
 }
 
+@theme {
+  /* Keep tiny labels aligned by pairing their font size with an explicit line-height. */
+  --text-xxs: 0.625rem;
+  --text-xxs--line-height: calc(0.875 / 0.625);
+}
+
 @theme inline {
   --font-sans: 'Inter Variable', sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);

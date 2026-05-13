@@ -13,3 +13,7 @@
 
 - Most components should use the passthrough props style, merging className with the `cn` helper.
 - Use component composition over monolithic prop heavy components.
+
+### Custom Theme Tokens
+
+- `text-xxs`: 10px text with an explicit 12px line-height.

@@ -4,6 +4,6 @@ Shared UI package for app components, shadcn components, and AI Elements compone
 
 ## Vendored Components
 
-Treat files under `src/components/ui` and `src/components/ai-elements` as vendored components.
+Treat files under `src/components/ui` and `src/components/ai-elements` as vendored components. Code edits should be avoided to enable easy diffing with the upstream sources.
 
-When changing a vendored component, add an entry to `VENDORED_CHANGES.md` that records the date, file, reason, and a short summary of the local change.
+If a patch is required, record the changes in `VENDORED_CHANGES.md`.

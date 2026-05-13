@@ -17,6 +17,7 @@ import {
   CircleDashedIcon,
   ClockIcon,
   CopyIcon,
+  DotIcon,
   Loader2Icon,
   TrashIcon,
   WrenchIcon,
@@ -41,20 +42,19 @@ function RawJsonCollapsible({
   return (
     <Collapsible
       defaultOpen={defaultOpen}
-      className="border-border/50 bg-background/40 overflow-hidden rounded-sm border"
+      className="border-border/75 bg-background/50 overflow-hidden rounded-sm border"
     >
-      <CollapsibleTrigger className="text-muted-foreground hover:text-foreground data-[panel-open]:border-border/40 group bg-muted/25 flex w-full items-center justify-between gap-2 border-b border-transparent px-2 py-1.5 text-[0.625rem] font-semibold tracking-wider uppercase transition-colors">
-        <span className="flex items-center gap-1">
-          <BracesIcon className="size-3" />
-          {label}
-        </span>
+      <CollapsibleTrigger className="text-muted-foreground hover:text-foreground data-[panel-open]:border-border/40 group bg-muted/25 text-xxs flex w-full items-center justify-between gap-2 border-b border-transparent px-2 py-1.5 font-semibold tracking-wider transition-colors">
+        <BracesIcon className="size-2.5" />
+        {label}
+        <div className="grow" />
         <ChevronDownIcon className="size-3 transition-transform group-data-[panel-open]:rotate-180" />
       </CollapsibleTrigger>
       <CollapsibleContent className="[&>div]:max-h-56">
         <CodeBlockContent
           code={JSON.stringify(value, null, 2)}
           language="json"
-          className="bg-background/70 text-[0.625rem] whitespace-pre-wrap [&_code]:text-[0.625rem]"
+          className="bg-background/70 text-xxs [&_code]:text-xxs whitespace-pre-wrap"
         />
       </CollapsibleContent>
     </Collapsible>
@@ -85,7 +85,7 @@ function Block({ children, className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       className={cn(
-        'border-border/40 bg-muted/20 border-l-muted-foreground space-y-3 border border-l-2 px-3 py-2.5',
+        'border-border/40 bg-muted/20 border-l-muted-foreground border border-l-2 px-3 py-1.5',
         className,
       )}
       {...props}
@@ -107,8 +107,8 @@ function PartBlock({
   className?: string
 }) {
   return (
-    <Block className={className}>
-      <div className="text-muted-foreground/80 flex items-center justify-between gap-3 text-[0.625rem] font-semibold tracking-wide">
+    <Block className={cn('space-y-3', className)}>
+      <div className="text-muted-foreground/80 text-xxs flex items-center justify-between gap-3 font-semibold tracking-wide not-only:mb-1.5">
         {type}
         {status}
       </div>
@@ -141,7 +141,7 @@ function RequestStatusBadge({ status }: { status: string | undefined }) {
   )[status ?? '']
 
   if (config === undefined) {
-    return <CircleDashedIcon className="text-muted-foreground/20 size-3" />
+    return <DotIcon className="text-muted-foreground/20 size-3" />
   }
 
   const Icon = config.icon
@@ -213,11 +213,11 @@ export function MessageInspector({
     )
   }
 
-  const { parts, role, id, createdAt, updatedAt } = message
+  const { parts, role, id, updatedAt } = message
   const isStreaming = request?.status === 'pending' || request?.status === 'streaming'
   const roleColor = role === 'user' ? 'border-l-emerald-500' : 'border-l-indigo-500'
-  const reasoningColor = role === 'user' ? roleColor : 'border-l-violet-500'
-  const toolColor = role === 'user' ? roleColor : 'border-l-amber-500'
+  const reasoningColor = 'border-l-violet-500'
+  const toolColor = 'border-l-blue-500'
 
   const messageText = parts
     .filter((p): p is Extract<typeof p, { type: 'text' }> => p.type === 'text')
@@ -225,8 +225,8 @@ export function MessageInspector({
     .join('')
 
   return (
-    <div className={cn('space-y-2 text-xs', className)} {...props}>
-      <div className="space-y-2">
+    <div className={cn('text-xs', className)} {...props}>
+      <div className="space-y-1.5">
         {/* Header */}
         <Block className={cn('flex items-center gap-2 space-y-0 font-sans', roleColor, className)}>
           <Badge
@@ -238,12 +238,8 @@ export function MessageInspector({
             {role}
           </Badge>
 
-          <div className="text-muted-foreground/60 ml-auto flex items-center gap-1.5 text-[0.625rem]">
-            {createdAt === updatedAt ? (
-              <span>{new Date(createdAt).toLocaleTimeString()}</span>
-            ) : (
-              <span>{new Date(updatedAt).toLocaleTimeString()}</span>
-            )}
+          <div className="text-muted-foreground/60 text-xxs ml-auto flex items-center gap-1.5">
+            <span>{new Date(updatedAt).toLocaleTimeString()}</span>
           </div>
 
           <Badge variant="outline">
@@ -253,14 +249,16 @@ export function MessageInspector({
 
         {/* Parts */}
         {parts.map((part, i) => {
-          if (part.type === 'text') {
+          if (part.type === 'reasoning') {
             return (
-              <PartBlock key={`${id}-part-${i}`} className={roleColor} type={part.type}>
-                <CodeBlockContent
-                  code={part.text}
-                  language="markdown"
-                  className="p-0 text-xs whitespace-pre-wrap [&_code]:text-xs"
-                />
+              <PartBlock key={`${id}-part-${i}`} className={reasoningColor} type={part.type}>
+                <div className="border-border/75 rounded-sm border p-2">
+                  <CodeBlockContent
+                    code={part.text}
+                    language="markdown"
+                    className="text-xxs [&_code]:text-xxs p-0 whitespace-pre-wrap brightness-70"
+                  />
+                </div>
                 {part.providerMetadata !== undefined && (
                   <RawJsonCollapsible
                     defaultOpen={false}
@@ -272,14 +270,16 @@ export function MessageInspector({
             )
           }
 
-          if (part.type === 'reasoning') {
+          if (part.type === 'text') {
             return (
-              <PartBlock key={`${id}-part-${i}`} className={reasoningColor} type={part.type}>
-                <CodeBlockContent
-                  code={part.text}
-                  language="markdown"
-                  className="p-0 text-xs whitespace-pre-wrap [&_code]:text-xs"
-                />
+              <PartBlock key={`${id}-part-${i}`} className={roleColor} type={part.type}>
+                <div className="border-border/75 rounded-sm border p-2">
+                  <CodeBlockContent
+                    code={part.text}
+                    language="markdown"
+                    className="text-muted-foreground p-0 text-xs whitespace-pre-wrap brightness-90 [&_code]:text-xs"
+                  />
+                </div>
                 {part.providerMetadata !== undefined && (
                   <RawJsonCollapsible
                     defaultOpen={false}
@@ -315,13 +315,13 @@ export function MessageInspector({
             </PartBlock>
           )
         })}
-      </div>
 
-      {request?.status === 'error' && request.errorMessage !== '' && (
-        <PartBlock className="border-l-destructive" type="error">
-          <span className="text-destructive break-all">{request.errorMessage}</span>
-        </PartBlock>
-      )}
+        {request?.status === 'error' && request.errorMessage !== '' && (
+          <PartBlock className="border-l-destructive" type="error">
+            <span className="text-destructive break-all">{request.errorMessage}</span>
+          </PartBlock>
+        )}
+      </div>
 
       {/* Actions */}
       {!isStreaming && (
