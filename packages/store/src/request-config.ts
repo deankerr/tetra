@@ -22,7 +22,7 @@ export const DEFAULT_REQUEST_CONFIG: RequestConfig = {
     temperature: 0.5,
   },
   systemPrompt: 'Be concise.',
-  toolIds: [],
+  toolIds: ['jinaSearchWeb'],
 }
 
 export const parseRequestConfig = (raw: unknown): RequestConfig => requestConfigSchema.parse(raw)

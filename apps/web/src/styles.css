@@ -1,2 +1,32 @@
 @import '@tetra/ui/globals.css';
 @source './**/*.{ts,tsx}';
+
+@layer base {
+  /* Keep native scrollbars compact in both axes. */
+  * {
+    scrollbar-color: var(--border) transparent;
+    scrollbar-width: thin;
+  }
+
+  /* Match WebKit horizontal and vertical scrollbar dimensions. */
+  ::-webkit-scrollbar {
+    height: 5px;
+    width: 5px;
+  }
+
+  /* Let scroll tracks inherit the surrounding surface. */
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /* Hide the default square where horizontal and vertical scrollbars meet. */
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  /* Use the app border token for the draggable scrollbar thumb. */
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 5px;
+  }
+}

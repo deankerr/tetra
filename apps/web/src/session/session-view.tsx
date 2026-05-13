@@ -80,7 +80,7 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
 
         {/* Messages */}
         <Conversation>
-          <ConversationContent className="">
+          <ConversationContent>
             {messageIds.length === 0 ? (
               <ConversationEmptyState
                 description="Send a message to get started."
