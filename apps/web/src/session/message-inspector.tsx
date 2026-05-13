@@ -1,3 +1,4 @@
+import { CodeBlockContent } from '@tetra/ui/components/ai-elements/code-block'
 import { Badge } from '@tetra/ui/components/ui/badge'
 import { Button } from '@tetra/ui/components/ui/button'
 import { cn } from '@tetra/ui/lib/utils'
@@ -45,15 +46,15 @@ function RawJson({ label, value }: { label: string; value: unknown }) {
         <BracesIcon className="size-3" />
         {label}
       </div>
-      <pre className="bg-background/50 text-muted-foreground max-h-48 overflow-auto rounded p-1.5 text-[0.625rem] leading-relaxed break-all whitespace-pre-wrap">
-        {JSON.stringify(value, null, 2)}
-      </pre>
+      <div className="max-h-48 overflow-auto">
+        <CodeBlockContent
+          code={JSON.stringify(value, null, 2)}
+          language="json"
+          className="p-0 text-[0.625rem] whitespace-pre-wrap [&_code]:text-[0.625rem]"
+        />
+      </div>
     </div>
   )
-}
-
-function RawText({ text }: { text: string }) {
-  return <div className="text-foreground text-xs break-all whitespace-pre-wrap">{text}</div>
 }
 
 function ToolPart({ part }: { part: ToolUIPart | DynamicToolUIPart }) {
@@ -192,7 +193,11 @@ export function MessageInspector({
           if (part.type === 'text') {
             return (
               <PartBlock key={`${id}-part-${i}`} className="border-l-emerald-500" type={part.type}>
-                <RawText text={part.text} />
+                <CodeBlockContent
+                  code={part.text}
+                  language="markdown"
+                  className="p-0 text-xs whitespace-pre-wrap [&_code]:text-xs"
+                />
                 {part.providerMetadata !== undefined && (
                   <RawJson label="providerMetadata" value={part.providerMetadata} />
                 )}
@@ -203,7 +208,11 @@ export function MessageInspector({
           if (part.type === 'reasoning') {
             return (
               <PartBlock key={`${id}-part-${i}`} className="border-l-violet-500" type={part.type}>
-                <RawText text={part.text} />
+                <CodeBlockContent
+                  code={part.text}
+                  language="markdown"
+                  className="p-0 text-xs whitespace-pre-wrap [&_code]:text-xs"
+                />
                 {part.providerMetadata !== undefined && (
                   <RawJson label="providerMetadata" value={part.providerMetadata} />
                 )}
