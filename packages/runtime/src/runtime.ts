@@ -22,10 +22,7 @@ export const createTetraRuntime = (config: { store: TetraStore }) => {
   const sessions = createSessions(context, requests)
 
   return {
-    requests,
-    sessions,
-
-    start() {
+    recoverInterruptedRequests() {
       // In-progress requests cannot survive a browser reload yet.
       for (const id of context.store.getRowIds('requests')) {
         const status = context.store.getCell('requests', id, 'status')
@@ -39,8 +36,11 @@ export const createTetraRuntime = (config: { store: TetraStore }) => {
         })
       }
 
-      console.log('[runtime]', 'started')
+      console.log('[runtime]', 'recovered interrupted requests')
     },
+
+    requests,
+    sessions,
 
     stop() {
       // Runtime shutdown aborts every active provider stream.

@@ -2,6 +2,7 @@ import { Sidebar, SidebarInset, SidebarProvider } from '@tetra/ui/components/ui/
 import { Spinner } from '@tetra/ui/components/ui/spinner'
 import { useEffect, useState } from 'react'
 import type { Indexes as TinyIndexes, Store as TinyStore } from 'tinybase'
+import type { Persister as TinyPersister } from 'tinybase/persisters'
 import { Provider } from 'tinybase/ui-react'
 import { Inspector } from 'tinybase/ui-react-inspector'
 
@@ -21,7 +22,7 @@ export function App() {
     void init()
   }, [])
 
-  // Loading state — runtime initializes store + persistence
+  // Loading state — OPFS persistence hydrates the runtime store.
   if (tetra === null) {
     return (
       <div className="bg-background flex min-h-svh items-center justify-center">
@@ -38,10 +39,12 @@ export function App() {
   const runtimeStore = tetra.store as unknown as TinyStore
   // oxlint-disable-next-line no-unsafe-type-assertion
   const runtimeIndexes = tetra.indexes as unknown as TinyIndexes
+  // oxlint-disable-next-line no-unsafe-type-assertion
+  const runtimePersister = tetra.persister as unknown as TinyPersister
 
   return (
     <RuntimeContext value={tetra.runtime}>
-      <Provider store={runtimeStore} indexes={runtimeIndexes}>
+      <Provider store={runtimeStore} indexes={runtimeIndexes} persister={runtimePersister}>
         <SidebarProvider>
           <Sidebar>
             <AppSidebar />

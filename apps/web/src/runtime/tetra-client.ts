@@ -1,11 +1,13 @@
 import { createTetraRuntime } from '@tetra/runtime'
 import type { TetraRuntime } from '@tetra/runtime'
 import { createTetraStore } from '@tetra/store'
-import type { TetraStore } from '@tetra/store'
+import type { Schemas, TetraStore } from '@tetra/store'
+import type { OpfsPersister } from 'tinybase/persisters/persister-browser/with-schemas'
 import { createOpfsPersister } from 'tinybase/persisters/persister-browser/with-schemas'
 
 export interface TetraApp {
   indexes: TetraStore['indexes']
+  persister: OpfsPersister<Schemas>
   runtime: TetraRuntime
   store: TetraStore['store']
 }
@@ -34,10 +36,11 @@ async function initialize(): Promise<TetraApp> {
   const persister = createOpfsPersister(tetraStore.store, handle)
   await persister.startAutoPersisting()
 
-  runtime.start()
+  runtime.recoverInterruptedRequests()
 
   return {
     indexes: tetraStore.indexes,
+    persister,
     runtime,
     store: tetraStore.store,
   }
