@@ -24,6 +24,7 @@ export function SessionConfig({ sessionId }: { sessionId: string }) {
           value={config.modelId}
         />
       </Field>
+
       <Field>
         <FieldTitle>System Prompt</FieldTitle>
         <Textarea
@@ -37,15 +38,24 @@ export function SessionConfig({ sessionId }: { sessionId: string }) {
           value={config.systemPrompt ?? ''}
         />
       </Field>
-      <ToolSelector
-        onToolIdsChange={(toolIds) => {
-          runtime.commands.updateSessionConfig({
-            patch: { toolIds },
-            sessionId,
-          })
-        }}
-        toolIds={config.toolIds}
-      />
+
+      <Card size="sm">
+        <CardHeader>
+          <CardTitle className="text-xs">Tools</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2.5">
+          <ToolSelector
+            onToolIdsChange={(toolIds) => {
+              runtime.commands.updateSessionConfig({
+                patch: { toolIds },
+                sessionId,
+              })
+            }}
+            toolIds={config.toolIds}
+          />
+        </CardContent>
+      </Card>
+
       <Card size="sm">
         <CardHeader>
           <CardTitle className="text-xs">Provider Options</CardTitle>

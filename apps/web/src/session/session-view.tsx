@@ -48,7 +48,7 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <header className="flex h-(--header-height) shrink-0 items-center justify-between gap-2 border-b px-2">
           <SidebarTrigger />
-          <span className="min-w-0 flex-1 truncate text-sm font-medium">
+          <span className="min-w-0 flex-1 truncate text-xs font-medium">
             {session.title ?? 'New session'}
           </span>
           <Toggle

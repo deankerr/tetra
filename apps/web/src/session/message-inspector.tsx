@@ -1,5 +1,6 @@
 import { CodeBlockContent } from '@tetra/ui/components/ai-elements/code-block'
-import type { ToolPart } from '@tetra/ui/components/ai-elements/tool'
+import type { ToolPart as ToolPartType } from '@tetra/ui/components/ai-elements/tool'
+import { getStatusBadge } from '@tetra/ui/components/ai-elements/tool'
 import { Badge } from '@tetra/ui/components/ui/badge'
 import { Button } from '@tetra/ui/components/ui/button'
 import {
@@ -8,14 +9,12 @@ import {
   CollapsibleTrigger,
 } from '@tetra/ui/components/ui/collapsible'
 import { cn } from '@tetra/ui/lib/utils'
-import type { DynamicToolUIPart, ToolUIPart } from 'ai'
 import {
   AlertCircleIcon,
   BracesIcon,
   CheckIcon,
   ChevronDownIcon,
   CircleDashedIcon,
-  ClockIcon,
   CopyIcon,
   DotIcon,
   Loader2Icon,
@@ -39,6 +38,11 @@ function RawJsonCollapsible({
   label: string
   value: unknown
 }) {
+  const json = JSON.stringify(value, null, 2)
+  const charCount = json.length
+  const byteSize = new TextEncoder().encode(json).byteLength
+  const sizeLabel = byteSize >= 1024 ? `${(byteSize / 1024).toFixed(1)} KB` : `${byteSize} B`
+
   return (
     <Collapsible
       defaultOpen={defaultOpen}
@@ -48,33 +52,38 @@ function RawJsonCollapsible({
         <BracesIcon className="size-2.5" />
         {label}
         <div className="grow" />
+        <span className="text-muted-foreground/50 font-mono font-normal">
+          {charCount.toLocaleString()} chars · {sizeLabel}
+        </span>
         <ChevronDownIcon className="size-3 transition-transform group-data-[panel-open]:rotate-180" />
       </CollapsibleTrigger>
       <CollapsibleContent className="[&>div]:max-h-56">
         <CodeBlockContent
           code={JSON.stringify(value, null, 2)}
           language="json"
-          className="bg-background/70 text-xxs [&_code]:text-xxs whitespace-pre-wrap"
+          className="bg-background/70 text-xxs [&_code]:text-xxs break-all whitespace-pre-wrap"
         />
       </CollapsibleContent>
     </Collapsible>
   )
 }
 
-function ToolPart({ part }: { part: ToolUIPart | DynamicToolUIPart }) {
+function ToolPart({ part }: { part: ToolPartType }) {
   const toolName = part.type.startsWith('tool-') ? part.type.slice(5) : part.type
   const { input, output, errorText, state, ...rest } = part
-
+  const badge = getStatusBadge(state)
   return (
     <>
       <div className="text-foreground flex items-center gap-2 font-semibold">
         <WrenchIcon className="size-3.5 text-amber-500" />
         {toolName}
-        <ToolStateIcon state={state} />
+        {badge}
       </div>
 
       <RawJsonCollapsible label="input" value={input} />
-      {output !== undefined && <RawJsonCollapsible label="output" value={output} />}
+      {output !== undefined && (
+        <RawJsonCollapsible label="output" value={output} defaultOpen={false} />
+      )}
       {errorText !== undefined && <RawJsonCollapsible label="errorText" value={errorText} />}
       <RawJsonCollapsible defaultOpen={false} label="raw part" value={rest} />
     </>
@@ -117,7 +126,7 @@ function PartBlock({
   )
 }
 
-function isToolPart(part: MessagePart): part is ToolUIPart | DynamicToolUIPart {
+function isToolPart(part: MessagePart): part is ToolPartType {
   return part.type === 'dynamic-tool' || part.type.startsWith('tool-')
 }
 
@@ -144,45 +153,6 @@ function RequestStatusBadge({ status }: { status: string | undefined }) {
     return <DotIcon className="text-muted-foreground/20 size-3" />
   }
 
-  const Icon = config.icon
-  return <Icon className={cn('size-3', config.className)} aria-label={config.label} />
-}
-
-// ------------------------------------------------------------------
-// Tool part state icon
-// ------------------------------------------------------------------
-
-const toolStateConfig: Record<
-  ToolPart['state'],
-  { className: string; icon: React.ElementType; label: string }
-> = {
-  'approval-requested': {
-    className: 'text-amber-400',
-    icon: ClockIcon,
-    label: 'Awaiting approval',
-  },
-  'approval-responded': {
-    className: 'text-muted-foreground/60',
-    icon: CheckIcon,
-    label: 'Approval responded',
-  },
-  'input-available': {
-    className: 'text-blue-400 animate-spin',
-    icon: Loader2Icon,
-    label: 'Running',
-  },
-  'input-streaming': {
-    className: 'text-muted-foreground/40',
-    icon: CircleDashedIcon,
-    label: 'Streaming input',
-  },
-  'output-available': { className: 'text-emerald-500/70', icon: CheckIcon, label: 'Completed' },
-  'output-denied': { className: 'text-amber-500', icon: AlertCircleIcon, label: 'Denied' },
-  'output-error': { className: 'text-destructive', icon: AlertCircleIcon, label: 'Error' },
-}
-
-function ToolStateIcon({ state }: { state: ToolPart['state'] }) {
-  const config = toolStateConfig[state]
   const Icon = config.icon
   return <Icon className={cn('size-3', config.className)} aria-label={config.label} />
 }
@@ -256,7 +226,7 @@ export function MessageInspector({
                   <CodeBlockContent
                     code={part.text}
                     language="markdown"
-                    className="text-xxs [&_code]:text-xxs p-0 whitespace-pre-wrap brightness-70"
+                    className="text-xxs [&_code]:text-xxs p-0 whitespace-pre-wrap brightness-70 [&_code]:leading-relaxed"
                   />
                 </div>
                 {part.providerMetadata !== undefined && (
@@ -277,7 +247,7 @@ export function MessageInspector({
                   <CodeBlockContent
                     code={part.text}
                     language="markdown"
-                    className="text-muted-foreground p-0 text-xs whitespace-pre-wrap brightness-90 [&_code]:text-xs"
+                    className="text-muted-foreground space-y-4 p-0 text-xs whitespace-pre-wrap brightness-90 [&_code]:text-xs [&_code]:leading-relaxed"
                   />
                 </div>
                 {part.providerMetadata !== undefined && (
@@ -311,7 +281,7 @@ export function MessageInspector({
 
           return (
             <PartBlock key={`${id}-part-${i}`} className={roleColor} type={part.type}>
-              <RawJsonCollapsible label="raw part" value={part} />
+              <RawJsonCollapsible label="raw" value={part} defaultOpen={false} />
             </PartBlock>
           )
         })}

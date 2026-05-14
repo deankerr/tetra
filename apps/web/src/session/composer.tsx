@@ -53,7 +53,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
             onChange={(e) => {
               setDraft(e.currentTarget.value)
             }}
-            placeholder="Send a message…"
+            placeholder="Where would you like to go today?"
             value={draft}
             className="min-h-14 md:text-sm"
           />

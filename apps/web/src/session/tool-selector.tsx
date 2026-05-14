@@ -1,7 +1,9 @@
 import { credentialsRegistryMap } from '@tetra/credentials/registry'
 import { toolIds, toolsRegistryMap } from '@tetra/tools/registry'
+import { Badge } from '@tetra/ui/components/ui/badge'
 import { Field, FieldContent, FieldDescription, FieldTitle } from '@tetra/ui/components/ui/field'
 import { Switch } from '@tetra/ui/components/ui/switch'
+import { KeyIcon } from 'lucide-react'
 
 interface ToolSelectorProps {
   onToolIdsChange: (toolIds: string[]) => void
@@ -44,16 +46,18 @@ function ToolToggle({
       <FieldContent>
         <FieldTitle>{tool.label}</FieldTitle>
         <FieldDescription>
-          {tool.description}
           {tool.credentialIds.length > 0 ? (
             <>
-              {' '}
               Uses{' '}
               {tool.credentialIds
                 .map((credentialId) => credentialsRegistryMap.get(credentialId)?.label)
                 .filter((label) => label !== undefined)
-                .join(', ')}
-              .
+                .map((label, i) => (
+                  <Badge key={label + i} variant="outline">
+                    <KeyIcon />
+                    {label}
+                  </Badge>
+                ))}
             </>
           ) : null}
         </FieldDescription>
