@@ -25,21 +25,32 @@ export function Composer({ sessionId }: { sessionId: string }) {
     if (!draft.trim()) {
       return
     }
-    runtime.commands.addMessage({
-      sessionId,
-      text: draft,
+
+    const session = runtime.sessions.get(sessionId)
+    session.messages.add({
+      parts: [{ text: draft, type: 'text' }],
+      role: 'user',
     })
     setDraft('')
   }
 
   const handleSubmit = (message: PromptInputMessage) => {
-    if (!message.text.trim()) {
+    if (isStreaming || !message.text.trim()) {
       return
     }
 
-    runtime.commands.sendMessage({
-      sessionId,
-      text: message.text,
+    const session = runtime.sessions.get(sessionId)
+    const userMessage = session.messages.add({
+      parts: [{ text: message.text, type: 'text' }],
+      role: 'user',
+    })
+    const assistantMessage = session.messages.add({
+      parts: [],
+      role: 'assistant',
+    })
+    session.execute({
+      assistantMessageId: assistantMessage.messageId,
+      messageId: userMessage.messageId,
     })
     setDraft('')
   }
@@ -62,7 +73,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
           <PromptInputTools>
             <ModelPicker
               onValueChange={(modelId) => {
-                runtime.commands.updateSessionConfig({ patch: { modelId }, sessionId })
+                runtime.sessions.get(sessionId).updateConfig({ patch: { modelId } })
               }}
               value={config.modelId}
             />

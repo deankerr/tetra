@@ -7,7 +7,7 @@ import { toolsRegistryMap } from '@tetra/tools/registry'
 import type { ToolDefinition } from '@tetra/tools/registry'
 import type { ToolSet, UIMessage } from 'ai'
 
-import type { RuntimeContext } from './types.ts'
+import type { RuntimeContext } from './context.ts'
 
 class MissingProviderSecretError extends Error {
   constructor() {

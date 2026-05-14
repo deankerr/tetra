@@ -345,11 +345,10 @@ export function ProviderOptionsEditor({ sessionId }: { sessionId: string }) {
       isInitialRender.current = false
       return
     }
-    runtime.commands.updateSessionConfig({
+    runtime.sessions.get(sessionId).updateConfig({
       patch: { providerOptions: entriesToOptions(entries) },
-      sessionId,
     })
-  }, [entries, runtime.commands, sessionId])
+  }, [entries, runtime.sessions, sessionId])
 
   return (
     <div className="flex flex-col gap-1.5">

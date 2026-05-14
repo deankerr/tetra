@@ -6,7 +6,7 @@ import { createOpfsPersister } from 'tinybase/persisters/persister-browser/with-
 
 export type TetraClient = TetraStore & {
   runtime: TetraRuntime
-} & Pick<TetraRuntime, 'commands' | 'start' | 'stop'>
+} & Pick<TetraRuntime, 'requests' | 'sessions' | 'start' | 'stop'>
 
 let tetraPromise: Promise<TetraClient> | null = null
 

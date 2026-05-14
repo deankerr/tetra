@@ -19,9 +19,9 @@ TinyBase schema, store creation, indexes, decoders, and ID generation. No React 
 
 ### `packages/runtime` — Business logic
 
-Orchestrates Tetra processes. Receives a `TetraStore` and exposes commands: `createSession`, `sendMessage`, `deleteMessage`, `updateSessionConfig`. No React dependency.
+Orchestrates Tetra processes. Receives a `TetraStore` and exposes explicit runtime modules: `sessions` for session/message mutation and `requests` for request/run records. No React dependency.
 
-`sendMessage` is the core turn: atomically writes user message + assistant placeholder + request row, then runs inference via `queueMicrotask` — outside the React lifecycle. Streams `UIMessage` snapshots back into the store on each token. On startup, `start()` recovers stale requests.
+The UI controls transcript shape directly: add a user message, add an assistant placeholder, then call `session.execute({ messageId, assistantMessageId })`. Request execution runs via `queueMicrotask` — outside the React lifecycle. Streams `UIMessage` snapshots back into the store on each token. On startup, `start()` recovers stale requests.
 
 ### `packages/inference` — AI SDK adapter
 
@@ -43,8 +43,11 @@ React components built on Base UI + Tailwind CSS 4. Exports chat primitives (via
 
 ```
 User action
-  → runtime.commands.sendMessage()
-  → atomic store write: user message + assistant placeholder + request row
+  → runtime.sessions.get(sessionId)
+  → session.messages.add(user message)
+  → session.messages.add(assistant placeholder)
+  → session.execute({ messageId, assistantMessageId })
+  → request row write
   → queueMicrotask: executeRequest()
       → read messages, credentials, tool definitions
       → streamInference() → UIMessage snapshots

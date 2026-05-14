@@ -1,11 +1,13 @@
 import type { TetraStore } from '@tetra/store'
 
-import { createCommands } from './commands.ts'
-import type { RuntimeContext } from './types.ts'
+import type { RuntimeContext } from './context.ts'
+import { createRequests } from './requests.ts'
+import { createSessions } from './sessions.ts'
 
 export type TetraRuntime = ReturnType<typeof createTetraRuntime>
 
 export const createTetraRuntime = (config: { store: TetraStore }) => {
+  // Runtime modules share one imperative TinyBase context.
   const context: RuntimeContext = {
     controllers: new Map(),
     indexes: config.store.indexes,
@@ -15,10 +17,16 @@ export const createTetraRuntime = (config: { store: TetraStore }) => {
     },
   }
 
+  // Requests own execution records; sessions own transcript mutation.
+  const requests = createRequests(context)
+  const sessions = createSessions(context, requests)
+
   return {
-    commands: createCommands(context),
+    requests,
+    sessions,
 
     start() {
+      // In-progress requests cannot survive a browser reload yet.
       for (const id of context.store.getRowIds('requests')) {
         const status = context.store.getCell('requests', id, 'status')
         if (status !== 'pending' && status !== 'streaming') {
@@ -35,6 +43,7 @@ export const createTetraRuntime = (config: { store: TetraStore }) => {
     },
 
     stop() {
+      // Runtime shutdown aborts every active provider stream.
       for (const controller of context.controllers.values()) {
         controller.abort()
       }

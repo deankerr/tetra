@@ -310,7 +310,7 @@ export function MessageInspector({
             size="icon-xs"
             aria-label="Delete"
             onClick={() => {
-              runtime.commands.deleteMessage({ messageId })
+              runtime.sessions.get(message.sessionId).messages.delete({ messageId })
             }}
           >
             <TrashIcon />
