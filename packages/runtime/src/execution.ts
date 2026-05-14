@@ -175,13 +175,8 @@ function toRequestUsageSnapshot(metadata: InferenceFinishMetadata): Record<strin
     }
   })
 
-  // Keep the old final-step view explicit while total reflects the whole request.
+  // Persist the complete request accounting without duplicating the final step.
   return {
-    finalStep: {
-      cost: getUsageCost(getOpenRouterProviderUsage(metadata.providerMetadata)),
-      provider: getOpenRouterProviderUsage(metadata.providerMetadata),
-      usage: metadata.usage,
-    },
     steps,
     total: {
       cost: steps.reduce((total, step) => total + step.cost, 0),

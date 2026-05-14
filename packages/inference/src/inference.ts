@@ -15,10 +15,8 @@ export interface ProviderCredentials {
 }
 
 export interface InferenceFinishMetadata {
-  providerMetadata: unknown
   steps: InferenceStepMetadata[]
   totalUsage: unknown
-  usage: unknown
 }
 
 export interface InferenceStepMetadata {
@@ -65,7 +63,6 @@ export async function* streamInference(options: StreamInferenceArgs): AsyncGener
     model: openrouter(modelId),
     onFinish: async (event) => {
       await options.onFinish?.({
-        providerMetadata: event.providerMetadata,
         steps: event.steps.map((step) => ({
           finishReason: step.finishReason,
           model: step.model,
@@ -74,7 +71,6 @@ export async function* streamInference(options: StreamInferenceArgs): AsyncGener
           usage: step.usage,
         })),
         totalUsage: event.totalUsage,
-        usage: event.usage,
       })
     },
     providerOptions: providerOptions ? { openrouter: providerOptions } : undefined,

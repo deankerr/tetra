@@ -22,12 +22,40 @@ import {
   WrenchIcon,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { z } from 'zod'
 
 import type { Message } from '@/runtime/hooks'
 import { useMessage, useRequestForMessage } from '@/runtime/hooks'
 import { useRuntime } from '@/runtime/use-runtime'
 
 type MessagePart = Message['parts'][number]
+
+// Parses and formats only the fields rendered — cost and total token count.
+const requestUsageSchema = z
+  .looseObject({
+    total: z.looseObject({
+      cost: z
+        .number()
+        .optional()
+        .transform((c) => (c === undefined ? null : `$${c < 0.01 ? c.toFixed(4) : c.toFixed(2)}`)),
+      usage: z
+        .looseObject({
+          totalTokens: z
+            .number()
+            .optional()
+            .transform((t) => (t === undefined ? null : `${t.toLocaleString()} tok`)),
+        })
+        .optional(),
+    }),
+  })
+  .transform((u) => ({ cost: u.total.cost, totalTokens: u.total.usage?.totalTokens ?? null }))
+
+type RequestUsage = z.infer<typeof requestUsageSchema>
+
+function parseRequestUsage(value: unknown): RequestUsage | null {
+  const result = requestUsageSchema.safeParse(value)
+  return result.success ? result.data : null
+}
 
 function RawJsonCollapsible({
   defaultOpen = true,
@@ -65,6 +93,14 @@ function RawJsonCollapsible({
         />
       </CollapsibleContent>
     </Collapsible>
+  )
+}
+
+function UsageChip({ children }: { children: ReactNode }) {
+  return (
+    <span className="border-border/70 bg-background/60 text-muted-foreground rounded-full border px-1.5 py-0.5 font-mono">
+      {children}
+    </span>
   )
 }
 
@@ -157,6 +193,84 @@ function RequestStatusBadge({ status }: { status: string | undefined }) {
   return <Icon className={cn('size-3', config.className)} aria-label={config.label} />
 }
 
+function MessagePartBlock({
+  id,
+  index,
+  part,
+  reasoningColor,
+  roleColor,
+  toolColor,
+}: {
+  id: string
+  index: number
+  part: MessagePart
+  reasoningColor: string
+  roleColor: string
+  toolColor: string
+}) {
+  if (part.type === 'reasoning') {
+    return (
+      <PartBlock key={`${id}-part-${index}`} className={reasoningColor} type={part.type}>
+        <div className="border-border/75 rounded-sm border p-2">
+          <CodeBlockContent
+            code={part.text}
+            language="markdown"
+            className="text-xxs [&_code]:text-xxs p-0 whitespace-pre-wrap brightness-70 [&_code]:leading-relaxed"
+          />
+        </div>
+        {part.providerMetadata !== undefined && (
+          <RawJsonCollapsible
+            defaultOpen={false}
+            label="providerMetadata"
+            value={part.providerMetadata}
+          />
+        )}
+      </PartBlock>
+    )
+  }
+
+  if (part.type === 'text') {
+    return (
+      <PartBlock key={`${id}-part-${index}`} className={roleColor} type={part.type}>
+        <div className="border-border/75 rounded-sm border p-2">
+          <CodeBlockContent
+            code={part.text}
+            language="markdown"
+            className="text-muted-foreground space-y-4 p-0 text-xs whitespace-pre-wrap brightness-90 [&_code]:text-xs [&_code]:leading-relaxed"
+          />
+        </div>
+        {part.providerMetadata !== undefined && (
+          <RawJsonCollapsible
+            defaultOpen={false}
+            label="providerMetadata"
+            value={part.providerMetadata}
+          />
+        )}
+      </PartBlock>
+    )
+  }
+
+  if (part.type === 'step-start') {
+    return (
+      <PartBlock key={`${id}-part-${index}`} className={cn('py-1.5', roleColor)} type={part.type} />
+    )
+  }
+
+  if (isToolPart(part)) {
+    return (
+      <PartBlock key={`${id}-part-${index}`} className={toolColor} type={part.type}>
+        <ToolPart part={part} />
+      </PartBlock>
+    )
+  }
+
+  return (
+    <PartBlock key={`${id}-part-${index}`} className={roleColor} type={part.type}>
+      <RawJsonCollapsible label="raw" value={part} defaultOpen={false} />
+    </PartBlock>
+  )
+}
+
 export function MessageInspector({
   messageId,
   className,
@@ -185,9 +299,12 @@ export function MessageInspector({
 
   const { parts, role, id, updatedAt } = message
   const isStreaming = request?.status === 'pending' || request?.status === 'streaming'
+  const requestUsage = parseRequestUsage(request?.usage)
   const roleColor = role === 'user' ? 'border-l-emerald-500' : 'border-l-indigo-500'
   const reasoningColor = 'border-l-violet-500'
   const toolColor = 'border-l-blue-500'
+  const totalCost = requestUsage?.cost ?? null
+  const totalTokens = requestUsage?.totalTokens ?? null
 
   const messageText = parts
     .filter((p): p is Extract<typeof p, { type: 'text' }> => p.type === 'text')
@@ -197,7 +314,6 @@ export function MessageInspector({
   return (
     <div className={cn('text-xs', className)} {...props}>
       <div className="space-y-1.5">
-        {/* Header */}
         <Block className={cn('flex items-center gap-2 space-y-0 font-sans', roleColor, className)}>
           <Badge
             className={cn(
@@ -209,6 +325,8 @@ export function MessageInspector({
           </Badge>
 
           <div className="text-muted-foreground/60 text-xxs ml-auto flex items-center gap-1.5">
+            {totalCost !== null && <UsageChip>{totalCost}</UsageChip>}
+            {totalTokens !== null && <UsageChip>{totalTokens}</UsageChip>}
             <span>{new Date(updatedAt).toLocaleTimeString()}</span>
           </div>
 
@@ -217,74 +335,17 @@ export function MessageInspector({
           </Badge>
         </Block>
 
-        {/* Parts */}
-        {parts.map((part, i) => {
-          if (part.type === 'reasoning') {
-            return (
-              <PartBlock key={`${id}-part-${i}`} className={reasoningColor} type={part.type}>
-                <div className="border-border/75 rounded-sm border p-2">
-                  <CodeBlockContent
-                    code={part.text}
-                    language="markdown"
-                    className="text-xxs [&_code]:text-xxs p-0 whitespace-pre-wrap brightness-70 [&_code]:leading-relaxed"
-                  />
-                </div>
-                {part.providerMetadata !== undefined && (
-                  <RawJsonCollapsible
-                    defaultOpen={false}
-                    label="providerMetadata"
-                    value={part.providerMetadata}
-                  />
-                )}
-              </PartBlock>
-            )
-          }
-
-          if (part.type === 'text') {
-            return (
-              <PartBlock key={`${id}-part-${i}`} className={roleColor} type={part.type}>
-                <div className="border-border/75 rounded-sm border p-2">
-                  <CodeBlockContent
-                    code={part.text}
-                    language="markdown"
-                    className="text-muted-foreground space-y-4 p-0 text-xs whitespace-pre-wrap brightness-90 [&_code]:text-xs [&_code]:leading-relaxed"
-                  />
-                </div>
-                {part.providerMetadata !== undefined && (
-                  <RawJsonCollapsible
-                    defaultOpen={false}
-                    label="providerMetadata"
-                    value={part.providerMetadata}
-                  />
-                )}
-              </PartBlock>
-            )
-          }
-
-          if (part.type === 'step-start') {
-            return (
-              <PartBlock
-                key={`${id}-part-${i}`}
-                className={cn('py-1.5', roleColor)}
-                type={part.type}
-              />
-            )
-          }
-
-          if (isToolPart(part)) {
-            return (
-              <PartBlock key={`${id}-part-${i}`} className={toolColor} type={part.type}>
-                <ToolPart part={part} />
-              </PartBlock>
-            )
-          }
-
-          return (
-            <PartBlock key={`${id}-part-${i}`} className={roleColor} type={part.type}>
-              <RawJsonCollapsible label="raw" value={part} defaultOpen={false} />
-            </PartBlock>
-          )
-        })}
+        {parts.map((part, i) => (
+          <MessagePartBlock
+            key={`${id}-part-${i}`}
+            id={id}
+            index={i}
+            part={part}
+            reasoningColor={reasoningColor}
+            roleColor={roleColor}
+            toolColor={toolColor}
+          />
+        ))}
 
         {request?.status === 'error' && request.errorMessage !== '' && (
           <PartBlock className="border-l-destructive" type="error">
