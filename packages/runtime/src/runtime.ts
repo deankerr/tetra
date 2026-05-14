@@ -15,7 +15,7 @@ export const createTetraRuntime = (config: { store: TetraStore }) => {
 
   // Requests own execution records; sessions own transcript mutation.
   const requests = createRequests(context)
-  const sessions = createSessions(context, requests)
+  const sessions = createSessions(context)
 
   return {
     recoverInterruptedRequests() {

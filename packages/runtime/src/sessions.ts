@@ -2,41 +2,40 @@ import { DEFAULT_REQUEST_CONFIG, generateId, parseRequestConfig } from '@tetra/s
 import type { RequestConfig, TetraStore } from '@tetra/store'
 import type { UIMessage } from 'ai'
 
-import type { createRequests } from './requests.ts'
-import { titleFromText } from './title.ts'
-
-type RequestsApi = ReturnType<typeof createRequests>
-
-export const createSessions = (
-  context: { indexes: TetraStore['indexes']; store: TetraStore['store'] },
-  requests: RequestsApi,
-) => {
+export const createSessions = (context: {
+  indexes: TetraStore['indexes']
+  store: TetraStore['store']
+}) => {
   const { indexes, store } = context
+
+  // If the session has no title yet, derive one from the first text part and persist it.
+  const maybeSetSessionTitle = (sessionId: string, parts: UIMessage['parts']) => {
+    const session = store.getRow('sessions', sessionId)
+    if (session.title !== '') {
+      return
+    }
+
+    const firstText = parts.find((p) => p.type === 'text')?.text
+    if (firstText === undefined) {
+      return
+    }
+
+    const normalized = firstText.replaceAll(/\s+/gu, ' ').trim()
+    const title = normalized.length <= 128 ? normalized : `${normalized.slice(0, 127)}…`
+    store.setPartialRow('sessions', sessionId, { title, updatedAt: Date.now() })
+  }
 
   const addMessage = (
     sessionId: string,
     args: {
-      createdAt?: number
-      id?: string
       parts: UIMessage['parts']
       role: UIMessage['role']
     },
   ) => {
-    // Message writes are only valid against an existing session.
-    if (!store.hasRow('sessions', sessionId)) {
-      throw new Error(`Session not found: ${sessionId}`)
-    }
+    const messageId = generateId.message()
+    const timestamp = Date.now()
 
-    // Append the caller-provided UI message parts without creating a request.
-    const session = store.getRow('sessions', sessionId)
-    const messageId = args.id ?? generateId.message()
-    const timestamp = args.createdAt ?? Date.now()
-    const firstTextPart = args.parts.find((part) => part.type === 'text')
-    const isFirstMessage = indexes.getSliceRowIds('messagesBySession', sessionId).length === 0
-    const title =
-      isFirstMessage && firstTextPart?.text !== undefined
-        ? titleFromText(firstTextPart.text)
-        : session.title
+    maybeSetSessionTitle(sessionId, args.parts)
 
     store.setRow('messages', messageId, {
       createdAt: timestamp,
@@ -44,10 +43,6 @@ export const createSessions = (
       role: args.role,
       sessionId,
       updatedAt: timestamp,
-    })
-    store.setPartialRow('sessions', sessionId, {
-      title,
-      updatedAt: Date.now(),
     })
 
     console.log('[runtime:sessions.messages.add]', 'added', {
@@ -64,40 +59,11 @@ export const createSessions = (
       return
     }
 
-    // Delete a request-linked message with its paired transcript row.
-    const message = store.getRow('messages', messageId)
-    const requestIds = indexes.getSliceRowIds('requestsBySession', message.sessionId)
-
-    store.transaction(() => {
-      for (const requestId of requestIds) {
-        if (!store.hasRow('requests', requestId)) {
-          continue
-        }
-
-        const request = store.getRow('requests', requestId)
-        if (request.assistantMessageId === messageId || request.messageId === messageId) {
-          store.delRow('requests', requestId)
-          if (request.assistantMessageId !== messageId) {
-            store.delRow('messages', request.assistantMessageId)
-          }
-          if (request.messageId !== messageId) {
-            store.delRow('messages', request.messageId)
-          }
-          break
-        }
-      }
-      store.delRow('messages', messageId)
-    })
-
+    store.delRow('messages', messageId)
     console.log('[runtime:sessions.messages.delete]', 'deleted', { messageId })
   }
 
   const deleteSession = (sessionId: string) => {
-    // Session deletion is a hard cascade over local transcript/runtime rows.
-    if (!store.hasRow('sessions', sessionId)) {
-      throw new Error(`Session not found: ${sessionId}`)
-    }
-
     // Remove child rows before the owning session row.
     const messageIds = indexes.getSliceRowIds('messagesBySession', sessionId)
     const requestIds = indexes.getSliceRowIds('requestsBySession', sessionId)
@@ -124,11 +90,6 @@ export const createSessions = (
   }
 
   const updateSessionConfig = (sessionId: string, args: { patch: Partial<RequestConfig> }) => {
-    // Config patches are parsed before merging so bad stored config fails here.
-    if (!store.hasRow('sessions', sessionId)) {
-      throw new Error(`Session not found: ${sessionId}`)
-    }
-
     // Persist the edited config as the next request default.
     const session = store.getRow('sessions', sessionId)
     const nextConfig = { ...parseRequestConfig(session.config), ...args.patch }
@@ -155,9 +116,6 @@ export const createSessions = (
     },
     deleteMessage,
     deleteSession,
-    execute(sessionId: string, args: { assistantMessageId: string; messageId: string }) {
-      return requests.execute({ ...args, sessionId })
-    },
     updateSession,
     updateSessionConfig,
   }

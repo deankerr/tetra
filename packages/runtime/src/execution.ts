@@ -2,8 +2,7 @@ import type { CredentialId } from '@tetra/credentials/registry'
 import { getCredential } from '@tetra/credentials/store'
 import { streamInference } from '@tetra/inference'
 import type { InferenceFinishMetadata } from '@tetra/inference'
-import { parseRequestConfig } from '@tetra/store'
-import type { TetraStore } from '@tetra/store'
+import type { RequestConfig, TetraStore } from '@tetra/store'
 import { toolsRegistryMap } from '@tetra/tools/registry'
 import type { ToolDefinition } from '@tetra/tools/registry'
 import type { ToolSet, UIMessage } from 'ai'
@@ -21,28 +20,24 @@ export const executeRequest = async (
     indexes: TetraStore['indexes']
     store: TetraStore['store']
   },
-  args: { requestId: string; sessionId: string },
+  args: {
+    assistantMessageId: string
+    config: RequestConfig
+    requestId: string
+    sessionId: string
+  },
 ) => {
   const { indexes, store } = context
-  const { requestId, sessionId } = args
+  const { assistantMessageId, config, requestId, sessionId } = args
   const controller = new AbortController()
   context.controllers.set(requestId, controller)
 
   try {
-    // Validate the run record before touching inference.
-    if (!store.hasRow('requests', requestId)) {
-      throw new Error(`Request not found: ${requestId}`)
-    }
-
-    const request = store.getRow('requests', requestId)
-    const { assistantMessageId } = request
-    const requestConfig = parseRequestConfig(request.config)
-
-    // Gather context immediately before the provider call.
+    // Gather messages immediately before the provider call.
     let messageIds = indexes.getSliceRowIds('messagesBySession', sessionId)
     messageIds = messageIds.filter((id) => id !== assistantMessageId)
-    if (requestConfig.maxMessages !== undefined) {
-      messageIds = messageIds.slice(-requestConfig.maxMessages)
+    if (config.maxMessages !== undefined) {
+      messageIds = messageIds.slice(-config.maxMessages)
     }
     const messages = messageIds
       .filter((id) => store.hasRow('messages', id))
@@ -69,25 +64,21 @@ export const executeRequest = async (
     const selectedTools = new Map<string, ToolDefinition>()
 
     // Treat stored tool ids like user input at the request boundary.
-    for (const rawToolId of requestConfig.toolIds) {
+    for (const rawToolId of config.toolIds) {
       const toolDefinition = toolsRegistryMap.get(rawToolId)
       if (toolDefinition === undefined) {
         console.warn('[runtime]', 'unknown tool id ignored', { toolId: rawToolId })
         continue
       }
-
       for (const credentialId of toolDefinition.credentialIds) {
         credentialIds.add(credentialId)
       }
-
       selectedTools.set(rawToolId, toolDefinition)
     }
 
-    const selectedToolIds = [...selectedTools.keys()]
     const tools: ToolSet = Object.fromEntries(
       [...selectedTools].map(([toolId, toolDefinition]) => [toolId, toolDefinition.aiTool]),
     )
-
     const toolContext = {
       credentials: Object.fromEntries(
         [...credentialIds].map((credentialId) => [credentialId, getCredential(credentialId)]),
@@ -96,12 +87,12 @@ export const executeRequest = async (
 
     console.log('[runtime]', 'streaming', {
       assistantMessageId,
-      maxMessages: requestConfig.maxMessages ?? 'all',
+      maxMessages: config.maxMessages ?? 'all',
       messageCount: messages.length,
-      modelId: requestConfig.modelId,
+      modelId: config.modelId,
       requestId,
       sessionId,
-      toolIds: selectedToolIds,
+      toolIds: [...selectedTools.keys()],
     })
 
     // Stream provider snapshots into the assistant message.
@@ -109,7 +100,7 @@ export const executeRequest = async (
     let finishMetadata: InferenceFinishMetadata | undefined
     for await (const snapshot of streamInference({
       assistantMessageId,
-      config: requestConfig,
+      config,
       messages,
       onFinish: (metadata) => {
         finishMetadata = metadata
@@ -143,7 +134,6 @@ export const executeRequest = async (
     })
     console.log('[runtime]', 'completed', { assistantMessageId, requestId })
   } catch (error) {
-    // Runtime shutdown aborts the active provider stream.
     if (controller.signal.aborted) {
       store.setPartialRow('requests', requestId, {
         errorMessage: 'Interrupted by app shutdown',
@@ -153,7 +143,6 @@ export const executeRequest = async (
       return
     }
 
-    // Provider and network errors become request errors.
     const errorMessage = error instanceof Error ? error.message : 'Unknown streaming error'
     store.setPartialRow('requests', requestId, { errorMessage, status: 'error' })
     console.error('[runtime]', 'error', { errorMessage, requestId, sessionId })
@@ -166,7 +155,6 @@ function toRequestUsageSnapshot(metadata: InferenceFinishMetadata): Record<strin
   // Store per-step accounting so tool loops do not hide cost in the final step.
   const steps = metadata.steps.map((step) => {
     const provider = getOpenRouterProviderUsage(step.providerMetadata)
-
     return {
       cost: getUsageCost(provider),
       finishReason: step.finishReason,
@@ -187,29 +175,23 @@ function toRequestUsageSnapshot(metadata: InferenceFinishMetadata): Record<strin
 }
 
 function getOpenRouterProviderUsage(providerMetadata: unknown): unknown {
-  // OpenRouter reports extra accounting under providerMetadata.openrouter.usage.
   if (!isRecord(providerMetadata)) {
     return null
   }
-
   const { openrouter } = providerMetadata
   if (!isRecord(openrouter)) {
     return null
   }
-
   return openrouter.usage ?? null
 }
 
 function getUsageCost(usage: unknown): number {
-  // OpenRouter exposes billing cost on its provider-specific usage object.
   if (!isRecord(usage)) {
     return 0
   }
-
   return typeof usage.cost === 'number' ? usage.cost : 0
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  // Provider metadata arrives as JSON-compatible objects from the SDK.
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

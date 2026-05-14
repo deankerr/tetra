@@ -15,7 +15,6 @@ export const tablesSchema = {
     config: { default: {}, type: 'object' },
     createdAt: { default: 0, type: 'number' },
     errorMessage: { default: '', type: 'string' },
-    messageId: { default: '', type: 'string' },
     sessionId: { default: '', type: 'string' },
     status: { default: 'pending', type: 'string' },
     usage: { default: {}, type: 'object' },

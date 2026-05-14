@@ -38,7 +38,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
       return
     }
 
-    const userMessage = runtime.sessions.addMessage(sessionId, {
+    runtime.sessions.addMessage(sessionId, {
       parts: [{ text: message.text, type: 'text' }],
       role: 'user',
     })
@@ -46,9 +46,8 @@ export function Composer({ sessionId }: { sessionId: string }) {
       parts: [],
       role: 'assistant',
     })
-    runtime.sessions.execute(sessionId, {
+    runtime.requests.execute({
       assistantMessageId: assistantMessage.messageId,
-      messageId: userMessage.messageId,
     })
     setDraft('')
   }
