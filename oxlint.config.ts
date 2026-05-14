@@ -34,6 +34,7 @@ export default defineConfig({
     '.claude/**',
     '**/components/ai-elements/**',
     '**/components/ui/**',
+    '**/reference/tinybase/**',
   ],
 
   rules: {

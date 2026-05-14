@@ -20,15 +20,12 @@ Dev data is wiped and regenerated as needed. This app is not public. There are h
 
 ## TinyBase
 
-Full TinyBase docs live at `reference/tinybase-docs/index.md`; prefer them before web search.
-
-- Important release notes: `reference/tinybase-docs/guides/releases/article.md` covers object/array types and State Hooks.
+The TinyBase repo is cloned as a submodule in `reference/tinybase`.
 
 ## Monorepo
 
 Bun workspaces. Run scripts from the root.
 
-- Check only: `bun run check`
 - Auto-fix lint/format/type-aware issues: `bun run fix`
 - App-specific scripts: `bun run --filter <name> <script>`, e.g. `bun run --filter @tetra/web dev`
 
