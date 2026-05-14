@@ -14,10 +14,26 @@ export interface ProviderCredentials {
   openRouterApiKey: string
 }
 
+export interface InferenceFinishMetadata {
+  providerMetadata: unknown
+  steps: InferenceStepMetadata[]
+  totalUsage: unknown
+  usage: unknown
+}
+
+export interface InferenceStepMetadata {
+  finishReason: unknown
+  model: unknown
+  providerMetadata: unknown
+  stepNumber: number
+  usage: unknown
+}
+
 export interface StreamInferenceArgs {
   assistantMessageId: string
   config: InferenceConfig
   messages: UIMessage[]
+  onFinish?: (metadata: InferenceFinishMetadata) => Promise<void> | void
   providerCredentials: ProviderCredentials
   signal?: AbortSignal
   toolContext?: unknown
@@ -47,6 +63,20 @@ export async function* streamInference(options: StreamInferenceArgs): AsyncGener
     experimental_context: toolContext,
     messages: modelMessages,
     model: openrouter(modelId),
+    onFinish: async (event) => {
+      await options.onFinish?.({
+        providerMetadata: event.providerMetadata,
+        steps: event.steps.map((step) => ({
+          finishReason: step.finishReason,
+          model: step.model,
+          providerMetadata: step.providerMetadata,
+          stepNumber: step.stepNumber,
+          usage: step.usage,
+        })),
+        totalUsage: event.totalUsage,
+        usage: event.usage,
+      })
+    },
     providerOptions: providerOptions ? { openrouter: providerOptions } : undefined,
     stopWhen: hasTools ? stepCountIs(3) : undefined,
     system: systemPrompt,

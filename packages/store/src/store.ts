@@ -19,6 +19,7 @@ export const tablesSchema = {
     messageId: { default: '', type: 'string' },
     sessionId: { default: '', type: 'string' },
     status: { default: 'pending', type: 'string' },
+    usage: { default: {}, type: 'object' },
   },
   sessions: {
     config: { default: {}, type: 'object' },

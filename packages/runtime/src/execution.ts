@@ -1,6 +1,7 @@
 import type { CredentialId } from '@tetra/credentials/registry'
 import { getCredential } from '@tetra/credentials/store'
 import { streamInference } from '@tetra/inference'
+import type { InferenceFinishMetadata } from '@tetra/inference'
 import { parseRequestConfig } from '@tetra/store'
 import { toolsRegistryMap } from '@tetra/tools/registry'
 import type { ToolDefinition } from '@tetra/tools/registry'
@@ -103,10 +104,14 @@ export const executeRequest = async (
 
     // Stream provider snapshots into the assistant message.
     let received = false
+    let finishMetadata: InferenceFinishMetadata | undefined
     for await (const snapshot of streamInference({
       assistantMessageId,
       config: requestConfig,
       messages,
+      onFinish: (metadata) => {
+        finishMetadata = metadata
+      },
       providerCredentials: { openRouterApiKey: apiKey },
       signal: controller.signal,
       toolContext,
@@ -130,7 +135,10 @@ export const executeRequest = async (
       return
     }
 
-    store.setPartialRow('requests', requestId, { status: 'completed' })
+    store.setPartialRow('requests', requestId, {
+      status: 'completed',
+      usage: finishMetadata === undefined ? {} : toRequestUsageSnapshot(finishMetadata),
+    })
     console.log('[runtime]', 'completed', { assistantMessageId, requestId })
   } catch (error) {
     // Runtime shutdown aborts the active provider stream.
@@ -150,4 +158,62 @@ export const executeRequest = async (
   } finally {
     context.controllers.delete(requestId)
   }
+}
+
+function toRequestUsageSnapshot(metadata: InferenceFinishMetadata): Record<string, unknown> {
+  // Store per-step accounting so tool loops do not hide cost in the final step.
+  const steps = metadata.steps.map((step) => {
+    const provider = getOpenRouterProviderUsage(step.providerMetadata)
+
+    return {
+      cost: getUsageCost(provider),
+      finishReason: step.finishReason,
+      model: step.model,
+      provider,
+      stepNumber: step.stepNumber,
+      usage: step.usage,
+    }
+  })
+
+  // Keep the old final-step view explicit while total reflects the whole request.
+  return {
+    finalStep: {
+      cost: getUsageCost(getOpenRouterProviderUsage(metadata.providerMetadata)),
+      provider: getOpenRouterProviderUsage(metadata.providerMetadata),
+      usage: metadata.usage,
+    },
+    steps,
+    total: {
+      cost: steps.reduce((total, step) => total + step.cost, 0),
+      usage: metadata.totalUsage,
+    },
+  }
+}
+
+function getOpenRouterProviderUsage(providerMetadata: unknown): unknown {
+  // OpenRouter reports extra accounting under providerMetadata.openrouter.usage.
+  if (!isRecord(providerMetadata)) {
+    return null
+  }
+
+  const { openrouter } = providerMetadata
+  if (!isRecord(openrouter)) {
+    return null
+  }
+
+  return openrouter.usage ?? null
+}
+
+function getUsageCost(usage: unknown): number {
+  // OpenRouter exposes billing cost on its provider-specific usage object.
+  if (!isRecord(usage)) {
+    return 0
+  }
+
+  return typeof usage.cost === 'number' ? usage.cost : 0
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  // Provider metadata arrives as JSON-compatible objects from the SDK.
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
