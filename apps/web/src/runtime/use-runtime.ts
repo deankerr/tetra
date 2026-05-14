@@ -1,10 +1,9 @@
+import type { TetraRuntime } from '@tetra/runtime'
 import { createContext, useContext } from 'react'
 
-import type { TetraClient } from '@/runtime/tetra-client'
+export const RuntimeContext = createContext<TetraRuntime | null>(null)
 
-export const RuntimeContext = createContext<TetraClient | null>(null)
-
-export function useRuntime(): TetraClient {
+export function useRuntime(): TetraRuntime {
   const runtime = useContext(RuntimeContext)
   if (runtime === null) {
     throw new Error('useRuntime must be used within App')

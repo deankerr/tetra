@@ -5,14 +5,14 @@ import type { Indexes as TinyIndexes, Store as TinyStore } from 'tinybase'
 import { Provider } from 'tinybase/ui-react'
 import { Inspector } from 'tinybase/ui-react-inspector'
 
-import type { TetraClient } from '@/runtime/tetra-client'
+import type { TetraApp } from '@/runtime/tetra-client'
 import { getTetra } from '@/runtime/tetra-client'
 import { RuntimeContext } from '@/runtime/use-runtime'
 import { SessionView } from '@/session/session-view'
 import { AppSidebar } from '@/sidebar/app-sidebar'
 
 export function App() {
-  const [tetra, setTetra] = useState<TetraClient | null>(null)
+  const [tetra, setTetra] = useState<TetraApp | null>(null)
 
   useEffect(() => {
     const init = async () => {
@@ -40,7 +40,7 @@ export function App() {
   const runtimeIndexes = tetra.indexes as unknown as TinyIndexes
 
   return (
-    <RuntimeContext value={tetra}>
+    <RuntimeContext value={tetra.runtime}>
       <Provider store={runtimeStore} indexes={runtimeIndexes}>
         <SidebarProvider>
           <Sidebar>

@@ -19,5 +19,8 @@ dist
 logs
 node_modules
 tmp
+dev-data/*.json
+dev-data/**/*.json
 
-reference/
+reference/outputs
+reference/tinybase-docs
