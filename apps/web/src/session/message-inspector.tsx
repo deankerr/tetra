@@ -39,7 +39,7 @@ function RawJsonCollapsible({
   value: unknown
 }) {
   const json = JSON.stringify(value, null, 2)
-  const charCount = json.length
+  const charCount = json?.length ?? 0
   const byteSize = new TextEncoder().encode(json).byteLength
   const sizeLabel = byteSize >= 1024 ? `${(byteSize / 1024).toFixed(1)} KB` : `${byteSize} B`
 
