@@ -1,13 +1,12 @@
 import { createIndexes } from 'tinybase/indexes/with-schemas'
+import { createMergeableStore } from 'tinybase/mergeable-store/with-schemas'
 import type { Row, TablesSchema, ValuesSchema } from 'tinybase/with-schemas'
-import { createStore } from 'tinybase/with-schemas'
 
 export const tablesSchema = {
   messages: {
     createdAt: { default: 0, type: 'number' },
     parts: { default: [], type: 'array' },
     role: { default: 'user', type: 'string' },
-    seq: { default: 0, type: 'number' },
     sessionId: { default: '', type: 'string' },
     updatedAt: { default: 0, type: 'number' },
   },
@@ -24,7 +23,6 @@ export const tablesSchema = {
   sessions: {
     config: { default: {}, type: 'object' },
     createdAt: { default: 0, type: 'number' },
-    lastSeq: { default: 0, type: 'number' },
     title: { default: '', type: 'string' },
     updatedAt: { default: 0, type: 'number' },
   },
@@ -40,15 +38,14 @@ export type SessionRow = Row<Schemas[0], 'sessions'>
 export type TetraStore = ReturnType<typeof createTetraStore>
 
 export function createTetraStore() {
-  const store = createStore().setSchema(tablesSchema, valuesSchema)
+  const store = createMergeableStore().setSchema(tablesSchema, valuesSchema)
   const indexes = createIndexes(store)
     .setIndexDefinition(
       'messagesBySession',
       'messages',
       'sessionId',
-      'seq',
-      undefined,
-      (left, right) => Number(left) - Number(right),
+      // HLC row IDs are lexicographically sorted by creation time.
+      (_getCell, rowId) => rowId,
     )
     .setIndexDefinition(
       'requestsBySession',

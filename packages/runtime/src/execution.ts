@@ -55,7 +55,6 @@ export const executeRequest = async (
           parts: row.parts as UIMessage['parts'],
           // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Runtime writers constrain message roles.
           role: row.role as UIMessage['role'],
-          seq: row.seq,
           sessionId: row.sessionId,
           updatedAt: row.updatedAt,
         }

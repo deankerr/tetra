@@ -13,41 +13,6 @@ export const createSessions = (
 ) => {
   const { indexes, store } = context
 
-  const createHandle = (sessionId: string) => ({
-    delete() {
-      deleteSession(sessionId)
-    },
-
-    execute(args: { assistantMessageId: string; messageId: string }) {
-      return requests.execute({ ...args, sessionId })
-    },
-
-    id: sessionId,
-
-    messages: {
-      add(args: {
-        createdAt?: number
-        id?: string
-        parts: UIMessage['parts']
-        role: UIMessage['role']
-      }) {
-        return addMessage(sessionId, args)
-      },
-
-      delete(args: { messageId: string }) {
-        deleteMessage(args.messageId)
-      },
-    },
-
-    update(args: { title: string }) {
-      updateSession(sessionId, args)
-    },
-
-    updateConfig(args: { patch: Partial<RequestConfig> }) {
-      updateSessionConfig(sessionId, args)
-    },
-  })
-
   const addMessage = (
     sessionId: string,
     args: {
@@ -65,37 +30,32 @@ export const createSessions = (
     // Append the caller-provided UI message parts without creating a request.
     const session = store.getRow('sessions', sessionId)
     const messageId = args.id ?? generateId.message()
-    const seq = session.lastSeq + 1
     const timestamp = args.createdAt ?? Date.now()
     const firstTextPart = args.parts.find((part) => part.type === 'text')
+    const isFirstMessage = indexes.getSliceRowIds('messagesBySession', sessionId).length === 0
     const title =
-      session.lastSeq === 0 && firstTextPart?.text !== undefined
+      isFirstMessage && firstTextPart?.text !== undefined
         ? titleFromText(firstTextPart.text)
         : session.title
 
-    store.transaction(() => {
-      store.setRow('messages', messageId, {
-        createdAt: timestamp,
-        parts: args.parts,
-        role: args.role,
-        seq,
-        sessionId,
-        updatedAt: timestamp,
-      })
-      store.setPartialRow('sessions', sessionId, {
-        lastSeq: seq,
-        title,
-        updatedAt: Date.now(),
-      })
+    store.setRow('messages', messageId, {
+      createdAt: timestamp,
+      parts: args.parts,
+      role: args.role,
+      sessionId,
+      updatedAt: timestamp,
+    })
+    store.setPartialRow('sessions', sessionId, {
+      title,
+      updatedAt: Date.now(),
     })
 
     console.log('[runtime:sessions.messages.add]', 'added', {
       messageId,
       role: args.role,
-      seq,
       sessionId,
     })
-    return { messageId, seq }
+    return { messageId }
   }
 
   const deleteMessage = (messageId: string) => {
@@ -177,6 +137,7 @@ export const createSessions = (
   }
 
   return {
+    addMessage,
     create(args: { title?: string } = {}) {
       // New sessions begin as empty transcripts with default inference config.
       const sessionId = generateId.session()
@@ -185,22 +146,19 @@ export const createSessions = (
       store.setRow('sessions', sessionId, {
         config: DEFAULT_REQUEST_CONFIG,
         createdAt: timestamp,
-        lastSeq: 0,
         title: args.title ?? '',
         updatedAt: timestamp,
       })
 
       console.log('[runtime:sessions.create]', 'created', { sessionId })
-      return createHandle(sessionId)
+      return sessionId
     },
-
-    get(sessionId: string) {
-      // Session handles are lightweight facades over current store state.
-      if (!store.hasRow('sessions', sessionId)) {
-        throw new Error(`Session not found: ${sessionId}`)
-      }
-
-      return createHandle(sessionId)
+    deleteMessage,
+    deleteSession,
+    execute(sessionId: string, args: { assistantMessageId: string; messageId: string }) {
+      return requests.execute({ ...args, sessionId })
     },
+    updateSession,
+    updateSessionConfig,
   }
 }

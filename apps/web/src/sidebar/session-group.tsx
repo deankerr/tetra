@@ -39,8 +39,7 @@ export function SessionGroup() {
       <SidebarGroupAction
         className="top-2.5"
         onClick={() => {
-          const session = runtime.sessions.create()
-          setActiveSessionId(session.id)
+          setActiveSessionId(runtime.sessions.create())
         }}
       >
         <PlusIcon />
@@ -53,7 +52,7 @@ export function SessionGroup() {
               active={sessionId === activeSessionId}
               key={sessionId}
               onDelete={() => {
-                runtime.sessions.get(sessionId).delete()
+                runtime.sessions.deleteSession(sessionId)
 
                 // If we deleted the active session, pick another or create one
                 if (sessionId === activeSessionId) {
@@ -61,13 +60,12 @@ export function SessionGroup() {
                   if (remaining.length > 0 && remaining[0] !== undefined) {
                     setActiveSessionId(remaining[0])
                   } else {
-                    const session = runtime.sessions.create()
-                    setActiveSessionId(session.id)
+                    setActiveSessionId(runtime.sessions.create())
                   }
                 }
               }}
               onRename={(title) => {
-                runtime.sessions.get(sessionId).update({ title })
+                runtime.sessions.updateSession(sessionId, { title })
               }}
               onSelect={() => {
                 setActiveSessionId(sessionId)

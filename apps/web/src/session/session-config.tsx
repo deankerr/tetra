@@ -19,7 +19,7 @@ export function SessionConfig({ sessionId }: { sessionId: string }) {
         <ModelPicker
           className="w-full"
           onValueChange={(modelId) => {
-            runtime.sessions.get(sessionId).updateConfig({ patch: { modelId } })
+            runtime.sessions.updateSessionConfig(sessionId, { patch: { modelId } })
           }}
           value={config.modelId}
         />
@@ -29,7 +29,7 @@ export function SessionConfig({ sessionId }: { sessionId: string }) {
         <FieldTitle>System Prompt</FieldTitle>
         <Textarea
           onChange={(e) => {
-            runtime.sessions.get(sessionId).updateConfig({
+            runtime.sessions.updateSessionConfig(sessionId, {
               patch: { systemPrompt: e.currentTarget.value },
             })
           }}
@@ -45,7 +45,7 @@ export function SessionConfig({ sessionId }: { sessionId: string }) {
         <CardContent className="space-y-2.5">
           <ToolSelector
             onToolIdsChange={(toolIds) => {
-              runtime.sessions.get(sessionId).updateConfig({
+              runtime.sessions.updateSessionConfig(sessionId, {
                 patch: { toolIds },
               })
             }}

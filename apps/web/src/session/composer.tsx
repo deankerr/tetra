@@ -26,8 +26,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
       return
     }
 
-    const session = runtime.sessions.get(sessionId)
-    session.messages.add({
+    runtime.sessions.addMessage(sessionId, {
       parts: [{ text: draft, type: 'text' }],
       role: 'user',
     })
@@ -39,16 +38,15 @@ export function Composer({ sessionId }: { sessionId: string }) {
       return
     }
 
-    const session = runtime.sessions.get(sessionId)
-    const userMessage = session.messages.add({
+    const userMessage = runtime.sessions.addMessage(sessionId, {
       parts: [{ text: message.text, type: 'text' }],
       role: 'user',
     })
-    const assistantMessage = session.messages.add({
+    const assistantMessage = runtime.sessions.addMessage(sessionId, {
       parts: [],
       role: 'assistant',
     })
-    session.execute({
+    runtime.sessions.execute(sessionId, {
       assistantMessageId: assistantMessage.messageId,
       messageId: userMessage.messageId,
     })
@@ -73,7 +71,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
           <PromptInputTools>
             <ModelPicker
               onValueChange={(modelId) => {
-                runtime.sessions.get(sessionId).updateConfig({ patch: { modelId } })
+                runtime.sessions.updateSessionConfig(sessionId, { patch: { modelId } })
               }}
               value={config.modelId}
             />

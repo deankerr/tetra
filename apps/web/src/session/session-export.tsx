@@ -1,12 +1,16 @@
 import { parseRequestConfig } from '@tetra/store'
-import type { Schemas, TetraStore } from '@tetra/store'
+import type { Schemas } from '@tetra/store'
 import { Button } from '@tetra/ui/components/ui/button'
 import { DownloadIcon } from 'lucide-react'
 import * as UiReact from 'tinybase/ui-react/with-schemas'
+import type { Indexes, Store } from 'tinybase/with-schemas'
 
 import { useSession } from '@/runtime/hooks'
 
-type ExportStore = Pick<TetraStore, 'indexes' | 'store'>
+interface ExportStore {
+  indexes: Indexes<Schemas>
+  store: Store<Schemas>
+}
 
 // Schema-aware TinyBase React hooks.
 // oxlint-disable-next-line no-unsafe-type-assertion -- TinyBase WithSchemas pattern

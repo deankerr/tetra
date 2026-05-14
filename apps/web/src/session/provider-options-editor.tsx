@@ -345,7 +345,7 @@ export function ProviderOptionsEditor({ sessionId }: { sessionId: string }) {
       isInitialRender.current = false
       return
     }
-    runtime.sessions.get(sessionId).updateConfig({
+    runtime.sessions.updateSessionConfig(sessionId, {
       patch: { providerOptions: entriesToOptions(entries) },
     })
   }, [entries, runtime.sessions, sessionId])

@@ -1,10 +1,9 @@
-import { customAlphabet } from 'nanoid'
+import { getHlcFunctions } from 'tinybase/common'
 
-const ID_LENGTH = 12
-const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
-const generate = customAlphabet(alphabet, ID_LENGTH)
+// Single shared HLC instance so the counter advances monotonically across all tables.
+const [getNextHlc] = getHlcFunctions()
 
-const prefixed = (prefix: string) => () => `${prefix}_${generate()}`
+const prefixed = (prefix: string) => () => `${prefix}_${getNextHlc()}`
 
 export const generateId = {
   message: prefixed('mesg'),
