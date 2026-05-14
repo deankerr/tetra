@@ -1,20 +1,16 @@
 import type { TetraStore } from '@tetra/store'
 
-import type { RuntimeContext } from './context.ts'
 import { createRequests } from './requests.ts'
 import { createSessions } from './sessions.ts'
 
 export type TetraRuntime = ReturnType<typeof createTetraRuntime>
 
 export const createTetraRuntime = (config: { store: TetraStore }) => {
-  // Runtime modules share one imperative TinyBase context.
-  const context: RuntimeContext = {
-    controllers: new Map(),
+  // Runtime modules share one imperative handle into the TinyBase store.
+  const context = {
+    controllers: new Map<string, AbortController>(),
     indexes: config.store.indexes,
     store: config.store.store,
-    transaction: (fn) => {
-      config.store.store.transaction(fn)
-    },
   }
 
   // Requests own execution records; sessions own transcript mutation.

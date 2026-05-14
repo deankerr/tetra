@@ -1,15 +1,17 @@
 import { DEFAULT_REQUEST_CONFIG, generateId, parseRequestConfig } from '@tetra/store'
-import type { RequestConfig } from '@tetra/store'
+import type { RequestConfig, TetraStore } from '@tetra/store'
 import type { UIMessage } from 'ai'
 
-import type { RuntimeContext } from './context.ts'
 import type { createRequests } from './requests.ts'
 import { titleFromText } from './title.ts'
 
 type RequestsApi = ReturnType<typeof createRequests>
 
-export const createSessions = (context: RuntimeContext, requests: RequestsApi) => {
-  const { indexes, store, transaction } = context
+export const createSessions = (
+  context: { indexes: TetraStore['indexes']; store: TetraStore['store'] },
+  requests: RequestsApi,
+) => {
+  const { indexes, store } = context
 
   const createHandle = (sessionId: string) => ({
     delete() {
@@ -71,7 +73,7 @@ export const createSessions = (context: RuntimeContext, requests: RequestsApi) =
         ? titleFromText(firstTextPart.text)
         : session.title
 
-    transaction(() => {
+    store.transaction(() => {
       store.setRow('messages', messageId, {
         createdAt: timestamp,
         parts: args.parts,
@@ -106,7 +108,7 @@ export const createSessions = (context: RuntimeContext, requests: RequestsApi) =
     const message = store.getRow('messages', messageId)
     const requestIds = indexes.getSliceRowIds('requestsBySession', message.sessionId)
 
-    transaction(() => {
+    store.transaction(() => {
       for (const requestId of requestIds) {
         if (!store.hasRow('requests', requestId)) {
           continue
@@ -140,7 +142,7 @@ export const createSessions = (context: RuntimeContext, requests: RequestsApi) =
     const messageIds = indexes.getSliceRowIds('messagesBySession', sessionId)
     const requestIds = indexes.getSliceRowIds('requestsBySession', sessionId)
 
-    transaction(() => {
+    store.transaction(() => {
       for (const messageId of messageIds) {
         store.delRow('messages', messageId)
       }

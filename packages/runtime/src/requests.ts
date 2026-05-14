@@ -1,10 +1,13 @@
 import { generateId, parseRequestConfig } from '@tetra/store'
-import type { RequestConfig } from '@tetra/store'
+import type { RequestConfig, TetraStore } from '@tetra/store'
 
-import type { RuntimeContext } from './context.ts'
 import { executeRequest } from './execution.ts'
 
-export const createRequests = (context: RuntimeContext) => {
+export const createRequests = (context: {
+  controllers: Map<string, AbortController>
+  indexes: TetraStore['indexes']
+  store: TetraStore['store']
+}) => {
   const { indexes, store } = context
 
   const create = (args: {

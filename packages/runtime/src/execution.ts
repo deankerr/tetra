@@ -3,11 +3,10 @@ import { getCredential } from '@tetra/credentials/store'
 import { streamInference } from '@tetra/inference'
 import type { InferenceFinishMetadata } from '@tetra/inference'
 import { parseRequestConfig } from '@tetra/store'
+import type { TetraStore } from '@tetra/store'
 import { toolsRegistryMap } from '@tetra/tools/registry'
 import type { ToolDefinition } from '@tetra/tools/registry'
 import type { ToolSet, UIMessage } from 'ai'
-
-import type { RuntimeContext } from './context.ts'
 
 class MissingProviderSecretError extends Error {
   constructor() {
@@ -17,7 +16,11 @@ class MissingProviderSecretError extends Error {
 }
 
 export const executeRequest = async (
-  context: RuntimeContext,
+  context: {
+    controllers: Map<string, AbortController>
+    indexes: TetraStore['indexes']
+    store: TetraStore['store']
+  },
   args: { requestId: string; sessionId: string },
 ) => {
   const { indexes, store } = context
@@ -175,7 +178,6 @@ function toRequestUsageSnapshot(metadata: InferenceFinishMetadata): Record<strin
     }
   })
 
-  // Persist the complete request accounting without duplicating the final step.
   return {
     steps,
     total: {
