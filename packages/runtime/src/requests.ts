@@ -11,6 +11,10 @@ export const createRequests = (context: {
   const { store } = context
 
   return {
+    cancel(requestId: string) {
+      context.controllers.get(requestId)?.abort('user-cancel')
+    },
+
     execute(args: { assistantMessageId: string; config?: RequestConfig }) {
       const { assistantMessageId } = args
       const { sessionId } = store.getRow('messages', assistantMessageId)

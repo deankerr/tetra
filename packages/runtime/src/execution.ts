@@ -119,6 +119,12 @@ export const executeRequest = async (
       }
     }
 
+    // Stream may exit cleanly on abort rather than throwing — check before writing completion.
+    if (controller.signal.aborted) {
+      onAbort(store, requestId, controller.signal.reason)
+      return
+    }
+
     if (!received) {
       store.setPartialRow('requests', requestId, {
         errorMessage: 'Empty response from model',
@@ -135,11 +141,7 @@ export const executeRequest = async (
     console.log('[runtime]', 'completed', { assistantMessageId, requestId })
   } catch (error) {
     if (controller.signal.aborted) {
-      store.setPartialRow('requests', requestId, {
-        errorMessage: 'Interrupted by app shutdown',
-        status: 'error',
-      })
-      console.log('[runtime]', 'aborted', { requestId, sessionId })
+      onAbort(store, requestId, controller.signal.reason)
       return
     }
 
@@ -148,6 +150,19 @@ export const executeRequest = async (
     console.error('[runtime]', 'error', { errorMessage, requestId, sessionId })
   } finally {
     context.controllers.delete(requestId)
+  }
+}
+
+function onAbort(store: TetraStore['store'], requestId: string, reason: unknown) {
+  if (reason === 'user-cancel') {
+    store.setPartialRow('requests', requestId, { status: 'cancelled' })
+    console.log('[runtime]', 'cancelled', { requestId })
+  } else {
+    store.setPartialRow('requests', requestId, {
+      errorMessage: 'Interrupted by app shutdown',
+      status: 'error',
+    })
+    console.log('[runtime]', 'shutdown', { requestId })
   }
 }
 

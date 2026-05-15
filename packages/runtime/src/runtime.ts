@@ -41,7 +41,7 @@ export const createTetraRuntime = (config: { store: TetraStore }) => {
     stop() {
       // Runtime shutdown aborts every active provider stream.
       for (const controller of context.controllers.values()) {
-        controller.abort()
+        controller.abort('shutdown')
       }
       context.controllers.clear()
       console.log('[runtime]', 'stopped')

@@ -17,7 +17,8 @@ import { useRuntime } from '@/runtime/use-runtime'
 
 export function Composer({ sessionId }: { sessionId: string }) {
   const runtime = useRuntime()
-  const isStreaming = useActiveRequest(sessionId) !== null
+  const activeRequest = useActiveRequest(sessionId)
+  const isStreaming = activeRequest !== null
   const config = useSessionConfig(sessionId)
   const [draft, setDraft] = useState('')
 
@@ -89,6 +90,11 @@ export function Composer({ sessionId }: { sessionId: string }) {
             <PromptInputSubmit
               disabled={!isStreaming && !draft.trim()}
               status={isStreaming ? 'streaming' : 'ready'}
+              {...(activeRequest && {
+                onStop: () => {
+                  runtime.requests.cancel(activeRequest.id)
+                },
+              })}
             />
           </div>
         </PromptInputFooter>
