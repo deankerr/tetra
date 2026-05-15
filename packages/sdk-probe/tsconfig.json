@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "strict": true,
+    "target": "ES2024",
+    "verbatimModuleSyntax": true,
+    "types": ["node", "bun"]
+  },
+  "include": ["src/**/*.ts"]
+}
