@@ -1,11 +1,10 @@
-import type { CredentialId } from '@tetra/credentials/registry'
 import { getCredential } from '@tetra/credentials/store'
 import { streamInference } from '@tetra/inference'
 import type { InferenceFinishMetadata } from '@tetra/inference'
 import type { RequestConfig, TetraStore } from '@tetra/store'
-import { toolsRegistryMap } from '@tetra/tools/registry'
-import type { ToolDefinition } from '@tetra/tools/registry'
-import type { ToolSet, UIMessage } from 'ai'
+
+import { gatherMessages } from './context'
+import { resolveTools } from './tools'
 
 class MissingProviderSecretError extends Error {
   constructor() {
@@ -34,56 +33,18 @@ export const executeRequest = async (
 
   try {
     // Gather messages immediately before the provider call.
-    let messageIds = indexes.getSliceRowIds('messagesBySession', sessionId)
-    messageIds = messageIds.filter((id) => id !== assistantMessageId)
-    if (config.maxMessages !== undefined) {
-      messageIds = messageIds.slice(-config.maxMessages)
-    }
-    const messages = messageIds
-      .filter((id) => store.hasRow('messages', id))
-      .map((id) => {
-        const row = store.getRow('messages', id)
-        return {
-          createdAt: row.createdAt,
-          id,
-          // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- TinyBase stores AI SDK parts in an array cell.
-          parts: row.parts as UIMessage['parts'],
-          // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Runtime writers constrain message roles.
-          role: row.role as UIMessage['role'],
-          sessionId: row.sessionId,
-          updatedAt: row.updatedAt,
-        }
-      })
+    const messages = gatherMessages(
+      { indexes, store },
+      { assistantMessageId, maxMessages: config.maxMessages, sessionId },
+    )
 
     const apiKey = getCredential('openRouterApiKey')
     if (apiKey === '') {
       throw new MissingProviderSecretError()
     }
 
-    const credentialIds = new Set<CredentialId>()
-    const selectedTools = new Map<string, ToolDefinition>()
-
     // Treat stored tool ids like user input at the request boundary.
-    for (const rawToolId of config.toolIds) {
-      const toolDefinition = toolsRegistryMap.get(rawToolId)
-      if (toolDefinition === undefined) {
-        console.warn('[runtime]', 'unknown tool id ignored', { toolId: rawToolId })
-        continue
-      }
-      for (const credentialId of toolDefinition.credentialIds) {
-        credentialIds.add(credentialId)
-      }
-      selectedTools.set(rawToolId, toolDefinition)
-    }
-
-    const tools: ToolSet = Object.fromEntries(
-      [...selectedTools].map(([toolId, toolDefinition]) => [toolId, toolDefinition.aiTool]),
-    )
-    const toolContext = {
-      credentials: Object.fromEntries(
-        [...credentialIds].map((credentialId) => [credentialId, getCredential(credentialId)]),
-      ),
-    }
+    const { toolContext, tools } = resolveTools(config.toolIds)
 
     console.log('[runtime]', 'streaming', {
       assistantMessageId,
@@ -92,7 +53,7 @@ export const executeRequest = async (
       modelId: config.modelId,
       requestId,
       sessionId,
-      toolIds: [...selectedTools.keys()],
+      toolIds: Object.keys(tools),
     })
 
     // Stream provider snapshots into the assistant message.
