@@ -21,7 +21,7 @@ export const DEFAULT_REQUEST_CONFIG: RequestConfig = {
     },
     temperature: 0.5,
   },
-  systemPrompt: 'Be concise.',
+  systemPrompt: 'Use Markdown sparingly. Favor paragraphs over bulleted lists.',
   toolIds: ['jinaSearchWeb'],
 }
 

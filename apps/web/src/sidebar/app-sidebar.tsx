@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import { SidebarContent, SidebarFooter, SidebarHeader } from '@tetra/ui/components/ui/sidebar'
 
 import { ThemeSwitcher } from '@/components/util/theme-switcher'
@@ -9,14 +10,14 @@ export function AppSidebar() {
   return (
     <>
       <SidebarHeader className="p-0">
-        <div className="flex h-(--header-height) items-center gap-2 border-b px-4">
+        <Link className="flex h-(--header-height) items-center gap-2 border-b px-4" to="/">
           <svg className="size-5" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
             <polygon fill="#0f766e" points="16,2 2,28 16,19" />
             <polygon fill="#14b8a6" points="16,2 16,19 30,28" />
             <polygon fill="#5eead4" points="2,28 30,28 16,19" />
           </svg>
           <span className="text-sm font-semibold">Tetra</span>
-        </div>
+        </Link>
       </SidebarHeader>
 
       <SidebarContent>

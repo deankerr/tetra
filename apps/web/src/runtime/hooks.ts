@@ -105,6 +105,9 @@ export const useMessage = (id: string): Message | null => {
 
 // --- Request Hooks ---
 
+export const useSessionRequestIds = (sessionId: string) =>
+  store.useSliceRowIds('requestsBySession', sessionId)
+
 /** Returns the currently active (pending/streaming) request for a session, or null. */
 export const useActiveRequest = (sessionId: string): Request | null => {
   const ids = store.useSliceRowIds('requestsBySession', sessionId)
@@ -120,6 +123,16 @@ export const useActiveRequest = (sessionId: string): Request | null => {
   }
 
   return { ...row, config: parseRequestConfig(row.config), id: latestId }
+}
+
+/** Returns a request by its row ID. */
+export const useRequest = (id: string): Request | null => {
+  const hasRow = store.useHasRow('requests', id)
+  const row = store.useRow('requests', id)
+  if (!hasRow || !id) {
+    return null
+  }
+  return { ...row, config: parseRequestConfig(row.config), id }
 }
 
 /** Looks up the request linked to an assistant message. Returns null for user messages. */
