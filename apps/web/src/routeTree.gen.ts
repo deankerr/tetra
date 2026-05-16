@@ -9,8 +9,26 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as Tetra3dRouteImport } from './routes/tetra-3d'
+import { Route as PrismLabRouteImport } from './routes/prism-lab'
+import { Route as LogoLabRouteImport } from './routes/logo-lab'
 import { Route as IndexRouteImport } from './routes/index'
 
+const Tetra3dRoute = Tetra3dRouteImport.update({
+  id: '/tetra-3d',
+  path: '/tetra-3d',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrismLabRoute = PrismLabRouteImport.update({
+  id: '/prism-lab',
+  path: '/prism-lab',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LogoLabRoute = LogoLabRouteImport.update({
+  id: '/logo-lab',
+  path: '/logo-lab',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -19,28 +37,61 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/logo-lab': typeof LogoLabRoute
+  '/prism-lab': typeof PrismLabRoute
+  '/tetra-3d': typeof Tetra3dRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/logo-lab': typeof LogoLabRoute
+  '/prism-lab': typeof PrismLabRoute
+  '/tetra-3d': typeof Tetra3dRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/logo-lab': typeof LogoLabRoute
+  '/prism-lab': typeof PrismLabRoute
+  '/tetra-3d': typeof Tetra3dRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/logo-lab' | '/prism-lab' | '/tetra-3d'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/logo-lab' | '/prism-lab' | '/tetra-3d'
+  id: '__root__' | '/' | '/logo-lab' | '/prism-lab' | '/tetra-3d'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LogoLabRoute: typeof LogoLabRoute
+  PrismLabRoute: typeof PrismLabRoute
+  Tetra3dRoute: typeof Tetra3dRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/tetra-3d': {
+      id: '/tetra-3d'
+      path: '/tetra-3d'
+      fullPath: '/tetra-3d'
+      preLoaderRoute: typeof Tetra3dRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prism-lab': {
+      id: '/prism-lab'
+      path: '/prism-lab'
+      fullPath: '/prism-lab'
+      preLoaderRoute: typeof PrismLabRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/logo-lab': {
+      id: '/logo-lab'
+      path: '/logo-lab'
+      fullPath: '/logo-lab'
+      preLoaderRoute: typeof LogoLabRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -53,6 +104,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LogoLabRoute: LogoLabRoute,
+  PrismLabRoute: PrismLabRoute,
+  Tetra3dRoute: Tetra3dRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
