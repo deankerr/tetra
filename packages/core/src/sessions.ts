@@ -75,8 +75,7 @@ export function createSessions({ indexes, store }: TetraStore): Sessions {
       const sessionId = generateId.session()
       const now = Date.now()
       store.setRow('sessions', sessionId, {
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion -- ModelConfig stored in TinyBase object cell; double-cast required to bridge domain type to AnyObject
-        config: config as unknown as Record<string, unknown>,
+        config,
         createdAt: now,
         title,
         updatedAt: now,
@@ -133,7 +132,10 @@ export function createSessions({ indexes, store }: TetraStore): Sessions {
     },
 
     list() {
-      return store.getRowIds('sessions').map(readSession)
+      return store
+        .getRowIds('sessions')
+        .map(readSession)
+        .toSorted((a, b) => a.createdAt - b.createdAt)
     },
 
     rename(sessionId, title) {
@@ -143,8 +145,7 @@ export function createSessions({ indexes, store }: TetraStore): Sessions {
 
     setConfig(sessionId, config) {
       store.setPartialRow('sessions', sessionId, {
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion -- ModelConfig stored in TinyBase object cell; double-cast required to bridge domain type to AnyObject
-        config: config as unknown as Record<string, unknown>,
+        config,
         updatedAt: Date.now(),
       })
     },

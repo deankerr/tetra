@@ -11,15 +11,11 @@
   "exports": {
     ".": "./src/index.ts"
   },
-  "scripts": {
-    "cli": "bun src/cli.ts"
-  },
   "dependencies": {
     "@ai-sdk/provider": "^3.0.8",
     "@openrouter/ai-sdk-provider": "catalog:",
     "@tetra/credentials": "workspace:*",
     "ai": "catalog:",
-    "commander": "^14.0.3",
     "tinybase": "catalog:",
     "zod": "catalog:"
   },

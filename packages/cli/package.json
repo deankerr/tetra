@@ -1,0 +1,17 @@
+{
+  "name": "@tetra/cli",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun src/index.ts"
+  },
+  "dependencies": {
+    "@tetra/core": "workspace:*",
+    "commander": "^14.0.3",
+    "tinybase": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
+  }
+}

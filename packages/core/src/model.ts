@@ -12,8 +12,8 @@ export type RequestStatus = z.infer<typeof RequestStatus>
 // Model config — validated at execution boundary
 export const ModelConfig = z.object({
   maxMessages: z.number().int().positive().optional(),
-  modelId: z.string().min(1),
-  providerOptions: z.record(z.string(), z.unknown()).optional(),
+  modelId: z.string(),
+  providerOptions: z.record(z.string(), z.json()).optional(),
   systemPrompt: z.string().optional(),
 })
 export type ModelConfig = z.infer<typeof ModelConfig>

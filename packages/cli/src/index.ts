@@ -1,47 +1,7 @@
-import { Database } from 'bun:sqlite'
-
+import { ModelConfig } from '@tetra/core'
 import { Command } from 'commander'
-import { createSqliteBunPersister } from 'tinybase/persisters/persister-sqlite-bun/with-schemas'
 
-import { ModelConfig } from '#model'
-
-import { createCore } from './index.ts'
-
-// Bootstrap: resolve API key from env, create store with SQLite persistence
-async function bootstrap() {
-  const apiKey = process.env.OPENROUTER_API_KEY
-  if (apiKey === undefined || apiKey.length === 0) {
-    console.error('Error: OPENROUTER_API_KEY is not set')
-    process.exit(1)
-  }
-
-  const { indexes, runner, sessions, store } = createCore(() => apiKey)
-  runner.recover()
-
-  // Persist store to SQLite — tabular mode maps each TinyBase table to a real SQL table
-  const db = new Database('./tetra.db')
-  const persister = createSqliteBunPersister(store, db, {
-    mode: 'tabular',
-    tables: {
-      load: {
-        messages: { rowIdColumnName: 'id', tableId: 'messages' },
-        requests: { rowIdColumnName: 'id', tableId: 'requests' },
-        sessions: { rowIdColumnName: 'id', tableId: 'sessions' },
-        steps: { rowIdColumnName: 'id', tableId: 'steps' },
-      },
-      save: {
-        messages: { rowIdColumnName: 'id', tableName: 'messages' },
-        requests: { rowIdColumnName: 'id', tableName: 'requests' },
-        sessions: { rowIdColumnName: 'id', tableName: 'sessions' },
-        steps: { rowIdColumnName: 'id', tableName: 'steps' },
-      },
-    },
-  })
-  await persister.load()
-  await persister.startAutoSave()
-
-  return { indexes, runner, sessions, store }
-}
+import { bootstrap } from './bootstrap'
 
 const program = new Command()
 program.name('tetra').description('Tetra CLI').version('0.1.0')
@@ -119,12 +79,9 @@ program
     }
 
     for (const msg of messages) {
-      const parts = Array.isArray(msg.parts) ? msg.parts : []
+      // eslint-disable-next-line typescript/no-unsafe-type-assertion -- parts stored as UIMessage['parts']; schema guarantees the shape
+      const parts = msg.parts as { text?: string; type: string }[]
       const text = parts
-        .filter(
-          (p): p is { type: string; text?: string } =>
-            typeof p === 'object' && p !== null && 'type' in p,
-        )
         .filter((p) => p.type === 'text' || p.type === 'reasoning')
         .map((p) => p.text ?? '')
         .join('')
@@ -169,8 +126,7 @@ program
         requestId,
         'status',
         (s, tableId, rowId, cellId) => {
-          const rawStatus = s.getCell(tableId, rowId, cellId)
-          const status = typeof rawStatus === 'string' ? rawStatus : ''
+          const status = s.getCell(tableId, rowId, cellId)
           if (status === 'completed') {
             store.delListener(reqListenerId)
             resolve()

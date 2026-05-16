@@ -51,6 +51,18 @@
         "vitest": "^4.1.5",
       },
     },
+    "packages/cli": {
+      "name": "@tetra/cli",
+      "dependencies": {
+        "@tetra/core": "workspace:*",
+        "commander": "^14.0.3",
+        "tinybase": "catalog:",
+      },
+      "devDependencies": {
+        "@types/bun": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
     "packages/core": {
       "name": "@tetra/core",
       "dependencies": {
@@ -58,11 +70,11 @@
         "@openrouter/ai-sdk-provider": "catalog:",
         "@tetra/credentials": "workspace:*",
         "ai": "catalog:",
-        "commander": "^14.0.3",
         "tinybase": "catalog:",
         "zod": "catalog:",
       },
       "devDependencies": {
+        "@types/bun": "catalog:",
         "typescript": "catalog:",
       },
     },
@@ -839,6 +851,8 @@
     "@tanstack/store": ["@tanstack/store@0.9.3", "", {}, "sha512-8reSzl/qGWGGVKhBoxXPMWzATSbZLZFWhwBAFO9NAyp0TxzfBP0mIrGb8CP8KrQTmvzXlR/vFPPUrHTLBGyFyw=="],
 
     "@tanstack/virtual-file-routes": ["@tanstack/virtual-file-routes@1.161.7", "", { "bin": { "intent": "bin/intent.js" } }, "sha512-olW33+Cn+bsCsZKPwEGhlkqS6w3M2slFv11JIobdnCFKMLG97oAI2kWKdx5/zsywTL8flpnoIgaZZPlQTFYhdQ=="],
+
+    "@tetra/cli": ["@tetra/cli@workspace:packages/cli"],
 
     "@tetra/core": ["@tetra/core@workspace:packages/core"],
 

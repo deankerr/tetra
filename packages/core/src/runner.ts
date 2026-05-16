@@ -1,4 +1,3 @@
-import type { JSONObject } from '@ai-sdk/provider'
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 import type { OnStepFinishEvent, UIMessage } from 'ai'
 import { readUIMessageStream, streamText } from 'ai'
@@ -106,8 +105,7 @@ export function createRunner(
       config.maxMessages,
     )
 
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion -- providerOptions is Zod-validated JSON; Record<string,unknown> satisfies JSONObject at runtime
-    const openrouterOptions = config.providerOptions as JSONObject | undefined
+    const { providerOptions = {} } = config
 
     try {
       const result = streamText({
@@ -128,8 +126,7 @@ export function createRunner(
             stepNumber: step.stepNumber,
           })
         },
-        providerOptions:
-          openrouterOptions === undefined ? undefined : { openrouter: openrouterOptions },
+        providerOptions: { openrouter: providerOptions },
         system: config.systemPrompt,
       })
 
@@ -195,8 +192,7 @@ export function createRunner(
       controllers.set(requestId, abort)
       store.setRow('requests', requestId, {
         assistantMessageId,
-        // eslint-disable-next-line typescript/no-unsafe-type-assertion -- ModelConfig stored in TinyBase object cell; double-cast required to bridge domain type to AnyObject
-        config: validConfig as unknown as Record<string, unknown>,
+        config: validConfig,
         createdAt: Date.now(),
         errorMessage: '',
         sessionId,
