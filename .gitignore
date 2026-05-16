@@ -11,6 +11,9 @@
 .turbo
 .vercel
 .wrangler
+*.db
+*.db-shm
+*.db-wal
 *.local.*
 *.log
 *.tsbuildinfo
