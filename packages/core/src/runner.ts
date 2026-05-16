@@ -1,37 +1,81 @@
 import type { JSONObject } from '@ai-sdk/provider'
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
-import { streamText } from 'ai'
-import type { ModelMessage, UIMessage } from 'ai'
+import type { OnStepFinishEvent, UIMessage } from 'ai'
+import { readUIMessageStream, streamText } from 'ai'
 
-import { generateId, ModelConfig } from '#model'
+import { ModelConfig, StepRawUsage, generateId } from '#model'
 import type { Sessions } from '#sessions'
 import type { TetraStore } from '#store'
 
+export interface ExecuteArgs {
+  config?: Partial<ModelConfig>
+  content: string
+  // Called on each UIMessage snapshot during streaming — for live rendering.
+  // React passes streamingState.update; CLI passes a stdout printer.
+  onSnapshot?: (msg: UIMessage) => void
+}
+
 export interface Runner {
   cancel(requestId: string): void
-  execute(sessionId: string, content: string, config?: Partial<ModelConfig>): string
+  execute(sessionId: string, args: ExecuteArgs): string
+  // On startup: recover any requests interrupted by a process restart.
   recover(): void
 }
 
-// Map ContentPart[] → UIMessage['parts'] for the message rendering cache.
-// Only text and reasoning are handled for now; tool parts added when tools arrive.
-function derivePartsFromContent(content: unknown[]): UIMessage['parts'] {
-  const parts: UIMessage['parts'] = []
+// --- Step accounting ---
+//
+// Combines two sources into one structured object written to the steps table:
+//   step.usage       — AI SDK normalised token counts (fully typed)
+//   step.usage.raw   — verbatim provider JSON; sole source of cost data
+//
+// Model identity fields:
+//   requestedModel   — the alias we sent (e.g. deepseek/deepseek-v4-flash)
+//   servedModel      — the pinned version that actually ran
+//   backendProvider  — the infrastructure backend (e.g. Novita, Azure, Parasail)
+//   generationId     — OpenRouter's trace ID for this generation
 
-  for (const part of content) {
-    if (typeof part !== 'object' || part === null) {
-      continue
-    }
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion -- content is ContentPart[] from AI SDK; object check above makes this safe
-    const p = part as Record<string, unknown>
-    if (p.type === 'text' && typeof p.text === 'string') {
-      parts.push({ text: p.text, type: 'text' })
-    } else if (p.type === 'reasoning' && typeof p.text === 'string') {
-      parts.push({ text: p.text, type: 'reasoning' })
-    }
+function resolveTokens(step: OnStepFinishEvent, raw: StepRawUsage) {
+  return {
+    // Media tokens — only in raw; not in the SDK's normalised fields
+    audioIn: raw.prompt_tokens_details?.audio_tokens ?? 0,
+    audioOut: raw.completion_tokens_details?.audio_tokens ?? 0,
+    // Cache breakdown (SDK normalised)
+    cacheRead: step.usage.inputTokenDetails.cacheReadTokens ?? 0,
+    cacheWrite: step.usage.inputTokenDetails.cacheWriteTokens ?? 0,
+    imageOut: raw.completion_tokens_details?.image_tokens ?? 0,
+    // Normalised counts from the AI SDK
+    input: step.usage.inputTokens ?? 0,
+    output: step.usage.outputTokens ?? 0,
+    reasoning: step.usage.outputTokenDetails.reasoningTokens ?? 0,
+    text: step.usage.outputTokenDetails.textTokens ?? 0,
+    total: step.usage.totalTokens ?? 0,
+    videoIn: raw.prompt_tokens_details?.video_tokens ?? 0,
   }
+}
 
-  return parts
+function resolveAccounting(step: OnStepFinishEvent) {
+  // raw is the verbatim provider JSON — only source for cost and media tokens
+  const raw = StepRawUsage.parse(step.usage.raw ?? {})
+
+  // backendProvider lives in providerMetadata, not in usage
+  const backendProvider =
+    typeof step.providerMetadata?.openrouter?.provider === 'string'
+      ? step.providerMetadata.openrouter.provider
+      : ''
+
+  return {
+    backendProvider,
+    cost: {
+      completion: raw.cost_details?.upstream_inference_completions_cost ?? null,
+      isByok: raw.is_byok ?? false,
+      prompt: raw.cost_details?.upstream_inference_prompt_cost ?? null,
+      total: raw.cost ?? null,
+    },
+    generationId: step.response.id,
+    requestedModel: step.model?.modelId ?? '',
+    servedModel: step.response.modelId,
+    tokens: resolveTokens(step, raw),
+  }
 }
 
 export function createRunner(
@@ -41,24 +85,28 @@ export function createRunner(
 ): Runner {
   const { indexes, store } = tetraStore
 
-  // In-memory map of active AbortControllers, keyed by requestId
+  // Active abort controllers — keyed by requestId, removed on completion/error/cancel
   const controllers = new Map<string, AbortController>()
 
   async function runStream(
     requestId: string,
     sessionId: string,
     assistantMessageId: string,
-    messages: ModelMessage[],
     config: ModelConfig,
     abort: AbortController,
+    onSnapshot?: (msg: UIMessage) => void,
   ): Promise<void> {
-    const apiKey = getApiKey()
-    const openrouter = createOpenRouter({ apiKey })
+    const openrouter = createOpenRouter({ apiKey: getApiKey() })
 
-    // Accumulate ContentPart[] across steps for the rendering cache
-    const accumulatedContent: unknown[] = []
+    // History is read here, after execute() has synchronously written the new user
+    // message and assistant placeholder — so they're already in the store.
+    const messages = await sessions.gatherModelMessages(
+      sessionId,
+      assistantMessageId,
+      config.maxMessages,
+    )
 
-    // eslint-disable-next-line typescript/no-unsafe-type-assertion -- providerOptions is Zod-validated JSON config; Record<string,unknown> satisfies JSONObject at runtime
+    // eslint-disable-next-line typescript/no-unsafe-type-assertion -- providerOptions is Zod-validated JSON; Record<string,unknown> satisfies JSONObject at runtime
     const openrouterOptions = config.providerOptions as JSONObject | undefined
 
     try {
@@ -66,29 +114,18 @@ export function createRunner(
         abortSignal: abort.signal,
         messages,
         model: openrouter(config.modelId),
+        // Write a step record on each step completion — accounting only, no content.
+        // Content is handled by the UIMessage stream below.
         onStepFinish: (step) => {
-          accumulatedContent.push(...step.content)
-
-          const stepId = generateId.step()
-
-          // Write step + update rendering cache atomically — React sees one state change
-          store.transaction(() => {
-            store.setRow('steps', stepId, {
-              content: step.content,
-              createdAt: Date.now(),
-              finishReason: step.finishReason,
-              messageId: assistantMessageId,
-              model: step.model ?? {},
-              // Raw cost data lives in providerMetadata.openrouter.usage — read from there
-              providerMetadata: step.providerMetadata ?? {},
-              requestId,
-              responseMessages: step.response.messages,
-              sessionId,
-              stepNumber: step.stepNumber,
-              // Spread to capture normalised fields + any provider-specific fields the SDK adds
-              usage: { ...step.usage },
-            })
-            sessions.setMessageParts(assistantMessageId, derivePartsFromContent(accumulatedContent))
+          const accounting = resolveAccounting(step)
+          store.setRow('steps', generateId.step(), {
+            accounting,
+            createdAt: Date.now(),
+            finishReason: step.finishReason,
+            messageId: assistantMessageId,
+            requestId,
+            sessionId,
+            stepNumber: step.stepNumber,
           })
         },
         providerOptions:
@@ -96,6 +133,26 @@ export function createRunner(
         system: config.systemPrompt,
       })
 
+      // readUIMessageStream converts the chunk stream into a sequence of assembled
+      // UIMessage snapshots — one per meaningful update (text chunk, tool result, etc.).
+      // Each snapshot goes to the caller for live rendering; the last one is the
+      // complete message we persist.
+      let finalParts: UIMessage['parts'] = []
+      for await (const msg of readUIMessageStream({
+        stream: result.toUIMessageStream({ sendReasoning: true }),
+      })) {
+        onSnapshot?.(msg)
+        finalParts = msg.parts
+      }
+
+      // Write the fully assembled UIMessage parts once — this is the durable record.
+      // Readers that missed the live stream (page reload, second client) read from here.
+      store.setPartialRow('messages', assistantMessageId, {
+        parts: finalParts,
+        updatedAt: Date.now(),
+      })
+
+      // Aggregate token usage resolves after the stream drains
       const totalUsage = await result.totalUsage
       store.setPartialRow('requests', requestId, {
         completedAt: Date.now(),
@@ -123,19 +180,19 @@ export function createRunner(
       controllers.get(requestId)?.abort('user-cancel')
     },
 
-    execute(sessionId, content, config) {
-      // Merge session config with any caller overrides, then validate at the boundary
+    execute(sessionId, { config, content, onSnapshot }) {
+      // Caller config overrides session config; both are validated at this boundary
       const validConfig = ModelConfig.parse({ ...sessions.getConfig(sessionId), ...config })
 
-      // Create messages through the sessions API — runner never writes message rows directly
+      // Write user message and assistant placeholder synchronously before the async stream
+      // starts — so they're visible in the store immediately after execute() returns.
       sessions.addMessage(sessionId, { content, role: 'user' })
       const assistantMessageId = sessions.addMessage(sessionId, { content: '', role: 'assistant' })
 
+      // Write the request record synchronously — callers read assistantMessageId from it
       const requestId = generateId.request()
       const abort = new AbortController()
       controllers.set(requestId, abort)
-
-      // Write request row synchronously — CLI reads assistantMessageId from here immediately after
       store.setRow('requests', requestId, {
         assistantMessageId,
         // eslint-disable-next-line typescript/no-unsafe-type-assertion -- ModelConfig stored in TinyBase object cell; double-cast required to bridge domain type to AnyObject
@@ -147,22 +204,14 @@ export function createRunner(
         totalUsage: {},
       })
 
-      // Gather history synchronously before handing off to the async stream.
-      // Returns ModelMessage[] — ResponseMessages from steps + user messages.
-      const messages = sessions.gatherModelMessages(
-        sessionId,
-        assistantMessageId,
-        validConfig.maxMessages,
-      )
-
-      // Fire-and-forget: runStream writes all outcomes (completed/error/cancelled) to TinyBase
-      void runStream(requestId, sessionId, assistantMessageId, messages, validConfig, abort)
+      // Fire-and-forget — runStream writes all outcomes to TinyBase (completed/error/cancelled)
+      void runStream(requestId, sessionId, assistantMessageId, validConfig, abort, onSnapshot)
 
       return requestId
     },
 
     recover() {
-      // On startup: any request still marked 'streaming' was interrupted — mark as error
+      // Any request still marked 'streaming' at startup was interrupted — mark as error
       for (const sessionId of store.getRowIds('sessions')) {
         for (const requestId of indexes.getSliceRowIds('requestsBySession', sessionId)) {
           if (store.getCell('requests', requestId, 'status') === 'streaming') {

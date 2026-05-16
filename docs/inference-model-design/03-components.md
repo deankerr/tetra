@@ -1,131 +1,138 @@
 # 03 — Components
 
-## Overview
+## The execution loop
 
-Two independent components receive output from the same `streamText` call. They share nothing except the `streamText` result object.
+### `execute()` — synchronous setup
 
+`execute()` returns a `requestId` immediately after writing the initial rows. The async stream runs independently of the caller.
+
+```ts
+execute(sessionId, { content, config, onSnapshot }) {
+  const validConfig = ModelConfig.parse({ ...sessions.getConfig(sessionId), ...config })
+
+  // Write synchronously — visible in the store before execute() returns
+  sessions.addMessage(sessionId, { content, role: 'user' })
+  const assistantMessageId = sessions.addMessage(sessionId, { content: '', role: 'assistant' })
+
+  const requestId = generateId.request()
+  store.setRow('requests', requestId, { ..., status: 'streaming' })
+
+  void runStream(requestId, sessionId, assistantMessageId, validConfig, abort, onSnapshot)
+
+  return requestId
+}
 ```
-streamText({ ..., onStepFinish })
-       │                │
-       │         toUIMessageStream()
-       │                │
-  onStepFinish   ReadableStream<UIMessageChunk>
-       │                │
-  DURABLE          processUIMessageStream
-  BACKEND               │
-       │          StreamingState.update(messageId, snapshot)
-  TinyBase              │
-  writes           Map<messageId, UIMessage>
+
+### `runStream()` — async core
+
+History is gathered at the start of `runStream`, after `execute()` has written the new user message and assistant placeholder. By the time `runStream` reads, they are already in the store.
+
+```ts
+async function runStream(...) {
+  // Build ModelMessage[] from stored UIMessages
+  const messages = await sessions.gatherModelMessages(sessionId, assistantMessageId, maxMessages)
+
+  const result = streamText({
+    messages,
+    model,
+    onStepFinish: (step) => {
+      // Accounting write only — no content, no history
+      store.setRow('steps', generateId.step(), {
+        accounting: resolveAccounting(step),
+        ...
+      })
+    },
+  })
+
+  // Stream processing and live rendering
+  let finalParts: UIMessage['parts'] = []
+  for await (const msg of readUIMessageStream({
+    stream: result.toUIMessageStream({ sendReasoning: true }),
+  })) {
+    onSnapshot?.(msg)        // live rendering callback
+    finalParts = msg.parts   // accumulate; last iteration = complete message
+  }
+
+  // Durable write — once, after the stream drains
+  store.setPartialRow('messages', assistantMessageId, { parts: finalParts, updatedAt: Date.now() })
+
+  const totalUsage = await result.totalUsage
+  store.setPartialRow('requests', requestId, { status: 'completed', totalUsage: { ... } })
+}
 ```
+
+On abort or error, the catch block sets `status: 'error'` or `status: 'cancelled'`. The assistant message row is left with empty parts — partial results are not persisted.
 
 ---
 
-## Durable backend
+## History reconstruction
 
-The durable backend is entirely driven by the `onStepFinish` callback passed to `streamText`. When each step completes, all its output is available synchronously: `step.content`, `step.response.messages`, `step.usage`, `step.providerMetadata`.
-
-### Step write
+`gatherModelMessages` builds `UIMessage[]` from stored rows and converts them to `ModelMessage[]` via `convertToModelMessages`:
 
 ```ts
-onStepFinish: (step) => {
-  const stepId = generateId.step()
-
-  store.transaction(() => {
-    // Canonical step record
-    store.setRow('steps', stepId, {
-      content: step.content,
-      finishReason: step.finishReason,
-      messageId: assistantMessageId,
-      model: step.model,
-      providerMetadata: step.providerMetadata,
-      requestId,
-      responseMessages: step.response.messages,
-      sessionId,
-      stepNumber: step.stepNumber,
-      usage: {
-        inputTokens: step.usage.inputTokens,
-        outputTokens: step.usage.outputTokens,
-        totalTokens: step.usage.totalTokens,
-        raw: step.usage.raw,
-      },
-    })
-
-    // Update the assistant message's rendering cache
-    store.setPartialRow('messages', assistantMessageId, {
-      parts: derivePartsFromContent(accumulatedContent),
-      updatedAt: Date.now(),
-    })
-  })
-}
-```
-
-The `store.transaction()` wraps both writes so TinyBase's listeners see them as one atomic change. React does not see a state between "step written" and "rendering cache updated."
-
-`accumulatedContent` is the union of `step.content` across all completed steps for this message — accumulated in the closure alongside `onStepFinish`.
-
-### History reconstruction
-
-`gatherModelMessages` reads TinyBase synchronously and returns a `ModelMessage[]` ready to pass directly to `streamText`:
-
-```ts
-function gatherModelMessages(
-  ctx: { indexes; store },
-  args: { assistantMessageId; maxMessages?; sessionId },
-): ModelMessage[] {
-  const messageIds = indexes
+async function gatherModelMessages(sessionId, assistantMessageId, maxMessages) {
+  let messageIds = indexes
     .getSliceRowIds('messagesBySession', sessionId)
-    .filter((id) => id !== assistantMessageId)
-    .slice(-(args.maxMessages ?? Infinity))
+    .filter((id) => id !== assistantMessageId) // exclude the current placeholder
 
-  const messages: ModelMessage[] = []
-
-  for (const id of messageIds) {
-    const { role, parts } = store.getRow('messages', id)
-
-    if (role === 'user') {
-      messages.push({
-        role: 'user',
-        content: parts as UserModelMessage['content'],
-      })
-      continue
-    }
-
-    // Collect ResponseMessage[] from each step in order.
-    // These are already in ModelMessage format — no convertToModelMessages needed.
-    const stepIds = indexes.getSliceRowIds('stepsByMessage', id)
-    for (const stepId of stepIds) {
-      const step = store.getRow('steps', stepId)
-      messages.push(...(step.responseMessages as ResponseMessage[]))
-    }
+  if (maxMessages !== undefined) {
+    messageIds = messageIds.slice(-maxMessages)
   }
 
-  return messages
+  const uiMessages: UIMessage[] = messageIds.map((id) => {
+    const row = store.getRow('messages', id)
+    return {
+      id,
+      parts: row.parts as UIMessage['parts'],
+      role: row.role === 'assistant' ? 'assistant' : 'user',
+    }
+  })
+
+  return convertToModelMessages(uiMessages)
 }
 ```
 
-The only conversion in this path is user messages: `UIMessage['parts']` → `UserModelMessage['content']`, which is a direct structural match for text and file parts.
+`convertToModelMessages` maps each part's `providerMetadata` to `providerOptions` on the outgoing content part. This is what preserves `reasoning_details` for signing providers (Anthropic Claude, Google Gemini) across turns — it is the AI SDK's designed path for this requirement, not a workaround.
 
-### Request completion
+---
 
-After the stream drains (all steps complete), `result.totalUsage` resolves and the request row is finalised:
+## Live rendering
+
+### The `onSnapshot` callback
+
+`onSnapshot` is the seam between the runner and the consumer's rendering layer. It receives a `UIMessage` snapshot on each meaningful update from `readUIMessageStream`: a text chunk arriving, a tool result completing, a step boundary — anything that changes the assembled message state.
+
+The runner passes `onSnapshot` through from `execute()` to `runStream()`. Different callers wire it differently:
+
+**CLI:** prints the text delta to stdout on each snapshot.
 
 ```ts
-const totalUsage = await result.totalUsage
-store.setPartialRow('requests', requestId, {
-  status: 'completed',
-  totalUsage,
+let lastLen = 0
+runner.execute(sessionId, {
+  content: message,
+  onSnapshot: (msg) => {
+    const text = msg.parts
+      .filter((p): p is { text: string; type: 'text' } => p.type === 'text')
+      .map((p) => p.text)
+      .join('')
+    process.stdout.write(text.slice(lastLen))
+    lastLen = text.length
+  },
 })
 ```
 
-On abort or error the request is marked accordingly. The assistant message row and any completed step rows are left as-is — partial progress is better than none.
+**React runtime:** publishes each snapshot to a `StreamingState` Map that React reads via `useSyncExternalStore`.
 
----
+```ts
+runner.execute(sessionId, {
+  content: message,
+  onSnapshot: (msg) => streamingState.update(assistantMessageId, msg),
+})
+```
 
-## Live stream processing
+### `StreamingState` (React)
 
-The live stream path processes `UIMessageChunk` events into an accumulated `UIMessage` snapshot, published to a `StreamingState` Map that React can subscribe to.
-
-### `StreamingState`
+`StreamingState` is an in-memory Map owned by the runtime. It holds live snapshots during a stream and notifies React subscribers on each update.
 
 ```ts
 class StreamingState {
@@ -133,7 +140,7 @@ class StreamingState {
   private listeners = new Map<string, Set<() => void>>()
 
   update(messageId: string, snapshot: UIMessage): void {
-    // Shallow-copy parts so useSyncExternalStore sees a new reference
+    // Shallow-copy parts so useSyncExternalStore detects a reference change
     this.snapshots.set(messageId, { ...snapshot, parts: [...snapshot.parts] })
     this.listeners.get(messageId)?.forEach((fn) => fn())
   }
@@ -156,90 +163,41 @@ class StreamingState {
 }
 ```
 
-The `update` call shallow-copies the snapshot so `useSyncExternalStore` detects a reference change and schedules a re-render. Without this, React's strict equality check on `getSnapshot` would suppress updates when `processUIMessageStream` mutates the message object in place (which it does for performance).
-
-### Wiring `processUIMessageStream`
-
-`processUIMessageStream` takes a `runUpdateMessageJob` callback. This is the seam — in `useChat` it's wired to a `SerialJobExecutor` + React state; here it's wired to `StreamingState.update`.
-
-```ts
-const streamingState = createStreamingUIMessageState({
-  lastMessage: undefined,
-  messageId: assistantMessageId,
-})
-
-await consumeStream({
-  stream: processUIMessageStream({
-    stream: result.toUIMessageStream({ sendReasoning: true }),
-    runUpdateMessageJob: async ({ state, write }) => {
-      write()
-      streaming.update(assistantMessageId, state.message)
-    },
-    onError: (err) => {
-      throw err
-    },
-  }),
-})
-
-// Stream complete — remove from streaming state
-streaming.delete(assistantMessageId)
-```
-
-`processUIMessageStream` handles everything inside the stream: text accumulation by chunk ID, partial JSON parsing for tool inputs (`parsePartialJson`), state transitions (`input-streaming → input-available → output-available`), reasoning part assembly, and `providerMetadata` threading. None of that logic lives in our code.
+The shallow copy on `update` is necessary — `useSyncExternalStore` uses reference equality, so mutating the snapshot in place would suppress re-renders.
 
 ---
 
 ## Frontend switching
 
-A React component rendering a message needs to decide which source to read from. The rule is simple: if a live snapshot exists, show it; otherwise show the TinyBase row.
+A React component decides which source to render based on whether a live snapshot exists:
 
 ```ts
-// In apps/web
-
 export function useMessage(messageId: string): UIMessage | null {
-  const streaming = useStreamingMessage(messageId) // reads StreamingState via useSyncExternalStore
-  const completed = useTinyBaseMessage(messageId) // reads TinyBase via store.useRow
-
+  const streaming = useStreamingMessage(messageId) // StreamingState via useSyncExternalStore
+  const completed = useTinyBaseMessage(messageId) // TinyBase row
   return streaming ?? completed
 }
 ```
 
-`useStreamingMessage` returns `null` once `streaming.delete(messageId)` is called — which happens synchronously after `consumeStream` resolves and before any subsequent state changes.
+### The transition
 
-### The transition sequence
+When the `readUIMessageStream` loop ends:
 
-The critical ordering is: TinyBase write → StreamingState delete → React re-render.
+1. `messages.parts` is written to TinyBase with the final snapshot
+2. `requests.status` is set to `'completed'`
+3. The caller's runtime calls `streamingState.delete(assistantMessageId)`
+4. `useStreamingMessage` returns `null`
+5. React re-renders `useMessage` — `streaming` is null, `completed` is the TinyBase row
 
-```
-onStepFinish fires
-  → store.transaction() writes step + message.parts  ← TinyBase sees new state
-  → streaming.update() called by processUIMessageStream continues
-  → consumeStream resolves
-  → streaming.delete(messageId)                       ← StreamingState cleared
-  → listeners notified
-  → React re-renders useMessage(messageId)
-     → streaming = null
-     → completed = TinyBase row (already updated)
-     → returns TinyBase row                           ← seamless switch
-```
-
-Because `onStepFinish` fires before `processUIMessageStream`'s `transform` function returns for that step's `finish-step` chunk, TinyBase always has the completed state before `StreamingState` is cleared. There is no frame where `streaming` is null and TinyBase hasn't been written yet.
-
-### Multi-step messages
-
-For tool-calling exchanges, a single assistant message spans multiple steps. `StreamingState` holds the live snapshot across all steps — `processUIMessageStream` accumulates parts across `start-step` / `finish-step` boundaries naturally. TinyBase receives a step write at each `onStepFinish`. The rendering cache (`messages.parts`) is updated after each step with the accumulated content.
-
-The component shows live streaming state throughout the multi-step exchange. When the final step completes and `streaming.delete()` fires, the component switches to the TinyBase row which now contains all steps' accumulated parts.
+TinyBase is written before `StreamingState` is cleared, so there is no frame where `streaming` is null and TinyBase hasn't been written yet.
 
 ### Status tracking
 
-`requests.status` in TinyBase drives loading states and cancel affordances. The state machine:
+`requests.status` drives loading states and cancel affordances — it is independent of whether `StreamingState` has a snapshot.
 
 ```
-'streaming'   — set when execution begins, before the first token
+'streaming'   — set synchronously in execute(), before the first token
 'completed'   — set after result.totalUsage resolves
 'error'       — set on any thrown error
 'cancelled'   — set when the AbortController fires with 'user-cancel'
 ```
-
-React reads request status via `useActiveRequest(sessionId)` (TinyBase index lookup). The streaming visual (spinner, stop button) is driven by status, not by whether `StreamingState` has a snapshot for the message.

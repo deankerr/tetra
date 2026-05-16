@@ -135,7 +135,7 @@ program
 // tetra chat <id> <message> [--model x] — send a message and stream the response
 program
   .command('chat <id> <message>')
-  .description('Send a message and stream the response (output updates at step boundaries)')
+  .description('Send a message and stream the response')
   .option('-m, --model <modelId>', 'Model to use')
   .option('-s, --system <prompt>', 'System prompt override')
   .action(async (sessionId: string, message: string, opts: { model?: string; system?: string }) => {
@@ -147,33 +147,20 @@ program
       ...(opts.system !== undefined && { systemPrompt: opts.system }),
     }
 
-    const requestId = runner.execute(sessionId, message, config)
-
-    // execute() writes the request row synchronously before starting the async stream
-    const rawMsgId = store.getCell('requests', requestId, 'assistantMessageId')
-    const assistantMessageId = typeof rawMsgId === 'string' ? rawMsgId : ''
-
-    // Print accumulated text on each step completion (onStepFinish updates messages.parts)
+    // Print text parts incrementally on each UIMessage snapshot from the stream
     let lastLen = 0
-    const msgListenerId = store.addCellListener(
-      'messages',
-      assistantMessageId,
-      'parts',
-      (s, tableId, rowId, cellId) => {
-        const rawParts = s.getCell(tableId, rowId, cellId)
-        const parts = Array.isArray(rawParts) ? rawParts : []
-        const text = parts
-          .filter(
-            (p): p is { type: string; text?: string } =>
-              typeof p === 'object' && p !== null && 'type' in p,
-          )
-          .filter((p) => p.type === 'text')
-          .map((p) => p.text ?? '')
+    const requestId = runner.execute(sessionId, {
+      config,
+      content: message,
+      onSnapshot: (msg) => {
+        const text = msg.parts
+          .filter((p): p is { text: string; type: 'text' } => p.type === 'text')
+          .map((p) => p.text)
           .join('')
         process.stdout.write(text.slice(lastLen))
         lastLen = text.length
       },
-    )
+    })
 
     // eslint-disable-next-line promise/avoid-new -- TinyBase listeners are callback-based; promisification is required to await completion in a CLI context
     await new Promise<void>((resolve, reject) => {
@@ -186,11 +173,9 @@ program
           const status = typeof rawStatus === 'string' ? rawStatus : ''
           if (status === 'completed') {
             store.delListener(reqListenerId)
-            store.delListener(msgListenerId)
             resolve()
           } else if (status === 'error' || status === 'cancelled') {
             store.delListener(reqListenerId)
-            store.delListener(msgListenerId)
             const rawErr = s.getCell(tableId, rowId, 'errorMessage')
             reject(new Error(typeof rawErr === 'string' ? rawErr : status))
           }

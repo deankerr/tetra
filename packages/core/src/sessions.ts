@@ -1,3 +1,4 @@
+import { convertToModelMessages } from 'ai'
 import type { ModelMessage, UIMessage } from 'ai'
 
 import { DEFAULT_MODEL_CONFIG, ModelConfig, generateId } from '#model'
@@ -18,17 +19,15 @@ export interface Sessions {
   addMessage(sessionId: string, msg: { content: string; role: MessageRole }): string
   getMessage(messageId: string): Message
   getMessages(sessionId: string): Message[]
-  // Updates the rendering cache at step boundaries (never called per-token)
-  setMessageParts(messageId: string, parts: UIMessage['parts']): void
 
   // History reconstruction for inference input.
-  // Assistant turns are read from steps.responseMessages (not message parts),
-  // preserving reasoning_details / providerOptions for multi-turn correctness.
+  // Reads stored UIMessage parts and converts via convertToModelMessages.
+  // convertToModelMessages handles providerMetadata → providerOptions (reasoning_details).
   gatherModelMessages(
     sessionId: string,
     assistantMessageId: string,
     maxMessages?: number,
-  ): ModelMessage[]
+  ): Promise<ModelMessage[]>
 }
 
 export function createSessions({ indexes, store }: TetraStore): Sessions {
@@ -59,9 +58,11 @@ export function createSessions({ indexes, store }: TetraStore): Sessions {
     addMessage(sessionId, { content, role }) {
       const messageId = generateId.message()
       const now = Date.now()
+      // User messages get an initial text part; assistant placeholders start empty
+      const parts: UIMessage['parts'] = role === 'user' ? [{ text: content, type: 'text' }] : []
       store.setRow('messages', messageId, {
         createdAt: now,
-        parts: [{ text: content, type: 'text' }],
+        parts,
         role,
         sessionId,
         updatedAt: now,
@@ -87,7 +88,7 @@ export function createSessions({ indexes, store }: TetraStore): Sessions {
       store.delRow('sessions', sessionId)
     },
 
-    gatherModelMessages(sessionId, assistantMessageId, maxMessages) {
+    async gatherModelMessages(sessionId, assistantMessageId, maxMessages) {
       let messageIds = indexes
         .getSliceRowIds('messagesBySession', sessionId)
         // Exclude the assistant placeholder being written to in this request
@@ -97,28 +98,19 @@ export function createSessions({ indexes, store }: TetraStore): Sessions {
         messageIds = messageIds.slice(-maxMessages)
       }
 
-      const messages: ModelMessage[] = []
-
-      for (const id of messageIds) {
+      // Build UIMessages from stored parts, then convert to ModelMessage[] for inference.
+      // convertToModelMessages handles providerMetadata → providerOptions for reasoning_details.
+      const uiMessages: UIMessage[] = messageIds.map((id) => {
         const row = store.getRow('messages', id)
-
-        if (row.role === 'user') {
-          // UIMessage text parts match UserModelMessage content structure directly
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion -- bridging UIMessage parts to ModelMessage; structurally compatible for text parts
-          messages.push({ content: row.parts, role: 'user' } as unknown as ModelMessage)
-          continue
+        return {
+          id,
+          // eslint-disable-next-line typescript/no-unsafe-type-assertion -- parts stored verbatim as UIMessage['parts'] by readUIMessageStream
+          parts: row.parts as UIMessage['parts'],
+          role: row.role === 'assistant' ? 'assistant' : 'user',
         }
+      })
 
-        // Collect ResponseMessage[] from each step in order — already in ModelMessage format
-        const stepIds = indexes.getSliceRowIds('stepsByMessage', id)
-        for (const stepId of stepIds) {
-          const step = store.getRow('steps', stepId)
-          // eslint-disable-next-line typescript/no-unsafe-type-assertion -- step.responseMessages is ResponseMessage[] stored verbatim from AI SDK
-          messages.push(...(step.responseMessages as ModelMessage[]))
-        }
-      }
-
-      return messages
+      return await convertToModelMessages(uiMessages)
     },
 
     get(sessionId) {
@@ -155,10 +147,6 @@ export function createSessions({ indexes, store }: TetraStore): Sessions {
         config: config as unknown as Record<string, unknown>,
         updatedAt: Date.now(),
       })
-    },
-
-    setMessageParts(messageId, parts) {
-      store.setPartialRow('messages', messageId, { parts, updatedAt: Date.now() })
     },
   }
 }

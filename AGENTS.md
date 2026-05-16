@@ -18,6 +18,12 @@ Dev data is wiped and regenerated as needed. This app is not public. There are h
 - Prefer using existing libraries/solutions over writing our own.
 - Lockfile changes are acceptable even if they seem unrelated, do not edit manually.
 
+## `core` rewrite with CLI
+
+- We're current performing a clean reimplementation in `packages/core`, with a CLI interface instead of React.
+- The core mechanics should work with any kind of UI.
+- Architecture guide `docs/inference-model-design/`
+
 ## TinyBase
 
 The TinyBase repo is cloned as a submodule in `reference/tinybase`.
@@ -47,5 +53,3 @@ Bun workspaces. Run scripts from the root.
 ## Project Docs
 
 @VISION.md
-
-@ARCHITECTURE.md

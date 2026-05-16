@@ -10,27 +10,26 @@ This document covers the stack, goals, invariants, and the architectural philoso
 
 ## Stack
 
-| Layer             | Technology                                   | Role                                                                                          |
-| ----------------- | -------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| State store       | TinyBase `MergeableStore`                    | Durable schema, reactive subscriptions, OPFS persistence, sync substrate                      |
-| Inference         | AI SDK `streamText`                          | Multi-step streaming, tool loops, step lifecycle callbacks                                    |
-| Stream processing | AI SDK `processUIMessageStream`              | `UIMessageChunk` → `UIMessage` accumulation (partial JSON, chunk IDs, part state transitions) |
-| Provider          | OpenRouter via `@openrouter/ai-sdk-provider` | Sole LLM provider                                                                             |
-| UI                | React + `useSyncExternalStore`               | Reactive reads from TinyBase and the live stream                                              |
+| Layer             | Technology                                   | Role                                                                                |
+| ----------------- | -------------------------------------------- | ----------------------------------------------------------------------------------- |
+| State store       | TinyBase `Store`                             | Durable schema, reactive subscriptions, SQLite persistence (dev), OPFS (production) |
+| Inference         | AI SDK `streamText`                          | Multi-step streaming, tool loops, step lifecycle callbacks                          |
+| Stream processing | AI SDK `readUIMessageStream`                 | `UIMessageChunk` stream → sequence of assembled `UIMessage` snapshots               |
+| History           | AI SDK `convertToModelMessages`              | `UIMessage[]` → `ModelMessage[]` for the next `streamText` call                     |
+| Provider          | OpenRouter via `@openrouter/ai-sdk-provider` | Sole LLM provider                                                                   |
+| UI                | React + `useSyncExternalStore`               | Reactive reads from TinyBase and the live stream                                    |
 
 ---
 
 ## Goals
 
-**Correct multi-turn history.** The exact data the provider needs for each subsequent turn — including provider-specific echoing requirements (`reasoning_details`, signed tokens) — must survive a page reload without any transformation.
+**Correct multi-turn history.** The exact data the provider needs for each subsequent turn — including provider-specific echoing requirements (`reasoning_details`, signed tokens) — must survive a page reload. `UIMessage` parts carry `providerMetadata` that `convertToModelMessages` maps to `providerOptions` automatically on the next call.
 
-**Live streaming rendering.** Text, reasoning, and tool inputs render incrementally at the token level. Partial JSON tool inputs parse progressively. The rendering pipeline handles all of this correctly, including multi-part and multi-step exchanges.
+**Live streaming rendering.** Text, reasoning, and tool inputs render incrementally. `readUIMessageStream` emits a `UIMessage` snapshot on each meaningful update (text chunk, tool result state change). The caller receives these via an `onSnapshot` callback and updates its rendering layer.
 
-**Durable at step boundaries.** A completed step is fully persisted to OPFS. If the browser reloads, all completed steps are recoverable; only sub-step ephemeral state is lost.
+**Durable at request completion.** The final `UIMessage` is written to TinyBase once, after the stream drains. If the process restarts mid-stream, the partial result is lost but the system recovers cleanly — the request is marked as interrupted.
 
-**Token and cost accounting.** Every step records normalized usage (`inputTokens`, `outputTokens`) and the provider's raw usage (which carries `cost` for OpenRouter). Costs are summable per-request and queryable per-step.
-
-**Sync-ready data shapes.** Completed data is append-only and CRDT-friendly. The `MergeableStore` is not cosmetic — its HLC timestamps and merge semantics are designed to be used.
+**Token and cost accounting.** Every step records normalised usage and the provider's raw usage (which carries `cost` for OpenRouter). A structured `accounting` object on each step row captures token breakdowns, cost, and model identity.
 
 ---
 
@@ -40,69 +39,62 @@ These are hard constraints. Design decisions that would violate them require exp
 
 1. **TinyBase is the only durable store.** No other persistence layer, no secondary state that diverges from it.
 
-2. **The live stream never writes to TinyBase per-token.** Token-level writes destroy TinyBase's reactivity model (O(tokens) cell mutations, O(tokens) CRDT timestamps, O(tokens) OPFS flushes). The durable write boundary is a step completion.
+2. **`UIMessage` is the canonical persisted form.** `messages.parts` stores `UIMessage['parts']` directly — not a derived cache, but the actual record. It is written once per request, after the stream completes.
 
-3. **`step.response.messages` is the canonical history.** Multi-turn history is built from the `ResponseMessage[]` the AI SDK emits from `step.response.messages`. It is never reconstructed by converting from `UIMessage` parts. This preserves all provider-specific `providerOptions` (including `reasoning_details`) without any transformation.
+3. **No per-token TinyBase writes.** The durable write boundary is request completion, not step completion and not individual tokens.
 
-4. **Steps are immutable after completion.** A step row is written once via `onStepFinish` and never updated. This makes step rows safe for CRDT merge and reliable for audit.
+4. **Steps are accounting-only.** Step rows record token usage, cost, and model identity. They are not used for history reconstruction or rendering.
 
-5. **Streaming state is ephemeral by design.** Sub-step token output lives in a runtime-owned Map. Its loss on reload is acceptable; all durable information is in the step rows.
+5. **Streaming state is ephemeral by design.** Live `UIMessage` snapshots are delivered via the `onSnapshot` callback and kept in memory by the caller. Their loss on reload is acceptable — the durable record is in the messages table.
 
 ---
 
 ## AI SDK philosophy: collaboration, not encapsulation
 
-The AI SDK is not a vendor to be abstracted away. It defines the types our entire system is built on — `UIMessage`, `ModelMessage`, `ResponseMessage`, `ContentPart`, `UIMessageChunk` — and provides the stream processing machinery (`processUIMessageStream`) that would be substantial to replicate correctly.
+The AI SDK defines the types our entire system is built on — `UIMessage`, `ModelMessage`, `UIMessageChunk` — and provides the stream processing machinery that would be substantial to replicate correctly.
 
-Prior versions of this system tried to hide the AI SDK behind wrapper types (`InferenceSession`, `InferenceStepMetadata`). This forced re-describing the same shapes and prevented direct access to AI SDK features like `onStepFinish`, `response.messages`, and the full stream.
-
-**The new stance:** AI SDK types are first-class. They are imported and re-exported freely. `processUIMessageStream`, `streamText`, `onStepFinish`, `ResponseMessage` appear by name in our execution code, not through adapters. The boundary between our code and the AI SDK is a collaboration point, not an isolation layer.
+**The stance:** AI SDK types are first-class. `readUIMessageStream`, `convertToModelMessages`, `streamText`, and `onStepFinish` appear by name in execution code, not through adapters. The boundary between our code and the AI SDK is a collaboration point, not an isolation layer.
 
 ---
 
-## Two major components
+## The execution loop
 
-The system has two largely independent execution paths that both receive output from the same `streamText` call.
+`execute()` is synchronous. It writes the user message, assistant placeholder, and request row to TinyBase immediately, then hands off to `runStream()` as a fire-and-forget.
+
+`runStream()` is the async core. It runs the inference and owns all durable writes:
 
 ```
-                    streamText
+execute()  [synchronous]
+    │
+    ├── messages row  (user, parts: [{ type: 'text', text }])
+    ├── messages row  (assistant placeholder, parts: [])
+    └── requests row  (status: 'streaming')
+                │
+                │ fire-and-forget
+                ▼
+         runStream()  [async]
+                │
+                ├── gatherModelMessages()
+                │      convertToModelMessages(uiMessages)
+                │
+                ├── streamText()
+                │       │
+                │       └── onStepFinish ──► steps row (accounting)
+                │
+                └── readUIMessageStream()
                         │
-          ┌─────────────┴─────────────┐
-          │                           │
-   onStepFinish                  toUIMessageStream
-          │                           │
-   ┌──────▼──────┐           ┌────────▼────────┐
-   │  DURABLE    │           │   LIVE STREAM   │
-   │  BACKEND    │           │   PROCESSING    │
-   └──────┬──────┘           └────────┬────────┘
-          │                           │
-   TinyBase writes            processUIMessageStream
-   (steps, messages,                  │
-    requests)               StreamingState Map
-          │                           │
-   TinyBase hooks             useSyncExternalStore
-          │                           │
-          └──────────┬────────────────┘
-                     │
-              React component
+                        for await (snapshot) {
+                        │   onSnapshot?.(snapshot)   ← caller's live rendering
+                        │   finalParts = snapshot.parts
+                        │ }
+                        │
+                        ▼
+                  messages.parts = finalParts   ← durable write
+                  requests.status = 'completed'
 ```
 
-**Durable backend** — owns the TinyBase writes. Triggered by `onStepFinish`, it writes a completed step row and updates the message rendering cache. It also handles history reconstruction (reading from TinyBase before a new `streamText` call). It is write-only during a stream; reads happen at request start.
+The two outputs of `streamText` serve different purposes:
 
-**Live stream processing** — owns the in-progress UIMessage state. `processUIMessageStream` accumulates `UIMessageChunk` events into a `UIMessage` snapshot, which is published to a subscription Map. React reads this via `useSyncExternalStore`. It has no TinyBase interaction.
+- **`onStepFinish`** fires when a step completes. It writes accounting data (tokens, cost, model identity) to a step row. It has no role in history or rendering.
 
-These two paths share one `streamText` result object but are otherwise independent. A React component switches between them based on whether a stream is active for a given message ID. The transition — streaming state to TinyBase state — is described in [03-components.md](./03-components.md).
-
----
-
-## Package topology
-
-The current `packages/runtime` + `packages/inference` split is inverted relative to the new design. `packages/inference` existed to hide the AI SDK behind `createInference → InferenceSession`. That boundary is now removed.
-
-The revised split:
-
-**`packages/inference`** — owns the full streaming and persistence loop. Accepts a `TetraStore`, credentials, tools, and request config. Calls `streamText` directly. Wires `onStepFinish` → TinyBase. Returns the live `ReadableStream<UIMessageChunk>` for the streaming path. Re-exports the AI SDK types that callers need. Has no wrapper types over the AI SDK.
-
-**`packages/runtime`** — thin session and request coordinator. Creates session and message rows, manages `AbortController` instances, resolves credentials and tools, calls into `packages/inference` to start execution. Owns the `StreamingState` Map and exposes it to React.
-
-**`packages/store`**, **`packages/credentials`**, **`packages/tools`** — unchanged in role.
+- **`toUIMessageStream()` → `readUIMessageStream()`** converts the chunk stream into assembled `UIMessage` snapshots. Each snapshot is passed to `onSnapshot` for live rendering. After the loop, the final snapshot is the complete message that gets persisted.

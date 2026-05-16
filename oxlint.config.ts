@@ -40,6 +40,8 @@ export default defineConfig({
   rules: {
     // ── preference ────────────────────────────────────────────────────
     'func-style': 'off',
+    'no-inline-comments': 'off',
     'no-use-before-define': 'off',
+    'no-warning-comments': 'off',
   },
 })
