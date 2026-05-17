@@ -50,13 +50,20 @@ export function Composer({ sessionId }: { sessionId: string }) {
       return
     }
 
+    // Clear draft before execute so any TinyBase-triggered re-render sees the empty value
+    setDraft('')
+
+    // Set title from first message if session is untitled
+    if (!sessions.get(sessionId).title) {
+      sessions.rename(sessionId, message.text.trim().slice(0, 60))
+    }
+
     const { assistantMessageId } = runner.execute(sessionId, {
       content: message.text,
       onSnapshot: (msg) => {
         streamingState.update(assistantMessageId, msg)
       },
     })
-    setDraft('')
   }
 
   return (

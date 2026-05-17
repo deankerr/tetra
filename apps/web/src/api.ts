@@ -1,42 +1,24 @@
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { ModelConfig as ModelConfigSchema } from '@tetra/core'
-import type { ModelConfig, TetraSchemas } from '@tetra/core'
+import type {
+  Message as CoreMessage,
+  ModelConfig,
+  Request,
+  Session,
+  TetraSchemas,
+} from '@tetra/core'
 import type { UIMessage } from 'ai'
 import { useMemo, useSyncExternalStore } from 'react'
 import * as UiReact from 'tinybase/ui-react/with-schemas'
 
 import { useTetra } from '@/tetra-provider'
 
-export type { ModelConfig }
+export type { ModelConfig, Request, Session }
 
-// Wrapper types — derived from TinyBase rows, with id and properly typed parts/role/config.
-export interface Message {
-  createdAt: number
-  id: string
+// Message: re-narrows TinyBase's generic AnyArray/string types to AI SDK specifics
+export type Message = Omit<CoreMessage, 'parts' | 'role'> & {
   parts: UIMessage['parts']
   role: UIMessage['role']
-  sessionId: string
-  updatedAt: number
-}
-
-export interface Request {
-  assistantMessageId: string
-  completedAt: number
-  config: unknown
-  createdAt: number
-  errorMessage: string
-  id: string
-  sessionId: string
-  status: string
-  totalUsage: unknown
-}
-
-export interface Session {
-  config: unknown
-  createdAt: number
-  id: string
-  title: string
-  updatedAt: number
 }
 
 // Schema-aware TinyBase React hooks.
@@ -97,13 +79,7 @@ export const useSession = (id: string): Session | null => {
   if (!hasRow) {
     return null
   }
-  return {
-    config: row.config,
-    createdAt: row.createdAt,
-    id,
-    title: row.title,
-    updatedAt: row.updatedAt,
-  }
+  return { ...row, id }
 }
 
 const DEFAULT_CONFIG: ModelConfig = {
@@ -129,12 +105,11 @@ const EMPTY_PARTS: UIMessage['parts'] = []
 
 const useTinyBaseMessage = (id: string): Message | null => {
   const row = store.useRow('messages', id)
-  const { createdAt } = row
-  if (!createdAt) {
+  if (!row.createdAt) {
     return null
   }
   return {
-    createdAt,
+    ...row,
     id,
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- TinyBase stores AI SDK parts in an array cell.
     parts: (Array.isArray(row.parts) && row.parts.length > 0
@@ -142,12 +117,11 @@ const useTinyBaseMessage = (id: string): Message | null => {
       : EMPTY_PARTS) as UIMessage['parts'],
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Runtime writers constrain message roles.
     role: row.role as UIMessage['role'],
-    sessionId: row.sessionId,
-    updatedAt: row.updatedAt,
   }
 }
 
-const useStreamingMessage = (id: string): Message | null => {
+// Returns only the fields the live stream knows — id, parts, role
+const useStreamingMessage = (id: string): Pick<Message, 'id' | 'parts' | 'role'> | null => {
   const { streamingState } = useTetra()
   const snapshot = useSyncExternalStore(
     (fn) => streamingState.subscribe(id, fn),
@@ -156,20 +130,21 @@ const useStreamingMessage = (id: string): Message | null => {
   if (snapshot === null) {
     return null
   }
-  return {
-    createdAt: 0,
-    id,
-    parts: snapshot.parts,
-    role: snapshot.role,
-    sessionId: '',
-    updatedAt: 0,
-  }
+  return { id, parts: snapshot.parts, role: snapshot.role }
 }
 
 export const useMessage = (id: string): Message | null => {
   const streaming = useStreamingMessage(id)
-  const completed = useTinyBaseMessage(id)
-  return streaming ?? completed
+  const stored = useTinyBaseMessage(id)
+  if (!streaming) {
+    return stored
+  }
+  // Merge TinyBase metadata (createdAt/updatedAt/sessionId) with live streaming parts
+  // so timestamps show correctly while streaming instead of epoch 0
+  if (!stored) {
+    return null
+  }
+  return { ...stored, parts: streaming.parts }
 }
 
 // --- Request Hooks ---
@@ -191,17 +166,7 @@ export const useActiveRequest = (sessionId: string): Request | null => {
     return null
   }
 
-  return {
-    assistantMessageId: row.assistantMessageId,
-    completedAt: row.completedAt,
-    config: row.config,
-    createdAt: row.createdAt,
-    errorMessage: row.errorMessage,
-    id: latestId,
-    sessionId: row.sessionId,
-    status: row.status,
-    totalUsage: row.totalUsage,
-  }
+  return { ...row, id: latestId }
 }
 
 /** Returns a request by its row ID. */
@@ -211,17 +176,7 @@ export const useRequest = (id: string): Request | null => {
   if (!hasRow || !id) {
     return null
   }
-  return {
-    assistantMessageId: row.assistantMessageId,
-    completedAt: row.completedAt,
-    config: row.config,
-    createdAt: row.createdAt,
-    errorMessage: row.errorMessage,
-    id,
-    sessionId: row.sessionId,
-    status: row.status,
-    totalUsage: row.totalUsage,
-  }
+  return { ...row, id }
 }
 
 /** Looks up the request linked to an assistant message. Returns null for user messages. */
@@ -235,15 +190,5 @@ export const useRequestForMessage = (messageId: string): Request | null => {
     return null
   }
 
-  return {
-    assistantMessageId: row.assistantMessageId,
-    completedAt: row.completedAt,
-    config: row.config,
-    createdAt: row.createdAt,
-    errorMessage: row.errorMessage,
-    id: requestId,
-    sessionId: row.sessionId,
-    status: row.status,
-    totalUsage: row.totalUsage,
-  }
+  return { ...row, id: requestId }
 }

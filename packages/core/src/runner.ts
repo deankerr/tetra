@@ -102,17 +102,17 @@ export function createRunner(
   ): Promise<void> {
     const openrouter = createOpenRouter({ apiKey: getApiKey() })
 
-    // History is read here, after execute() has synchronously written the new user
-    // message and assistant placeholder — so they're already in the store.
-    const messages = await sessions.gatherModelMessages(
-      sessionId,
-      assistantMessageId,
-      config.maxMessages,
-    )
-
-    const { providerOptions = {} } = config
-
     try {
+      // History is read here, after execute() has synchronously written the new user
+      // message and assistant placeholder — so they're already in the store.
+      const messages = await sessions.gatherModelMessages(
+        sessionId,
+        assistantMessageId,
+        config.maxMessages,
+      )
+
+      const { providerOptions = {} } = config
+
       const result = streamText({
         abortSignal: abort.signal,
         messages,
@@ -154,11 +154,16 @@ export function createRunner(
         updatedAt: Date.now(),
       })
 
-      // Aggregate token usage resolves after the stream drains
-      const totalUsage = await result.totalUsage
+      // Mark completed immediately — don't block on usage so the UI can update.
       store.setPartialRow('requests', requestId, {
         completedAt: Date.now(),
         status: 'completed',
+      })
+
+      // Best-effort usage update — resolves after the stream drains but may hang
+      // or be unavailable for some providers.
+      const totalUsage = await result.totalUsage
+      store.setPartialRow('requests', requestId, {
         totalUsage: {
           inputTokens: totalUsage.inputTokens,
           outputTokens: totalUsage.outputTokens,
