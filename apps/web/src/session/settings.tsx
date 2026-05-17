@@ -9,7 +9,7 @@ import { ProviderOptionsEditor } from '@/session/provider-options-editor'
 import { ToolSelector } from '@/session/tool-selector'
 import { useTetra } from '@/tetra-provider'
 
-export function SessionConfig({ sessionId }: { sessionId: string }) {
+export function SessionSettings({ sessionId }: { sessionId: string }) {
   const { sessions } = useTetra()
   const config = useSessionConfig(sessionId)
 

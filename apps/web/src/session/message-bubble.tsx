@@ -24,7 +24,7 @@ import type { DynamicToolUIPart, FileUIPart, SourceDocumentUIPart, ToolUIPart, U
 
 import { useMessage } from '@/api'
 
-export function SessionMessage({ messageId }: { messageId: string }) {
+export function MessageBubble({ messageId }: { messageId: string }) {
   const message = useMessage(messageId)
 
   if (message === null) {
@@ -42,7 +42,7 @@ export function SessionMessage({ messageId }: { messageId: string }) {
         </MessageContent>
       ) : (
         message.parts.map((part, index) => (
-          <SessionMessagePart
+          <MessageBubblePart
             attachmentId={`${message.id}-attachment-${index}`}
             key={`${message.id}-part-${index}`}
             part={part}
@@ -53,7 +53,7 @@ export function SessionMessage({ messageId }: { messageId: string }) {
   )
 }
 
-function SessionMessagePart({
+function MessageBubblePart({
   attachmentId,
   part,
 }: {
@@ -78,7 +78,7 @@ function SessionMessagePart({
   }
 
   if (isAttachmentPart(part)) {
-    return <SessionAttachmentPart attachmentId={attachmentId} part={part} />
+    return <AttachmentPart attachmentId={attachmentId} part={part} />
   }
 
   if (isToolPart(part)) {
@@ -103,7 +103,7 @@ function SessionMessagePart({
   return null
 }
 
-function SessionAttachmentPart({
+function AttachmentPart({
   attachmentId,
   part,
 }: {

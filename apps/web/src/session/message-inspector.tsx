@@ -9,6 +9,7 @@ import {
   CollapsibleTrigger,
 } from '@tetra/ui/components/ui/collapsible'
 import { cn } from '@tetra/ui/lib/utils'
+import type { UIMessage } from 'ai'
 import {
   AlertCircleIcon,
   BracesIcon,
@@ -24,11 +25,10 @@ import {
 import type { ReactNode } from 'react'
 import { z } from 'zod'
 
-import type { Message } from '@/api'
 import { useMessage, useRequestForMessage } from '@/api'
 import { useTetra } from '@/tetra-provider'
 
-type MessagePart = Message['parts'][number]
+type MessagePart = UIMessage['parts'][number]
 
 const totalUsageSchema = z
   .looseObject({

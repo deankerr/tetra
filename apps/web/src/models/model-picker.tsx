@@ -1,3 +1,4 @@
+import type { TetraSchemas } from '@tetra/core'
 import {
   ModelSelector,
   ModelSelectorContent,
@@ -13,9 +14,93 @@ import {
 import { Button } from '@tetra/ui/components/ui/button'
 import { cn } from '@tetra/ui/lib/utils'
 import { CheckIcon, ImageIcon, Music2Icon, RotateCcwIcon } from 'lucide-react'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
+import * as UiReact from 'tinybase/ui-react/with-schemas'
 
-import { useModels } from './models'
+import { useTetra } from '@/tetra-provider'
+
+// oxlint-disable-next-line no-unsafe-type-assertion -- TinyBase WithSchemas pattern
+const store = UiReact as unknown as UiReact.WithSchemas<TetraSchemas>
+
+interface Model {
+  contextLength: number
+  createdAt: number
+  id: string
+  inputModalities: string[]
+  name: string
+  outputModalities: string[]
+  provider: string
+  providerName: string
+  supportedParameters: string[]
+}
+
+interface ModelGroup {
+  displayName: string
+  models: Model[]
+  provider: string
+}
+
+function deriveGroups(table: ReturnType<typeof store.useTable<'models'>>): ModelGroup[] {
+  const all: Model[] = []
+
+  for (const [id, row] of Object.entries(table)) {
+    // oxlint-disable-next-line no-unsafe-type-assertion -- array cell typed as AnyArray by TinyBase
+    const outputModalities = row.outputModalities as string[]
+    if (!outputModalities.includes('text')) {
+      continue
+    }
+
+    all.push({
+      contextLength: row.contextLength,
+      createdAt: row.createdAt,
+      id,
+      // oxlint-disable-next-line no-unsafe-type-assertion -- array cell typed as AnyArray by TinyBase
+      inputModalities: row.inputModalities as string[],
+      name: row.name,
+      outputModalities,
+      provider: row.provider,
+      providerName: row.providerName || row.provider,
+      // oxlint-disable-next-line no-unsafe-type-assertion -- array cell typed as AnyArray by TinyBase
+      supportedParameters: row.supportedParameters as string[],
+    })
+  }
+
+  const byProvider = new Map<string, Model[]>()
+  for (const model of all) {
+    const group = byProvider.get(model.providerName) ?? []
+    group.push(model)
+    byProvider.set(model.providerName, group)
+  }
+
+  for (const models of byProvider.values()) {
+    models.sort((a, b) => b.createdAt - a.createdAt)
+  }
+
+  return [...byProvider.entries()]
+    .map(([providerName, models]) => ({
+      displayName: providerName,
+      models,
+      provider: models[0]?.provider ?? '',
+    }))
+    .toSorted((a, b) => a.displayName.localeCompare(b.displayName))
+}
+
+function useModels() {
+  const { models } = useTetra()
+  const modelsTable = store.useTable('models')
+  const [loading, setLoading] = useState(false)
+
+  const refresh = useCallback(async () => {
+    setLoading(true)
+    try {
+      await models.refresh({ force: true })
+    } finally {
+      setLoading(false)
+    }
+  }, [models])
+
+  return { groups: deriveGroups(modelsTable), loading, refresh }
+}
 
 interface ModelPickerProps {
   className?: string

@@ -13,12 +13,12 @@ import { useState } from 'react'
 import { useActiveSessionId, useSession, useSessionMessageIds } from '@/api'
 
 import { Composer } from './composer'
-import { DetailPanel } from './detail-panel'
+import { ConfigPanel } from './config-panel'
+import { SessionExportButton } from './export-button'
+import { MessageBubble } from './message-bubble'
 import { MessageInspector } from './message-inspector'
 import { RequestsTable } from './requests-table'
-import { SessionConfig } from './session-config'
-import { SessionExport } from './session-export'
-import { SessionMessage } from './session-message'
+import { SessionSettings } from './settings'
 
 type MessageView = 'chat' | 'debug' | 'requests'
 
@@ -85,7 +85,7 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
           >
             <TableIcon />
           </Toggle>
-          <SessionExport sessionId={sessionId} />
+          <SessionExportButton sessionId={sessionId} />
           <Button
             onClick={() => {
               setDetailOpen((prev) => !prev)
@@ -117,7 +117,7 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
                     messageView === 'debug' ? (
                       <MessageInspector key={messageId} messageId={messageId} />
                     ) : (
-                      <SessionMessage key={messageId} messageId={messageId} />
+                      <MessageBubble key={messageId} messageId={messageId} />
                     ),
                   )
                 )}
@@ -131,9 +131,9 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
       </div>
 
       {/* Config panel */}
-      <DetailPanel open={detailOpen}>
-        <SessionConfig sessionId={sessionId} />
-      </DetailPanel>
+      <ConfigPanel open={detailOpen}>
+        <SessionSettings sessionId={sessionId} />
+      </ConfigPanel>
     </div>
   )
 }

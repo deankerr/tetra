@@ -11,13 +11,13 @@ import type { PromptInputMessage } from '@tetra/ui/components/ai-elements/prompt
 import { PlusIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
-import { useActiveRequest, useSessionConfig } from '@/api'
+import { useStreamingRequest, useSessionConfig } from '@/api'
 import { ModelPicker } from '@/models/model-picker'
 import { useTetra } from '@/tetra-provider'
 
 export function Composer({ sessionId }: { sessionId: string }) {
   const { runner, sessions, streamingState } = useTetra()
-  const activeRequest = useActiveRequest(sessionId)
+  const activeRequest = useStreamingRequest(sessionId)
   const isStreaming = activeRequest !== null
   const config = useSessionConfig(sessionId)
   const [draft, setDraft] = useState('')

@@ -3,7 +3,7 @@ import { DownloadIcon } from 'lucide-react'
 
 import { useTetra } from '@/tetra-provider'
 
-export function SessionExport({ sessionId }: { sessionId: string }) {
+export function SessionExportButton({ sessionId }: { sessionId: string }) {
   const { sessions } = useTetra()
 
   return (

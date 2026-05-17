@@ -11,7 +11,7 @@ import { createOpfsPersister } from 'tinybase/persisters/persister-browser/with-
 import { Provider } from 'tinybase/ui-react'
 import { Inspector } from 'tinybase/ui-react-inspector'
 
-import { SessionView } from '@/session/session-view'
+import { SessionView } from '@/session/view'
 import { AppSidebar } from '@/sidebar/app-sidebar'
 import { StreamingState } from '@/streaming-state'
 import { TetraContext } from '@/tetra-provider'

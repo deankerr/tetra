@@ -13,8 +13,8 @@ import * as UiReact from 'tinybase/ui-react/with-schemas'
 
 import { useTetra } from '@/tetra-provider'
 
-// Message: re-narrows TinyBase's generic AnyArray/string types to AI SDK specifics
-export type Message = Omit<CoreMessage, 'parts' | 'role'> & {
+// Re-narrows TinyBase's generic AnyArray/string types to AI SDK specifics
+type Message = Omit<CoreMessage, 'parts' | 'role'> & {
   parts: UIMessage['parts']
   role: UIMessage['role']
 }
@@ -142,7 +142,7 @@ export const useSessionRequestIds = (sessionId: string) =>
   store.useSliceRowIds('requestsBySession', sessionId)
 
 /** Returns the currently active (streaming) request for a session, or null. */
-export const useActiveRequest = (sessionId: string): Request | null => {
+export const useStreamingRequest = (sessionId: string): Request | null => {
   const ids = store.useSliceRowIds('requestsBySession', sessionId)
   const latestId = ids[0] ?? ''
   const hasRow = store.useHasRow('requests', latestId)
