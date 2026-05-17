@@ -94,8 +94,6 @@ export const useSessionConfig = (id: string): ModelConfig => {
 export const useSessionMessageIds = (sessionId: string) =>
   store.useSliceRowIds('messagesBySession', sessionId)
 
-const EMPTY_PARTS: UIMessage['parts'] = []
-
 const useTinyBaseMessage = (id: string): Message | null => {
   const row = store.useRow('messages', id)
   if (!row.createdAt) {
@@ -105,9 +103,7 @@ const useTinyBaseMessage = (id: string): Message | null => {
     ...row,
     id,
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- TinyBase stores AI SDK parts in an array cell.
-    parts: (Array.isArray(row.parts) && row.parts.length > 0
-      ? row.parts
-      : EMPTY_PARTS) as UIMessage['parts'],
+    parts: row.parts as UIMessage['parts'],
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Runtime writers constrain message roles.
     role: row.role as UIMessage['role'],
   }

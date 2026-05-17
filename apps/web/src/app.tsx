@@ -50,7 +50,11 @@ export function App() {
       const root = await navigator.storage.getDirectory()
       const handle = await root.getFileHandle('tetra-runtime.json', { create: true })
       opfsPersister = createOpfsPersister(tetra.store, handle)
-      await opfsPersister.startAutoPersisting()
+      // Load once on startup, then auto-save on store changes.
+      // startAutoPersisting() also starts auto-load, which re-reads the file after every
+      // save and produces a merge mutation, triggering another save — an infinite loop.
+      await opfsPersister.load()
+      void opfsPersister.startAutoSave()
 
       if (cancelled) {
         await opfsPersister.destroy()
@@ -61,9 +65,6 @@ export function App() {
       tetra.runner.recover()
       setPersister(opfsPersister)
       console.log('opfs persister initialized')
-      opfsPersister.addStatusListener((p, status) => {
-        console.log(`persister status changed to ${status}`)
-      })
     }
 
     void init()
