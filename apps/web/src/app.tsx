@@ -1,6 +1,6 @@
 import { createRunner, createSessions, createTetraMergeableStore } from '@tetra/core'
 import type { Runner, Sessions, TetraSchemas, TetraStore } from '@tetra/core'
-import { getCredential } from '@tetra/credentials/store'
+import { credentialStore } from '@tetra/credentials'
 import { Sidebar, SidebarInset, SidebarProvider } from '@tetra/ui/components/ui/sidebar'
 import { Spinner } from '@tetra/ui/components/ui/spinner'
 import { useEffect, useState } from 'react'
@@ -28,7 +28,7 @@ export function App() {
   const [tetra] = useState<TetraApp>(() => {
     const tetraStore = createTetraMergeableStore()
     const sessions = createSessions(tetraStore)
-    const runner = createRunner(tetraStore, sessions, () => getCredential('openRouterApiKey'))
+    const runner = createRunner(tetraStore, sessions, credentialStore)
     const streamingState = new StreamingState()
 
     console.log('store initialized')

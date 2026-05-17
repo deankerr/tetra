@@ -30,6 +30,34 @@ export const DEFAULT_MODEL_CONFIG: ModelConfig = {
   systemPrompt: 'Use Markdown sparingly. Favour paragraphs over bulleted lists.',
 }
 
+// Aggregated accounting stored on each step — shape produced by resolveAccounting() in runner.ts.
+export const StepAccounting = z.object({
+  backendProvider: z.string(),
+  cost: z.object({
+    completion: z.number().nullable(),
+    isByok: z.boolean(),
+    prompt: z.number().nullable(),
+    total: z.number().nullable(),
+  }),
+  generationId: z.string(),
+  requestedModel: z.string(),
+  servedModel: z.string(),
+  tokens: z.object({
+    audioIn: z.number(),
+    audioOut: z.number(),
+    cacheRead: z.number(),
+    cacheWrite: z.number(),
+    imageOut: z.number(),
+    input: z.number(),
+    output: z.number(),
+    reasoning: z.number(),
+    text: z.number(),
+    total: z.number(),
+    videoIn: z.number(),
+  }),
+})
+export type StepAccounting = z.infer<typeof StepAccounting>
+
 // Raw usage from the OpenRouter API response — verbatim provider JSON in step.usage.raw.
 // OpenAI-compatible snake_case names with OpenRouter cost extensions bolted on.
 // All fields optional: schema evolves upstream; we parse defensively.

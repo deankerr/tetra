@@ -1,16 +1,16 @@
-import { getCredential, setCredential, subscribeCredential } from '@tetra/credentials/store'
+import { credentialStore } from '@tetra/credentials'
 import { useSyncExternalStore } from 'react'
 
-export function useCredential(credentialId: string): [string, (value: string) => void] {
+export function useCredential(id: string): [string, (value: string) => void] {
   const value = useSyncExternalStore(
-    (listener) => subscribeCredential(credentialId, listener),
-    () => getCredential(credentialId),
+    (listener) => credentialStore.subscribe(id, listener),
+    () => credentialStore.get(id),
     () => '',
   )
   return [
     value,
     (nextValue) => {
-      setCredential(credentialId, nextValue)
+      credentialStore.set(id, nextValue)
     },
   ]
 }

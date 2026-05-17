@@ -1,5 +1,5 @@
 import { toolIds, toolsRegistryMap } from '@tetra/core'
-import { credentialsRegistryMap } from '@tetra/credentials/registry'
+import { credentialRegistry } from '@tetra/credentials'
 import { Badge } from '@tetra/ui/components/ui/badge'
 import { Field, FieldContent, FieldDescription, FieldTitle } from '@tetra/ui/components/ui/field'
 import { Switch } from '@tetra/ui/components/ui/switch'
@@ -50,7 +50,7 @@ function ToolToggle({
             <>
               Uses{' '}
               {tool.credentialIds
-                .map((credentialId) => credentialsRegistryMap.get(credentialId)?.label)
+                .map((credentialId) => credentialRegistry.find((c) => c.id === credentialId)?.label)
                 .filter((label) => label !== undefined)
                 .map((label, i) => (
                   <Badge key={label + i} variant="outline">

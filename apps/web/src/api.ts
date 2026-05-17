@@ -168,6 +168,9 @@ export const useRequest = (id: string): Request | null => {
   return { ...row, id }
 }
 
+export const useRequestStepIds = (requestId: string) =>
+  store.useSliceRowIds('stepsByRequest', requestId)
+
 /** Looks up the request linked to an assistant message. Returns null for user messages. */
 export const useRequestForMessage = (messageId: string): Request | null => {
   const ids = store.useSliceRowIds('requestByAssistantMessage', messageId)

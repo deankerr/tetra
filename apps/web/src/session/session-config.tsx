@@ -1,4 +1,4 @@
-import type { ModelConfig } from '@tetra/core'
+import { ModelConfig } from '@tetra/core'
 import { Card, CardContent, CardHeader, CardTitle } from '@tetra/ui/components/ui/card'
 import { Field, FieldGroup, FieldTitle } from '@tetra/ui/components/ui/field'
 import { Textarea } from '@tetra/ui/components/ui/textarea'
@@ -15,7 +15,7 @@ export function SessionConfig({ sessionId }: { sessionId: string }) {
 
   const updateConfig = (patch: Partial<typeof config>) => {
     const current = sessions.getConfig(sessionId)
-    sessions.setConfig(sessionId, { ...current, ...patch } as ModelConfig)
+    sessions.setConfig(sessionId, ModelConfig.parse({ ...current, ...patch }))
   }
 
   return (
