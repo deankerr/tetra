@@ -1,3 +1,4 @@
+import type { Request } from '@tetra/core'
 import {
   Table,
   TableBody,
@@ -8,7 +9,6 @@ import {
 } from '@tetra/ui/components/ui/table'
 
 import { useRequest, useSessionRequestIds } from '@/api'
-import type { Request } from '@/api'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)

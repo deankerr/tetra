@@ -1,5 +1,5 @@
 import { useNavigate, useSearch } from '@tanstack/react-router'
-import { ModelConfig as ModelConfigSchema } from '@tetra/core'
+import { DEFAULT_MODEL_CONFIG, ModelConfig as ModelConfigSchema } from '@tetra/core'
 import type {
   Message as CoreMessage,
   ModelConfig,
@@ -12,8 +12,6 @@ import { useMemo, useSyncExternalStore } from 'react'
 import * as UiReact from 'tinybase/ui-react/with-schemas'
 
 import { useTetra } from '@/tetra-provider'
-
-export type { ModelConfig, Request, Session }
 
 // Message: re-narrows TinyBase's generic AnyArray/string types to AI SDK specifics
 export type Message = Omit<CoreMessage, 'parts' | 'role'> & {
@@ -82,18 +80,13 @@ export const useSession = (id: string): Session | null => {
   return { ...row, id }
 }
 
-const DEFAULT_CONFIG: ModelConfig = {
-  modelId: 'anthropic/claude-sonnet-4-5',
-  systemPrompt: 'Use Markdown sparingly. Favour paragraphs over bulleted lists.',
-}
-
 export const useSessionConfig = (id: string): ModelConfig => {
   const session = useSession(id)
   if (session === null) {
-    return DEFAULT_CONFIG
+    return DEFAULT_MODEL_CONFIG
   }
   const result = ModelConfigSchema.safeParse(session.config)
-  return result.success ? result.data : DEFAULT_CONFIG
+  return result.success ? result.data : DEFAULT_MODEL_CONFIG
 }
 
 // --- Message Hooks ---

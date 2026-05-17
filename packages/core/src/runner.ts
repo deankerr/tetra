@@ -132,6 +132,9 @@ export function createRunner(
         model: openrouter(config.modelId),
         // Write a step record on each step completion — accounting only, no content.
         // Content is handled by the UIMessage stream below.
+        onAbort: () => {
+          console.warn('streamText aborted', { requestId })
+        },
         onStepFinish: (step) => {
           const accounting = resolveAccounting(step)
           store.setRow('steps', generateId.step(), {
@@ -146,7 +149,11 @@ export function createRunner(
         },
         providerOptions: { openrouter: providerOptions },
         ...(config.systemPrompt !== undefined && { system: config.systemPrompt }),
+        onError: (event) => {
+          console.error({ event, requestId })
+        },
       })
+      console.log('streamText start', { requestId })
 
       // readUIMessageStream converts the chunk stream into a sequence of assembled
       // UIMessage snapshots — one per meaningful update (text chunk, tool result, etc.).
@@ -172,6 +179,7 @@ export function createRunner(
         completedAt: Date.now(),
         status: 'completed',
       })
+      console.log('streamText complete', { requestId })
 
       // Best-effort usage update — resolves after the stream drains but may hang
       // or be unavailable for some providers.
@@ -184,6 +192,7 @@ export function createRunner(
         },
       })
     } catch (error) {
+      console.error({ error, requestId })
       const status = abort.signal.aborted ? 'cancelled' : 'error'
       store.setPartialRow('requests', requestId, {
         completedAt: Date.now(),

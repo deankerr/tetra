@@ -82,30 +82,6 @@
         "typescript": "catalog:",
       },
     },
-    "packages/inference": {
-      "name": "@tetra/inference",
-      "dependencies": {
-        "@ai-sdk/provider": "^3.0.8",
-        "@openrouter/ai-sdk-provider": "^2.9.0",
-        "ai": "catalog:",
-      },
-      "devDependencies": {
-        "typescript": "catalog:",
-      },
-    },
-    "packages/runtime": {
-      "name": "@tetra/runtime",
-      "dependencies": {
-        "@tetra/credentials": "workspace:*",
-        "@tetra/inference": "workspace:*",
-        "@tetra/store": "workspace:*",
-        "@tetra/tools": "workspace:*",
-        "ai": "catalog:",
-      },
-      "devDependencies": {
-        "typescript": "catalog:",
-      },
-    },
     "packages/sdk-probe": {
       "name": "@tetra/sdk-probe",
       "dependencies": {
@@ -116,28 +92,6 @@
       "devDependencies": {
         "@types/bun": "catalog:",
         "@types/node": "catalog:",
-        "typescript": "catalog:",
-      },
-    },
-    "packages/store": {
-      "name": "@tetra/store",
-      "dependencies": {
-        "nanoid": "^5.1.11",
-        "tinybase": "catalog:",
-        "zod": "^4.3.6",
-      },
-      "devDependencies": {
-        "typescript": "catalog:",
-      },
-    },
-    "packages/tools": {
-      "name": "@tetra/tools",
-      "dependencies": {
-        "@tetra/credentials": "workspace:*",
-        "ai": "catalog:",
-        "zod": "^4.3.6",
-      },
-      "devDependencies": {
         "typescript": "catalog:",
       },
     },
@@ -856,15 +810,7 @@
 
     "@tetra/credentials": ["@tetra/credentials@workspace:packages/credentials"],
 
-    "@tetra/inference": ["@tetra/inference@workspace:packages/inference"],
-
-    "@tetra/runtime": ["@tetra/runtime@workspace:packages/runtime"],
-
     "@tetra/sdk-probe": ["@tetra/sdk-probe@workspace:packages/sdk-probe"],
-
-    "@tetra/store": ["@tetra/store@workspace:packages/store"],
-
-    "@tetra/tools": ["@tetra/tools@workspace:packages/tools"],
 
     "@tetra/ui": ["@tetra/ui@workspace:packages/ui"],
 

@@ -18,11 +18,13 @@ Dev data is wiped and regenerated as needed. This app is not public. There are h
 - Prefer using existing libraries/solutions over writing our own.
 - Lockfile changes are acceptable even if they seem unrelated, do not edit manually.
 
-## `core` rewrite with CLI
+## Packages
 
-- We're current performing a clean reimplementation in `packages/core`, with a CLI interface instead of React.
-- The core mechanics should work with any kind of UI.
-- Architecture guide `docs/inference-model-design/`
+- `@tetra/core` — store schema, sessions, runner, tool registry. UI-agnostic.
+- `@tetra/cli` — Bun CLI frontend, bootstraps core with SQLite persistence.
+- `@tetra/credentials` — credential registry and localStorage store.
+- `@tetra/ui` — shadcn/ai-elements component library.
+- `@tetra/sdk-probe` — scratch space for AI SDK experiments.
 
 ## TinyBase
 

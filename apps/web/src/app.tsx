@@ -31,6 +31,7 @@ export function App() {
     const runner = createRunner(tetraStore, sessions, () => getCredential('openRouterApiKey'))
     const streamingState = new StreamingState()
 
+    console.log('store initialized')
     return {
       indexes: tetraStore.indexes,
       runner,
@@ -53,11 +54,16 @@ export function App() {
 
       if (cancelled) {
         await opfsPersister.destroy()
+        console.log('opfs persister cancelled')
         return
       }
 
       tetra.runner.recover()
       setPersister(opfsPersister)
+      console.log('opfs persister initialized')
+      opfsPersister.addStatusListener((p, status) => {
+        console.log(`persister status changed to ${status}`)
+      })
     }
 
     void init()
@@ -65,6 +71,7 @@ export function App() {
     return () => {
       cancelled = true
       void opfsPersister?.destroy()
+      console.log('opfs persister destroyed')
     }
   }, [tetra])
 

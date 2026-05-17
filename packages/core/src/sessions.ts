@@ -79,6 +79,7 @@ export function createSessions({ indexes, store }: TetraStore): Sessions {
         updatedAt: now,
       })
       store.setCell('sessions', sessionId, 'updatedAt', now)
+      console.log('[sessions] addMessage', { messageId, role, sessionId })
       return messageId
     },
 
@@ -91,6 +92,7 @@ export function createSessions({ indexes, store }: TetraStore): Sessions {
         title,
         updatedAt: now,
       })
+      console.log('[sessions] create', { sessionId, title })
       return sessionId
     },
 
@@ -112,6 +114,7 @@ export function createSessions({ indexes, store }: TetraStore): Sessions {
         }
         store.delRow('sessions', sessionId)
       })
+      console.log('[sessions] delete', { sessionId })
     },
 
     deleteMessage(messageId) {
@@ -123,6 +126,7 @@ export function createSessions({ indexes, store }: TetraStore): Sessions {
         }
         store.delRow('messages', messageId)
       })
+      console.log('[sessions] deleteMessage', { messageId })
     },
 
     exportSession(sessionId) {
@@ -212,6 +216,7 @@ export function createSessions({ indexes, store }: TetraStore): Sessions {
     rename(sessionId, title) {
       store.setCell('sessions', sessionId, 'title', title)
       store.setCell('sessions', sessionId, 'updatedAt', Date.now())
+      console.log('[sessions] rename', { sessionId, title })
     },
 
     setConfig(sessionId, config) {
@@ -219,6 +224,7 @@ export function createSessions({ indexes, store }: TetraStore): Sessions {
         config,
         updatedAt: Date.now(),
       })
+      console.log('[sessions] setConfig', { config, sessionId })
     },
   }
 }
