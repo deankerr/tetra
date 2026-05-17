@@ -1,24 +1,15 @@
 import { Database } from 'bun:sqlite'
 
-import { createRunner, createSessions, createTetraStore } from '@tetra/core'
+import { createModels, createRunner, createSessions, createTetraStore } from '@tetra/core'
+import { credentialStore } from '@tetra/credentials'
 import { createSqliteBunPersister } from 'tinybase/persisters/persister-sqlite-bun/with-schemas'
 
-// Resolve credentials from env for tool execution (Jina tools, etc.)
-function getCredential(id: string) {
-  return process.env[`TETRA_CREDENTIAL_${id.toUpperCase()}`] ?? ''
-}
-
-// Bootstrap: resolve API key from env, wire subsystems, attach SQLite persistence
+// Bootstrap: wire subsystems, attach SQLite persistence
 export async function bootstrap() {
-  const apiKey = process.env.OPENROUTER_API_KEY
-  if (apiKey === undefined || apiKey.length === 0) {
-    console.error('Error: OPENROUTER_API_KEY is not set')
-    process.exit(1)
-  }
-
   const tetraStore = createTetraStore()
   const sessions = createSessions(tetraStore)
-  const runner = createRunner(tetraStore, sessions, () => apiKey, getCredential)
+  const runner = createRunner(tetraStore, sessions, credentialStore)
+  const models = createModels(tetraStore)
   runner.recover()
 
   // Persist store to SQLite — tabular mode maps each TinyBase table to a real SQL table
@@ -28,12 +19,14 @@ export async function bootstrap() {
     tables: {
       load: {
         messages: { rowIdColumnName: 'id', tableId: 'messages' },
+        models: { rowIdColumnName: 'id', tableId: 'models' },
         requests: { rowIdColumnName: 'id', tableId: 'requests' },
         sessions: { rowIdColumnName: 'id', tableId: 'sessions' },
         steps: { rowIdColumnName: 'id', tableId: 'steps' },
       },
       save: {
         messages: { rowIdColumnName: 'id', tableName: 'messages' },
+        models: { rowIdColumnName: 'id', tableName: 'models' },
         requests: { rowIdColumnName: 'id', tableName: 'requests' },
         sessions: { rowIdColumnName: 'id', tableName: 'sessions' },
         steps: { rowIdColumnName: 'id', tableName: 'steps' },
@@ -43,5 +36,5 @@ export async function bootstrap() {
   await persister.load()
   await persister.startAutoSave()
 
-  return { runner, sessions, ...tetraStore }
+  return { models, runner, sessions, ...tetraStore }
 }

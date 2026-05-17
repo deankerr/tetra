@@ -1,4 +1,5 @@
-import { credentialIds, credentialsRegistryMap } from '@tetra/credentials/registry'
+import type { CredentialDefinition } from '@tetra/credentials'
+import { credentialRegistry } from '@tetra/credentials'
 import { Button } from '@tetra/ui/components/ui/button'
 import {
   Dialog,
@@ -32,46 +33,31 @@ export function SettingsDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        {credentialIds.map((credentialId) => (
-          <CredentialField key={credentialId} credentialId={credentialId} />
+        {credentialRegistry.map((definition) => (
+          <CredentialField key={definition.id} definition={definition} />
         ))}
       </DialogContent>
     </Dialog>
   )
 }
 
-function CredentialField({ credentialId }: { credentialId: string }) {
-  const [value, setValue] = useCredential(credentialId)
-  const definition = credentialsRegistryMap.get(credentialId)
-  if (definition === undefined) {
-    return null
-  }
-
-  const inputId = `credential-${credentialId}`
+function CredentialField({ definition }: { definition: CredentialDefinition }) {
+  const [value, setValue] = useCredential(definition.id)
+  const inputId = `credential-${definition.id}`
 
   return (
     <div className="grid gap-2">
       <Label htmlFor={inputId}>{definition.label}</Label>
       <Input
         id={inputId}
-        type="password"
-        placeholder={definition.placeholder}
-        value={value}
         onChange={(e) => {
           setValue(e.target.value)
         }}
+        placeholder={definition.placeholder}
+        type="password"
+        value={value}
       />
-      <p className="text-muted-foreground text-xs">
-        {definition.purpose} Get a key at{' '}
-        <a
-          href={definition.helpUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline"
-        >
-          {definition.helpLabel}
-        </a>
-      </p>
+      <p className="text-muted-foreground text-xs">{definition.description}</p>
     </div>
   )
 }

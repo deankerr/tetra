@@ -6,6 +6,51 @@ import { bootstrap } from './bootstrap'
 const program = new Command()
 program.name('tetra').description('Tetra CLI').version('0.1.0')
 
+// tetra models — list available text-output models from OpenRouter
+program
+  .command('models')
+  .description('List available models from OpenRouter')
+  .option('-p, --provider <name>', 'Filter by provider name (case-insensitive)')
+  .action(async (opts: { provider?: string }) => {
+    const { models, store } = await bootstrap()
+    await models.refresh({ force: true })
+
+    const table = store.getTable('models')
+    const rows = Object.entries(table)
+      .map(([id, row]) => ({
+        contextLength: row.contextLength,
+        createdAt: row.createdAt,
+        id,
+        // oxlint-disable-next-line no-unsafe-type-assertion -- array cell typed as AnyArray by TinyBase
+        inputModalities: row.inputModalities as string[],
+        name: row.name,
+        // oxlint-disable-next-line no-unsafe-type-assertion -- array cell typed as AnyArray by TinyBase
+        outputModalities: row.outputModalities as string[],
+        provider: row.providerName || row.provider,
+      }))
+      // Only text-output models
+      .filter((r) => r.outputModalities.includes('text'))
+      // Optional provider filter
+      .filter(
+        (r) =>
+          opts.provider === undefined ||
+          r.provider.toLowerCase().includes(opts.provider.toLowerCase()),
+      )
+      // Sort: newest first
+      .toSorted((a, b) => b.createdAt - a.createdAt)
+
+    if (rows.length === 0) {
+      console.log('No models found.')
+      return
+    }
+
+    for (const r of rows) {
+      const ctx = r.contextLength > 0 ? `${(r.contextLength / 1000).toFixed(0)}k` : '?'
+      const mods = r.inputModalities.join('+') || 'text'
+      console.log(`${r.id.padEnd(55)} ${r.name.padEnd(45)} ctx:${ctx.padStart(5)}  in:${mods}`)
+    }
+  })
+
 // tetra sessions — list all sessions
 program
   .command('sessions')

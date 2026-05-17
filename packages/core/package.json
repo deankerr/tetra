@@ -4,6 +4,7 @@
   "type": "module",
   "imports": {
     "#model": "./src/model.ts",
+    "#models": "./src/models.ts",
     "#runner": "./src/runner.ts",
     "#sessions": "./src/sessions.ts",
     "#store": "./src/store.ts",

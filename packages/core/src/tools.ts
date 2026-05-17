@@ -1,4 +1,4 @@
-import type { CredentialId } from '@tetra/credentials/registry'
+import type { CredentialId } from '@tetra/credentials'
 import { tool } from 'ai'
 import type { ToolSet } from 'ai'
 import { z } from 'zod'
@@ -87,7 +87,7 @@ const toolRegistry = {
       }),
     }),
     category: 'web',
-    credentialIds: ['jinaApiKey'],
+    credentialIds: ['JINA_API_KEY'],
     description: 'Fetch one URL through Jina Reader and return markdown for the model.',
     label: 'Web Fetch',
   },
@@ -125,7 +125,7 @@ const toolRegistry = {
       }),
     }),
     category: 'web',
-    credentialIds: ['jinaApiKey'],
+    credentialIds: ['JINA_API_KEY'],
     description: 'Search the web through Jina Search without enabling URL fetching.',
     label: 'Web Search',
   },

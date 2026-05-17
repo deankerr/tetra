@@ -1,4 +1,5 @@
 import type { Request } from '@tetra/core'
+import { StepAccounting } from '@tetra/core'
 import {
   Table,
   TableBody,
@@ -7,12 +8,10 @@ import {
   TableHeader,
   TableRow,
 } from '@tetra/ui/components/ui/table'
+import { useMemo } from 'react'
 
-import { useRequest, useSessionRequestIds } from '@/api'
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
+import { useRequest, useRequestStepIds, useSessionRequestIds } from '@/api'
+import { useTetra } from '@/tetra-provider'
 
 function formatTime(ts: number) {
   return new Date(ts).toLocaleTimeString([], {
@@ -23,27 +22,24 @@ function formatTime(ts: number) {
 }
 
 function formatModel(config: unknown): string {
-  if (!isRecord(config)) {
+  if (typeof config !== 'object' || config === null || !('modelId' in config)) {
     return '—'
   }
   return typeof config.modelId === 'string' ? config.modelId : '—'
 }
 
-// flat totalUsage format from core: { inputTokens, outputTokens, totalTokens }
-function formatTokens(totalUsage: unknown): string {
-  if (!isRecord(totalUsage)) {
-    return '—'
-  }
-  const input = typeof totalUsage.inputTokens === 'number' ? totalUsage.inputTokens : 0
-  const output = typeof totalUsage.outputTokens === 'number' ? totalUsage.outputTokens : 0
+function formatTokens(input: number, output: number): string {
   if (input === 0 && output === 0) {
     return '—'
   }
-  return `${input} / ${output}`
+  return `${input.toLocaleString()} / ${output.toLocaleString()}`
 }
 
-function formatCost(_totalUsage: unknown): string {
-  return '—'
+function formatCost(cost: number | null): string {
+  if (cost === null) {
+    return '—'
+  }
+  return `$${cost.toFixed(6)}`
 }
 
 function statusClass(status: string) {
@@ -59,6 +55,35 @@ function statusClass(status: string) {
   return 'text-muted-foreground'
 }
 
+// Aggregates token counts and cost from all steps for a request.
+// Reactive via useRequestStepIds — re-runs when new steps arrive during streaming.
+function useRequestAccountingSummary(requestId: string) {
+  const { store } = useTetra()
+  const stepIds = useRequestStepIds(requestId)
+
+  return useMemo(() => {
+    let cost: number | null = null
+    let inputTokens = 0
+    let outputTokens = 0
+
+    for (const stepId of stepIds) {
+      const row = store.getRow('steps', stepId)
+      const parsed = StepAccounting.safeParse(row.accounting)
+      if (!parsed.success) {
+        continue
+      }
+      const { data } = parsed
+      inputTokens += data.tokens.input
+      outputTokens += data.tokens.output
+      if (data.cost.total !== null) {
+        cost = (cost ?? 0) + data.cost.total
+      }
+    }
+
+    return { cost, inputTokens, outputTokens }
+  }, [stepIds, store])
+}
+
 // Split out so each row subscribes independently to its request row.
 function RequestRowById({ requestId }: { requestId: string }) {
   const request = useRequest(requestId)
@@ -69,6 +94,8 @@ function RequestRowById({ requestId }: { requestId: string }) {
 }
 
 function RequestRow({ request }: { request: Request }) {
+  const summary = useRequestAccountingSummary(request.id)
+
   return (
     <TableRow>
       <TableCell className="text-muted-foreground font-mono">
@@ -76,8 +103,10 @@ function RequestRow({ request }: { request: Request }) {
       </TableCell>
       <TableCell className={statusClass(request.status)}>{request.status}</TableCell>
       <TableCell className="max-w-48 truncate font-mono">{formatModel(request.config)}</TableCell>
-      <TableCell className="font-mono">{formatTokens(request.totalUsage)}</TableCell>
-      <TableCell className="font-mono">{formatCost(request.totalUsage)}</TableCell>
+      <TableCell className="font-mono">
+        {formatTokens(summary.inputTokens, summary.outputTokens)}
+      </TableCell>
+      <TableCell className="font-mono">{formatCost(summary.cost)}</TableCell>
       <TableCell className="max-w-64 truncate text-red-400">
         {request.errorMessage || null}
       </TableCell>

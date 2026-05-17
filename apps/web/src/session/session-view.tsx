@@ -17,6 +17,7 @@ import { DetailPanel } from './detail-panel'
 import { MessageInspector } from './message-inspector'
 import { RequestsTable } from './requests-table'
 import { SessionConfig } from './session-config'
+import { SessionExport } from './session-export'
 import { SessionMessage } from './session-message'
 
 type MessageView = 'chat' | 'debug' | 'requests'
@@ -84,7 +85,7 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
           >
             <TableIcon />
           </Toggle>
-          {/* <SessionExport sessionId={sessionId} /> */}
+          <SessionExport sessionId={sessionId} />
           <Button
             onClick={() => {
               setDetailOpen((prev) => !prev)

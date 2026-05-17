@@ -1,4 +1,5 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
+import type { CredentialStore } from '@tetra/credentials'
 import type { OnStepFinishEvent, UIMessage } from 'ai'
 import { readUIMessageStream, streamText } from 'ai'
 
@@ -86,8 +87,7 @@ function resolveAccounting(step: OnStepFinishEvent) {
 export function createRunner(
   tetraStore: TetraStore,
   sessions: Sessions,
-  getApiKey: () => string,
-  getCredential: (id: string) => string = () => '',
+  credentials: CredentialStore,
 ): Runner {
   const { indexes, store } = tetraStore
 
@@ -102,7 +102,7 @@ export function createRunner(
     abort: AbortController,
     onSnapshot?: (msg: UIMessage) => void,
   ): Promise<void> {
-    const openrouter = createOpenRouter({ apiKey: getApiKey() })
+    const openrouter = createOpenRouter({ apiKey: credentials.get('OPENROUTER_API_KEY') })
 
     try {
       // History is read here, after execute() has synchronously written the new user
@@ -118,7 +118,7 @@ export function createRunner(
       // Resolve tools and gather credentials if any tool IDs are configured.
       const toolsResolved =
         requestedToolIds !== undefined && requestedToolIds.length > 0
-          ? resolveTools(requestedToolIds, getCredential)
+          ? resolveTools(requestedToolIds, (id) => credentials.get(id))
           : undefined
 
       const result = streamText({
