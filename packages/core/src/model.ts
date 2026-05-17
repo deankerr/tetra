@@ -19,7 +19,13 @@ export const ModelConfig = z.object({
 export type ModelConfig = z.infer<typeof ModelConfig>
 
 export const DEFAULT_MODEL_CONFIG: ModelConfig = {
-  modelId: 'anthropic/claude-sonnet-4-5',
+  modelId: 'anthropic/claude-sonnet-4.5',
+  providerOptions: {
+    max_tokens: 10_240,
+    reasoning: {
+      enabled: true,
+    },
+  },
   systemPrompt: 'Use Markdown sparingly. Favour paragraphs over bulleted lists.',
 }
 
@@ -102,6 +108,8 @@ export const tablesSchema = {
 } as const satisfies TablesSchema
 
 export const valuesSchema = {} as const satisfies ValuesSchema
+
+export type TetraSchemas = [typeof tablesSchema, typeof valuesSchema]
 
 // Domain types derived from the schema — id is the TinyBase row key, not a stored cell
 type Schema = typeof tablesSchema

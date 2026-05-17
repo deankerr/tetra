@@ -1,16 +1,21 @@
+import type { ModelConfig } from '@tetra/core'
 import { Card, CardContent, CardHeader, CardTitle } from '@tetra/ui/components/ui/card'
 import { Field, FieldGroup, FieldTitle } from '@tetra/ui/components/ui/field'
 import { Textarea } from '@tetra/ui/components/ui/textarea'
 
+import { useSessionConfig } from '@/api'
 import { ModelPicker } from '@/models/model-picker'
-import { useSessionConfig } from '@/runtime/hooks'
-import { useRuntime } from '@/runtime/use-runtime'
 import { ProviderOptionsEditor } from '@/session/provider-options-editor'
-import { ToolSelector } from '@/session/tool-selector'
+import { useTetra } from '@/tetra-provider'
 
 export function SessionConfig({ sessionId }: { sessionId: string }) {
-  const runtime = useRuntime()
+  const { sessions } = useTetra()
   const config = useSessionConfig(sessionId)
+
+  const updateConfig = (patch: Partial<typeof config>) => {
+    const current = sessions.getConfig(sessionId)
+    sessions.setConfig(sessionId, { ...current, ...patch } as ModelConfig)
+  }
 
   return (
     <FieldGroup>
@@ -19,7 +24,7 @@ export function SessionConfig({ sessionId }: { sessionId: string }) {
         <ModelPicker
           className="w-full"
           onValueChange={(modelId) => {
-            runtime.sessions.updateSessionConfig(sessionId, { patch: { modelId } })
+            updateConfig({ modelId })
           }}
           value={config.modelId}
         />
@@ -29,30 +34,14 @@ export function SessionConfig({ sessionId }: { sessionId: string }) {
         <FieldTitle>System Prompt</FieldTitle>
         <Textarea
           onChange={(e) => {
-            runtime.sessions.updateSessionConfig(sessionId, {
-              patch: { systemPrompt: e.currentTarget.value },
-            })
+            updateConfig({ systemPrompt: e.currentTarget.value })
           }}
           placeholder="You are a helpful assistant."
           value={config.systemPrompt ?? ''}
         />
       </Field>
 
-      <Card size="sm">
-        <CardHeader>
-          <CardTitle className="text-xs">Tools</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2.5">
-          <ToolSelector
-            onToolIdsChange={(toolIds) => {
-              runtime.sessions.updateSessionConfig(sessionId, {
-                patch: { toolIds },
-              })
-            }}
-            toolIds={config.toolIds}
-          />
-        </CardContent>
-      </Card>
+      {/* Tools card removed — core runner does not support tools yet */}
 
       <Card size="sm">
         <CardHeader>

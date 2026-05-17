@@ -7,8 +7,8 @@ import {
   TableRow,
 } from '@tetra/ui/components/ui/table'
 
-import { useRequest, useSessionRequestIds } from '@/runtime/hooks'
-import type { Request } from '@/runtime/hooks'
+import { useRequest, useSessionRequestIds } from '@/api'
+import type { Request } from '@/api'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -22,44 +22,32 @@ function formatTime(ts: number) {
   })
 }
 
-function formatTokens(usage: unknown): string {
-  if (!isRecord(usage)) {
+function formatModel(config: unknown): string {
+  if (!isRecord(config)) {
     return '—'
   }
-  const { total } = usage
-  if (!isRecord(total)) {
-    return '—'
-  }
-  const { usage: u } = total
-  if (!isRecord(u)) {
-    return '—'
-  }
-  const { promptTokens, completionTokens } = u
-  if (typeof promptTokens !== 'number' && typeof completionTokens !== 'number') {
-    return '—'
-  }
-  const p = typeof promptTokens === 'number' ? promptTokens : 0
-  const c = typeof completionTokens === 'number' ? completionTokens : 0
-  return `${p} / ${c}`
+  return typeof config.modelId === 'string' ? config.modelId : '—'
 }
 
-function formatCost(usage: unknown): string {
-  if (!isRecord(usage)) {
+// flat totalUsage format from core: { inputTokens, outputTokens, totalTokens }
+function formatTokens(totalUsage: unknown): string {
+  if (!isRecord(totalUsage)) {
     return '—'
   }
-  const { total } = usage
-  if (!isRecord(total)) {
+  const input = typeof totalUsage.inputTokens === 'number' ? totalUsage.inputTokens : 0
+  const output = typeof totalUsage.outputTokens === 'number' ? totalUsage.outputTokens : 0
+  if (input === 0 && output === 0) {
     return '—'
   }
-  const { cost } = total
-  if (typeof cost !== 'number' || cost === 0) {
-    return '—'
-  }
-  return `$${cost.toFixed(6)}`
+  return `${input} / ${output}`
+}
+
+function formatCost(_totalUsage: unknown): string {
+  return '—'
 }
 
 function statusClass(status: string) {
-  if (status === 'complete') {
+  if (status === 'completed') {
     return 'text-green-500'
   }
   if (status === 'error') {
@@ -87,9 +75,9 @@ function RequestRow({ request }: { request: Request }) {
         {formatTime(request.createdAt)}
       </TableCell>
       <TableCell className={statusClass(request.status)}>{request.status}</TableCell>
-      <TableCell className="max-w-48 truncate font-mono">{request.config.modelId}</TableCell>
-      <TableCell className="font-mono">{formatTokens(request.usage)}</TableCell>
-      <TableCell className="font-mono">{formatCost(request.usage)}</TableCell>
+      <TableCell className="max-w-48 truncate font-mono">{formatModel(request.config)}</TableCell>
+      <TableCell className="font-mono">{formatTokens(request.totalUsage)}</TableCell>
+      <TableCell className="font-mono">{formatCost(request.totalUsage)}</TableCell>
       <TableCell className="max-w-64 truncate text-red-400">
         {request.errorMessage || null}
       </TableCell>

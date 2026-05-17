@@ -19,16 +19,11 @@ import {
 import { MoreHorizontalIcon, PlusIcon } from 'lucide-react'
 import { useRef, useState } from 'react'
 
-import {
-  useActiveSessionId,
-  useSetActiveSessionId,
-  useSession,
-  useSessionIds,
-} from '@/runtime/hooks'
-import { useRuntime } from '@/runtime/use-runtime'
+import { useActiveSessionId, useSetActiveSessionId, useSession, useSessionIds } from '@/api'
+import { useTetra } from '@/tetra-provider'
 
 export function SessionGroup() {
-  const runtime = useRuntime()
+  const { sessions } = useTetra()
   const sessionIds = useSessionIds()
   const activeSessionId = useActiveSessionId()
   const setActiveSessionId = useSetActiveSessionId()
@@ -39,7 +34,7 @@ export function SessionGroup() {
       <SidebarGroupAction
         className="top-2.5"
         onClick={() => {
-          setActiveSessionId(runtime.sessions.create())
+          setActiveSessionId(sessions.create())
         }}
       >
         <PlusIcon />
@@ -52,20 +47,19 @@ export function SessionGroup() {
               active={sessionId === activeSessionId}
               key={sessionId}
               onDelete={() => {
-                runtime.sessions.deleteSession(sessionId)
+                sessions.delete(sessionId)
 
-                // If we deleted the active session, pick another or create one
                 if (sessionId === activeSessionId) {
                   const remaining = sessionIds.filter((id) => id !== sessionId)
                   if (remaining.length > 0 && remaining[0] !== undefined) {
                     setActiveSessionId(remaining[0])
                   } else {
-                    setActiveSessionId(runtime.sessions.create())
+                    setActiveSessionId(sessions.create())
                   }
                 }
               }}
               onRename={(title) => {
-                runtime.sessions.updateSession(sessionId, { title })
+                sessions.rename(sessionId, title)
               }}
               onSelect={() => {
                 setActiveSessionId(sessionId)
@@ -112,7 +106,6 @@ function SessionListItem({
   const startRename = () => {
     setDraft(session.title)
     setRenaming(true)
-    // Focus after React renders the input
     requestAnimationFrame(() => {
       inputRef.current?.focus()
       inputRef.current?.select()

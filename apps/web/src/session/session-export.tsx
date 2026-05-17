@@ -5,7 +5,7 @@ import { DownloadIcon } from 'lucide-react'
 import * as UiReact from 'tinybase/ui-react/with-schemas'
 import type { Indexes, Store } from 'tinybase/with-schemas'
 
-import { useSession } from '@/runtime/hooks'
+import { useSession } from '@/api'
 
 interface ExportStore {
   indexes: Indexes<Schemas>

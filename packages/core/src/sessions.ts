@@ -17,6 +17,7 @@ export interface Sessions {
 
   // Message API — runner always goes through here, never writes message rows directly
   addMessage(sessionId: string, msg: { content: string; role: MessageRole }): string
+  deleteMessage(messageId: string): void
   getMessage(messageId: string): Message
   getMessages(sessionId: string): Message[]
 
@@ -84,7 +85,34 @@ export function createSessions({ indexes, store }: TetraStore): Sessions {
     },
 
     delete(sessionId) {
-      store.delRow('sessions', sessionId)
+      // Cascade-delete child rows so no orphaned messages, requests, or steps remain.
+      const messageIds = indexes.getSliceRowIds('messagesBySession', sessionId)
+      const requestIds = indexes.getSliceRowIds('requestsBySession', sessionId)
+
+      store.transaction(() => {
+        for (const messageId of messageIds) {
+          const stepIds = indexes.getSliceRowIds('stepsByMessage', messageId)
+          for (const stepId of stepIds) {
+            store.delRow('steps', stepId)
+          }
+          store.delRow('messages', messageId)
+        }
+        for (const requestId of requestIds) {
+          store.delRow('requests', requestId)
+        }
+        store.delRow('sessions', sessionId)
+      })
+    },
+
+    deleteMessage(messageId) {
+      // Also remove any steps that belong to this message
+      const stepIds = indexes.getSliceRowIds('stepsByMessage', messageId)
+      store.transaction(() => {
+        for (const stepId of stepIds) {
+          store.delRow('steps', stepId)
+        }
+        store.delRow('messages', messageId)
+      })
     },
 
     async gatherModelMessages(sessionId, assistantMessageId, maxMessages) {

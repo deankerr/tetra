@@ -10,14 +10,13 @@ import { Toggle } from '@tetra/ui/components/ui/toggle'
 import { BotIcon, Code2Icon, MessagesSquareIcon, PanelRightIcon, TableIcon } from 'lucide-react'
 import { useState } from 'react'
 
-import { useActiveSessionId, useSession, useSessionMessageIds } from '@/runtime/hooks'
+import { useActiveSessionId, useSession, useSessionMessageIds } from '@/api'
 
 import { Composer } from './composer'
 import { DetailPanel } from './detail-panel'
 import { MessageInspector } from './message-inspector'
 import { RequestsTable } from './requests-table'
 import { SessionConfig } from './session-config'
-import { SessionExport } from './session-export'
 import { SessionMessage } from './session-message'
 
 type MessageView = 'chat' | 'debug' | 'requests'
@@ -85,7 +84,7 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
           >
             <TableIcon />
           </Toggle>
-          <SessionExport sessionId={sessionId} />
+          {/* <SessionExport sessionId={sessionId} /> */}
           <Button
             onClick={() => {
               setDetailOpen((prev) => !prev)

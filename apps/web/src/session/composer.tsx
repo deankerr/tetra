@@ -9,26 +9,37 @@ import {
 } from '@tetra/ui/components/ai-elements/prompt-input'
 import type { PromptInputMessage } from '@tetra/ui/components/ai-elements/prompt-input'
 import { PlusIcon } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
+import { useActiveRequest, useSessionConfig } from '@/api'
 import { ModelPicker } from '@/models/model-picker'
-import { useActiveRequest, useSessionConfig } from '@/runtime/hooks'
-import { useRuntime } from '@/runtime/use-runtime'
+import { useTetra } from '@/tetra-provider'
 
 export function Composer({ sessionId }: { sessionId: string }) {
-  const runtime = useRuntime()
+  const { runner, sessions, streamingState } = useTetra()
   const activeRequest = useActiveRequest(sessionId)
   const isStreaming = activeRequest !== null
   const config = useSessionConfig(sessionId)
   const [draft, setDraft] = useState('')
+
+  // Track the assistant message ID for the active stream so we can clean up StreamingState
+  const activeAssistantRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (activeRequest !== null) {
+      activeAssistantRef.current = activeRequest.assistantMessageId
+    } else if (activeAssistantRef.current !== null) {
+      streamingState.delete(activeAssistantRef.current)
+      activeAssistantRef.current = null
+    }
+  }, [activeRequest, streamingState])
 
   const handleAdd = () => {
     if (!draft.trim()) {
       return
     }
 
-    runtime.sessions.addMessage(sessionId, {
-      parts: [{ text: draft, type: 'text' }],
+    sessions.addMessage(sessionId, {
+      content: draft,
       role: 'user',
     })
     setDraft('')
@@ -39,16 +50,11 @@ export function Composer({ sessionId }: { sessionId: string }) {
       return
     }
 
-    runtime.sessions.addMessage(sessionId, {
-      parts: [{ text: message.text, type: 'text' }],
-      role: 'user',
-    })
-    const assistantMessage = runtime.sessions.addMessage(sessionId, {
-      parts: [],
-      role: 'assistant',
-    })
-    runtime.requests.execute({
-      assistantMessageId: assistantMessage.messageId,
+    const { assistantMessageId } = runner.execute(sessionId, {
+      content: message.text,
+      onSnapshot: (msg) => {
+        streamingState.update(assistantMessageId, msg)
+      },
     })
     setDraft('')
   }
@@ -71,7 +77,8 @@ export function Composer({ sessionId }: { sessionId: string }) {
           <PromptInputTools>
             <ModelPicker
               onValueChange={(modelId) => {
-                runtime.sessions.updateSessionConfig(sessionId, { patch: { modelId } })
+                const current = sessions.getConfig(sessionId)
+                sessions.setConfig(sessionId, { ...current, modelId })
               }}
               value={config.modelId}
             />
@@ -92,7 +99,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
               status={isStreaming ? 'streaming' : 'ready'}
               {...(activeRequest && {
                 onStop: () => {
-                  runtime.requests.cancel(activeRequest.id)
+                  runner.cancel(activeRequest.id)
                 },
               })}
             />

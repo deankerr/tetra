@@ -14,9 +14,14 @@ export interface ExecuteArgs {
   onSnapshot?: (msg: UIMessage) => void
 }
 
+export interface ExecuteResult {
+  assistantMessageId: string
+  requestId: string
+}
+
 export interface Runner {
   cancel(requestId: string): void
-  execute(sessionId: string, args: ExecuteArgs): string
+  execute(sessionId: string, args: ExecuteArgs): ExecuteResult
   // On startup: recover any requests interrupted by a process restart.
   recover(): void
 }
@@ -127,7 +132,7 @@ export function createRunner(
           })
         },
         providerOptions: { openrouter: providerOptions },
-        system: config.systemPrompt,
+        ...(config.systemPrompt !== undefined && { system: config.systemPrompt }),
       })
 
       // readUIMessageStream converts the chunk stream into a sequence of assembled
@@ -203,7 +208,7 @@ export function createRunner(
       // Fire-and-forget — runStream writes all outcomes to TinyBase (completed/error/cancelled)
       void runStream(requestId, sessionId, assistantMessageId, validConfig, abort, onSnapshot)
 
-      return requestId
+      return { assistantMessageId, requestId }
     },
 
     recover() {

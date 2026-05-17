@@ -24,36 +24,30 @@ import {
 import type { ReactNode } from 'react'
 import { z } from 'zod'
 
-import type { Message } from '@/runtime/hooks'
-import { useMessage, useRequestForMessage } from '@/runtime/hooks'
-import { useRuntime } from '@/runtime/use-runtime'
+import type { Message } from '@/api'
+import { useMessage, useRequestForMessage } from '@/api'
+import { useTetra } from '@/tetra-provider'
 
 type MessagePart = Message['parts'][number]
 
-// Parses and formats only the fields rendered — cost and total token count.
-const requestUsageSchema = z
+const totalUsageSchema = z
   .looseObject({
-    total: z.looseObject({
-      cost: z
-        .number()
-        .optional()
-        .transform((c) => (c === undefined ? null : `$${c < 0.01 ? c.toFixed(4) : c.toFixed(2)}`)),
-      usage: z
-        .looseObject({
-          totalTokens: z
-            .number()
-            .optional()
-            .transform((t) => (t === undefined ? null : `${t.toLocaleString()} tok`)),
-        })
-        .optional(),
-    }),
+    inputTokens: z.number().optional(),
+    outputTokens: z.number().optional(),
+    totalTokens: z.number().optional(),
   })
-  .transform((u) => ({ cost: u.total.cost, totalTokens: u.total.usage?.totalTokens ?? null }))
+  .transform((u) => ({
+    inOut:
+      u.inputTokens !== undefined && u.outputTokens !== undefined
+        ? `${u.inputTokens.toLocaleString()} / ${u.outputTokens.toLocaleString()} tok`
+        : null,
+    totalTokens: u.totalTokens === undefined ? null : `${u.totalTokens.toLocaleString()} tok`,
+  }))
 
-type RequestUsage = z.infer<typeof requestUsageSchema>
+type ParsedUsage = z.infer<typeof totalUsageSchema>
 
-function parseRequestUsage(value: unknown): RequestUsage | null {
-  const result = requestUsageSchema.safeParse(value)
+function parseTotalUsage(value: unknown): ParsedUsage | null {
+  const result = totalUsageSchema.safeParse(value)
   return result.success ? result.data : null
 }
 
@@ -171,9 +165,9 @@ function isToolPart(part: MessagePart): part is ToolPartType {
 // ------------------------------------------------------------------
 
 const requestStatusConfig = {
+  cancelled: { className: 'text-muted-foreground/40', icon: CircleDashedIcon, label: 'Cancelled' },
   completed: { className: 'text-emerald-500/70', icon: CheckIcon, label: 'Completed' },
   error: { className: 'text-destructive', icon: AlertCircleIcon, label: 'Error' },
-  pending: { className: 'text-muted-foreground/40', icon: CircleDashedIcon, label: 'Pending' },
   streaming: { className: 'text-blue-400 animate-spin', icon: Loader2Icon, label: 'Streaming' },
 } as const
 
@@ -278,7 +272,7 @@ export function MessageInspector({
 }: {
   messageId: string
 } & React.ComponentProps<'div'>) {
-  const runtime = useRuntime()
+  const { sessions } = useTetra()
   const message = useMessage(messageId)
   const request = useRequestForMessage(messageId)
 
@@ -298,13 +292,11 @@ export function MessageInspector({
   }
 
   const { parts, role, id, updatedAt } = message
-  const isStreaming = request?.status === 'pending' || request?.status === 'streaming'
-  const requestUsage = parseRequestUsage(request?.usage)
+  const isStreaming = request?.status === 'streaming'
+  const usage = parseTotalUsage(request?.totalUsage)
   const roleColor = role === 'user' ? 'border-l-emerald-500' : 'border-l-indigo-500'
   const reasoningColor = 'border-l-violet-500'
   const toolColor = 'border-l-blue-500'
-  const totalCost = requestUsage?.cost ?? null
-  const totalTokens = requestUsage?.totalTokens ?? null
 
   const messageText = parts
     .filter((p): p is Extract<typeof p, { type: 'text' }> => p.type === 'text')
@@ -325,8 +317,9 @@ export function MessageInspector({
           </Badge>
 
           <div className="text-muted-foreground/60 text-xxs ml-auto flex items-center gap-1.5">
-            {totalCost !== null && <UsageChip>{totalCost}</UsageChip>}
-            {totalTokens !== null && <UsageChip>{totalTokens}</UsageChip>}
+            {usage?.totalTokens !== null && usage?.totalTokens !== undefined && (
+              <UsageChip>{usage.totalTokens}</UsageChip>
+            )}
             <span>{new Date(updatedAt).toLocaleTimeString()}</span>
           </div>
 
@@ -335,17 +328,24 @@ export function MessageInspector({
           </Badge>
         </Block>
 
-        {parts.map((part, i) => (
-          <MessagePartBlock
-            key={`${id}-part-${i}`}
-            id={id}
-            index={i}
-            part={part}
-            reasoningColor={reasoningColor}
-            roleColor={roleColor}
-            toolColor={toolColor}
-          />
-        ))}
+        {/* Show spinner while streaming with empty parts */}
+        {isStreaming && parts.length === 0 && role === 'assistant' ? (
+          <Block className={cn('flex items-center justify-center py-6', roleColor)}>
+            <Loader2Icon className="text-muted-foreground size-4 animate-spin" />
+          </Block>
+        ) : (
+          parts.map((part, i) => (
+            <MessagePartBlock
+              key={`${id}-part-${i}`}
+              id={id}
+              index={i}
+              part={part}
+              reasoningColor={reasoningColor}
+              roleColor={roleColor}
+              toolColor={toolColor}
+            />
+          ))
+        )}
 
         {request?.status === 'error' && request.errorMessage !== '' && (
           <PartBlock className="border-l-destructive" type="error">
@@ -371,7 +371,7 @@ export function MessageInspector({
             size="icon-xs"
             aria-label="Delete"
             onClick={() => {
-              runtime.sessions.deleteMessage(messageId)
+              sessions.deleteMessage(messageId)
             }}
           >
             <TrashIcon />

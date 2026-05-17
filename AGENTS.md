@@ -32,7 +32,7 @@ The TinyBase repo is cloned as a submodule in `reference/tinybase`.
 
 Bun workspaces. Run scripts from the root.
 
-- Auto-fix lint/format/type-aware issues: `bun run fix`
+- Auto-fix lint/format/type-aware issues: `bun run fix`. This is the only check script you should use. Do not use `tsc`.
 - App-specific scripts: `bun run --filter <name> <script>`, e.g. `bun run --filter @tetra/web dev`
 
 ## Linting

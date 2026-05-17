@@ -19,9 +19,10 @@ import {
   ToolOutput,
 } from '@tetra/ui/components/ai-elements/tool'
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@tetra/ui/components/ui/dialog'
+import { Spinner } from '@tetra/ui/components/ui/spinner'
 import type { DynamicToolUIPart, FileUIPart, SourceDocumentUIPart, ToolUIPart, UIMessage } from 'ai'
 
-import { useMessage } from '@/runtime/hooks'
+import { useMessage } from '@/api'
 
 export function SessionMessage({ messageId }: { messageId: string }) {
   const message = useMessage(messageId)
@@ -32,13 +33,22 @@ export function SessionMessage({ messageId }: { messageId: string }) {
 
   return (
     <Message from={message.role}>
-      {message.parts.map((part, index) => (
-        <SessionMessagePart
-          attachmentId={`${message.id}-attachment-${index}`}
-          key={`${message.id}-part-${index}`}
-          part={part}
-        />
-      ))}
+      {message.parts.length === 0 && message.role === 'assistant' ? (
+        <MessageContent>
+          <div className="flex items-center gap-2 py-2">
+            <Spinner className="text-muted-foreground size-3" />
+            <span className="text-muted-foreground text-xs">Thinking…</span>
+          </div>
+        </MessageContent>
+      ) : (
+        message.parts.map((part, index) => (
+          <SessionMessagePart
+            attachmentId={`${message.id}-attachment-${index}`}
+            key={`${message.id}-part-${index}`}
+            part={part}
+          />
+        ))
+      )}
     </Message>
   )
 }

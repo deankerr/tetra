@@ -106,7 +106,7 @@ program
 
     // Print text parts incrementally on each UIMessage snapshot from the stream
     let lastLen = 0
-    const requestId = runner.execute(sessionId, {
+    const { requestId } = runner.execute(sessionId, {
       config,
       content: message,
       onSnapshot: (msg) => {

@@ -1,4 +1,4 @@
-import type { RequestConfig } from '@tetra/store'
+import type { ModelConfig } from '@tetra/core'
 import { Button } from '@tetra/ui/components/ui/button'
 import { Input } from '@tetra/ui/components/ui/input'
 import { BracesIcon, PlusIcon, XIcon } from 'lucide-react'
@@ -6,8 +6,8 @@ import { useEffect, useReducer, useRef } from 'react'
 import type { Dispatch } from 'react'
 import { z } from 'zod'
 
-import { useSessionConfig } from '@/runtime/hooks'
-import { useRuntime } from '@/runtime/use-runtime'
+import { useSessionConfig } from '@/api'
+import { useTetra } from '@/tetra-provider'
 
 // --- Types ---
 
@@ -26,7 +26,7 @@ interface ObjectEntry {
 }
 
 type Entry = ObjectEntry | ScalarEntry
-type ProviderOptions = NonNullable<RequestConfig['providerOptions']>
+type ProviderOptions = NonNullable<ModelConfig['providerOptions']>
 type ProviderOption = ProviderOptions[string]
 
 const EMPTY_PROVIDER_OPTIONS: ProviderOptions = {}
@@ -52,7 +52,6 @@ function parseValue(str: string): ProviderOption {
   if (trimmed === '') {
     return ''
   }
-  // Comma presence → string array, filter empty segments
   if (trimmed.includes(',')) {
     return trimmed
       .split(',')
@@ -150,12 +149,10 @@ function entriesReducer(state: Entry[], action: Action): Entry[] {
       return state.filter((e) => e.id !== action.id)
     }
 
-    // Update key or value on a scalar entry
     case 'update': {
       return state.map((e) => (e.id === action.id ? { ...e, [action.field]: action.value } : e))
     }
 
-    // Update the key on an object entry
     case 'update-key': {
       return state.map((e) => (e.id === action.id ? { ...e, key: action.value } : e))
     }
@@ -241,7 +238,6 @@ function ScalarRow({ dispatch, entry }: { dispatch: Dispatch<Action>; entry: Sca
 function ObjectRow({ dispatch, entry }: { dispatch: Dispatch<Action>; entry: ObjectEntry }) {
   return (
     <div className="mb-1 flex flex-col gap-1.5">
-      {/* Group header */}
       <div className="flex items-center gap-1.5">
         <Input
           className="flex-1 font-mono"
@@ -261,7 +257,6 @@ function ObjectRow({ dispatch, entry }: { dispatch: Dispatch<Action>; entry: Obj
           <XIcon />
         </Button>
       </div>
-      {/* Children */}
       <div className="border-border ml-3 flex flex-col gap-1.5 border-l pl-3">
         {entry.children.map((child) => (
           <div key={child.id} className="flex items-center gap-1.5">
@@ -323,32 +318,31 @@ function ObjectRow({ dispatch, entry }: { dispatch: Dispatch<Action>; entry: Obj
 // --- Editor ---
 
 export function ProviderOptionsEditor({ sessionId }: { sessionId: string }) {
-  const runtime = useRuntime()
+  const { sessions } = useTetra()
   const options = useSessionConfig(sessionId).providerOptions ?? EMPTY_PROVIDER_OPTIONS
   const [entries, dispatch] = useReducer(entriesReducer, options, optionsToEntries)
   const prevSessionId = useRef(sessionId)
   const isInitialRender = useRef(true)
 
-  // Re-sync entries when session changes
   useEffect(() => {
     if (prevSessionId.current !== sessionId) {
       dispatch({ entries: optionsToEntries(options), type: 'reset' })
       prevSessionId.current = sessionId
-      // Skip the sync-back for this reset too
       isInitialRender.current = true
     }
   }, [sessionId, options])
 
-  // Sync entries → options on every change (skip initial mount)
   useEffect(() => {
     if (isInitialRender.current) {
       isInitialRender.current = false
       return
     }
-    runtime.sessions.updateSessionConfig(sessionId, {
-      patch: { providerOptions: entriesToOptions(entries) },
-    })
-  }, [entries, runtime.sessions, sessionId])
+    const current = sessions.getConfig(sessionId)
+    sessions.setConfig(sessionId, {
+      ...current,
+      providerOptions: entriesToOptions(entries),
+    } as ModelConfig)
+  }, [entries, sessions, sessionId])
 
   return (
     <div className="flex flex-col gap-1.5">

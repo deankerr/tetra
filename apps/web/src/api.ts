@@ -1,0 +1,249 @@
+import { useNavigate, useSearch } from '@tanstack/react-router'
+import { ModelConfig as ModelConfigSchema } from '@tetra/core'
+import type { ModelConfig, TetraSchemas } from '@tetra/core'
+import type { UIMessage } from 'ai'
+import { useMemo, useSyncExternalStore } from 'react'
+import * as UiReact from 'tinybase/ui-react/with-schemas'
+
+import { useTetra } from '@/tetra-provider'
+
+export type { ModelConfig }
+
+// Wrapper types — derived from TinyBase rows, with id and properly typed parts/role/config.
+export interface Message {
+  createdAt: number
+  id: string
+  parts: UIMessage['parts']
+  role: UIMessage['role']
+  sessionId: string
+  updatedAt: number
+}
+
+export interface Request {
+  assistantMessageId: string
+  completedAt: number
+  config: unknown
+  createdAt: number
+  errorMessage: string
+  id: string
+  sessionId: string
+  status: string
+  totalUsage: unknown
+}
+
+export interface Session {
+  config: unknown
+  createdAt: number
+  id: string
+  title: string
+  updatedAt: number
+}
+
+// Schema-aware TinyBase React hooks.
+// oxlint-disable-next-line no-unsafe-type-assertion -- TinyBase WithSchemas pattern
+const store = UiReact as unknown as UiReact.WithSchemas<TetraSchemas>
+
+// --- App State Hooks ---
+
+export const useActiveSessionId = () => {
+  const search = useSearch({ from: '/' })
+  return search.session
+}
+
+export const useSetActiveSessionId = () => {
+  const navigate = useNavigate({ from: '/' })
+
+  return (sessionId: string | undefined) => {
+    void navigate({
+      search: (current) => ({
+        ...current,
+        session: sessionId,
+      }),
+    })
+  }
+}
+
+// --- Session Hooks ---
+
+export const useSessionIds = () => {
+  const messages = store.useTable('messages')
+  const sessions = store.useTable('sessions')
+
+  return useMemo(() => {
+    const latestMessageTimeBySessionId = new Map<string, number>()
+
+    for (const message of Object.values(messages)) {
+      const { sessionId: sid, updatedAt, createdAt } = message
+      const previous = latestMessageTimeBySessionId.get(sid) ?? 0
+      const next = Math.max(updatedAt, createdAt, previous)
+      latestMessageTimeBySessionId.set(sid, next)
+    }
+
+    return Object.entries(sessions)
+      .toSorted(([leftSessionId, leftSession], [rightSessionId, rightSession]) => {
+        const leftCreatedAt = leftSession.createdAt
+        const rightCreatedAt = rightSession.createdAt
+        const left = latestMessageTimeBySessionId.get(leftSessionId) ?? leftCreatedAt
+        const right = latestMessageTimeBySessionId.get(rightSessionId) ?? rightCreatedAt
+        return right - left
+      })
+      .map(([sessionId]) => sessionId)
+  }, [messages, sessions])
+}
+
+export const useSession = (id: string): Session | null => {
+  const hasRow = store.useHasRow('sessions', id)
+  const row = store.useRow('sessions', id)
+  if (!hasRow) {
+    return null
+  }
+  return {
+    config: row.config,
+    createdAt: row.createdAt,
+    id,
+    title: row.title,
+    updatedAt: row.updatedAt,
+  }
+}
+
+const DEFAULT_CONFIG: ModelConfig = {
+  modelId: 'anthropic/claude-sonnet-4-5',
+  systemPrompt: 'Use Markdown sparingly. Favour paragraphs over bulleted lists.',
+}
+
+export const useSessionConfig = (id: string): ModelConfig => {
+  const session = useSession(id)
+  if (session === null) {
+    return DEFAULT_CONFIG
+  }
+  const result = ModelConfigSchema.safeParse(session.config)
+  return result.success ? result.data : DEFAULT_CONFIG
+}
+
+// --- Message Hooks ---
+
+export const useSessionMessageIds = (sessionId: string) =>
+  store.useSliceRowIds('messagesBySession', sessionId)
+
+const EMPTY_PARTS: UIMessage['parts'] = []
+
+const useTinyBaseMessage = (id: string): Message | null => {
+  const row = store.useRow('messages', id)
+  const { createdAt } = row
+  if (!createdAt) {
+    return null
+  }
+  return {
+    createdAt,
+    id,
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- TinyBase stores AI SDK parts in an array cell.
+    parts: (Array.isArray(row.parts) && row.parts.length > 0
+      ? row.parts
+      : EMPTY_PARTS) as UIMessage['parts'],
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Runtime writers constrain message roles.
+    role: row.role as UIMessage['role'],
+    sessionId: row.sessionId,
+    updatedAt: row.updatedAt,
+  }
+}
+
+const useStreamingMessage = (id: string): Message | null => {
+  const { streamingState } = useTetra()
+  const snapshot = useSyncExternalStore(
+    (fn) => streamingState.subscribe(id, fn),
+    () => streamingState.get(id),
+  )
+  if (snapshot === null) {
+    return null
+  }
+  return {
+    createdAt: 0,
+    id,
+    parts: snapshot.parts,
+    role: snapshot.role,
+    sessionId: '',
+    updatedAt: 0,
+  }
+}
+
+export const useMessage = (id: string): Message | null => {
+  const streaming = useStreamingMessage(id)
+  const completed = useTinyBaseMessage(id)
+  return streaming ?? completed
+}
+
+// --- Request Hooks ---
+
+export const useSessionRequestIds = (sessionId: string) =>
+  store.useSliceRowIds('requestsBySession', sessionId)
+
+/** Returns the currently active (streaming) request for a session, or null. */
+export const useActiveRequest = (sessionId: string): Request | null => {
+  const ids = store.useSliceRowIds('requestsBySession', sessionId)
+  const latestId = ids[0] ?? ''
+  const hasRow = store.useHasRow('requests', latestId)
+  const row = store.useRow('requests', latestId)
+
+  if (!hasRow || latestId === '') {
+    return null
+  }
+  if (row.status !== 'streaming') {
+    return null
+  }
+
+  return {
+    assistantMessageId: row.assistantMessageId,
+    completedAt: row.completedAt,
+    config: row.config,
+    createdAt: row.createdAt,
+    errorMessage: row.errorMessage,
+    id: latestId,
+    sessionId: row.sessionId,
+    status: row.status,
+    totalUsage: row.totalUsage,
+  }
+}
+
+/** Returns a request by its row ID. */
+export const useRequest = (id: string): Request | null => {
+  const hasRow = store.useHasRow('requests', id)
+  const row = store.useRow('requests', id)
+  if (!hasRow || !id) {
+    return null
+  }
+  return {
+    assistantMessageId: row.assistantMessageId,
+    completedAt: row.completedAt,
+    config: row.config,
+    createdAt: row.createdAt,
+    errorMessage: row.errorMessage,
+    id,
+    sessionId: row.sessionId,
+    status: row.status,
+    totalUsage: row.totalUsage,
+  }
+}
+
+/** Looks up the request linked to an assistant message. Returns null for user messages. */
+export const useRequestForMessage = (messageId: string): Request | null => {
+  const ids = store.useSliceRowIds('requestByAssistantMessage', messageId)
+  const requestId = ids[0] ?? ''
+  const hasRow = store.useHasRow('requests', requestId)
+  const row = store.useRow('requests', requestId)
+
+  if (!hasRow || requestId === '') {
+    return null
+  }
+
+  return {
+    assistantMessageId: row.assistantMessageId,
+    completedAt: row.completedAt,
+    config: row.config,
+    createdAt: row.createdAt,
+    errorMessage: row.errorMessage,
+    id: requestId,
+    sessionId: row.sessionId,
+    status: row.status,
+    totalUsage: row.totalUsage,
+  }
+}
