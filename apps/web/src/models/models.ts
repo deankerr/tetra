@@ -90,8 +90,11 @@ export function useModels() {
 
   const refresh = useCallback(async () => {
     setLoading(true)
-    await models.refresh({ force: true })
-    setLoading(false)
+    try {
+      await models.refresh({ force: true })
+    } finally {
+      setLoading(false)
+    }
   }, [models])
 
   return { groups: deriveGroups(modelsTable), loading, refresh }

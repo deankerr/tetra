@@ -53,6 +53,9 @@ export function createModels(store: TetraStore): Models {
     }
 
     const res = await fetch('https://openrouter.ai/api/v1/models')
+    if (!res.ok) {
+      throw new Error(`OpenRouter models fetch failed: ${res.status} ${res.statusText}`)
+    }
     const json = orResponseSchema.parse(await res.json())
 
     // Build new rows keyed by model id
