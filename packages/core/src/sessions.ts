@@ -1,9 +1,16 @@
 import { convertToModelMessages } from 'ai'
 import type { ModelMessage, UIMessage } from 'ai'
 
-import { DEFAULT_MODEL_CONFIG, ModelConfig, generateId } from '#model'
-import type { Message, MessageRole, Session } from '#model'
+import { DEFAULT_MODEL_CONFIG, ModelConfig, RequestStatus, generateId } from '#model'
+import type { Message, MessageRole, Request, Session } from '#model'
 import type { TetraStore } from '#store'
+
+export interface SessionExport {
+  exportedAt: string
+  messages: (Message & { id: string })[]
+  requests: (Request & { id: string })[]
+  session: Session
+}
 
 export interface Sessions {
   // Session CRUD
@@ -29,6 +36,9 @@ export interface Sessions {
     assistantMessageId: string,
     maxMessages?: number,
   ): Promise<ModelMessage[]>
+
+  // Snapshot export — produces a portable JSON-serialisable record of the full session.
+  exportSession(sessionId: string): SessionExport
 }
 
 export function createSessions({ indexes, store }: TetraStore): Sessions {
@@ -113,6 +123,39 @@ export function createSessions({ indexes, store }: TetraStore): Sessions {
         }
         store.delRow('messages', messageId)
       })
+    },
+
+    exportSession(sessionId) {
+      const messageIds = indexes.getSliceRowIds('messagesBySession', sessionId)
+      const requestIds = indexes.getSliceRowIds('requestsBySession', sessionId)
+
+      const messages = messageIds
+        .filter((id) => store.hasRow('messages', id))
+        .map((id) => readMessage(id))
+
+      const requests = requestIds
+        .filter((id) => store.hasRow('requests', id))
+        .map((id) => {
+          const row = store.getRow('requests', id)
+          return {
+            assistantMessageId: row.assistantMessageId,
+            completedAt: row.completedAt,
+            config: ModelConfig.parse(row.config),
+            createdAt: row.createdAt,
+            errorMessage: row.errorMessage,
+            id,
+            sessionId: row.sessionId,
+            status: RequestStatus.parse(row.status),
+            totalUsage: row.totalUsage,
+          }
+        })
+
+      return {
+        exportedAt: new Date().toISOString(),
+        messages,
+        requests,
+        session: readSession(sessionId),
+      }
     },
 
     async gatherModelMessages(sessionId, assistantMessageId, maxMessages) {

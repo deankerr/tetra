@@ -3,6 +3,11 @@ import { Database } from 'bun:sqlite'
 import { createRunner, createSessions, createTetraStore } from '@tetra/core'
 import { createSqliteBunPersister } from 'tinybase/persisters/persister-sqlite-bun/with-schemas'
 
+// Resolve credentials from env for tool execution (Jina tools, etc.)
+function getCredential(id: string) {
+  return process.env[`TETRA_CREDENTIAL_${id.toUpperCase()}`] ?? ''
+}
+
 // Bootstrap: resolve API key from env, wire subsystems, attach SQLite persistence
 export async function bootstrap() {
   const apiKey = process.env.OPENROUTER_API_KEY
@@ -13,7 +18,7 @@ export async function bootstrap() {
 
   const tetraStore = createTetraStore()
   const sessions = createSessions(tetraStore)
-  const runner = createRunner(tetraStore, sessions, () => apiKey)
+  const runner = createRunner(tetraStore, sessions, () => apiKey, getCredential)
   runner.recover()
 
   // Persist store to SQLite — tabular mode maps each TinyBase table to a real SQL table

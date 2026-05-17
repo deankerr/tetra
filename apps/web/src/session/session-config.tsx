@@ -6,6 +6,7 @@ import { Textarea } from '@tetra/ui/components/ui/textarea'
 import { useSessionConfig } from '@/api'
 import { ModelPicker } from '@/models/model-picker'
 import { ProviderOptionsEditor } from '@/session/provider-options-editor'
+import { ToolSelector } from '@/session/tool-selector'
 import { useTetra } from '@/tetra-provider'
 
 export function SessionConfig({ sessionId }: { sessionId: string }) {
@@ -41,7 +42,19 @@ export function SessionConfig({ sessionId }: { sessionId: string }) {
         />
       </Field>
 
-      {/* Tools card removed — core runner does not support tools yet */}
+      <Card size="sm">
+        <CardHeader>
+          <CardTitle className="text-xs">Tools</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <ToolSelector
+            onToolIdsChange={(toolIds) => {
+              updateConfig({ toolIds })
+            }}
+            toolIds={config.toolIds ?? []}
+          />
+        </CardContent>
+      </Card>
 
       <Card size="sm">
         <CardHeader>

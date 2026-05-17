@@ -15,6 +15,7 @@ export const ModelConfig = z.object({
   modelId: z.string(),
   providerOptions: z.record(z.string(), z.json()).optional(),
   systemPrompt: z.string().optional(),
+  toolIds: z.array(z.string()).optional(),
 })
 export type ModelConfig = z.infer<typeof ModelConfig>
 

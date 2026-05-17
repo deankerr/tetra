@@ -1,5 +1,5 @@
+import { toolIds, toolsRegistryMap } from '@tetra/core'
 import { credentialsRegistryMap } from '@tetra/credentials/registry'
-import { toolIds, toolsRegistryMap } from '@tetra/tools/registry'
 import { Badge } from '@tetra/ui/components/ui/badge'
 import { Field, FieldContent, FieldDescription, FieldTitle } from '@tetra/ui/components/ui/field'
 import { Switch } from '@tetra/ui/components/ui/switch'

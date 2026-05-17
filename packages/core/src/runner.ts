@@ -5,6 +5,7 @@ import { readUIMessageStream, streamText } from 'ai'
 import { ModelConfig, StepRawUsage, generateId } from '#model'
 import type { Sessions } from '#sessions'
 import type { TetraStore } from '#store'
+import { resolveTools } from '#tools'
 
 export interface ExecuteArgs {
   config?: Partial<ModelConfig>
@@ -86,6 +87,7 @@ export function createRunner(
   tetraStore: TetraStore,
   sessions: Sessions,
   getApiKey: () => string,
+  getCredential: (id: string) => string = () => '',
 ): Runner {
   const { indexes, store } = tetraStore
 
@@ -111,10 +113,21 @@ export function createRunner(
         config.maxMessages,
       )
 
-      const { providerOptions = {} } = config
+      const { providerOptions = {}, toolIds: requestedToolIds } = config
+
+      // Resolve tools and gather credentials if any tool IDs are configured.
+      const toolsResolved =
+        requestedToolIds !== undefined && requestedToolIds.length > 0
+          ? resolveTools(requestedToolIds, getCredential)
+          : undefined
 
       const result = streamText({
         abortSignal: abort.signal,
+        ...(toolsResolved !== undefined && {
+          experimental_context: toolsResolved.toolContext,
+          maxSteps: 10,
+          tools: toolsResolved.tools,
+        }),
         messages,
         model: openrouter(config.modelId),
         // Write a step record on each step completion — accounting only, no content.

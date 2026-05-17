@@ -6,7 +6,8 @@
     "#model": "./src/model.ts",
     "#runner": "./src/runner.ts",
     "#sessions": "./src/sessions.ts",
-    "#store": "./src/store.ts"
+    "#store": "./src/store.ts",
+    "#tools": "./src/tools.ts"
   },
   "exports": {
     ".": "./src/index.ts"
