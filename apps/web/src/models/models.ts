@@ -1,13 +1,21 @@
-import { useEffect, useState } from 'react'
-import * as R from 'remeda'
-import { z } from 'zod'
+import type { TetraSchemas } from '@tetra/core'
+import { useCallback, useState } from 'react'
+import * as UiReact from 'tinybase/ui-react/with-schemas'
+
+import { useTetra } from '@/tetra-provider'
 
 // --- Types ---
 
 export interface Model {
+  contextLength: number
+  createdAt: number
   id: string
+  inputModalities: string[]
   name: string
+  outputModalities: string[]
   provider: string
+  providerName: string
+  supportedParameters: string[]
 }
 
 export interface ModelGroup {
@@ -16,85 +24,75 @@ export interface ModelGroup {
   provider: string
 }
 
-// --- Module cache ---
+// --- Schema-aware TinyBase hooks ---
 
-let cache: ModelGroup[] | null = null
-let pending: Promise<ModelGroup[]> | null = null
+// oxlint-disable-next-line no-unsafe-type-assertion -- TinyBase WithSchemas pattern
+const store = UiReact as unknown as UiReact.WithSchemas<TetraSchemas>
 
-// --- Schema ---
+// --- Group derivation ---
 
-const modelSchema = z.object({ id: z.string(), name: z.string() })
-const modelsResponseSchema = z.object({ data: z.array(modelSchema) })
+function deriveGroups(table: ReturnType<typeof store.useTable<'models'>>): ModelGroup[] {
+  const all: Model[] = []
 
-// --- Parsing ---
+  for (const [id, row] of Object.entries(table)) {
+    // Only include models that output text
+    // oxlint-disable-next-line no-unsafe-type-assertion -- array cell typed as AnyArray by TinyBase
+    const outputModalities = row.outputModalities as string[]
+    if (!outputModalities.includes('text')) {
+      continue
+    }
 
-function parseModel(raw: z.infer<typeof modelSchema>): Model {
-  const [provider = 'unknown'] = raw.id.split('/')
-
-  // OpenRouter names are "Provider: Model Name" — strip the prefix
-  const name = raw.name.includes(':') ? raw.name.split(':').slice(1).join(':').trim() : raw.name
-
-  return { id: raw.id, name, provider }
-}
-
-function groupByProvider(models: Model[]): ModelGroup[] {
-  return R.pipe(
-    models,
-    R.groupBy((m) => m.provider),
-    R.entries(),
-    R.map(([provider, group]) => ({
-      displayName: provider.charAt(0).toUpperCase() + provider.slice(1),
-      models: group,
-      provider,
-    })),
-    R.sortBy((g) => g.displayName),
-  )
-}
-
-// --- Fetch ---
-
-async function fetchModels(): Promise<ModelGroup[]> {
-  const res = await fetch('https://openrouter.ai/api/v1/models')
-  const json = modelsResponseSchema.parse(await res.json())
-  const models = json.data.map(parseModel)
-  return groupByProvider(models)
-}
-
-// oxlint-disable-next-line promise-function-async -- Promise cache accessor should return the stored promise directly.
-function getModels(): Promise<ModelGroup[]> {
-  if (cache) {
-    return Promise.resolve(cache)
+    all.push({
+      contextLength: row.contextLength,
+      createdAt: row.createdAt,
+      id,
+      // oxlint-disable-next-line no-unsafe-type-assertion -- array cell typed as AnyArray by TinyBase
+      inputModalities: row.inputModalities as string[],
+      name: row.name,
+      outputModalities,
+      provider: row.provider,
+      providerName: row.providerName || row.provider,
+      // oxlint-disable-next-line no-unsafe-type-assertion -- array cell typed as AnyArray by TinyBase
+      supportedParameters: row.supportedParameters as string[],
+    })
   }
 
-  pending ??= (async () => {
-    const groups = await fetchModels()
-    cache = groups
-    pending = null
-    return groups
-  })()
+  // Group by provider name
+  const byProvider = new Map<string, Model[]>()
+  for (const model of all) {
+    const key = model.providerName
+    const group = byProvider.get(key) ?? []
+    group.push(model)
+    byProvider.set(key, group)
+  }
 
-  return pending
+  // Sort models within each group by recency (newest first)
+  for (const models of byProvider.values()) {
+    models.sort((a, b) => b.createdAt - a.createdAt)
+  }
+
+  // Sort groups alphabetically by display name
+  return [...byProvider.entries()]
+    .map(([providerName, models]) => ({
+      displayName: providerName,
+      models,
+      provider: models[0]?.provider ?? '',
+    }))
+    .toSorted((a, b) => a.displayName.localeCompare(b.displayName))
 }
 
 // --- Hook ---
 
 export function useModels() {
-  const [models, setModels] = useState<ModelGroup[]>(cache ?? [])
-  const [loading, setLoading] = useState(!cache)
+  const { models } = useTetra()
+  const modelsTable = store.useTable('models')
+  const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    if (cache) {
-      setModels(cache)
-      setLoading(false)
-      return
-    }
-    const load = async () => {
-      const groups = await getModels()
-      setModels(groups)
-      setLoading(false)
-    }
-    void load()
-  }, [])
+  const refresh = useCallback(async () => {
+    setLoading(true)
+    await models.refresh({ force: true })
+    setLoading(false)
+  }, [models])
 
-  return { loading, models }
+  return { groups: deriveGroups(modelsTable), loading, refresh }
 }

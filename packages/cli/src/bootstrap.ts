@@ -1,6 +1,6 @@
 import { Database } from 'bun:sqlite'
 
-import { createRunner, createSessions, createTetraStore } from '@tetra/core'
+import { createModels, createRunner, createSessions, createTetraStore } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
 import { createSqliteBunPersister } from 'tinybase/persisters/persister-sqlite-bun/with-schemas'
 
@@ -9,6 +9,7 @@ export async function bootstrap() {
   const tetraStore = createTetraStore()
   const sessions = createSessions(tetraStore)
   const runner = createRunner(tetraStore, sessions, credentialStore)
+  const models = createModels(tetraStore)
   runner.recover()
 
   // Persist store to SQLite — tabular mode maps each TinyBase table to a real SQL table
@@ -18,12 +19,14 @@ export async function bootstrap() {
     tables: {
       load: {
         messages: { rowIdColumnName: 'id', tableId: 'messages' },
+        models: { rowIdColumnName: 'id', tableId: 'models' },
         requests: { rowIdColumnName: 'id', tableId: 'requests' },
         sessions: { rowIdColumnName: 'id', tableId: 'sessions' },
         steps: { rowIdColumnName: 'id', tableId: 'steps' },
       },
       save: {
         messages: { rowIdColumnName: 'id', tableName: 'messages' },
+        models: { rowIdColumnName: 'id', tableName: 'models' },
         requests: { rowIdColumnName: 'id', tableName: 'requests' },
         sessions: { rowIdColumnName: 'id', tableName: 'sessions' },
         steps: { rowIdColumnName: 'id', tableName: 'steps' },
@@ -33,5 +36,5 @@ export async function bootstrap() {
   await persister.load()
   await persister.startAutoSave()
 
-  return { runner, sessions, ...tetraStore }
+  return { models, runner, sessions, ...tetraStore }
 }

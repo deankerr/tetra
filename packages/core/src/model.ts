@@ -109,6 +109,16 @@ export const tablesSchema = {
     sessionId: { default: '', type: 'string' },
     updatedAt: { default: 0, type: 'number' },
   },
+  models: {
+    contextLength: { default: 0, type: 'number' },
+    createdAt: { default: 0, type: 'number' },
+    inputModalities: { default: [], type: 'array' },
+    name: { default: '', type: 'string' },
+    outputModalities: { default: [], type: 'array' },
+    provider: { default: '', type: 'string' },
+    providerName: { default: '', type: 'string' },
+    supportedParameters: { default: [], type: 'array' },
+  },
   requests: {
     assistantMessageId: { default: '', type: 'string' },
     completedAt: { default: 0, type: 'number' },
@@ -136,12 +146,15 @@ export const tablesSchema = {
   },
 } as const satisfies TablesSchema
 
-export const valuesSchema = {} as const satisfies ValuesSchema
+export const valuesSchema = {
+  modelsLastRefreshed: { default: 0, type: 'number' },
+} as const satisfies ValuesSchema
 
 export type TetraSchemas = [typeof tablesSchema, typeof valuesSchema]
 
 // Domain types derived from the schema — id is the TinyBase row key, not a stored cell
 type Schema = typeof tablesSchema
+export type OrmModel = Row<Schema, 'models'> & { id: string }
 export type Session = Row<Schema, 'sessions'> & { id: string }
 export type Message = Row<Schema, 'messages'> & { id: string }
 export type Request = Row<Schema, 'requests'> & { id: string }

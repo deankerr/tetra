@@ -1,5 +1,5 @@
-import { createRunner, createSessions, createTetraMergeableStore } from '@tetra/core'
-import type { Runner, Sessions, TetraSchemas, TetraStore } from '@tetra/core'
+import { createModels, createRunner, createSessions, createTetraMergeableStore } from '@tetra/core'
+import type { Models, Runner, Sessions, TetraSchemas, TetraStore } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
 import { Sidebar, SidebarInset, SidebarProvider } from '@tetra/ui/components/ui/sidebar'
 import { Spinner } from '@tetra/ui/components/ui/spinner'
@@ -18,6 +18,7 @@ import { TetraContext } from '@/tetra-provider'
 
 interface TetraApp {
   indexes: TetraStore['indexes']
+  models: Models
   runner: Runner
   sessions: Sessions
   store: TetraStore['store']
@@ -29,11 +30,13 @@ export function App() {
     const tetraStore = createTetraMergeableStore()
     const sessions = createSessions(tetraStore)
     const runner = createRunner(tetraStore, sessions, credentialStore)
+    const models = createModels(tetraStore)
     const streamingState = new StreamingState()
 
     console.log('store initialized')
     return {
       indexes: tetraStore.indexes,
+      models,
       runner,
       sessions,
       store: tetraStore.store,
@@ -63,6 +66,7 @@ export function App() {
       }
 
       tetra.runner.recover()
+      void tetra.models.refresh()
       setPersister(opfsPersister)
       console.log('opfs persister initialized')
     }
