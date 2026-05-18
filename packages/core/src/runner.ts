@@ -1,9 +1,10 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 import type { CredentialStore } from '@tetra/credentials'
 import type { OnStepFinishEvent, UIMessage } from 'ai'
-import { readUIMessageStream, streamText } from 'ai'
+import { readUIMessageStream, stepCountIs, streamText } from 'ai'
+import { z } from 'zod'
 
-import { ModelConfig, StepRawUsage, generateId } from '#model'
+import { ModelConfig, generateId } from '#model'
 import type { Sessions } from '#sessions'
 import type { TetraStore } from '#store'
 import { resolveTools } from '#tools'
@@ -27,6 +28,48 @@ export interface Runner {
   // On startup: recover any requests interrupted by a process restart.
   recover(): void
 }
+
+// Raw usage from the OpenRouter API response — verbatim provider JSON in step.usage.raw.
+// OpenAI-compatible snake_case names with OpenRouter cost extensions bolted on.
+// All fields optional: schema evolves upstream; we parse defensively.
+const StepRawUsage = z.object({
+  completion_tokens: z.number().optional(),
+  completion_tokens_details: z
+    .object({
+      audio_tokens: z.number().optional(),
+      image_tokens: z.number().optional(),
+      reasoning_tokens: z.number().optional(),
+    })
+    .optional(),
+
+  // Cost — OpenRouter extension; the AI SDK does not normalise cost into its own fields
+  cost: z.number().optional(),
+  cost_details: z
+    .object({
+      upstream_inference_completions_cost: z.number().optional(),
+      upstream_inference_cost: z.number().optional(),
+      upstream_inference_prompt_cost: z.number().optional(),
+    })
+    .optional(),
+
+  // true when the request used a user-supplied API key — no OpenRouter markup applied
+  is_byok: z.boolean().optional(),
+
+  prompt_tokens: z.number().optional(),
+  prompt_tokens_details: z
+    .object({
+      audio_tokens: z.number().optional(),
+      // tokens written to the prompt cache this turn (incurs a write fee)
+      cache_write_tokens: z.number().optional(),
+      // tokens served from the prompt cache this turn (discounted rate)
+      cached_tokens: z.number().optional(),
+      video_tokens: z.number().optional(),
+    })
+    .optional(),
+
+  total_tokens: z.number().optional(),
+})
+type StepRawUsage = z.infer<typeof StepRawUsage>
 
 // --- Step accounting ---
 //
@@ -113,25 +156,19 @@ export function createRunner(
         config.maxMessages,
       )
 
-      const { providerOptions = {}, toolIds: requestedToolIds } = config
+      const { providerOptions = {}, toolIds: requestedToolIds = [] } = config
 
       // Resolve tools and gather credentials if any tool IDs are configured.
-      const toolsResolved =
-        requestedToolIds !== undefined && requestedToolIds.length > 0
-          ? resolveTools(requestedToolIds, (id) => credentials.get(id))
-          : undefined
+      const toolsResolved = resolveTools(requestedToolIds, (id) => credentials.get(id))
 
       const result = streamText({
         abortSignal: abort.signal,
-        ...(toolsResolved !== undefined && {
-          experimental_context: toolsResolved.toolContext,
-          maxSteps: 10,
-          tools: toolsResolved.tools,
-        }),
+        experimental_context: toolsResolved?.toolContext,
+        experimental_onStart: (event) => {
+          console.log('streamText onStart', { event, requestId })
+        },
         messages,
         model: openrouter(config.modelId),
-        // Write a step record on each step completion — accounting only, no content.
-        // Content is handled by the UIMessage stream below.
         onAbort: () => {
           console.warn('streamText aborted', { requestId })
         },
@@ -148,12 +185,10 @@ export function createRunner(
           })
         },
         providerOptions: { openrouter: providerOptions },
-        ...(config.systemPrompt !== undefined && { system: config.systemPrompt }),
-        onError: (event) => {
-          console.error({ event, requestId })
-        },
+        stopWhen: stepCountIs(6),
+        system: config.systemPrompt,
+        tools: toolsResolved?.tools,
       })
-      console.log('streamText start', { requestId })
 
       // readUIMessageStream converts the chunk stream into a sequence of assembled
       // UIMessage snapshots — one per meaningful update (text chunk, tool result, etc.).

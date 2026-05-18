@@ -2,7 +2,7 @@ import { convertToModelMessages } from 'ai'
 import type { ModelMessage, UIMessage } from 'ai'
 
 import { DEFAULT_MODEL_CONFIG, ModelConfig, RequestStatus, generateId } from '#model'
-import type { Message, MessageRole, Request, Session } from '#model'
+import type { Message, MessageRole, Request, Session, Step } from '#model'
 import type { TetraStore } from '#store'
 
 export interface SessionExport {
@@ -10,6 +10,7 @@ export interface SessionExport {
   messages: (Message & { id: string })[]
   requests: (Request & { id: string })[]
   session: Session
+  steps: Step[]
 }
 
 export interface Sessions {
@@ -154,11 +155,28 @@ export function createSessions({ indexes, store }: TetraStore): Sessions {
           }
         })
 
+      const steps = messageIds.flatMap((messageId) =>
+        indexes.getSliceRowIds('stepsByMessage', messageId).map((stepId) => {
+          const row = store.getRow('steps', stepId)
+          return {
+            accounting: row.accounting,
+            createdAt: row.createdAt,
+            finishReason: row.finishReason,
+            id: stepId,
+            messageId: row.messageId,
+            requestId: row.requestId,
+            sessionId: row.sessionId,
+            stepNumber: row.stepNumber,
+          } satisfies Step
+        }),
+      )
+
       return {
         exportedAt: new Date().toISOString(),
         messages,
         requests,
         session: readSession(sessionId),
+        steps,
       }
     },
 

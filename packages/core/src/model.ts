@@ -58,48 +58,6 @@ export const StepAccounting = z.object({
 })
 export type StepAccounting = z.infer<typeof StepAccounting>
 
-// Raw usage from the OpenRouter API response — verbatim provider JSON in step.usage.raw.
-// OpenAI-compatible snake_case names with OpenRouter cost extensions bolted on.
-// All fields optional: schema evolves upstream; we parse defensively.
-export const StepRawUsage = z.object({
-  completion_tokens: z.number().optional(),
-  completion_tokens_details: z
-    .object({
-      audio_tokens: z.number().optional(),
-      image_tokens: z.number().optional(),
-      reasoning_tokens: z.number().optional(),
-    })
-    .optional(),
-
-  // Cost — OpenRouter extension; the AI SDK does not normalise cost into its own fields
-  cost: z.number().optional(),
-  cost_details: z
-    .object({
-      upstream_inference_completions_cost: z.number().optional(),
-      upstream_inference_cost: z.number().optional(),
-      upstream_inference_prompt_cost: z.number().optional(),
-    })
-    .optional(),
-
-  // true when the request used a user-supplied API key — no OpenRouter markup applied
-  is_byok: z.boolean().optional(),
-
-  prompt_tokens: z.number().optional(),
-  prompt_tokens_details: z
-    .object({
-      audio_tokens: z.number().optional(),
-      // tokens written to the prompt cache this turn (incurs a write fee)
-      cache_write_tokens: z.number().optional(),
-      // tokens served from the prompt cache this turn (discounted rate)
-      cached_tokens: z.number().optional(),
-      video_tokens: z.number().optional(),
-    })
-    .optional(),
-
-  total_tokens: z.number().optional(),
-})
-export type StepRawUsage = z.infer<typeof StepRawUsage>
-
 // TinyBase table schemas
 export const tablesSchema = {
   languageModels: {
