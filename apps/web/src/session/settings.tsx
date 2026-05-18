@@ -4,7 +4,7 @@ import { Field, FieldGroup, FieldTitle } from '@tetra/ui/components/ui/field'
 import { Textarea } from '@tetra/ui/components/ui/textarea'
 
 import { useSessionConfig } from '@/api'
-import { ModelPicker } from '@/models/model-picker'
+import { ModelPicker } from '@/session/model-picker'
 import { ProviderOptionsEditor } from '@/session/provider-options-editor'
 import { ToolSelector } from '@/session/tool-selector'
 import { useTetra } from '@/tetra-provider'

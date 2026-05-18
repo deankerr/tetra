@@ -15,17 +15,15 @@ program
     const { models, store } = await bootstrap()
     await models.refresh({ force: true })
 
-    const table = store.getTable('models')
+    const table = store.getTable('languageModels')
     const rows = Object.entries(table)
       .map(([id, row]) => ({
         contextLength: row.contextLength,
         createdAt: row.createdAt,
         id,
-        // oxlint-disable-next-line no-unsafe-type-assertion -- array cell typed as AnyArray by TinyBase
-        inputModalities: row.inputModalities as string[],
+        inputModalities: row.inputModalities.split(',').filter(Boolean),
         name: row.name,
-        // oxlint-disable-next-line no-unsafe-type-assertion -- array cell typed as AnyArray by TinyBase
-        outputModalities: row.outputModalities as string[],
+        outputModalities: row.outputModalities.split(',').filter(Boolean),
         provider: row.providerName || row.provider,
       }))
       // Only text-output models

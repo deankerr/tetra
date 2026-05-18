@@ -1,5 +1,5 @@
-export { createModels } from '#models'
-export type { Models } from '#models'
+export { createCatalog } from '#catalog'
+export type { Catalog } from '#catalog'
 export { createRunner } from '#runner'
 export type { ExecuteResult, Runner } from '#runner'
 export { createSessions } from '#sessions'
@@ -11,7 +11,7 @@ export { DEFAULT_MODEL_CONFIG, ModelConfig, StepAccounting } from '#model'
 export type {
   Message,
   MessageRole,
-  OrmModel,
+  LanguageModel,
   Request,
   RequestStatus,
   Session,

@@ -33,17 +33,17 @@ function parseModelName(rawName: string): string {
 
 // --- Staleness threshold ---
 
-const STALE_MS = 24 * 60 * 60 * 1000
+const STALE_MS = 60 * 60 * 1000
 
 // --- Factory ---
 
-export interface Models {
+export interface Catalog {
   refresh(opts?: { force?: boolean }): Promise<void>
 }
 
-export function createModels(store: TetraStore): Models {
+export function createCatalog(store: TetraStore): Catalog {
   const isStale = () => {
-    const last = store.store.getValue('modelsLastRefreshed')
+    const last = store.store.getValue('catalogLastRefreshed')
     return !last || Date.now() - last > STALE_MS
   }
 
@@ -66,30 +66,31 @@ export function createModels(store: TetraStore): Models {
       incoming[raw.id] = {
         contextLength: raw.context_length,
         createdAt: raw.created,
-        inputModalities: raw.architecture.input_modalities,
+        inputModalities: raw.architecture.input_modalities.join(','),
         name: parseModelName(raw.name),
-        outputModalities: raw.architecture.output_modalities,
+        outputModalities: raw.architecture.output_modalities.join(','),
         provider,
         providerName: providerName || provider,
-        supportedParameters: raw.supported_parameters,
+        supportedParameters: raw.supported_parameters.join(','),
       }
     }
 
     // Purge rows no longer returned by the API
-    const existingIds = store.store.getRowIds('models')
+    const existingIds = store.store.getRowIds('languageModels')
     const incomingIds = new Set(Object.keys(incoming))
     for (const id of existingIds) {
       if (!incomingIds.has(id)) {
-        store.store.delRow('models', id)
+        store.store.delRow('languageModels', id)
       }
     }
 
     // Write all new/updated rows
     for (const [id, row] of Object.entries(incoming)) {
-      store.store.setRow('models', id, row)
+      store.store.setRow('languageModels', id, row)
     }
 
-    store.store.setValue('modelsLastRefreshed', Date.now())
+    store.store.setValue('catalogLastRefreshed', Date.now())
+    console.log('openrouter model catalog refreshed')
   }
 
   return { refresh }

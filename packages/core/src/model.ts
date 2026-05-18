@@ -100,24 +100,24 @@ export const StepRawUsage = z.object({
 })
 export type StepRawUsage = z.infer<typeof StepRawUsage>
 
-// TinyBase table schemas — cell shape definitions (data shape is a model concern)
+// TinyBase table schemas
 export const tablesSchema = {
+  languageModels: {
+    contextLength: { default: 0, type: 'number' },
+    createdAt: { default: 0, type: 'number' },
+    inputModalities: { default: '', type: 'string' },
+    name: { default: '', type: 'string' },
+    outputModalities: { default: '', type: 'string' },
+    provider: { default: '', type: 'string' },
+    providerName: { default: '', type: 'string' },
+    supportedParameters: { default: '', type: 'string' },
+  },
   messages: {
     createdAt: { default: 0, type: 'number' },
     parts: { default: [], type: 'array' },
     role: { default: 'user', type: 'string' },
     sessionId: { default: '', type: 'string' },
     updatedAt: { default: 0, type: 'number' },
-  },
-  models: {
-    contextLength: { default: 0, type: 'number' },
-    createdAt: { default: 0, type: 'number' },
-    inputModalities: { default: [], type: 'array' },
-    name: { default: '', type: 'string' },
-    outputModalities: { default: [], type: 'array' },
-    provider: { default: '', type: 'string' },
-    providerName: { default: '', type: 'string' },
-    supportedParameters: { default: [], type: 'array' },
   },
   requests: {
     assistantMessageId: { default: '', type: 'string' },
@@ -147,14 +147,14 @@ export const tablesSchema = {
 } as const satisfies TablesSchema
 
 export const valuesSchema = {
-  modelsLastRefreshed: { default: 0, type: 'number' },
+  catalogLastRefreshed: { default: 0, type: 'number' },
 } as const satisfies ValuesSchema
 
 export type TetraSchemas = [typeof tablesSchema, typeof valuesSchema]
 
 // Domain types derived from the schema — id is the TinyBase row key, not a stored cell
 type Schema = typeof tablesSchema
-export type OrmModel = Row<Schema, 'models'> & { id: string }
+export type LanguageModel = Row<Schema, 'languageModels'> & { id: string }
 export type Session = Row<Schema, 'sessions'> & { id: string }
 export type Message = Row<Schema, 'messages'> & { id: string }
 export type Request = Row<Schema, 'requests'> & { id: string }

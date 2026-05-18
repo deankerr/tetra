@@ -1,5 +1,5 @@
-import { createModels, createRunner, createSessions, createTetraMergeableStore } from '@tetra/core'
-import type { Models, Runner, Sessions, TetraSchemas, TetraStore } from '@tetra/core'
+import { createCatalog, createRunner, createSessions, createTetraMergeableStore } from '@tetra/core'
+import type { Catalog, Runner, Sessions, TetraSchemas, TetraStore } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
 import { Sidebar, SidebarInset, SidebarProvider } from '@tetra/ui/components/ui/sidebar'
 import { Spinner } from '@tetra/ui/components/ui/spinner'
@@ -18,7 +18,7 @@ import { TetraContext } from '@/tetra-provider'
 
 interface TetraApp {
   indexes: TetraStore['indexes']
-  models: Models
+  models: Catalog
   runner: Runner
   sessions: Sessions
   store: TetraStore['store']
@@ -30,7 +30,7 @@ export function App() {
     const tetraStore = createTetraMergeableStore()
     const sessions = createSessions(tetraStore)
     const runner = createRunner(tetraStore, sessions, credentialStore)
-    const models = createModels(tetraStore)
+    const models = createCatalog(tetraStore)
     const streamingState = new StreamingState()
 
     console.log('store initialized')

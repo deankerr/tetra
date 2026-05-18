@@ -12,7 +12,7 @@ import { PlusIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { useStreamingRequest, useSessionConfig } from '@/api'
-import { ModelPicker } from '@/models/model-picker'
+import { ModelPicker } from '@/session/model-picker'
 import { useTetra } from '@/tetra-provider'
 
 export function Composer({ sessionId }: { sessionId: string }) {
