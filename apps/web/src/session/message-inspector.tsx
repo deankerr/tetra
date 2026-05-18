@@ -1,3 +1,4 @@
+import { StepRecord } from '@tetra/core'
 import { CodeBlockContent } from '@tetra/ui/components/ai-elements/code-block'
 import type { ToolPart as ToolPartType } from '@tetra/ui/components/ai-elements/tool'
 import { getStatusBadge } from '@tetra/ui/components/ai-elements/tool'
@@ -23,33 +24,11 @@ import {
   WrenchIcon,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { z } from 'zod'
 
 import { useMessage, useRequestForMessage } from '@/api'
 import { useTetra } from '@/tetra-provider'
 
 type MessagePart = UIMessage['parts'][number]
-
-const totalUsageSchema = z
-  .looseObject({
-    inputTokens: z.number().optional(),
-    outputTokens: z.number().optional(),
-    totalTokens: z.number().optional(),
-  })
-  .transform((u) => ({
-    inOut:
-      u.inputTokens !== undefined && u.outputTokens !== undefined
-        ? `${u.inputTokens.toLocaleString()} / ${u.outputTokens.toLocaleString()} tok`
-        : null,
-    totalTokens: u.totalTokens === undefined ? null : `${u.totalTokens.toLocaleString()} tok`,
-  }))
-
-type ParsedUsage = z.infer<typeof totalUsageSchema>
-
-function parseTotalUsage(value: unknown): ParsedUsage | null {
-  const result = totalUsageSchema.safeParse(value)
-  return result.success ? result.data : null
-}
 
 function RawJsonCollapsible({
   defaultOpen = true,
@@ -293,7 +272,13 @@ export function MessageInspector({
 
   const { parts, role, id, updatedAt } = message
   const isStreaming = request?.status === 'streaming'
-  const usage = parseTotalUsage(request?.totalUsage)
+  // Derive total tokens by summing across steps — no separate totalUsage field on request.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- steps stored as StepRecord[]
+  const requestSteps = (request?.steps ?? []) as StepRecord[]
+  const totalTokens =
+    requestSteps.length > 0
+      ? requestSteps.reduce((sum, s) => sum + (StepRecord.safeParse(s).data?.tokens.total ?? 0), 0)
+      : null
   const roleColor = role === 'user' ? 'border-l-emerald-500' : 'border-l-indigo-500'
   const reasoningColor = 'border-l-violet-500'
   const toolColor = 'border-l-blue-500'
@@ -317,8 +302,8 @@ export function MessageInspector({
           </Badge>
 
           <div className="text-muted-foreground/60 text-xxs ml-auto flex items-center gap-1.5">
-            {usage?.totalTokens !== null && usage?.totalTokens !== undefined && (
-              <UsageChip>{usage.totalTokens}</UsageChip>
+            {totalTokens !== null && totalTokens > 0 && (
+              <UsageChip>{totalTokens.toLocaleString()} tok</UsageChip>
             )}
             <span>{new Date(updatedAt).toLocaleTimeString()}</span>
           </div>

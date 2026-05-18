@@ -7,7 +7,7 @@ export type { SessionExport, Sessions } from '#sessions'
 export { createTetraMergeableStore, createTetraStore } from '#store'
 export type { TetraStore } from '#store'
 
-export { DEFAULT_MODEL_CONFIG, ModelConfig, StepAccounting } from '#model'
+export { DEFAULT_MODEL_CONFIG, ModelConfig, StepRecord } from '#model'
 export type {
   Message,
   MessageRole,
@@ -15,7 +15,6 @@ export type {
   Request,
   RequestStatus,
   Session,
-  Step,
   TetraSchemas,
 } from '#model'
 

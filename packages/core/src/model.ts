@@ -30,18 +30,21 @@ export const DEFAULT_MODEL_CONFIG: ModelConfig = {
   systemPrompt: 'Use Markdown sparingly. Favour paragraphs over bulleted lists.',
 }
 
-// Aggregated accounting stored on each step — shape produced by resolveAccounting() in runner.ts.
-export const StepAccounting = z.object({
-  backendProvider: z.string(),
+// Per-step record embedded in the request row's steps array.
+// Produced by resolveStep() in runner.ts — all fields are flat, no sub-object for "accounting".
+export const StepRecord = z.object({
   cost: z.object({
     completion: z.number().nullable(),
     isByok: z.boolean(),
     prompt: z.number().nullable(),
     total: z.number().nullable(),
   }),
+  createdAt: z.number(),
+  finishReason: z.string(),
   generationId: z.string(),
-  requestedModel: z.string(),
-  servedModel: z.string(),
+  model: z.string(),
+  provider: z.string(),
+  stepNumber: z.number(),
   tokens: z.object({
     audioIn: z.number(),
     audioOut: z.number(),
@@ -51,12 +54,11 @@ export const StepAccounting = z.object({
     input: z.number(),
     output: z.number(),
     reasoning: z.number(),
-    text: z.number(),
     total: z.number(),
     videoIn: z.number(),
   }),
 })
-export type StepAccounting = z.infer<typeof StepAccounting>
+export type StepRecord = z.infer<typeof StepRecord>
 
 // TinyBase table schemas
 export const tablesSchema = {
@@ -85,22 +87,13 @@ export const tablesSchema = {
     errorMessage: { default: '', type: 'string' },
     sessionId: { default: '', type: 'string' },
     status: { default: 'streaming', type: 'string' },
-    totalUsage: { default: {}, type: 'object' },
+    steps: { default: [], type: 'array' },
   },
   sessions: {
     config: { default: {}, type: 'object' },
     createdAt: { default: 0, type: 'number' },
     title: { default: '', type: 'string' },
     updatedAt: { default: 0, type: 'number' },
-  },
-  steps: {
-    accounting: { default: {}, type: 'object' },
-    createdAt: { default: 0, type: 'number' },
-    finishReason: { default: '', type: 'string' },
-    messageId: { default: '', type: 'string' },
-    requestId: { default: '', type: 'string' },
-    sessionId: { default: '', type: 'string' },
-    stepNumber: { default: 0, type: 'number' },
   },
 } as const satisfies TablesSchema
 
@@ -116,7 +109,6 @@ export type LanguageModel = Row<Schema, 'languageModels'> & { id: string }
 export type Session = Row<Schema, 'sessions'> & { id: string }
 export type Message = Row<Schema, 'messages'> & { id: string }
 export type Request = Row<Schema, 'requests'> & { id: string }
-export type Step = Row<Schema, 'steps'> & { id: string }
 
 // HLC ID generators — single monotonic counter across all entity types
 const [getNextHlc] = getHlcFunctions()
@@ -126,5 +118,4 @@ export const generateId = {
   message: prefixed('mesg'),
   request: prefixed('rqst'),
   session: prefixed('sess'),
-  step: prefixed('step'),
 }

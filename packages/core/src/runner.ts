@@ -1,11 +1,12 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 import type { CredentialStore } from '@tetra/credentials'
-import type { OnStepFinishEvent, UIMessage } from 'ai'
+import type { UIMessage } from 'ai'
 import { readUIMessageStream, stepCountIs, streamText } from 'ai'
-import { z } from 'zod'
 
+import type { StepRecord } from '#model'
 import { ModelConfig, generateId } from '#model'
 import type { Sessions } from '#sessions'
+import { parseStep } from '#step'
 import type { TetraStore } from '#store'
 import { resolveTools } from '#tools'
 
@@ -27,104 +28,6 @@ export interface Runner {
   execute(sessionId: string, args: ExecuteArgs): ExecuteResult
   // On startup: recover any requests interrupted by a process restart.
   recover(): void
-}
-
-// Raw usage from the OpenRouter API response — verbatim provider JSON in step.usage.raw.
-// OpenAI-compatible snake_case names with OpenRouter cost extensions bolted on.
-// All fields optional: schema evolves upstream; we parse defensively.
-const StepRawUsage = z.object({
-  completion_tokens: z.number().optional(),
-  completion_tokens_details: z
-    .object({
-      audio_tokens: z.number().optional(),
-      image_tokens: z.number().optional(),
-      reasoning_tokens: z.number().optional(),
-    })
-    .optional(),
-
-  // Cost — OpenRouter extension; the AI SDK does not normalise cost into its own fields
-  cost: z.number().optional(),
-  cost_details: z
-    .object({
-      upstream_inference_completions_cost: z.number().optional(),
-      upstream_inference_cost: z.number().optional(),
-      upstream_inference_prompt_cost: z.number().optional(),
-    })
-    .optional(),
-
-  // true when the request used a user-supplied API key — no OpenRouter markup applied
-  is_byok: z.boolean().optional(),
-
-  prompt_tokens: z.number().optional(),
-  prompt_tokens_details: z
-    .object({
-      audio_tokens: z.number().optional(),
-      // tokens written to the prompt cache this turn (incurs a write fee)
-      cache_write_tokens: z.number().optional(),
-      // tokens served from the prompt cache this turn (discounted rate)
-      cached_tokens: z.number().optional(),
-      video_tokens: z.number().optional(),
-    })
-    .optional(),
-
-  total_tokens: z.number().optional(),
-})
-type StepRawUsage = z.infer<typeof StepRawUsage>
-
-// --- Step accounting ---
-//
-// Combines two sources into one structured object written to the steps table:
-//   step.usage       — AI SDK normalised token counts (fully typed)
-//   step.usage.raw   — verbatim provider JSON; sole source of cost data
-//
-// Model identity fields:
-//   requestedModel   — the alias we sent (e.g. deepseek/deepseek-v4-flash)
-//   servedModel      — the pinned version that actually ran
-//   backendProvider  — the infrastructure backend (e.g. Novita, Azure, Parasail)
-//   generationId     — OpenRouter's trace ID for this generation
-
-function resolveTokens(step: OnStepFinishEvent, raw: StepRawUsage) {
-  return {
-    // Media tokens — only in raw; not in the SDK's normalised fields
-    audioIn: raw.prompt_tokens_details?.audio_tokens ?? 0,
-    audioOut: raw.completion_tokens_details?.audio_tokens ?? 0,
-    // Cache breakdown (SDK normalised)
-    cacheRead: step.usage.inputTokenDetails.cacheReadTokens ?? 0,
-    cacheWrite: step.usage.inputTokenDetails.cacheWriteTokens ?? 0,
-    imageOut: raw.completion_tokens_details?.image_tokens ?? 0,
-    // Normalised counts from the AI SDK
-    input: step.usage.inputTokens ?? 0,
-    output: step.usage.outputTokens ?? 0,
-    reasoning: step.usage.outputTokenDetails.reasoningTokens ?? 0,
-    text: step.usage.outputTokenDetails.textTokens ?? 0,
-    total: step.usage.totalTokens ?? 0,
-    videoIn: raw.prompt_tokens_details?.video_tokens ?? 0,
-  }
-}
-
-function resolveAccounting(step: OnStepFinishEvent) {
-  // raw is the verbatim provider JSON — only source for cost and media tokens
-  const raw = StepRawUsage.parse(step.usage.raw ?? {})
-
-  // backendProvider lives in providerMetadata, not in usage
-  const backendProvider =
-    typeof step.providerMetadata?.openrouter?.provider === 'string'
-      ? step.providerMetadata.openrouter.provider
-      : ''
-
-  return {
-    backendProvider,
-    cost: {
-      completion: raw.cost_details?.upstream_inference_completions_cost ?? null,
-      isByok: raw.is_byok ?? false,
-      prompt: raw.cost_details?.upstream_inference_prompt_cost ?? null,
-      total: raw.cost ?? null,
-    },
-    generationId: step.response.id,
-    requestedModel: step.model?.modelId ?? '',
-    servedModel: step.response.modelId,
-    tokens: resolveTokens(step, raw),
-  }
 }
 
 export function createRunner(
@@ -173,16 +76,11 @@ export function createRunner(
           console.warn('streamText aborted', { requestId })
         },
         onStepFinish: (step) => {
-          const accounting = resolveAccounting(step)
-          store.setRow('steps', generateId.step(), {
-            accounting,
-            createdAt: Date.now(),
-            finishReason: step.finishReason,
-            messageId: assistantMessageId,
-            requestId,
-            sessionId,
-            stepNumber: step.stepNumber,
-          })
+          // Append to the request's embedded steps array — read-modify-write is safe here
+          // because only one runner process writes to a given request row.
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- steps stored as StepRecord[]
+          const prior = (store.getCell('requests', requestId, 'steps') as StepRecord[]) ?? []
+          store.setCell('requests', requestId, 'steps', [...prior, parseStep(step)])
         },
         providerOptions: { openrouter: providerOptions },
         stopWhen: stepCountIs(6),
@@ -192,14 +90,21 @@ export function createRunner(
 
       // readUIMessageStream converts the chunk stream into a sequence of assembled
       // UIMessage snapshots — one per meaningful update (text chunk, tool result, etc.).
-      // Each snapshot goes to the caller for live rendering; the last one is the
-      // complete message we persist.
+      // Each snapshot goes to the caller for live rendering. We also throttle-write
+      // the latest snapshot to the store every 500 ms so a crash mid-stream leaves a
+      // recoverable partial message rather than an empty placeholder.
       let finalParts: UIMessage['parts'] = []
+      let lastWrite = 0
       for await (const msg of readUIMessageStream({
         stream: result.toUIMessageStream({ sendReasoning: true }),
       })) {
         onSnapshot?.(msg)
         finalParts = msg.parts
+        const now = Date.now()
+        if (now - lastWrite >= 500) {
+          store.setPartialRow('messages', assistantMessageId, { parts: finalParts, updatedAt: now })
+          lastWrite = now
+        }
       }
 
       // Write the fully assembled UIMessage parts once — this is the durable record.
@@ -209,23 +114,11 @@ export function createRunner(
         updatedAt: Date.now(),
       })
 
-      // Mark completed immediately — don't block on usage so the UI can update.
       store.setPartialRow('requests', requestId, {
         completedAt: Date.now(),
         status: 'completed',
       })
       console.log('streamText complete', { requestId })
-
-      // Best-effort usage update — resolves after the stream drains but may hang
-      // or be unavailable for some providers.
-      const totalUsage = await result.totalUsage
-      store.setPartialRow('requests', requestId, {
-        totalUsage: {
-          inputTokens: totalUsage.inputTokens,
-          outputTokens: totalUsage.outputTokens,
-          totalTokens: totalUsage.totalTokens,
-        },
-      })
     } catch (error) {
       console.error({ error, requestId })
       const status = abort.signal.aborted ? 'cancelled' : 'error'
@@ -264,7 +157,6 @@ export function createRunner(
         errorMessage: '',
         sessionId,
         status: 'streaming',
-        totalUsage: {},
       })
 
       // Fire-and-forget — runStream writes all outcomes to TinyBase (completed/error/cancelled)

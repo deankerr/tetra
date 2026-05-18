@@ -22,14 +22,12 @@ export async function bootstrap() {
         messages: { rowIdColumnName: 'id', tableId: 'messages' },
         requests: { rowIdColumnName: 'id', tableId: 'requests' },
         sessions: { rowIdColumnName: 'id', tableId: 'sessions' },
-        steps: { rowIdColumnName: 'id', tableId: 'steps' },
       },
       save: {
         languageModels: { rowIdColumnName: 'id', tableName: 'languageModels' },
         messages: { rowIdColumnName: 'id', tableName: 'messages' },
         requests: { rowIdColumnName: 'id', tableName: 'requests' },
         sessions: { rowIdColumnName: 'id', tableName: 'sessions' },
-        steps: { rowIdColumnName: 'id', tableName: 'steps' },
       },
     },
   })

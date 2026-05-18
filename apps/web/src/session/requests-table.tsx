@@ -1,5 +1,5 @@
 import type { Request } from '@tetra/core'
-import { StepAccounting } from '@tetra/core'
+import { StepRecord } from '@tetra/core'
 import {
   Table,
   TableBody,
@@ -10,8 +10,7 @@ import {
 } from '@tetra/ui/components/ui/table'
 import { useMemo } from 'react'
 
-import { useRequest, useRequestStepIds, useSessionRequestIds } from '@/api'
-import { useTetra } from '@/tetra-provider'
+import { useRequest, useSessionRequestIds } from '@/api'
 
 function formatTime(ts: number) {
   return new Date(ts).toLocaleTimeString([], {
@@ -56,19 +55,17 @@ function statusClass(status: string) {
 }
 
 // Aggregates token counts and cost from all steps for a request.
-// Reactive via useRequestStepIds — re-runs when new steps arrive during streaming.
-function useRequestAccountingSummary(requestId: string) {
-  const { store } = useTetra()
-  const stepIds = useRequestStepIds(requestId)
-
+// Reactive via RequestRow's useRequest subscription — re-renders when request.steps changes.
+function useRequestAccountingSummary(request: Request) {
   return useMemo(() => {
     let cost: number | null = null
     let inputTokens = 0
     let outputTokens = 0
 
-    for (const stepId of stepIds) {
-      const row = store.getRow('steps', stepId)
-      const parsed = StepAccounting.safeParse(row.accounting)
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- steps stored as StepRecord[]
+    const steps = (request.steps as StepRecord[]) ?? []
+    for (const step of steps) {
+      const parsed = StepRecord.safeParse(step)
       if (!parsed.success) {
         continue
       }
@@ -81,7 +78,7 @@ function useRequestAccountingSummary(requestId: string) {
     }
 
     return { cost, inputTokens, outputTokens }
-  }, [stepIds, store])
+  }, [request.steps])
 }
 
 // Split out so each row subscribes independently to its request row.
@@ -94,7 +91,7 @@ function RequestRowById({ requestId }: { requestId: string }) {
 }
 
 function RequestRow({ request }: { request: Request }) {
-  const summary = useRequestAccountingSummary(request.id)
+  const summary = useRequestAccountingSummary(request)
 
   return (
     <TableRow>

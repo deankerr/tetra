@@ -25,8 +25,6 @@ function addIndexes(s: TetraNormalStore | TetraMergableStore) {
         undefined,
         (a, b) => Number(b) - Number(a),
       )
-      .setIndexDefinition('stepsByMessage', 'steps', 'messageId', 'stepNumber')
-      .setIndexDefinition('stepsByRequest', 'steps', 'requestId', 'stepNumber')
   )
 }
 

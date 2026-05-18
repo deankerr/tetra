@@ -2,15 +2,14 @@ import { convertToModelMessages } from 'ai'
 import type { ModelMessage, UIMessage } from 'ai'
 
 import { DEFAULT_MODEL_CONFIG, ModelConfig, RequestStatus, generateId } from '#model'
-import type { Message, MessageRole, Request, Session, Step } from '#model'
+import type { Message, MessageRole, Request, Session, StepRecord } from '#model'
 import type { TetraStore } from '#store'
 
 export interface SessionExport {
   exportedAt: string
-  messages: (Message & { id: string })[]
-  requests: (Request & { id: string })[]
+  messages: Message[]
+  requests: Request[]
   session: Session
-  steps: Step[]
 }
 
 export interface Sessions {
@@ -98,16 +97,12 @@ export function createSessions({ indexes, store }: TetraStore): Sessions {
     },
 
     delete(sessionId) {
-      // Cascade-delete child rows so no orphaned messages, requests, or steps remain.
+      // Cascade-delete child rows so no orphaned messages or requests remain.
       const messageIds = indexes.getSliceRowIds('messagesBySession', sessionId)
       const requestIds = indexes.getSliceRowIds('requestsBySession', sessionId)
 
       store.transaction(() => {
         for (const messageId of messageIds) {
-          const stepIds = indexes.getSliceRowIds('stepsByMessage', messageId)
-          for (const stepId of stepIds) {
-            store.delRow('steps', stepId)
-          }
           store.delRow('messages', messageId)
         }
         for (const requestId of requestIds) {
@@ -119,14 +114,7 @@ export function createSessions({ indexes, store }: TetraStore): Sessions {
     },
 
     deleteMessage(messageId) {
-      // Also remove any steps that belong to this message
-      const stepIds = indexes.getSliceRowIds('stepsByMessage', messageId)
-      store.transaction(() => {
-        for (const stepId of stepIds) {
-          store.delRow('steps', stepId)
-        }
-        store.delRow('messages', messageId)
-      })
+      store.delRow('messages', messageId)
       console.log('[sessions] deleteMessage', { messageId })
     },
 
@@ -151,32 +139,16 @@ export function createSessions({ indexes, store }: TetraStore): Sessions {
             id,
             sessionId: row.sessionId,
             status: RequestStatus.parse(row.status),
-            totalUsage: row.totalUsage,
+            // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- steps stored as StepRecord[]
+            steps: (row.steps as StepRecord[]) ?? [],
           }
         })
-
-      const steps = messageIds.flatMap((messageId) =>
-        indexes.getSliceRowIds('stepsByMessage', messageId).map((stepId) => {
-          const row = store.getRow('steps', stepId)
-          return {
-            accounting: row.accounting,
-            createdAt: row.createdAt,
-            finishReason: row.finishReason,
-            id: stepId,
-            messageId: row.messageId,
-            requestId: row.requestId,
-            sessionId: row.sessionId,
-            stepNumber: row.stepNumber,
-          } satisfies Step
-        }),
-      )
 
       return {
         exportedAt: new Date().toISOString(),
         messages,
         requests,
         session: readSession(sessionId),
-        steps,
       }
     },
 
