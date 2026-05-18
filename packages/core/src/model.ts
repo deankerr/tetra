@@ -14,7 +14,7 @@ export const ModelConfig = z.object({
   maxMessages: z.number().int().positive().optional(),
   modelId: z.string(),
   providerOptions: z.record(z.string(), z.json()).optional(),
-  systemPrompt: z.string().optional(),
+  systemPromptId: z.string().optional(),
   toolIds: z.array(z.string()).optional(),
 })
 export type ModelConfig = z.infer<typeof ModelConfig>
@@ -27,7 +27,6 @@ export const DEFAULT_MODEL_CONFIG: ModelConfig = {
       enabled: true,
     },
   },
-  systemPrompt: 'Use Markdown sparingly. Favour paragraphs over bulleted lists.',
 }
 
 // Per-step record embedded in the request row's steps array.
@@ -79,6 +78,10 @@ export const tablesSchema = {
     sessionId: { default: '', type: 'string' },
     updatedAt: { default: 0, type: 'number' },
   },
+  prompts: {
+    content: { default: '', type: 'string' },
+    label: { default: '', type: 'string' },
+  },
   requests: {
     assistantMessageId: { default: '', type: 'string' },
     completedAt: { default: 0, type: 'number' },
@@ -108,6 +111,7 @@ type Schema = typeof tablesSchema
 export type LanguageModel = Row<Schema, 'languageModels'> & { id: string }
 export type Session = Row<Schema, 'sessions'> & { id: string }
 export type Message = Row<Schema, 'messages'> & { id: string }
+export type Prompt = Row<Schema, 'prompts'> & { id: string }
 export type Request = Row<Schema, 'requests'> & { id: string }
 
 // HLC ID generators — single monotonic counter across all entity types
@@ -116,6 +120,7 @@ const prefixed = (prefix: string) => () => `${prefix}_${getNextHlc()}`
 
 export const generateId = {
   message: prefixed('mesg'),
+  prompt: prefixed('prpt'),
   request: prefixed('rqst'),
   session: prefixed('sess'),
 }

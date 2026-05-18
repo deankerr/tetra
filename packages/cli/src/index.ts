@@ -78,32 +78,105 @@ program
     console.log(id)
   })
 
+// tetra prompts — list stored system prompts
+program
+  .command('prompts')
+  .description('List stored prompts')
+  .action(async () => {
+    const { prompts } = await bootstrap()
+    const list = prompts.list()
+
+    if (list.length === 0) {
+      console.log('No prompts. Run: tetra prompt create [content]')
+      return
+    }
+
+    for (const prompt of list) {
+      const label = prompt.label.trim() || prompt.content.trim().slice(0, 60) || '(empty)'
+      console.log(`${prompt.id}  ${label}`)
+    }
+  })
+
+// tetra prompt <subcommand> — manage stored system prompts
+const prompt = program.command('prompt').description('Manage stored prompts')
+
+prompt
+  .command('create [content]')
+  .description('Create a stored prompt')
+  .option('-l, --label <label>', 'Prompt label')
+  .action(async (content: string | undefined, opts: { label?: string }) => {
+    const { prompts } = await bootstrap()
+    const id = prompts.create({ content: content ?? '', label: opts.label ?? '' })
+    console.log(id)
+  })
+
+prompt
+  .command('show <id>')
+  .description('Show a stored prompt')
+  .action(async (promptId: string) => {
+    const { prompts } = await bootstrap()
+    const row = prompts.get(promptId)
+    console.log(`id:      ${row.id}`)
+    console.log(`label:   ${row.label || '(none)'}`)
+    console.log(`content:\n${row.content}`)
+  })
+
+prompt
+  .command('update <id> [content]')
+  .description('Update a stored prompt')
+  .option('-l, --label <label>', 'Prompt label')
+  .action(async (promptId: string, content: string | undefined, opts: { label?: string }) => {
+    const { prompts } = await bootstrap()
+    prompts.update(promptId, {
+      ...(content !== undefined && { content }),
+      ...(opts.label !== undefined && { label: opts.label }),
+    })
+    console.log(promptId)
+  })
+
+prompt
+  .command('delete <id>')
+  .description('Delete a stored prompt')
+  .action(async (promptId: string) => {
+    const { prompts } = await bootstrap()
+    prompts.delete(promptId)
+    console.log(promptId)
+  })
+
 // tetra config <id> [options] — show or update the session's stored inference config
 program
   .command('config <id>')
   .description('Show or update session config')
   .option('-m, --model <modelId>', 'Model to use')
-  .option('-s, --system <prompt>', 'System prompt')
+  .option('-p, --prompt <promptId>', 'Stored system prompt id')
+  .option('--no-prompt', 'Clear the stored system prompt')
   .option('-n, --max-messages <n>', 'Max messages for context window', Number.parseInt)
   .action(
-    async (sessionId: string, opts: { maxMessages?: number; model?: string; system?: string }) => {
+    async (
+      sessionId: string,
+      opts: { maxMessages?: number; model?: string; prompt?: false | string },
+    ) => {
       const { sessions } = await bootstrap()
 
       // Merge any provided flags over the current config and persist
       const overrides: Partial<ModelConfig> = {
         ...(opts.maxMessages !== undefined && { maxMessages: opts.maxMessages }),
         ...(opts.model !== undefined && { modelId: opts.model }),
-        ...(opts.system !== undefined && { systemPrompt: opts.system }),
+        ...(typeof opts.prompt === 'string' && { systemPromptId: opts.prompt }),
       }
 
-      if (Object.keys(overrides).length > 0) {
-        const updated = ModelConfig.parse({ ...sessions.getConfig(sessionId), ...overrides })
+      if (Object.keys(overrides).length > 0 || opts.prompt === false) {
+        const next = { ...sessions.getConfig(sessionId), ...overrides }
+        if (opts.prompt === false) {
+          delete next.systemPromptId
+        }
+        const updated = ModelConfig.parse(next)
         sessions.setConfig(sessionId, updated)
       }
 
       const config = sessions.getConfig(sessionId)
       console.log(`model:        ${config.modelId}`)
-      console.log(`system:       ${config.systemPrompt ?? '(none)'}`)
+      console.log(`prompt:       ${config.systemPromptId ?? '(none)'}`)
       console.log(`maxMessages:  ${config.maxMessages ?? '(none)'}`)
     },
   )
@@ -137,53 +210,64 @@ program
   .command('chat <id> <message>')
   .description('Send a message and stream the response')
   .option('-m, --model <modelId>', 'Model to use')
-  .option('-s, --system <prompt>', 'System prompt override')
-  .action(async (sessionId: string, message: string, opts: { model?: string; system?: string }) => {
-    const { runner, store } = await bootstrap()
+  .option('-p, --prompt <promptId>', 'Stored system prompt id override')
+  .option('--no-prompt', 'Send without a system prompt')
+  .action(
+    async (
+      sessionId: string,
+      message: string,
+      opts: { model?: string; prompt?: false | string },
+    ) => {
+      const { runner, store } = await bootstrap()
 
-    // Only pass flags that were explicitly set — runner merges with the session's stored config
-    const config: Partial<ModelConfig> = {
-      ...(opts.model !== undefined && { modelId: opts.model }),
-      ...(opts.system !== undefined && { systemPrompt: opts.system }),
-    }
+      // Only pass flags that were explicitly set — runner merges with the session's stored config
+      const config: Partial<ModelConfig> = {
+        ...(opts.model !== undefined && { modelId: opts.model }),
+        ...(typeof opts.prompt === 'string' && { systemPromptId: opts.prompt }),
+      }
 
-    // Print text parts incrementally on each UIMessage snapshot from the stream
-    let lastLen = 0
-    const { requestId } = runner.execute(sessionId, {
-      config,
-      content: message,
-      onSnapshot: (msg) => {
-        const text = msg.parts
-          .filter((p): p is { text: string; type: 'text' } => p.type === 'text')
-          .map((p) => p.text)
-          .join('')
-        process.stdout.write(text.slice(lastLen))
-        lastLen = text.length
-      },
-    })
+      if (opts.prompt === false) {
+        config.systemPromptId = undefined
+      }
 
-    // eslint-disable-next-line promise/avoid-new -- TinyBase listeners are callback-based; promisification is required to await completion in a CLI context
-    await new Promise<void>((resolve, reject) => {
-      const reqListenerId = store.addCellListener(
-        'requests',
-        requestId,
-        'status',
-        (s, tableId, rowId, cellId) => {
-          const status = s.getCell(tableId, rowId, cellId)
-          if (status === 'completed') {
-            store.delListener(reqListenerId)
-            resolve()
-          } else if (status === 'error' || status === 'cancelled') {
-            store.delListener(reqListenerId)
-            const rawErr = s.getCell(tableId, rowId, 'errorMessage')
-            reject(new Error(typeof rawErr === 'string' ? rawErr : status))
-          }
+      // Print text parts incrementally on each UIMessage snapshot from the stream
+      let lastLen = 0
+      const { requestId } = runner.execute(sessionId, {
+        config,
+        content: message,
+        onSnapshot: (msg) => {
+          const text = msg.parts
+            .filter((p): p is { text: string; type: 'text' } => p.type === 'text')
+            .map((p) => p.text)
+            .join('')
+          process.stdout.write(text.slice(lastLen))
+          lastLen = text.length
         },
-      )
-    })
+      })
 
-    console.log()
-  })
+      // eslint-disable-next-line promise/avoid-new -- TinyBase listeners are callback-based; promisification is required to await completion in a CLI context
+      await new Promise<void>((resolve, reject) => {
+        const reqListenerId = store.addCellListener(
+          'requests',
+          requestId,
+          'status',
+          (s, tableId, rowId, cellId) => {
+            const status = s.getCell(tableId, rowId, cellId)
+            if (status === 'completed') {
+              store.delListener(reqListenerId)
+              resolve()
+            } else if (status === 'error' || status === 'cancelled') {
+              store.delListener(reqListenerId)
+              const rawErr = s.getCell(tableId, rowId, 'errorMessage')
+              reject(new Error(typeof rawErr === 'string' ? rawErr : status))
+            }
+          },
+        )
+      })
+
+      console.log()
+    },
+  )
 
 try {
   await program.parseAsync(process.argv)

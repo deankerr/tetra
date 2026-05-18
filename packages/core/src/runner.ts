@@ -64,6 +64,11 @@ export function createRunner(
       // Resolve tools and gather credentials if any tool IDs are configured.
       const toolsResolved = resolveTools(requestedToolIds, (id) => credentials.get(id))
 
+      const systemPrompt =
+        config.systemPromptId === undefined
+          ? undefined
+          : store.getCell('prompts', config.systemPromptId, 'content') || undefined
+
       const result = streamText({
         abortSignal: abort.signal,
         experimental_context: toolsResolved?.toolContext,
@@ -84,7 +89,7 @@ export function createRunner(
         },
         providerOptions: { openrouter: providerOptions },
         stopWhen: stepCountIs(6),
-        system: config.systemPrompt,
+        system: systemPrompt,
         tools: toolsResolved?.tools,
       })
 

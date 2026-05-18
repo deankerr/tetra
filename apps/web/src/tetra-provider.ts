@@ -1,4 +1,4 @@
-import type { Catalog, Runner, Sessions, TetraStore } from '@tetra/core'
+import type { Catalog, Prompts, Runner, Sessions, TetraStore } from '@tetra/core'
 import { createContext, useContext } from 'react'
 
 import type { StreamingState } from '@/streaming-state'
@@ -6,6 +6,7 @@ import type { StreamingState } from '@/streaming-state'
 export interface TetraAppContext {
   indexes: TetraStore['indexes']
   models: Catalog
+  prompts: Prompts
   runner: Runner
   sessions: Sessions
   store: TetraStore['store']

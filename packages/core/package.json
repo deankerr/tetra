@@ -3,8 +3,9 @@
   "private": true,
   "type": "module",
   "imports": {
-    "#model": "./src/model.ts",
     "#catalog": "./src/catalog.ts",
+    "#model": "./src/model.ts",
+    "#prompts": "./src/prompts.ts",
     "#runner": "./src/runner.ts",
     "#sessions": "./src/sessions.ts",
     "#store": "./src/store.ts",

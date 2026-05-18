@@ -1,5 +1,7 @@
 export { createCatalog } from '#catalog'
 export type { Catalog } from '#catalog'
+export { createPrompts } from '#prompts'
+export type { Prompts } from '#prompts'
 export { createRunner } from '#runner'
 export type { ExecuteResult, Runner } from '#runner'
 export { createSessions } from '#sessions'
@@ -12,6 +14,7 @@ export type {
   Message,
   MessageRole,
   LanguageModel,
+  Prompt,
   Request,
   RequestStatus,
   Session,

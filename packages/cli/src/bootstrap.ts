@@ -1,6 +1,12 @@
 import { Database } from 'bun:sqlite'
 
-import { createCatalog, createRunner, createSessions, createTetraStore } from '@tetra/core'
+import {
+  createCatalog,
+  createPrompts,
+  createRunner,
+  createSessions,
+  createTetraStore,
+} from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
 import { createSqliteBunPersister } from 'tinybase/persisters/persister-sqlite-bun/with-schemas'
 
@@ -8,6 +14,7 @@ import { createSqliteBunPersister } from 'tinybase/persisters/persister-sqlite-b
 export async function bootstrap() {
   const tetraStore = createTetraStore()
   const sessions = createSessions(tetraStore)
+  const prompts = createPrompts(tetraStore)
   const runner = createRunner(tetraStore, sessions, credentialStore)
   const models = createCatalog(tetraStore)
   runner.recover()
@@ -20,12 +27,14 @@ export async function bootstrap() {
       load: {
         languageModels: { rowIdColumnName: 'id', tableId: 'languageModels' },
         messages: { rowIdColumnName: 'id', tableId: 'messages' },
+        prompts: { rowIdColumnName: 'id', tableId: 'prompts' },
         requests: { rowIdColumnName: 'id', tableId: 'requests' },
         sessions: { rowIdColumnName: 'id', tableId: 'sessions' },
       },
       save: {
         languageModels: { rowIdColumnName: 'id', tableName: 'languageModels' },
         messages: { rowIdColumnName: 'id', tableName: 'messages' },
+        prompts: { rowIdColumnName: 'id', tableName: 'prompts' },
         requests: { rowIdColumnName: 'id', tableName: 'requests' },
         sessions: { rowIdColumnName: 'id', tableName: 'sessions' },
       },
@@ -34,5 +43,5 @@ export async function bootstrap() {
   await persister.load()
   await persister.startAutoSave()
 
-  return { models, runner, sessions, ...tetraStore }
+  return { models, prompts, runner, sessions, ...tetraStore }
 }

@@ -3,6 +3,7 @@ import { DEFAULT_MODEL_CONFIG, ModelConfig as ModelConfigSchema } from '@tetra/c
 import type {
   Message as CoreMessage,
   ModelConfig,
+  Prompt,
   Request,
   Session,
   TetraSchemas,
@@ -87,6 +88,28 @@ export const useSessionConfig = (id: string): ModelConfig => {
   }
   const result = ModelConfigSchema.safeParse(session.config)
   return result.success ? result.data : DEFAULT_MODEL_CONFIG
+}
+
+// --- Prompt Hooks ---
+
+export const usePromptIds = () => {
+  const prompts = store.useTable('prompts')
+  return useMemo(
+    () =>
+      Object.entries(prompts)
+        .toSorted(([left], [right]) => left.localeCompare(right))
+        .map(([promptId]) => promptId),
+    [prompts],
+  )
+}
+
+export const usePrompt = (id: string): Prompt | null => {
+  const hasRow = store.useHasRow('prompts', id)
+  const row = store.useRow('prompts', id)
+  if (!hasRow || id === '') {
+    return null
+  }
+  return { ...row, id }
 }
 
 // --- Message Hooks ---
