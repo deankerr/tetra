@@ -8,17 +8,11 @@ import { Button } from '@tetra/ui/components/ui/button'
 import { Sheet, SheetClose, SheetContent } from '@tetra/ui/components/ui/sheet'
 import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
 import { Toggle } from '@tetra/ui/components/ui/toggle'
-import {
-  BotIcon,
-  Code2Icon,
-  MessagesSquareIcon,
-  PanelRightIcon,
-  TableIcon,
-  XIcon,
-} from 'lucide-react'
+import { Code2Icon, MessagesSquareIcon, PanelRightIcon, TableIcon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 
 import { useActiveSessionId, useSession, useSessionMessageIds } from '@/api'
+import { TetraLogo } from '@/components/tetra-logo'
 
 import { Composer } from './composer'
 import { SessionExportButton } from './export-button'
@@ -118,7 +112,7 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
                 {messageIds.length === 0 ? (
                   <ConversationEmptyState
                     description="Send a message to get started."
-                    icon={<BotIcon className="size-5" />}
+                    icon={<TetraLogo className="size-5" />}
                     title="No messages yet"
                   />
                 ) : (

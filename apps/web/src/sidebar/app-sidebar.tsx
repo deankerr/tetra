@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { SidebarContent, SidebarFooter, SidebarHeader } from '@tetra/ui/components/ui/sidebar'
 
+import { TetraLogo } from '@/components/tetra-logo'
 import { ThemeSwitcher } from '@/components/util/theme-switcher'
 import { PersistenceStatus } from '@/sidebar/persistence-status'
 import { SessionGroup } from '@/sidebar/session-group'
@@ -10,13 +11,11 @@ export function AppSidebar() {
   return (
     <>
       <SidebarHeader className="p-0">
-        <Link className="flex h-(--header-height) items-center gap-2 border-b px-4" to="/">
-          <svg className="size-5" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-            <polygon fill="#0f766e" points="16,2 2,28 16,19" />
-            <polygon fill="#14b8a6" points="16,2 16,19 30,28" />
-            <polygon fill="#5eead4" points="2,28 30,28 16,19" />
-          </svg>
-          <span className="text-sm font-semibold">Tetra</span>
+        <Link className="flex h-(--header-height) items-center gap-1.5 border-b px-4" to="/">
+          <TetraLogo className="size-4.5" palette="forge" />
+          <div className="font-orbitron flex h-4 items-center text-sm leading-none font-semibold tracking-wider uppercase">
+            TETRA
+          </div>
         </Link>
       </SidebarHeader>
 
