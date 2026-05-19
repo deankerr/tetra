@@ -1,0 +1,178 @@
+import { ModelConfig } from '@tetra/core'
+import type { TetraSchemas } from '@tetra/core'
+import { Button } from '@tetra/ui/components/ui/button'
+import { Field, FieldTitle } from '@tetra/ui/components/ui/field'
+import { Input } from '@tetra/ui/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@tetra/ui/components/ui/select'
+import { Textarea } from '@tetra/ui/components/ui/textarea'
+import { Trash2Icon } from 'lucide-react'
+import * as UiReact from 'tinybase/ui-react/with-schemas'
+
+import { usePrompt, usePromptIds, useSessionConfig } from '@/api'
+import { useTetra } from '@/tetra-provider'
+
+// oxlint-disable-next-line no-unsafe-type-assertion -- TinyBase WithSchemas pattern
+const store = UiReact as unknown as UiReact.WithSchemas<TetraSchemas>
+
+const NO_PROMPT_VALUE = '__none__'
+const NEW_PROMPT_VALUE = '__new__'
+
+function PromptDisplayLabel({ prompt }: { prompt: { content: string; label: string } }) {
+  const explicit = prompt.label.trim()
+  if (explicit) {
+    return explicit
+  }
+
+  const content = prompt.content.trim()
+  if (!content) {
+    return <span className="text-muted-foreground">Blank Prompt</span>
+  }
+
+  return content.length > 60 ? `${content.slice(0, 57)}...` : content
+}
+
+function PromptOption({ promptId }: { promptId: string }) {
+  const prompt = usePrompt(promptId)
+  if (prompt === null) {
+    return null
+  }
+
+  return (
+    <SelectItem value={promptId}>
+      <PromptDisplayLabel prompt={prompt} />
+    </SelectItem>
+  )
+}
+
+function SelectedPromptFields({
+  onDelete,
+  promptId,
+}: {
+  onDelete: () => void
+  promptId: string | undefined
+}) {
+  if (promptId === undefined) {
+    return (
+      <>
+        <div className="flex gap-2">
+          <Input disabled placeholder="No prompt selected" />
+          <Button disabled size="icon" variant="ghost" title="Delete prompt">
+            <Trash2Icon />
+          </Button>
+        </div>
+        <Textarea disabled placeholder="No system prompt" value="" />
+      </>
+    )
+  }
+
+  return <PromptCellFields onDelete={onDelete} promptId={promptId} />
+}
+
+function PromptCellFields({ onDelete, promptId }: { onDelete: () => void; promptId: string }) {
+  const [content, setContent] = store.useCellState('prompts', promptId, 'content')
+  const [label, setLabel] = store.useCellState('prompts', promptId, 'label')
+
+  return (
+    <>
+      <div className="flex gap-2">
+        <Input
+          onChange={(e) => {
+            setLabel(e.currentTarget.value)
+          }}
+          placeholder="Label"
+          value={label ?? ''}
+        />
+        <Button onClick={onDelete} size="icon" variant="ghost" title="Delete prompt">
+          <Trash2Icon />
+        </Button>
+      </div>
+      <Textarea
+        onChange={(e) => {
+          setContent(e.currentTarget.value)
+        }}
+        placeholder="System instructions for this session"
+        value={content ?? ''}
+      />
+    </>
+  )
+}
+
+function PromptLabel({ promptId }: { promptId: string }) {
+  const prompt = usePrompt(promptId)
+  return prompt === null ? (
+    <span className="text-muted-foreground">None</span>
+  ) : (
+    <PromptDisplayLabel prompt={prompt} />
+  )
+}
+
+export function SystemPromptField({ sessionId }: { sessionId: string }) {
+  const { prompts, sessions } = useTetra()
+  const config = useSessionConfig(sessionId)
+  const promptIds = usePromptIds()
+  const selectedPromptId =
+    config.systemPromptId !== undefined && promptIds.includes(config.systemPromptId)
+      ? config.systemPromptId
+      : undefined
+
+  const updateSystemPromptId = (systemPromptId?: string) => {
+    const { systemPromptId: _removed, ...rest } = sessions.getConfig(sessionId)
+    sessions.setConfig(
+      sessionId,
+      ModelConfig.parse(systemPromptId === undefined ? rest : { ...rest, systemPromptId }),
+    )
+  }
+
+  return (
+    <Field>
+      <FieldTitle>System Prompt</FieldTitle>
+      <Select
+        value={selectedPromptId ?? NO_PROMPT_VALUE}
+        onValueChange={(value) => {
+          if (value === null) {
+            updateSystemPromptId()
+            return
+          }
+          if (value === NEW_PROMPT_VALUE) {
+            updateSystemPromptId(prompts.create())
+            return
+          }
+          updateSystemPromptId(value === NO_PROMPT_VALUE ? undefined : value)
+        }}
+      >
+        <SelectTrigger className="w-full">
+          <SelectValue>
+            {selectedPromptId === undefined ? (
+              <span className="text-muted-foreground">None</span>
+            ) : (
+              <PromptLabel promptId={selectedPromptId} />
+            )}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={NO_PROMPT_VALUE}>
+            <span className="text-muted-foreground">None</span>
+          </SelectItem>
+          {promptIds.map((promptId) => (
+            <PromptOption key={promptId} promptId={promptId} />
+          ))}
+          <SelectItem value={NEW_PROMPT_VALUE}>+ New</SelectItem>
+        </SelectContent>
+      </Select>
+      <SelectedPromptFields
+        onDelete={() => {
+          if (selectedPromptId !== undefined) {
+            prompts.delete(selectedPromptId)
+          }
+        }}
+        promptId={selectedPromptId}
+      />
+    </Field>
+  )
+}

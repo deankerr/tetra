@@ -5,6 +5,7 @@ import {
   ConversationScrollButton,
 } from '@tetra/ui/components/ai-elements/conversation'
 import { Button } from '@tetra/ui/components/ui/button'
+import { ScrollArea } from '@tetra/ui/components/ui/scroll-area'
 import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
 import { Toggle } from '@tetra/ui/components/ui/toggle'
 import { BotIcon, Code2Icon, MessagesSquareIcon, PanelRightIcon, TableIcon } from 'lucide-react'
@@ -13,7 +14,6 @@ import { useState } from 'react'
 import { useActiveSessionId, useSession, useSessionMessageIds } from '@/api'
 
 import { Composer } from './composer'
-import { ConfigPanel } from './config-panel'
 import { SessionExportButton } from './export-button'
 import { MessageBubble } from './message-bubble'
 import { MessageInspector } from './message-inspector'
@@ -131,9 +131,15 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
       </div>
 
       {/* Config panel */}
-      <ConfigPanel open={detailOpen}>
-        <SessionSettings sessionId={sessionId} />
-      </ConfigPanel>
+      {detailOpen && (
+        <aside className="bg-muted/40 flex w-80 shrink-0 flex-col border-l">
+          <ScrollArea className="flex-1">
+            <div className="p-4">
+              <SessionSettings sessionId={sessionId} />
+            </div>
+          </ScrollArea>
+        </aside>
+      )}
     </div>
   )
 }
