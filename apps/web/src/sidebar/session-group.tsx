@@ -19,14 +19,14 @@ import {
 import { MoreHorizontalIcon, PlusIcon } from 'lucide-react'
 import { useRef, useState } from 'react'
 
-import { useActiveSessionId, useSetActiveSessionId, useSession, useSessionIds } from '@/api'
+import { useOpenSessionIds, useSession, useSessionIds, useSetOpenSessionIds } from '@/api'
 import { useTetra } from '@/tetra-provider'
 
 export function SessionGroup() {
   const { sessions } = useTetra()
   const sessionIds = useSessionIds()
-  const activeSessionId = useActiveSessionId()
-  const setActiveSessionId = useSetActiveSessionId()
+  const openSessionIds = useOpenSessionIds()
+  const setOpenSessionIds = useSetOpenSessionIds()
 
   return (
     <SidebarGroup>
@@ -34,7 +34,8 @@ export function SessionGroup() {
       <SidebarGroupAction
         className="top-2.5"
         onClick={() => {
-          setActiveSessionId(sessions.create())
+          const newId = sessions.create()
+          setOpenSessionIds([...openSessionIds, newId])
         }}
       >
         <PlusIcon />
@@ -44,25 +45,29 @@ export function SessionGroup() {
         <SidebarMenu>
           {sessionIds.map((sessionId) => (
             <SessionListItem
-              active={sessionId === activeSessionId}
+              active={openSessionIds.includes(sessionId)}
               key={sessionId}
               onDelete={() => {
                 sessions.delete(sessionId)
 
-                if (sessionId === activeSessionId) {
-                  const remaining = sessionIds.filter((id) => id !== sessionId)
-                  if (remaining.length > 0 && remaining[0] !== undefined) {
-                    setActiveSessionId(remaining[0])
-                  } else {
-                    setActiveSessionId(sessions.create())
-                  }
+                // Remove from open list; if that empties it, open the next available session
+                const remaining = openSessionIds.filter((id) => id !== sessionId)
+                if (remaining.length > 0) {
+                  setOpenSessionIds(remaining)
+                } else {
+                  const nextId = sessionIds.find((id) => id !== sessionId)
+                  setOpenSessionIds(nextId === undefined ? [sessions.create()] : [nextId])
                 }
               }}
               onRename={(title) => {
                 sessions.rename(sessionId, title)
               }}
               onSelect={() => {
-                setActiveSessionId(sessionId)
+                if (openSessionIds.includes(sessionId)) {
+                  setOpenSessionIds(openSessionIds.filter((id) => id !== sessionId))
+                } else {
+                  setOpenSessionIds([...openSessionIds, sessionId])
+                }
               }}
               sessionId={sessionId}
             />

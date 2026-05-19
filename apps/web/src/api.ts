@@ -26,19 +26,18 @@ const store = UiReact as unknown as UiReact.WithSchemas<TetraSchemas>
 
 // --- App State Hooks ---
 
-export const useActiveSessionId = () => {
+export const useOpenSessionIds = (): string[] => {
   const search = useSearch({ from: '/' })
-  return search.session
+  return search.sessions ?? []
 }
 
-export const useSetActiveSessionId = () => {
+export const useSetOpenSessionIds = () => {
   const navigate = useNavigate({ from: '/' })
-
-  return (sessionId: string | undefined) => {
+  return (sessionIds: string[]) => {
     void navigate({
       search: (current) => ({
         ...current,
-        session: sessionId,
+        sessions: sessionIds.length > 0 ? sessionIds : undefined,
       }),
     })
   }

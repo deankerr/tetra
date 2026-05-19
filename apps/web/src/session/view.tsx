@@ -8,10 +8,10 @@ import { Button } from '@tetra/ui/components/ui/button'
 import { Sheet, SheetClose, SheetContent } from '@tetra/ui/components/ui/sheet'
 import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
 import { Toggle } from '@tetra/ui/components/ui/toggle'
-import { Code2Icon, MessagesSquareIcon, PanelRightIcon, TableIcon, XIcon } from 'lucide-react'
+import { Code2Icon, MessagesSquareIcon, Settings2Icon, TableIcon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 
-import { useActiveSessionId, useSession, useSessionMessageIds } from '@/api'
+import { useOpenSessionIds, useSession, useSessionMessageIds, useSetOpenSessionIds } from '@/api'
 import { TetraLogo } from '@/components/tetra-logo'
 
 import { Composer } from './composer'
@@ -25,17 +25,39 @@ import { SystemPromptSheet } from './settings/prompt-field'
 type MessageView = 'chat' | 'debug' | 'requests'
 
 export function SessionView() {
-  const activeSessionId = useActiveSessionId()
+  const openSessionIds = useOpenSessionIds()
+  const setOpenSessionIds = useSetOpenSessionIds()
 
-  if (activeSessionId === undefined || activeSessionId === '') {
+  if (openSessionIds.length === 0) {
     return null
   }
 
-  return <ActiveSession key={activeSessionId} sessionId={activeSessionId} />
+  return (
+    <>
+      {openSessionIds.map((sessionId, index) => (
+        <ActiveSession
+          key={sessionId}
+          onClose={() => {
+            setOpenSessionIds(openSessionIds.filter((id) => id !== sessionId))
+          }}
+          sessionId={sessionId}
+          showSidebarTrigger={index === 0}
+        />
+      ))}
+    </>
+  )
 }
 
-/** Renders the active session. Guards session existence — children can assume valid sessionId. */
-function ActiveSession({ sessionId }: { sessionId: string }) {
+/** Renders one session panel. Guards session existence — children can assume valid sessionId. */
+function ActiveSession({
+  onClose,
+  sessionId,
+  showSidebarTrigger,
+}: {
+  onClose: () => void
+  sessionId: string
+  showSidebarTrigger: boolean
+}) {
   const session = useSession(sessionId)
   const messageIds = useSessionMessageIds(sessionId)
   const [detailOpen, setDetailOpen] = useState(false)
@@ -47,11 +69,11 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
   }
 
   return (
-    <div className="flex min-h-0 flex-1">
+    <div className="flex min-h-0 min-w-[420px] flex-1 flex-col border-r last:border-r-0">
       {/* Main content */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <header className="flex h-(--header-height) shrink-0 items-center justify-between gap-2 border-b px-2">
-          <SidebarTrigger />
+          {showSidebarTrigger && <SidebarTrigger />}
           <span className="min-w-0 flex-1 truncate text-xs font-medium">
             {session.title ?? 'New session'}
           </span>
@@ -97,7 +119,10 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
             type="button"
             variant="ghost"
           >
-            <PanelRightIcon />
+            <Settings2Icon />
+          </Button>
+          <Button onClick={onClose} size="icon-sm" type="button" variant="ghost">
+            <XIcon />
           </Button>
         </header>
 

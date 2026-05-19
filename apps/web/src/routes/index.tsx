@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { App } from '@/app'
 
 const searchSchema = z.object({
-  session: z.string().optional(),
+  sessions: z.array(z.string()).optional(),
 })
 
 export const Route = createFileRoute('/')({

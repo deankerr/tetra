@@ -130,7 +130,9 @@ export function App() {
           </Sidebar>
 
           <SidebarInset className="h-svh min-w-0 overflow-hidden">
-            <SessionView />
+            <div className="flex h-full overflow-x-auto">
+              <SessionView />
+            </div>
           </SidebarInset>
         </SidebarProvider>
 

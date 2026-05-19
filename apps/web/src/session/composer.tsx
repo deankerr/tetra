@@ -79,7 +79,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
   }
 
   return (
-    <div className="shrink-0 border-t p-4">
+    <div className="shrink-0 border-t p-2">
       <PromptInput onSubmit={handleSubmit}>
         <PromptInputBody>
           <PromptInputTextarea
