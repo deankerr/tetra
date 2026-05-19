@@ -21,6 +21,15 @@ interface ChatOptions {
 export async function runChat(ctx: CliContext, parts: string[], opts: ChatOptions): Promise<void> {
   // Gather the user's request from argv and stdin before touching session state.
   const content = await readMessage({ message: opts.message, parts })
+  await runChatContent(ctx, content, opts)
+}
+
+export async function runChatContent(
+  ctx: CliContext,
+  content: string,
+  opts: ChatOptions,
+): Promise<void> {
+  // Empty prompts are rejected at the execution boundary after all input modes are composed.
   if (content.trim() === '') {
     throw new Error('No message provided. Try: tetra "what should I build next?"')
   }

@@ -4,7 +4,7 @@ import type { bootstrap } from '../bootstrap'
 import { readMessage } from '../lib/input'
 import { formatSession, printMessages } from '../lib/output'
 import { titleFromMessage } from '../lib/title'
-import { runChat } from './chat'
+import { runChatContent } from './chat'
 
 type CliContext = Awaited<ReturnType<typeof bootstrap>>
 
@@ -41,7 +41,7 @@ export function registerSessionCommands(
           if (opts.active !== false) {
             ctx.workspace.setActiveSessionId(sessionId)
           }
-          await runChat(ctx, [content], {
+          await runChatContent(ctx, content, {
             active: opts.active,
             model: opts.model,
             new: false,
