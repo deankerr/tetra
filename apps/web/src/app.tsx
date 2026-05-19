@@ -8,6 +8,7 @@ import {
 import type { Catalog, Prompts, Runner, Sessions, TetraSchemas, TetraStore } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
 import { Sidebar, SidebarInset, SidebarProvider } from '@tetra/ui/components/ui/sidebar'
+import { Toaster } from '@tetra/ui/components/ui/sonner'
 import { Spinner } from '@tetra/ui/components/ui/spinner'
 import { useEffect, useState } from 'react'
 import type { Indexes as TinyIndexes, Store as TinyStore } from 'tinybase'
@@ -53,6 +54,8 @@ export function App() {
     }
   })
   const [persister, setPersister] = useState<OpfsPersister<TetraSchemas> | null>(null)
+  const [activeCredentialId, setActiveCredentialId] = useState('')
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -107,9 +110,19 @@ export function App() {
   const runtimeIndexes = tetra.indexes as unknown as TinyIndexes
   // oxlint-disable-next-line no-unsafe-type-assertion
   const runtimePersister = persister as unknown as TinyPersister
+  const contextValue = {
+    ...tetra,
+    activeCredentialId,
+    openCredentialSettings: (id: string) => {
+      setActiveCredentialId(id)
+      setSettingsOpen(true)
+    },
+    setSettingsOpen,
+    settingsOpen,
+  }
 
   return (
-    <TetraContext value={tetra}>
+    <TetraContext value={contextValue}>
       <Provider store={runtimeStore} indexes={runtimeIndexes} persister={runtimePersister}>
         <SidebarProvider>
           <Sidebar>
@@ -122,6 +135,7 @@ export function App() {
         </SidebarProvider>
 
         <Inspector />
+        <Toaster richColors />
       </Provider>
     </TetraContext>
   )

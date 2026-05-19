@@ -8,18 +8,21 @@ import {
   PromptInputTools,
 } from '@tetra/ui/components/ai-elements/prompt-input'
 import type { PromptInputMessage } from '@tetra/ui/components/ai-elements/prompt-input'
+import { toast } from '@tetra/ui/components/ui/sonner'
 import { PlusIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import { useStreamingRequest, useSessionConfig } from '@/api'
+import { useCredential } from '@/hooks/use-credential'
 import { ModelPicker } from '@/session/settings/model-picker'
 import { useTetra } from '@/tetra-provider'
 
 export function Composer({ sessionId }: { sessionId: string }) {
-  const { runner, sessions, streamingState } = useTetra()
+  const tetra = useTetra()
   const activeRequest = useStreamingRequest(sessionId)
   const isStreaming = activeRequest !== null
   const config = useSessionConfig(sessionId)
+  const [openrouterApiKey] = useCredential('OPENROUTER_API_KEY')
   const [draft, setDraft] = useState('')
 
   // Track the assistant message ID for the active stream so we can clean up StreamingState
@@ -28,17 +31,17 @@ export function Composer({ sessionId }: { sessionId: string }) {
     if (activeRequest !== null) {
       activeAssistantRef.current = activeRequest.assistantMessageId
     } else if (activeAssistantRef.current !== null) {
-      streamingState.delete(activeAssistantRef.current)
+      tetra.streamingState.delete(activeAssistantRef.current)
       activeAssistantRef.current = null
     }
-  }, [activeRequest, streamingState])
+  }, [activeRequest, tetra.streamingState])
 
   const handleAdd = () => {
     if (!draft.trim()) {
       return
     }
 
-    sessions.addMessage(sessionId, {
+    tetra.sessions.addMessage(sessionId, {
       content: draft,
       role: 'user',
     })
@@ -50,18 +53,27 @@ export function Composer({ sessionId }: { sessionId: string }) {
       return
     }
 
+    // Inference happens in-browser, so surface missing credentials before creating rows.
+    if (openrouterApiKey.trim() === '') {
+      toast.error('OpenRouter API key required', {
+        description: 'Add an OpenRouter API key before running model inference.',
+      })
+      tetra.openCredentialSettings('OPENROUTER_API_KEY')
+      return
+    }
+
     // Clear draft before execute so any TinyBase-triggered re-render sees the empty value
     setDraft('')
 
     // Set title from first message if session is untitled
-    if (!sessions.get(sessionId).title) {
-      sessions.rename(sessionId, message.text.trim().slice(0, 60))
+    if (!tetra.sessions.get(sessionId).title) {
+      tetra.sessions.rename(sessionId, message.text.trim().slice(0, 60))
     }
 
-    const { assistantMessageId } = runner.execute(sessionId, {
+    const { assistantMessageId } = tetra.runner.execute(sessionId, {
       content: message.text,
       onSnapshot: (msg) => {
-        streamingState.update(assistantMessageId, msg)
+        tetra.streamingState.update(assistantMessageId, msg)
       },
     })
   }
@@ -84,8 +96,8 @@ export function Composer({ sessionId }: { sessionId: string }) {
           <PromptInputTools>
             <ModelPicker
               onValueChange={(modelId) => {
-                const current = sessions.getConfig(sessionId)
-                sessions.setConfig(sessionId, { ...current, modelId })
+                const current = tetra.sessions.getConfig(sessionId)
+                tetra.sessions.setConfig(sessionId, { ...current, modelId })
               }}
               value={config.modelId}
             />
@@ -106,7 +118,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
               status={isStreaming ? 'streaming' : 'ready'}
               {...(activeRequest && {
                 onStop: () => {
-                  runner.cancel(activeRequest.id)
+                  tetra.runner.cancel(activeRequest.id)
                 },
               })}
             />
