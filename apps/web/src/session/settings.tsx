@@ -11,7 +11,13 @@ import { SystemPromptField } from './settings/prompt-field'
 import { ProviderOptionsEditor } from './settings/provider-options-editor'
 import { ToolSelector } from './settings/tool-selector'
 
-export function SessionSettings({ sessionId }: { sessionId: string }) {
+export function SessionSettings({
+  onOpenPromptSheet,
+  sessionId,
+}: {
+  onOpenPromptSheet: () => void
+  sessionId: string
+}) {
   const { sessions } = useTetra()
   const config = useSessionConfig(sessionId)
 
@@ -47,7 +53,7 @@ export function SessionSettings({ sessionId }: { sessionId: string }) {
         />
       </Field>
 
-      <SystemPromptField sessionId={sessionId} />
+      <SystemPromptField onOpen={onOpenPromptSheet} sessionId={sessionId} />
 
       <Card size="sm">
         <CardHeader>

@@ -26,6 +26,7 @@ import { MessageBubble } from './message-bubble'
 import { MessageInspector } from './message-inspector'
 import { RequestsTable } from './requests-table'
 import { SessionSettings } from './settings'
+import { SystemPromptSheet } from './settings/prompt-field'
 
 type MessageView = 'chat' | 'debug' | 'requests'
 
@@ -44,6 +45,7 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
   const session = useSession(sessionId)
   const messageIds = useSessionMessageIds(sessionId)
   const [detailOpen, setDetailOpen] = useState(false)
+  const [promptSheetOpen, setPromptSheetOpen] = useState(false)
   const [messageView, setMessageView] = useState<MessageView>('debug')
 
   if (session === null) {
@@ -147,10 +149,22 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
             </SheetClose>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto p-4">
-            <SessionSettings sessionId={sessionId} />
+            <SessionSettings
+              onOpenPromptSheet={() => {
+                setPromptSheetOpen(true)
+              }}
+              sessionId={sessionId}
+            />
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Prompt sheet — sibling to settings sheet so portal events don't bubble through its popup */}
+      <SystemPromptSheet
+        onOpenChange={setPromptSheetOpen}
+        open={promptSheetOpen}
+        sessionId={sessionId}
+      />
     </div>
   )
 }
