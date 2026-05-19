@@ -4,11 +4,15 @@ import { createContext, useContext } from 'react'
 import type { StreamingState } from '@/streaming-state'
 
 export interface TetraAppContext {
+  activeCredentialId: string
   indexes: TetraStore['indexes']
   models: Catalog
+  openCredentialSettings: (id: string) => void
   prompts: Prompts
   runner: Runner
+  setSettingsOpen: (open: boolean) => void
   sessions: Sessions
+  settingsOpen: boolean
   store: TetraStore['store']
   streamingState: StreamingState
 }

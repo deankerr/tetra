@@ -48,9 +48,16 @@ export function createRunner(
     abort: AbortController,
     onSnapshot?: (msg: UIMessage) => void,
   ): Promise<void> {
-    const openrouter = createOpenRouter({ apiKey: credentials.get('OPENROUTER_API_KEY') })
-
     try {
+      // Validate required inference credentials before creating the provider.
+      const openrouterApiKey = credentials.get('OPENROUTER_API_KEY').trim()
+      if (openrouterApiKey === '') {
+        throw new Error('OPENROUTER_API_KEY is required for model inference')
+      }
+
+      // OpenRouter is the app's sole inference provider.
+      const openrouter = createOpenRouter({ apiKey: openrouterApiKey })
+
       // History is read here, after execute() has synchronously written the new user
       // message and assistant placeholder — so they're already in the store.
       const messages = await sessions.gatherModelMessages(
