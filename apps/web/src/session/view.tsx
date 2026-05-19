@@ -5,10 +5,17 @@ import {
   ConversationScrollButton,
 } from '@tetra/ui/components/ai-elements/conversation'
 import { Button } from '@tetra/ui/components/ui/button'
-import { ScrollArea } from '@tetra/ui/components/ui/scroll-area'
+import { Sheet, SheetClose, SheetContent } from '@tetra/ui/components/ui/sheet'
 import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
 import { Toggle } from '@tetra/ui/components/ui/toggle'
-import { BotIcon, Code2Icon, MessagesSquareIcon, PanelRightIcon, TableIcon } from 'lucide-react'
+import {
+  BotIcon,
+  Code2Icon,
+  MessagesSquareIcon,
+  PanelRightIcon,
+  TableIcon,
+  XIcon,
+} from 'lucide-react'
 import { useState } from 'react'
 
 import { useActiveSessionId, useSession, useSessionMessageIds } from '@/api'
@@ -36,7 +43,7 @@ export function SessionView() {
 function ActiveSession({ sessionId }: { sessionId: string }) {
   const session = useSession(sessionId)
   const messageIds = useSessionMessageIds(sessionId)
-  const [detailOpen, setDetailOpen] = useState(true)
+  const [detailOpen, setDetailOpen] = useState(false)
   const [messageView, setMessageView] = useState<MessageView>('debug')
 
   if (session === null) {
@@ -88,7 +95,7 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
           <SessionExportButton sessionId={sessionId} />
           <Button
             onClick={() => {
-              setDetailOpen((prev) => !prev)
+              setDetailOpen(true)
             }}
             size="icon-sm"
             type="button"
@@ -131,15 +138,19 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
       </div>
 
       {/* Config panel */}
-      {detailOpen && (
-        <aside className="bg-muted/40 flex w-80 shrink-0 flex-col border-l">
-          <ScrollArea className="flex-1">
-            <div className="p-4">
-              <SessionSettings sessionId={sessionId} />
-            </div>
-          </ScrollArea>
-        </aside>
-      )}
+      <Sheet onOpenChange={setDetailOpen} open={detailOpen}>
+        <SheetContent className="w-80 sm:max-w-80" showCloseButton={false}>
+          <div className="flex h-(--header-height) shrink-0 items-center justify-between border-b px-2">
+            <span className="px-2 text-xs font-medium">Settings</span>
+            <SheetClose render={<Button variant="ghost" size="icon-sm" />}>
+              <XIcon />
+            </SheetClose>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-4">
+            <SessionSettings sessionId={sessionId} />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
