@@ -101,6 +101,7 @@ export const tablesSchema = {
 } as const satisfies TablesSchema
 
 export const valuesSchema = {
+  activeSessionId: { default: '', type: 'string' },
   catalogLastRefreshed: { default: 0, type: 'number' },
 } as const satisfies ValuesSchema
 

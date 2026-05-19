@@ -11,7 +11,8 @@
     "#sessions": "./src/sessions.ts",
     "#store": "./src/store.ts",
     "#step": "./src/step.ts",
-    "#tools": "./src/tools.ts"
+    "#tools": "./src/tools.ts",
+    "#workspace": "./src/workspace.ts"
   },
   "exports": {
     ".": "./src/index.ts"

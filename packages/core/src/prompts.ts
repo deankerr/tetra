@@ -32,7 +32,6 @@ export function createPrompts({ store }: TetraStore): Prompts {
         content,
         label,
       })
-      console.log('[prompts] create', { promptId })
       return promptId
     },
 
@@ -56,7 +55,6 @@ export function createPrompts({ store }: TetraStore): Prompts {
 
         store.delRow('prompts', promptId)
       })
-      console.log('[prompts] delete', { promptId })
     },
 
     get(promptId) {
@@ -72,17 +70,14 @@ export function createPrompts({ store }: TetraStore): Prompts {
 
     setContent(promptId, content) {
       store.setCell('prompts', promptId, 'content', content)
-      console.log('[prompts] setContent', { promptId })
     },
 
     setLabel(promptId, label) {
       store.setCell('prompts', promptId, 'label', label)
-      console.log('[prompts] setLabel', { promptId })
     },
 
     update(promptId, patch) {
       store.setPartialRow('prompts', promptId, patch)
-      console.log('[prompts] update', { promptId })
     },
   }
 }

@@ -9,6 +9,8 @@ export type { SessionExport, Sessions } from '#sessions'
 export { loadSeeds } from '#seeds'
 export { createTetraMergeableStore, createTetraStore } from '#store'
 export type { TetraStore } from '#store'
+export { createWorkspaceState } from '#workspace'
+export type { WorkspaceState } from '#workspace'
 
 export { DEFAULT_MODEL_CONFIG, ModelConfig, StepRecord } from '#model'
 export type {

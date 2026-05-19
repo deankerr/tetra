@@ -6,6 +6,7 @@ import {
   createRunner,
   createSessions,
   createTetraStore,
+  createWorkspaceState,
 } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
 import { createSqliteBunPersister } from 'tinybase/persisters/persister-sqlite-bun/with-schemas'
@@ -16,6 +17,7 @@ export async function bootstrap() {
   const sessions = createSessions(tetraStore)
   const prompts = createPrompts(tetraStore)
   const runner = createRunner(tetraStore, sessions, credentialStore)
+  const workspace = createWorkspaceState(tetraStore)
   const models = createCatalog(tetraStore)
   runner.recover()
 
@@ -39,9 +41,12 @@ export async function bootstrap() {
         sessions: { rowIdColumnName: 'id', tableName: 'sessions' },
       },
     },
+    values: {
+      load: true,
+      save: true,
+    },
   })
   await persister.load()
-  await persister.startAutoSave()
 
-  return { models, prompts, runner, sessions, ...tetraStore }
+  return { db, models, persister, prompts, runner, sessions, workspace, ...tetraStore }
 }

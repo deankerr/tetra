@@ -90,7 +90,6 @@ export function createCatalog(store: TetraStore): Catalog {
     }
 
     store.store.setValue('catalogLastRefreshed', Date.now())
-    console.log('openrouter model catalog refreshed')
   }
 
   return { refresh }
