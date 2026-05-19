@@ -24,6 +24,12 @@ export const credentialRegistry = [
     label: 'Jina API Key',
     placeholder: 'jina_...',
   },
+  {
+    description: 'Used for neural web search via Exa. Get a key at dashboard.exa.ai/api-keys.',
+    id: 'EXA_API_KEY',
+    label: 'Exa API Key',
+    placeholder: 'exa_...',
+  },
 ] as const satisfies CredentialDefinition[]
 
 export type CredentialId = (typeof credentialRegistry)[number]['id']

@@ -61,8 +61,8 @@ export function createRunner(
 
       const { providerOptions = {}, toolIds: requestedToolIds = [] } = config
 
-      // Resolve tools and gather credentials if any tool IDs are configured.
-      const toolsResolved = resolveTools(requestedToolIds, (id) => credentials.get(id))
+      // Instantiate each tool with its resolved credentials.
+      const tools = resolveTools(requestedToolIds, (id) => credentials.get(id))
 
       const systemPrompt =
         config.systemPromptId === undefined
@@ -71,7 +71,6 @@ export function createRunner(
 
       const result = streamText({
         abortSignal: abort.signal,
-        experimental_context: toolsResolved?.toolContext,
         experimental_onStart: (event) => {
           console.log('streamText onStart', { event, requestId })
         },
@@ -90,7 +89,7 @@ export function createRunner(
         providerOptions: { openrouter: providerOptions },
         stopWhen: stepCountIs(6),
         system: systemPrompt,
-        tools: toolsResolved?.tools,
+        tools,
       })
 
       // readUIMessageStream converts the chunk stream into a sequence of assembled
