@@ -16,6 +16,7 @@ export interface Sessions {
   // Session CRUD
   create(title?: string, config?: ModelConfig): string
   delete(sessionId: string): void
+  exists(sessionId: string): boolean
   get(sessionId: string): Session
   getConfig(sessionId: string): ModelConfig
   list(): Session[]
@@ -39,10 +40,18 @@ export interface Sessions {
 
   // Snapshot export — produces a portable JSON-serialisable record of the full session.
   exportSession(sessionId: string): SessionExport
+
+  // Snapshot import — writes a full session export into the store.
+  // Preserves original row IDs, so re-importing is idempotent.
+  importSession(data: SessionExport): string
 }
 
 export function createSessions({ indexes, store }: TetraStore): Sessions {
   function readSession(sessionId: string): Session {
+    if (!store.hasRow('sessions', sessionId)) {
+      throw new Error(`Session not found: ${sessionId}`)
+    }
+
     const row = store.getRow('sessions', sessionId)
     return {
       config: row.config,
@@ -79,7 +88,6 @@ export function createSessions({ indexes, store }: TetraStore): Sessions {
         updatedAt: now,
       })
       store.setCell('sessions', sessionId, 'updatedAt', now)
-      console.log('[sessions] addMessage', { messageId, role, sessionId })
       return messageId
     },
 
@@ -92,11 +100,14 @@ export function createSessions({ indexes, store }: TetraStore): Sessions {
         title,
         updatedAt: now,
       })
-      console.log('[sessions] create', { sessionId, title })
       return sessionId
     },
 
     delete(sessionId) {
+      if (!store.hasRow('sessions', sessionId)) {
+        throw new Error(`Session not found: ${sessionId}`)
+      }
+
       // Cascade-delete child rows so no orphaned messages or requests remain.
       const messageIds = indexes.getSliceRowIds('messagesBySession', sessionId)
       const requestIds = indexes.getSliceRowIds('requestsBySession', sessionId)
@@ -110,12 +121,14 @@ export function createSessions({ indexes, store }: TetraStore): Sessions {
         }
         store.delRow('sessions', sessionId)
       })
-      console.log('[sessions] delete', { sessionId })
     },
 
     deleteMessage(messageId) {
       store.delRow('messages', messageId)
-      console.log('[sessions] deleteMessage', { messageId })
+    },
+
+    exists(sessionId) {
+      return store.hasRow('sessions', sessionId)
     },
 
     exportSession(sessionId) {
@@ -182,6 +195,10 @@ export function createSessions({ indexes, store }: TetraStore): Sessions {
     },
 
     getConfig(sessionId) {
+      if (!store.hasRow('sessions', sessionId)) {
+        throw new Error(`Session not found: ${sessionId}`)
+      }
+
       const raw = store.getCell('sessions', sessionId, 'config')
       const result = ModelConfig.safeParse(raw)
       return result.success ? result.data : DEFAULT_MODEL_CONFIG
@@ -192,8 +209,52 @@ export function createSessions({ indexes, store }: TetraStore): Sessions {
     },
 
     getMessages(sessionId) {
+      if (!store.hasRow('sessions', sessionId)) {
+        throw new Error(`Session not found: ${sessionId}`)
+      }
+
       const ids = indexes.getSliceRowIds('messagesBySession', sessionId)
       return ids.map(readMessage)
+    },
+
+    importSession({ messages, requests, session }) {
+      const { id: sessionId, ...sessionRow } = session
+
+      store.transaction(() => {
+        store.setRow('sessions', sessionId, {
+          config: sessionRow.config,
+          createdAt: sessionRow.createdAt,
+          title: sessionRow.title,
+          updatedAt: sessionRow.updatedAt,
+        })
+
+        for (const message of messages) {
+          const { id: messageId, ...msgRow } = message
+          store.setRow('messages', messageId, {
+            createdAt: msgRow.createdAt,
+            parts: msgRow.parts,
+            role: msgRow.role,
+            sessionId: msgRow.sessionId,
+            updatedAt: msgRow.updatedAt,
+          })
+        }
+
+        for (const request of requests) {
+          const { id: requestId, ...reqRow } = request
+          store.setRow('requests', requestId, {
+            assistantMessageId: reqRow.assistantMessageId,
+            completedAt: reqRow.completedAt ?? 0,
+            config: reqRow.config,
+            createdAt: reqRow.createdAt,
+            errorMessage: reqRow.errorMessage ?? '',
+            sessionId: reqRow.sessionId,
+            status: reqRow.status,
+            steps: reqRow.steps ?? [],
+          })
+        }
+      })
+
+      return sessionId
     },
 
     list() {
@@ -204,17 +265,23 @@ export function createSessions({ indexes, store }: TetraStore): Sessions {
     },
 
     rename(sessionId, title) {
+      if (!store.hasRow('sessions', sessionId)) {
+        throw new Error(`Session not found: ${sessionId}`)
+      }
+
       store.setCell('sessions', sessionId, 'title', title)
       store.setCell('sessions', sessionId, 'updatedAt', Date.now())
-      console.log('[sessions] rename', { sessionId, title })
     },
 
     setConfig(sessionId, config) {
+      if (!store.hasRow('sessions', sessionId)) {
+        throw new Error(`Session not found: ${sessionId}`)
+      }
+
       store.setPartialRow('sessions', sessionId, {
         config,
         updatedAt: Date.now(),
       })
-      console.log('[sessions] setConfig', { config, sessionId })
     },
   }
 }

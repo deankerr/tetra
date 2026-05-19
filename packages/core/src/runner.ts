@@ -78,14 +78,8 @@ export function createRunner(
 
       const result = streamText({
         abortSignal: abort.signal,
-        experimental_onStart: (event) => {
-          console.log('streamText onStart', { event, requestId })
-        },
         messages,
         model: openrouter(config.modelId),
-        onAbort: () => {
-          console.warn('streamText aborted', { requestId })
-        },
         onStepFinish: (step) => {
           // Append to the request's embedded steps array — read-modify-write is safe here
           // because only one runner process writes to a given request row.
@@ -129,9 +123,7 @@ export function createRunner(
         completedAt: Date.now(),
         status: 'completed',
       })
-      console.log('streamText complete', { requestId })
     } catch (error) {
-      console.error({ error, requestId })
       const status = abort.signal.aborted ? 'cancelled' : 'error'
       store.setPartialRow('requests', requestId, {
         completedAt: Date.now(),
