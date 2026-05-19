@@ -6,6 +6,7 @@ export { createRunner } from '#runner'
 export type { ExecuteResult, Runner } from '#runner'
 export { createSessions } from '#sessions'
 export type { SessionExport, Sessions } from '#sessions'
+export { loadSeeds } from '#seeds'
 export { createTetraMergeableStore, createTetraStore } from '#store'
 export type { TetraStore } from '#store'
 

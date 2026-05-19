@@ -1,4 +1,4 @@
-import { ModelConfig } from '@tetra/core'
+import { ModelConfig, loadSeeds } from '@tetra/core'
 import { Command } from 'commander'
 
 import { bootstrap } from './bootstrap'
@@ -47,6 +47,16 @@ program
       const mods = r.inputModalities.join('+') || 'text'
       console.log(`${r.id.padEnd(55)} ${r.name.padEnd(45)} ctx:${ctx.padStart(5)}  in:${mods}`)
     }
+  })
+
+// tetra seed — load bundled seed sessions into the local database
+program
+  .command('seed')
+  .description('Load bundled seed sessions into the local database')
+  .action(async () => {
+    const { sessions } = await bootstrap()
+    loadSeeds(sessions)
+    console.log('seeded')
   })
 
 // tetra sessions — list all sessions

@@ -39,6 +39,10 @@ export interface Sessions {
 
   // Snapshot export — produces a portable JSON-serialisable record of the full session.
   exportSession(sessionId: string): SessionExport
+
+  // Snapshot import — writes a full session export into the store.
+  // Preserves original row IDs, so re-importing is idempotent.
+  importSession(data: SessionExport): string
 }
 
 export function createSessions({ indexes, store }: TetraStore): Sessions {
@@ -194,6 +198,51 @@ export function createSessions({ indexes, store }: TetraStore): Sessions {
     getMessages(sessionId) {
       const ids = indexes.getSliceRowIds('messagesBySession', sessionId)
       return ids.map(readMessage)
+    },
+
+    importSession({ messages, requests, session }) {
+      const { id: sessionId, ...sessionRow } = session
+
+      store.transaction(() => {
+        store.setRow('sessions', sessionId, {
+          config: sessionRow.config,
+          createdAt: sessionRow.createdAt,
+          title: sessionRow.title,
+          updatedAt: sessionRow.updatedAt,
+        })
+
+        for (const message of messages) {
+          const { id: messageId, ...msgRow } = message
+          store.setRow('messages', messageId, {
+            createdAt: msgRow.createdAt,
+            parts: msgRow.parts,
+            role: msgRow.role,
+            sessionId: msgRow.sessionId,
+            updatedAt: msgRow.updatedAt,
+          })
+        }
+
+        for (const request of requests) {
+          const { id: requestId, ...reqRow } = request
+          store.setRow('requests', requestId, {
+            assistantMessageId: reqRow.assistantMessageId,
+            completedAt: reqRow.completedAt ?? 0,
+            config: reqRow.config,
+            createdAt: reqRow.createdAt,
+            errorMessage: reqRow.errorMessage ?? '',
+            sessionId: reqRow.sessionId,
+            status: reqRow.status,
+            steps: reqRow.steps ?? [],
+          })
+        }
+      })
+
+      console.log('[sessions] importSession', {
+        messages: messages.length,
+        requests: requests.length,
+        sessionId,
+      })
+      return sessionId
     },
 
     list() {

@@ -52,6 +52,19 @@ Bun workspaces. Run scripts from the root.
 
 - A perfect (dev/)dependencies result is a non-goal - expect testing/frontend/tanstack deps to go unused for periods of time.
 
+## Seeding the database
+
+When working in an isolated worktree or without an API key, load bundled seed sessions so you have real data to work with:
+
+```bash
+# CLI (SQLite)
+bun run --filter @tetra/cli start seed
+
+# Web (OPFS) — open the app, click the bug icon (bottom-left), choose "Load seed data"
+```
+
+Seed sessions live in `packages/core/src/seeds/`. `loadSeeds(sessions)` is exported from `@tetra/core` and loads them all at once. Idempotent — safe to call repeatedly.
+
 ## Project Docs
 
 @VISION.md

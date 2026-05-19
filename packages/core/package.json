@@ -7,6 +7,7 @@
     "#model": "./src/model.ts",
     "#prompts": "./src/prompts.ts",
     "#runner": "./src/runner.ts",
+    "#seeds": "./src/seeds.ts",
     "#sessions": "./src/sessions.ts",
     "#store": "./src/store.ts",
     "#step": "./src/step.ts",
