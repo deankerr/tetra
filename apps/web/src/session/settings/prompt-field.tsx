@@ -10,8 +10,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@tetra/ui/components/ui/select'
+import { Sheet, SheetClose, SheetContent } from '@tetra/ui/components/ui/sheet'
 import { Textarea } from '@tetra/ui/components/ui/textarea'
-import { Trash2Icon } from 'lucide-react'
+import { Trash2Icon, XIcon } from 'lucide-react'
 import * as UiReact from 'tinybase/ui-react/with-schemas'
 
 import { usePrompt, usePromptIds, useSessionConfig } from '@/api'
@@ -66,7 +67,7 @@ function SelectedPromptFields({
             <Trash2Icon />
           </Button>
         </div>
-        <Textarea disabled placeholder="No system prompt" value="" />
+        <Textarea className="flex-1" disabled placeholder="No system prompt" value="" />
       </>
     )
   }
@@ -93,6 +94,7 @@ function PromptCellFields({ onDelete, promptId }: { onDelete: () => void; prompt
         </Button>
       </div>
       <Textarea
+        className="flex-1"
         onChange={(e) => {
           setContent(e.currentTarget.value)
         }}
@@ -112,7 +114,57 @@ function PromptLabel({ promptId }: { promptId: string }) {
   )
 }
 
-export function SystemPromptField({ sessionId }: { sessionId: string }) {
+/** 3-line preview in the settings panel. Calls onOpen to open the dedicated editor sheet. */
+export function SystemPromptField({
+  onOpen,
+  sessionId,
+}: {
+  onOpen: () => void
+  sessionId: string
+}) {
+  const config = useSessionConfig(sessionId)
+  const promptIds = usePromptIds()
+  const selectedPromptId =
+    config.systemPromptId !== undefined && promptIds.includes(config.systemPromptId)
+      ? config.systemPromptId
+      : undefined
+
+  // Always call — hook handles missing id gracefully
+  const selectedPrompt = usePrompt(selectedPromptId ?? '')
+  const previewContent = selectedPrompt?.content?.trim() ?? ''
+
+  return (
+    <Field>
+      <FieldTitle>System Prompt</FieldTitle>
+      <button
+        className="border-input bg-input/30 hover:bg-input/50 w-full rounded-md border px-3 py-2 text-left text-xs transition-colors"
+        onClick={onOpen}
+        type="button"
+      >
+        {previewContent ? (
+          <span className="line-clamp-3 whitespace-pre-wrap">{previewContent}</span>
+        ) : (
+          <span className="text-muted-foreground">No system prompt</span>
+        )}
+      </button>
+    </Field>
+  )
+}
+
+/**
+ * Full system prompt editor in a dedicated sheet.
+ * Rendered as a sibling to the settings sheet (not nested inside it) so that
+ * base-ui's outside-click dismissal works correctly without React portal event bubbling interference.
+ */
+export function SystemPromptSheet({
+  onOpenChange,
+  open,
+  sessionId,
+}: {
+  onOpenChange: (open: boolean) => void
+  open: boolean
+  sessionId: string
+}) {
   const { prompts, sessions } = useTetra()
   const config = useSessionConfig(sessionId)
   const promptIds = usePromptIds()
@@ -130,49 +182,68 @@ export function SystemPromptField({ sessionId }: { sessionId: string }) {
   }
 
   return (
-    <Field>
-      <FieldTitle>System Prompt</FieldTitle>
-      <Select
-        value={selectedPromptId ?? NO_PROMPT_VALUE}
-        onValueChange={(value) => {
-          if (value === null) {
-            updateSystemPromptId()
-            return
-          }
-          if (value === NEW_PROMPT_VALUE) {
-            updateSystemPromptId(prompts.create())
-            return
-          }
-          updateSystemPromptId(value === NO_PROMPT_VALUE ? undefined : value)
-        }}
+    <Sheet onOpenChange={onOpenChange} open={open}>
+      <SheetContent
+        className="flex flex-col"
+        showCloseButton={false}
+        style={{ maxWidth: '480px', width: '480px' }}
       >
-        <SelectTrigger className="w-full">
-          <SelectValue>
-            {selectedPromptId === undefined ? (
-              <span className="text-muted-foreground">None</span>
-            ) : (
-              <PromptLabel promptId={selectedPromptId} />
-            )}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={NO_PROMPT_VALUE}>
-            <span className="text-muted-foreground">None</span>
-          </SelectItem>
-          {promptIds.map((promptId) => (
-            <PromptOption key={promptId} promptId={promptId} />
-          ))}
-          <SelectItem value={NEW_PROMPT_VALUE}>+ New</SelectItem>
-        </SelectContent>
-      </Select>
-      <SelectedPromptFields
-        onDelete={() => {
-          if (selectedPromptId !== undefined) {
-            prompts.delete(selectedPromptId)
-          }
-        }}
-        promptId={selectedPromptId}
-      />
-    </Field>
+        <div className="flex h-(--header-height) shrink-0 items-center justify-between border-b px-2">
+          <span className="px-2 text-xs font-medium">System Prompt</span>
+          <SheetClose render={<Button size="icon-sm" variant="ghost" />}>
+            <XIcon />
+          </SheetClose>
+        </div>
+
+        {/* Prompt selector */}
+        <div className="shrink-0 border-b p-4">
+          <Select
+            onValueChange={(value) => {
+              if (value === null) {
+                updateSystemPromptId()
+                return
+              }
+              if (value === NEW_PROMPT_VALUE) {
+                updateSystemPromptId(prompts.create())
+                return
+              }
+              updateSystemPromptId(value === NO_PROMPT_VALUE ? undefined : value)
+            }}
+            value={selectedPromptId ?? NO_PROMPT_VALUE}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue>
+                {selectedPromptId === undefined ? (
+                  <span className="text-muted-foreground">None</span>
+                ) : (
+                  <PromptLabel promptId={selectedPromptId} />
+                )}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NO_PROMPT_VALUE}>
+                <span className="text-muted-foreground">None</span>
+              </SelectItem>
+              {promptIds.map((promptId) => (
+                <PromptOption key={promptId} promptId={promptId} />
+              ))}
+              <SelectItem value={NEW_PROMPT_VALUE}>+ New</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Prompt fields — fill remaining height */}
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
+          <SelectedPromptFields
+            onDelete={() => {
+              if (selectedPromptId !== undefined) {
+                prompts.delete(selectedPromptId)
+              }
+            }}
+            promptId={selectedPromptId}
+          />
+        </div>
+      </SheetContent>
+    </Sheet>
   )
 }
