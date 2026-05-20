@@ -32,22 +32,6 @@ messages: {
 
 This is not a rendering cache derived from other data — it is the authoritative record. On reload, `messages.parts` is what React renders. For an active stream, the live snapshots from `onSnapshot` are what the UI renders (see [03-components.md](./03-components.md)).
 
-### `steps`
-
-```ts
-steps: {
-  accounting: object // StepAccounting — token counts, cost, model identity
-  createdAt: number
-  finishReason: string // 'stop' | 'tool-calls' | 'length' | 'error' | 'content-filter' | 'other'
-  messageId: string
-  requestId: string
-  sessionId: string
-  stepNumber: number
-}
-```
-
-Step rows are accounting records only. They are written at each step boundary via `onStepFinish` and are never updated. They are not used for history reconstruction or rendering — both are driven by `messages.parts`.
-
 ### `requests`
 
 ```ts
@@ -59,19 +43,18 @@ requests: {
   errorMessage: string
   sessionId: string
   status: string // 'streaming' | 'completed' | 'error' | 'cancelled'
-  totalUsage: object // cross-step aggregate from result.totalUsage
+  steps: StepRecord[] // embedded accounting records, one per completed model step
 }
 ```
 
 `config` is a snapshot taken at execution time. If the user edits the session config mid-stream, the active request is unaffected.
 
-`totalUsage` is the AI SDK's cross-step aggregate (`inputTokens`, `outputTokens`, `totalTokens`). It does not include cost — use `steps[n].accounting.cost.total` for per-step cost.
+`steps` is an embedded array on the request row, not a separate table. Step records are accounting records only. They are appended at each step boundary via `onStepFinish` and are not used for history reconstruction or rendering — both are driven by `messages.parts`.
 
 ### Indexes
 
 ```ts
 messagesBySession // 'messages' → 'sessionId', sorted by HLC row ID (creation order)
-stepsByMessage // 'steps'    → 'messageId', sorted by 'stepNumber'
 requestsBySession // 'requests' → 'sessionId', sorted by 'createdAt' descending
 requestByAssistantMessage // 'requests' → 'assistantMessageId'
 ```
@@ -82,39 +65,35 @@ HLC row IDs give `messagesBySession` a deterministic creation-time sort without 
 
 ## Token and cost accounting
 
-### The `accounting` object
+### `StepRecord`
 
-Each step row carries a structured `accounting` object assembled in `onStepFinish` from two sources: the AI SDK's normalised `step.usage` (fully typed), and `step.usage.raw` (the verbatim provider JSON, sole source of cost data).
+Each entry in `requests.steps` is a flat `StepRecord` assembled in `onStepFinish` from two sources: the AI SDK's normalised `step.usage` (fully typed), and `step.usage.raw` (the verbatim provider JSON, sole source of cost data).
 
 ```ts
-accounting: {
-  // Model identity
-  requestedModel: string // alias we sent (e.g. 'openai/gpt-4o-mini')
-  servedModel: string // pinned version that actually ran
-  backendProvider: string // infrastructure backend (e.g. 'Novita', 'Azure')
-  generationId: string // OpenRouter trace ID for this generation
-
-  // Cost (from step.usage.raw — AI SDK does not normalise cost)
+{
   cost: {
-    total: number | null
-    prompt: number | null
     completion: number | null
     isByok: boolean
+    prompt: number | null
+    total: number | null
   }
-
-  // Token counts (mixed sources — see below)
+  createdAt: number
+  finishReason: string
+  generationId: string
+  model: string
+  provider: string
+  stepNumber: number
   tokens: {
-    input: number // SDK normalised
-    output: number // SDK normalised
-    total: number // SDK normalised
-    text: number // SDK normalised (output breakdown)
-    reasoning: number // SDK normalised (output breakdown)
-    cacheRead: number // SDK normalised (input breakdown)
-    cacheWrite: number // SDK normalised (input breakdown)
-    audioIn: number // raw only
-    audioOut: number // raw only
-    imageOut: number // raw only
-    videoIn: number // raw only
+    audioIn: number
+    audioOut: number
+    cacheRead: number
+    cacheWrite: number
+    imageOut: number
+    input: number
+    output: number
+    reasoning: number
+    total: number
+    videoIn: number
   }
 }
 ```
@@ -126,18 +105,13 @@ Media tokens (`audioIn`, `audioOut`, `imageOut`, `videoIn`) are only present in 
 To sum cost across all steps for a request:
 
 ```ts
-const totalCost = indexes
-  .getSliceRowIds('stepsByMessage', assistantMessageId)
-  .reduce((sum, stepId) => {
-    const { accounting } = store.getRow('steps', stepId)
-    const cost = (accounting as { cost?: { total?: number } }).cost?.total
-    return sum + (cost ?? 0)
-  }, 0)
+const steps = request.steps as StepRecord[]
+const totalCost = steps.reduce((sum, step) => sum + (step.cost.total ?? 0), 0)
 ```
 
-### `requests.totalUsage`
+### Request-level usage
 
-The AI SDK aggregates `inputTokens`, `outputTokens`, and `totalTokens` across all steps into `result.totalUsage`. This is stored on the request row. It does not include cost, reasoning tokens, or media tokens — use `step.accounting` for those.
+Tetra does not store `result.totalUsage` separately. Request-level usage is derived from the embedded `requests.steps` array so the request row has one accounting source of truth.
 
 ---
 

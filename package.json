@@ -23,12 +23,14 @@
   },
   "type": "module",
   "scripts": {
+    "build": "turbo run build",
     "build:vercel": "rm -rf .vercel/output apps/web/.vercel/output && NITRO_PRESET=vercel bun run --filter @tetra/web build && mkdir -p .vercel && mv apps/web/.vercel/output .vercel/output",
     "check": "ultracite check --type-aware --type-check",
     "cli": "bun run --filter @tetra/cli start",
-    "dev": "bun run --filter @tetra/web dev",
+    "dev": "turbo run dev",
     "fix": "ultracite fix --type-aware --type-check",
-    "knip": "knip"
+    "knip": "knip",
+    "preview": "turbo run preview"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
@@ -38,6 +40,7 @@
     "oxfmt": "0.48.0",
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
+    "turbo": "^2.9.14",
     "typescript": "catalog:",
     "ultracite": "7.6.4"
   },

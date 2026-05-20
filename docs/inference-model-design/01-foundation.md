@@ -29,7 +29,7 @@ This document covers the stack, goals, invariants, and the architectural philoso
 
 **Durable at request completion.** The final `UIMessage` is written to TinyBase once, after the stream drains. If the process restarts mid-stream, the partial result is lost but the system recovers cleanly — the request is marked as interrupted.
 
-**Token and cost accounting.** Every step records normalised usage and the provider's raw usage (which carries `cost` for OpenRouter). A structured `accounting` object on each step row captures token breakdowns, cost, and model identity.
+**Token and cost accounting.** Every step records normalised usage and the provider's raw usage (which carries `cost` for OpenRouter). Each request row embeds a `steps` array of flat step records with token breakdowns, cost, and model identity.
 
 ---
 
@@ -43,7 +43,7 @@ These are hard constraints. Design decisions that would violate them require exp
 
 3. **No per-token TinyBase writes.** The durable write boundary is request completion, not step completion and not individual tokens.
 
-4. **Steps are accounting-only.** Step rows record token usage, cost, and model identity. They are not used for history reconstruction or rendering.
+4. **Steps are accounting-only.** `requests.steps` records token usage, cost, and model identity. It is not used for history reconstruction or rendering.
 
 5. **Streaming state is ephemeral by design.** Live `UIMessage` snapshots are delivered via the `onSnapshot` callback and kept in memory by the caller. Their loss on reload is acceptable — the durable record is in the messages table.
 
@@ -79,7 +79,7 @@ execute()  [synchronous]
                 │
                 ├── streamText()
                 │       │
-                │       └── onStepFinish ──► steps row (accounting)
+                │       └── onStepFinish ──► requests.steps[] (accounting)
                 │
                 └── readUIMessageStream()
                         │
@@ -95,6 +95,6 @@ execute()  [synchronous]
 
 The two outputs of `streamText` serve different purposes:
 
-- **`onStepFinish`** fires when a step completes. It writes accounting data (tokens, cost, model identity) to a step row. It has no role in history or rendering.
+- **`onStepFinish`** fires when a step completes. It appends accounting data (tokens, cost, model identity) to the request row's embedded `steps` array. It has no role in history or rendering.
 
 - **`toUIMessageStream()` → `readUIMessageStream()`** converts the chunk stream into assembled `UIMessage` snapshots. Each snapshot is passed to `onSnapshot` for live rendering. After the loop, the final snapshot is the complete message that gets persisted.

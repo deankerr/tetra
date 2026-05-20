@@ -36,11 +36,9 @@ async function runStream(...) {
     messages,
     model,
     onStepFinish: (step) => {
-      // Accounting write only — no content, no history
-      store.setRow('steps', generateId.step(), {
-        accounting: resolveAccounting(step),
-        ...
-      })
+      // Accounting write only — no content, no history.
+      const prior = store.getCell('requests', requestId, 'steps') as StepRecord[]
+      store.setCell('requests', requestId, 'steps', [...prior, parseStep(step)])
     },
   })
 
@@ -56,8 +54,7 @@ async function runStream(...) {
   // Durable write — once, after the stream drains
   store.setPartialRow('messages', assistantMessageId, { parts: finalParts, updatedAt: Date.now() })
 
-  const totalUsage = await result.totalUsage
-  store.setPartialRow('requests', requestId, { status: 'completed', totalUsage: { ... } })
+  store.setPartialRow('requests', requestId, { status: 'completed' })
 }
 ```
 
@@ -197,7 +194,7 @@ TinyBase is written before `StreamingState` is cleared, so there is no frame whe
 
 ```
 'streaming'   — set synchronously in execute(), before the first token
-'completed'   — set after result.totalUsage resolves
+'completed'   — set after the UI message stream drains and final parts are written
 'error'       — set on any thrown error
 'cancelled'   — set when the AbortController fires with 'user-cancel'
 ```

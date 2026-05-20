@@ -1,0 +1,33 @@
+{
+  "name": "@tetra/core-redesign",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#accessors": "./src/accessors/index.ts",
+    "#catalog": "./src/catalog.ts",
+    "#db": "./src/db.ts",
+    "#execute": "./src/execute.ts",
+    "#prompts": "./src/prompts.ts",
+    "#runner": "./src/runner/index.ts",
+    "#runs": "./src/runs.ts",
+    "#sessions": "./src/sessions.ts",
+    "#tools": "./src/tools/tools.ts",
+    "#transcripts": "./src/transcripts.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/provider": "^3.0.8",
+    "@exalabs/ai-sdk": "^2.0.1",
+    "@openrouter/ai-sdk-provider": "catalog:",
+    "@tetra/credentials": "workspace:*",
+    "ai": "catalog:",
+    "tinybase": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
+  }
+}
