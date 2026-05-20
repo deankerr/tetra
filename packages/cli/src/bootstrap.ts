@@ -1,29 +1,31 @@
 import { Database } from 'bun:sqlite'
 
-import {
-  createCatalog,
-  createPrompts,
-  createRunner,
-  createSessions,
-  createTetraStore,
-  createWorkspaceState,
-} from '@tetra/core'
+import { Runs, createCoreModules, createTetraDb } from '@tetra/core-redesign'
 import { credentialStore } from '@tetra/credentials'
 import { createSqliteBunPersister } from 'tinybase/persisters/persister-sqlite-bun/with-schemas'
 
 // Bootstrap: wire subsystems, attach SQLite persistence
 export async function bootstrap() {
-  const tetraStore = createTetraStore()
-  const sessions = createSessions(tetraStore)
-  const prompts = createPrompts(tetraStore)
-  const runner = createRunner(tetraStore, sessions, credentialStore)
-  const workspace = createWorkspaceState(tetraStore)
-  const models = createCatalog(tetraStore)
-  runner.recover()
+  const core = createCoreModules(createTetraDb())
+  const runs = new Runs(core.accessors, credentialStore)
 
-  // Persist store to SQLite — tabular mode maps each TinyBase table to a real SQL table
-  const db = new Database('./tetra.db')
-  const persister = createSqliteBunPersister(tetraStore.store, db, {
+  // CLI-only state lives in TinyBase values, but the CLI owns this convenience API.
+  const workspace = {
+    clearActiveSessionId(): void {
+      core.db.store.setValue('cliActiveSessionId', '')
+    },
+    getActiveSessionId(): string | undefined {
+      const sessionId = core.db.store.getValue('cliActiveSessionId')
+      return sessionId.trim() === '' ? undefined : sessionId
+    },
+    setActiveSessionId(sessionId: string): void {
+      core.db.store.setValue('cliActiveSessionId', sessionId)
+    },
+  }
+
+  // Persist redesigned CLI data to a fresh SQLite file; no old-core migrations here.
+  const sqlite = new Database('./tetra-redesign.db')
+  const persister = createSqliteBunPersister(core.db.store, sqlite, {
     mode: 'tabular',
     tables: {
       load: {
@@ -48,5 +50,15 @@ export async function bootstrap() {
   })
   await persister.load()
 
-  return { db, models, persister, prompts, runner, sessions, workspace, ...tetraStore }
+  runs.recover()
+
+  return {
+    ...core,
+    indexes: core.db.indexes,
+    persister,
+    runs,
+    sqlite,
+    store: core.db.store,
+    workspace,
+  }
 }

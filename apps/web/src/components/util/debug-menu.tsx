@@ -1,4 +1,4 @@
-import { loadSeeds } from '@tetra/core'
+import { loadSeeds } from '@tetra/core-redesign'
 import { Button } from '@tetra/ui/components/ui/button'
 import {
   DropdownMenu,
@@ -10,7 +10,7 @@ import {
 } from '@tetra/ui/components/ui/dropdown-menu'
 import { BugIcon, DatabaseIcon, Trash2Icon } from 'lucide-react'
 
-import { useTetra } from '@/tetra-provider'
+import { useTetra } from '@/tetra/provider'
 
 import { clearAllData } from './clear-data'
 

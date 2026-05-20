@@ -15,22 +15,15 @@ export function registerModelsCommand(
     .option('-p, --provider <name>', 'Filter by provider name')
     .action(async (opts: { provider?: string }) => {
       const ctx = await getContext()
-      await ctx.models.refresh({ force: true })
+      await ctx.catalog.refresh({ force: true })
 
-      const rows = Object.entries(ctx.store.getTable('languageModels'))
-        .map(([id, row]) => ({
-          contextLength: row.contextLength,
-          createdAt: row.createdAt,
-          id,
-          inputModalities: row.inputModalities.split(',').filter(Boolean),
-          name: row.name,
-          outputModalities: row.outputModalities.split(',').filter(Boolean),
-          provider: row.providerName || row.provider,
-        }))
+      const rows = ctx.accessors.languageModels
+        .list()
         .filter((row) => row.outputModalities.includes('text'))
         .filter(
           (row) =>
             opts.provider === undefined ||
+            row.providerName.toLowerCase().includes(opts.provider.toLowerCase()) ||
             row.provider.toLowerCase().includes(opts.provider.toLowerCase()),
         )
         .toSorted((a, b) => b.createdAt - a.createdAt)

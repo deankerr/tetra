@@ -1,4 +1,4 @@
-import { loadSeeds } from '@tetra/core'
+import { loadSeeds } from '@tetra/core-redesign'
 import type { Command } from 'commander'
 
 import type { bootstrap } from '../bootstrap'

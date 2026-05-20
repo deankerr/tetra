@@ -1,20 +1,28 @@
-import type { Catalog, Prompts, Runner, Sessions, TetraStore } from '@tetra/core'
+import type {
+  Accessors,
+  Catalog,
+  Prompts,
+  Runs,
+  Sessions,
+  TetraDb,
+  Transcripts,
+} from '@tetra/core-redesign'
 import { createContext, useContext } from 'react'
 
-import type { StreamingState } from '@/streaming-state'
-
 export interface TetraAppContext {
+  accessors: Accessors
   activeCredentialId: string
-  indexes: TetraStore['indexes']
-  models: Catalog
+  catalog: Catalog
+  db: TetraDb
+  indexes: TetraDb['indexes']
   openCredentialSettings: (id: string) => void
   prompts: Prompts
-  runner: Runner
-  setSettingsOpen: (open: boolean) => void
+  runs: Runs
   sessions: Sessions
+  setSettingsOpen: (open: boolean) => void
   settingsOpen: boolean
-  store: TetraStore['store']
-  streamingState: StreamingState
+  store: TetraDb['store']
+  transcripts: Transcripts
 }
 
 export const TetraContext = createContext<TetraAppContext | null>(null)

@@ -1,4 +1,3 @@
-import type { TetraSchemas } from '@tetra/core'
 import {
   ModelSelector,
   ModelSelectorContent,
@@ -15,46 +14,22 @@ import { Button } from '@tetra/ui/components/ui/button'
 import { cn } from '@tetra/ui/lib/utils'
 import { CheckIcon, ImageIcon, Music2Icon, RotateCcwIcon } from 'lucide-react'
 import { useCallback, useState } from 'react'
-import * as UiReact from 'tinybase/ui-react/with-schemas'
 
-import { useTetra } from '@/tetra-provider'
-
-// oxlint-disable-next-line no-unsafe-type-assertion -- TinyBase WithSchemas pattern
-const store = UiReact as unknown as UiReact.WithSchemas<TetraSchemas>
-
-function useGroupedLanguageModels() {
-  const languageModelsTable = store.useTable('languageModels')
-  const byProvider = Map.groupBy(
-    Object.entries(languageModelsTable).map(([id, row]) => ({ ...row, id })),
-    (lm) => {
-      const providerName = lm.providerName.toLowerCase()
-      if (providerName.startsWith('~')) {
-        return providerName.slice(1)
-      }
-      return providerName
-    },
-  )
-
-  return [...byProvider.entries()]
-    .map(([providerName, models]) => ({
-      models: models.toSorted((a, b) => a.name.localeCompare(b.name)),
-      providerName,
-    }))
-    .toSorted((a, b) => a.providerName.localeCompare(b.providerName))
-}
+import { useGroupedLanguageModels } from '@/tetra/hooks/catalog'
+import { useTetra } from '@/tetra/provider'
 
 function RefreshButton() {
-  const { models } = useTetra()
+  const { catalog } = useTetra()
   const [loading, setLoading] = useState(false)
 
   const refresh = useCallback(async () => {
     setLoading(true)
     try {
-      await models.refresh({ force: true })
+      await catalog.refresh({ force: true })
     } finally {
       setLoading(false)
     }
-  }, [models])
+  }, [catalog])
 
   return (
     <Button

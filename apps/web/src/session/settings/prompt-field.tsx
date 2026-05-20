@@ -1,5 +1,4 @@
-import { ModelConfig } from '@tetra/core'
-import type { TetraSchemas } from '@tetra/core'
+import { RequestConfig } from '@tetra/core-redesign'
 import { Button } from '@tetra/ui/components/ui/button'
 import { Field, FieldTitle } from '@tetra/ui/components/ui/field'
 import { Input } from '@tetra/ui/components/ui/input'
@@ -13,13 +12,11 @@ import {
 import { Sheet, SheetClose, SheetContent } from '@tetra/ui/components/ui/sheet'
 import { Textarea } from '@tetra/ui/components/ui/textarea'
 import { Trash2Icon, XIcon } from 'lucide-react'
-import * as UiReact from 'tinybase/ui-react/with-schemas'
 
-import { usePrompt, usePromptIds, useSessionConfig } from '@/api'
-import { useTetra } from '@/tetra-provider'
-
-// oxlint-disable-next-line no-unsafe-type-assertion -- TinyBase WithSchemas pattern
-const store = UiReact as unknown as UiReact.WithSchemas<TetraSchemas>
+import { usePrompt, usePromptIds } from '@/tetra/hooks/prompts'
+import { useSessionConfig } from '@/tetra/hooks/sessions'
+import { useTetra } from '@/tetra/provider'
+import { tinybase } from '@/tetra/tinybase'
 
 const NO_PROMPT_VALUE = '__none__'
 const NEW_PROMPT_VALUE = '__new__'
@@ -76,8 +73,8 @@ function SelectedPromptFields({
 }
 
 function PromptCellFields({ onDelete, promptId }: { onDelete: () => void; promptId: string }) {
-  const [content, setContent] = store.useCellState('prompts', promptId, 'content')
-  const [label, setLabel] = store.useCellState('prompts', promptId, 'label')
+  const [content, setContent] = tinybase.useCellState('prompts', promptId, 'content')
+  const [label, setLabel] = tinybase.useCellState('prompts', promptId, 'label')
 
   return (
     <>
@@ -177,7 +174,7 @@ export function SystemPromptSheet({
     const { systemPromptId: _removed, ...rest } = sessions.getConfig(sessionId)
     sessions.setConfig(
       sessionId,
-      ModelConfig.parse(systemPromptId === undefined ? rest : { ...rest, systemPromptId }),
+      RequestConfig.parse(systemPromptId === undefined ? rest : { ...rest, systemPromptId }),
     )
   }
 

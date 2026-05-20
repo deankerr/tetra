@@ -11,8 +11,10 @@ import { Toggle } from '@tetra/ui/components/ui/toggle'
 import { Code2Icon, MessagesSquareIcon, Settings2Icon, TableIcon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 
-import { useOpenSessionIds, useSession, useSessionMessageIds, useSetOpenSessionIds } from '@/api'
 import { TetraLogo } from '@/components/tetra-logo'
+import { useOpenSessionIds, useSetOpenSessionIds } from '@/tetra/hooks/app-state'
+import { useSession } from '@/tetra/hooks/sessions'
+import { useSessionMessageIds } from '@/tetra/hooks/transcripts'
 
 import { Composer } from './composer'
 import { SessionExportButton } from './export-button'

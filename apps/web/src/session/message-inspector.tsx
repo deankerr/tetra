@@ -1,4 +1,4 @@
-import { StepRecord } from '@tetra/core'
+import { StepRecord } from '@tetra/core-redesign'
 import { CodeBlockContent } from '@tetra/ui/components/ai-elements/code-block'
 import type { ToolPart as ToolPartType } from '@tetra/ui/components/ai-elements/tool'
 import { getStatusBadge } from '@tetra/ui/components/ai-elements/tool'
@@ -25,8 +25,9 @@ import {
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 
-import { useMessage, useRequestForMessage } from '@/api'
-import { useTetra } from '@/tetra-provider'
+import { useRequestForMessage } from '@/tetra/hooks/requests'
+import { useMessage } from '@/tetra/hooks/transcripts'
+import { useTetra } from '@/tetra/provider'
 
 type MessagePart = UIMessage['parts'][number]
 
@@ -147,6 +148,7 @@ const requestStatusConfig = {
   cancelled: { className: 'text-muted-foreground/40', icon: CircleDashedIcon, label: 'Cancelled' },
   completed: { className: 'text-emerald-500/70', icon: CheckIcon, label: 'Completed' },
   error: { className: 'text-destructive', icon: AlertCircleIcon, label: 'Error' },
+  preparing: { className: 'text-amber-400 animate-spin', icon: Loader2Icon, label: 'Preparing' },
   streaming: { className: 'text-blue-400 animate-spin', icon: Loader2Icon, label: 'Streaming' },
 } as const
 
@@ -251,7 +253,7 @@ export function MessageInspector({
 }: {
   messageId: string
 } & React.ComponentProps<'div'>) {
-  const { sessions } = useTetra()
+  const { transcripts } = useTetra()
   const message = useMessage(messageId)
   const request = useRequestForMessage(messageId)
 
@@ -271,10 +273,9 @@ export function MessageInspector({
   }
 
   const { parts, role, id, updatedAt } = message
-  const isStreaming = request?.status === 'streaming'
+  const isStreaming = request?.status === 'preparing' || request?.status === 'streaming'
   // Derive total tokens by summing across steps — no separate totalUsage field on request.
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- steps stored as StepRecord[]
-  const requestSteps = (request?.steps ?? []) as StepRecord[]
+  const requestSteps = request?.steps ?? []
   const totalTokens =
     requestSteps.length > 0
       ? requestSteps.reduce((sum, s) => sum + (StepRecord.safeParse(s).data?.tokens.total ?? 0), 0)
@@ -356,7 +357,7 @@ export function MessageInspector({
             size="icon-xs"
             aria-label="Delete"
             onClick={() => {
-              sessions.deleteMessage(messageId)
+              transcripts.deleteMessage(messageId)
             }}
           >
             <TrashIcon />

@@ -37,7 +37,7 @@ export function registerSessionCommands(
         const content = await readMessage({ message: opts.message, parts })
 
         if (content.trim() !== '') {
-          const sessionId = ctx.sessions.create(opts.title ?? titleFromMessage(content))
+          const sessionId = ctx.sessions.create({ title: opts.title ?? titleFromMessage(content) })
           if (opts.active !== false) {
             ctx.workspace.setActiveSessionId(sessionId)
           }
@@ -51,7 +51,7 @@ export function registerSessionCommands(
           return
         }
 
-        const sessionId = ctx.sessions.create(opts.title ?? 'Untitled Session')
+        const sessionId = ctx.sessions.create({ title: opts.title ?? 'Untitled Session' })
         if (opts.active !== false) {
           ctx.workspace.setActiveSessionId(sessionId)
         }
@@ -122,7 +122,7 @@ export function registerSessionCommands(
       if (resolvedSessionId === undefined) {
         throw new Error('No active session. Try: tetra "hello"')
       }
-      const messages = ctx.sessions.getMessages(resolvedSessionId)
+      const messages = ctx.transcripts.listMessages(resolvedSessionId)
       if (messages.length === 0) {
         console.log('No messages in this session.')
         return

@@ -1,4 +1,4 @@
-import type { Sessions, WorkspaceState } from '@tetra/core'
+import type { Sessions } from '@tetra/core-redesign'
 
 export interface ResolveSessionArgs {
   forceNew?: boolean
@@ -9,7 +9,11 @@ export interface ResolveSessionArgs {
 
 export interface ResolveSessionContext {
   sessions: Sessions
-  workspace: WorkspaceState
+  workspace: {
+    clearActiveSessionId(): void
+    getActiveSessionId(): string | undefined
+    setActiveSessionId(sessionId: string): void
+  }
 }
 
 export function resolveSession(
@@ -29,7 +33,7 @@ export function resolveSession(
 
   // Forced-new requests intentionally bypass the currently active session.
   if (forceNew) {
-    const nextSessionId = sessions.create(title)
+    const nextSessionId = sessions.create({ title })
     if (setActive) {
       workspace.setActiveSessionId(nextSessionId)
     }
@@ -46,7 +50,7 @@ export function resolveSession(
   if (activeSessionId !== undefined) {
     workspace.clearActiveSessionId()
   }
-  const nextSessionId = sessions.create(title)
+  const nextSessionId = sessions.create({ title })
   if (setActive) {
     workspace.setActiveSessionId(nextSessionId)
   }

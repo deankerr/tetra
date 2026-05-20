@@ -1,4 +1,4 @@
-import { toolIds, toolsRegistryMap } from '@tetra/core'
+import { toolIds, toolsRegistryMap } from '@tetra/core-redesign'
 import { credentialRegistry } from '@tetra/credentials'
 import { Badge } from '@tetra/ui/components/ui/badge'
 import { Field, FieldContent, FieldDescription, FieldTitle } from '@tetra/ui/components/ui/field'

@@ -1,4 +1,4 @@
-import type { ModelConfig } from '@tetra/core'
+import type { RequestConfigType } from '@tetra/core-redesign'
 import { Button } from '@tetra/ui/components/ui/button'
 import { Input } from '@tetra/ui/components/ui/input'
 import { BracesIcon, PlusIcon, XIcon } from 'lucide-react'
@@ -6,8 +6,8 @@ import { useEffect, useReducer, useRef } from 'react'
 import type { Dispatch } from 'react'
 import { z } from 'zod'
 
-import { useSessionConfig } from '@/api'
-import { useTetra } from '@/tetra-provider'
+import { useSessionConfig } from '@/tetra/hooks/sessions'
+import { useTetra } from '@/tetra/provider'
 
 // --- Types ---
 
@@ -26,7 +26,7 @@ interface ObjectEntry {
 }
 
 type Entry = ObjectEntry | ScalarEntry
-type ProviderOptions = NonNullable<ModelConfig['providerOptions']>
+type ProviderOptions = NonNullable<RequestConfigType['providerOptions']>
 type ProviderOption = ProviderOptions[string]
 
 const EMPTY_PROVIDER_OPTIONS: ProviderOptions = {}
@@ -341,7 +341,7 @@ export function ProviderOptionsEditor({ sessionId }: { sessionId: string }) {
     sessions.setConfig(sessionId, {
       ...current,
       providerOptions: entriesToOptions(entries),
-    } as ModelConfig)
+    } as RequestConfigType)
   }, [entries, sessions, sessionId])
 
   return (

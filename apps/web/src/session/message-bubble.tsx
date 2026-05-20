@@ -22,7 +22,7 @@ import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@tetra/ui/com
 import { Spinner } from '@tetra/ui/components/ui/spinner'
 import type { DynamicToolUIPart, FileUIPart, SourceDocumentUIPart, ToolUIPart, UIMessage } from 'ai'
 
-import { useMessage } from '@/api'
+import { useMessage } from '@/tetra/hooks/transcripts'
 
 export function MessageBubble({ messageId }: { messageId: string }) {
   const message = useMessage(messageId)

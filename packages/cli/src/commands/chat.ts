@@ -1,4 +1,4 @@
-import type { ModelConfig } from '@tetra/core'
+import type { RequestConfigType } from '@tetra/core-redesign'
 import type { Command } from 'commander'
 
 import type { bootstrap } from '../bootstrap'
@@ -43,7 +43,7 @@ export async function runChatContent(
   })
 
   // Only pass per-request config fields that the user explicitly provided.
-  const config: Partial<ModelConfig> = {
+  const config: Partial<RequestConfigType> = {
     ...(opts.model !== undefined && { modelId: opts.model }),
     ...(typeof opts.prompt === 'string' && { systemPromptId: opts.prompt }),
   }
@@ -53,21 +53,21 @@ export async function runChatContent(
 
   // Stream new assistant text to stdout as UIMessage snapshots arrive.
   let lastLength = 0
-  const { requestId } = ctx.runner.execute(sessionId, {
+  const run = ctx.runs.sendMessage(sessionId, {
     config,
     content,
-    onSnapshot: (msg) => {
-      const text = msg.parts
-        .filter((part): part is { text: string; type: 'text' } => part.type === 'text')
-        .map((part) => part.text)
-        .join('')
-      process.stdout.write(text.slice(lastLength))
-      lastLength = text.length
-    },
+  })
+  run.addEventListener('snapshot', () => {
+    const text = run.parts
+      .filter((part): part is { text: string; type: 'text' } => part.type === 'text')
+      .map((part) => part.text)
+      .join('')
+    process.stdout.write(text.slice(lastLength))
+    lastLength = text.length
   })
 
   // Wait for the durable request row to reach a terminal status before exiting.
-  await waitForRequest(ctx.store, requestId)
+  await waitForRequest(run)
   console.log()
 }
 

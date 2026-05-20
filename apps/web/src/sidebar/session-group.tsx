@@ -19,8 +19,9 @@ import {
 import { MoreHorizontalIcon, PlusIcon } from 'lucide-react'
 import { useRef, useState } from 'react'
 
-import { useOpenSessionIds, useSession, useSessionIds, useSetOpenSessionIds } from '@/api'
-import { useTetra } from '@/tetra-provider'
+import { useOpenSessionIds, useSetOpenSessionIds } from '@/tetra/hooks/app-state'
+import { useSession, useSessionIds } from '@/tetra/hooks/sessions'
+import { useTetra } from '@/tetra/provider'
 
 export function SessionGroup() {
   const { sessions } = useTetra()

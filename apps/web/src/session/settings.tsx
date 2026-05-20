@@ -1,10 +1,10 @@
-import { ModelConfig } from '@tetra/core'
+import { RequestConfig } from '@tetra/core-redesign'
 import { Card, CardContent, CardHeader, CardTitle } from '@tetra/ui/components/ui/card'
 import { Field, FieldGroup, FieldTitle } from '@tetra/ui/components/ui/field'
 import { Input } from '@tetra/ui/components/ui/input'
 
-import { useSessionConfig } from '@/api'
-import { useTetra } from '@/tetra-provider'
+import { useSessionConfig } from '@/tetra/hooks/sessions'
+import { useTetra } from '@/tetra/provider'
 
 import { ModelPicker } from './settings/model-picker'
 import { SystemPromptField } from './settings/prompt-field'
@@ -23,7 +23,7 @@ export function SessionSettings({
 
   const updateConfig = (patch: Partial<typeof config>) => {
     const current = sessions.getConfig(sessionId)
-    sessions.setConfig(sessionId, ModelConfig.parse({ ...current, ...patch }))
+    sessions.setConfig(sessionId, RequestConfig.parse({ ...current, ...patch }))
   }
 
   return (

@@ -1,121 +1,106 @@
-# Core Restructure Proposal
+# Core Redesign Position
 
 ## Context
 
-Tetra's core is intentionally small: TinyBase is the durable state layer, the AI SDK is the inference runtime, and callers issue commands through runtime modules while reading reactive state from TinyBase.
+This document started as a restructure proposal. It is now a checkpoint for why the redesign exists and how it should keep moving toward integration-style testing.
 
-The next integration-test pass should exercise those real modules instead of forcing tests through incidental implementation details. This proposal captures candidate refactors to make that possible before tests harden the current shape.
+The goal was not to preserve the first proposed layout. The goal was to make core easier to exercise as a real backend: TinyBase rows and indexes, domain modules, request/run lifecycle, tools, and AI SDK streaming should work together in tests the same way they work in the web app and CLI.
 
-## Goals
+## What Changed
 
-- Keep TinyBase as the only durable store.
-- Keep AI SDK types and functions visible in inference code.
-- Make OpenRouter replaceable in tests without mocking the AI SDK.
-- Give request lifecycle rules one home.
-- Keep prototype-mode bias: fewer abstractions, easy deletion, no compatibility shims.
+The redesign moved core away from a large runner function and toward a smaller set of explicit runtime objects:
 
-## Non-Goals
+- `Accessors` make TinyBase safe and ergonomic without hiding that TinyBase is the durable store.
+- `Sessions`, `Prompts`, and `Transcripts` are synchronous query/mutation modules over domain rows.
+- `Catalog` already has a replaceable `CatalogSource`, which makes network-free catalog tests straightforward.
+- `Runs` owns user-facing run commands such as `sendMessage`, `regenerate`, `cancel`, and recovery.
+- `Run` owns one AI SDK `streamText` execution and exposes live state through public properties plus `EventTarget` events.
+- Request rows now represent durable run attempts with `preparing`, `streaming`, terminal statuses, embedded `steps`, and `terminalAt`.
 
-- Do not introduce a separate `steps` table. Step accounting stays embedded in `requests.steps`.
-- Do not wrap the AI SDK behind a generic LLM abstraction.
-- Do not add migrations or compatibility layers for old local data.
-- Do not move React concerns into `@tetra/core`.
+That gives integration tests a much better target than the old `createRunner` shape. Tests can create a real core runtime, call `runs.sendMessage`, watch a live `Run`, and assert durable TinyBase rows.
 
-## Current Friction
+## Current Shape
 
-`createRunner` currently owns several concerns at once:
+The useful boundary is now:
 
-- request setup and terminal status writes
-- OpenRouter credential validation and model construction
-- history assembly through `sessions.gatherModelMessages`
-- tool resolution
-- AI SDK `streamText` execution
-- UI message snapshot assembly
-- step accounting writes
-- cancellation and recovery
+```ts
+const core = createCoreModules()
+const runs = new Runs(core.accessors, credentials)
 
-This is workable for the prototype, but awkward for integration tests. The desired tests should use a real TinyBase store, real session APIs, real AI SDK streaming, and a mocked provider model. Today the provider model is constructed inside the runner, so tests either need to fake credentials and network-shaped behavior or edit around the runner.
+const sessionId = core.sessions.create()
+const run = runs.sendMessage(sessionId, { content: 'hello' })
 
-## Proposed Shape
+await run.done
+```
 
-### 1. Inference Adapter
+This is close to what we want. It uses the same modules as the apps, with no React and no persister required.
 
-Add a small inference adapter seam that owns provider-specific model construction.
+## Remaining Testability Gap
 
-Production adapter:
+`Run` still constructs the production OpenRouter model internally. That is now the main blocker.
+
+The test should not mock `streamText`, `readUIMessageStream`, `convertToModelMessages`, TinyBase, or our accessors. It should replace only the remote provider/model. The AI SDK supports this with `MockLanguageModelV3` and provider-level stream parts.
+
+So the next core change should be a small model resolution seam, not a generic LLM abstraction.
+
+## Proposed Seam
+
+Add a `LanguageModelResolver` shape near `Run`:
+
+```ts
+interface LanguageModelResolver {
+  resolve(args: { config: RequestConfig; credentials: CredentialReader }): LanguageModel
+}
+```
+
+Production resolver:
 
 - reads `OPENROUTER_API_KEY`
-- fails fast if it is missing
+- fails fast when it is missing
 - creates the OpenRouter provider
 - returns `openrouter(config.modelId)`
-- applies OpenRouter-specific `providerOptions` shape
 
-Test adapter:
+Test resolver:
 
 - returns an `ai/test` `MockLanguageModelV3`
-- records provider call inputs through the mock model
-- emits `LanguageModelV3StreamPart` streams with `simulateReadableStream`
+- lets the test inspect `doStreamCalls`
+- emits provider-level stream parts through `simulateReadableStream`
 
-The runner should still call `streamText`, `readUIMessageStream`, `stepCountIs`, and `toUIMessageStream` directly. The adapter is for provider selection, not for hiding the AI SDK.
+`Run` should still call AI SDK functions directly. The resolver is only about selecting the `LanguageModel`.
 
-### 2. Request Lifecycle Module
+## Why This Is Enough
 
-Create a module that owns request row transitions.
+Most other seams already exist naturally:
 
-Candidate operations:
+- TinyBase persistence is optional; tests can use an in-memory `createTetraDb`.
+- Query/mutation APIs are synchronous, so setup assertions are simple.
+- Catalog already accepts a source.
+- Credentials can already be represented by a tiny `CredentialReader`.
+- Request recovery is a `Runs` method over durable request rows.
+- Live streaming state is on the `Run` instance rather than a separate frontend store.
 
-- begin a request from a session, user message, assistant placeholder, and config snapshot
-- append a parsed `StepRecord`
-- complete a request after final assistant parts are written
-- fail or cancel a request
-- recover interrupted requests on startup
-- read active/latest request helpers if they prove useful outside React
+The design pressure should stay here: make production dependencies swappable at the boundary, while keeping core behavior real.
 
-This module should own the invariant that `requests.steps` is embedded accounting only. It should not know how to call the model.
+## Not Goals
 
-### 3. Runtime Factory
+- Do not add a separate `steps` table.
+- Do not wrap the AI SDK behind a broad custom inference abstraction.
+- Do not mock TinyBase or AI SDK orchestration functions.
+- Do not introduce migrations or compatibility shims.
+- Do not move React hooks or frontend subscription mechanics into core.
 
-Add a small core runtime factory for the in-memory graph:
+## Suggested Next Steps
 
-- `createTetraStore`
-- `createSessions`
-- `createPrompts`
-- `createWorkspaceState`
-- `createCatalog`
-- `createRunner`
-
-CLI and web bootstraps would still attach their own persistence and environment-specific behavior. Tests would use the same runtime factory with the test inference adapter.
-
-This is optional for the first pass, but it removes duplicated wiring in the CLI, web app, and future tests.
-
-### 4. Catalog Fetch Adapter
-
-`createCatalog` currently calls global `fetch` and `Date.now()`. If catalog tests become important, pass a tiny environment object into the catalog:
-
-- `fetch`
-- `now`
-
-This is less urgent than runner testability because catalog behavior is narrower and can be tested later without affecting inference tests.
-
-## Open Questions
-
-- Should the OpenRouter credential check live in the production inference adapter or stay in runner before adapter selection?
-- Should request lifecycle own user/assistant message creation, or should it accept already-created message IDs from `Sessions`?
-- Should the runtime factory include catalog refresh behavior, or only object construction?
-- Do we want deterministic IDs and clocks in integration tests now, or are structural assertions enough?
-
-## Suggested Order
-
-1. Add the inference adapter seam.
-2. Move request lifecycle writes behind a request module.
-3. Add the first core integration test using `MockLanguageModelV3`.
-4. Add a runtime factory only if test setup or app bootstraps start duplicating too much.
-5. Add catalog fetch/clock injection when catalog tests need it.
+1. Add the `LanguageModelResolver` seam to `Run` / `Runs`.
+2. Add a tiny core test runtime helper that creates `core`, `runs`, a mock model, and a memory credential reader.
+3. Write the first request happy-path integration test.
+4. Add history reconstruction and request lifecycle tests.
+5. Add tool-loop and cancellation tests once the basic stream fixture feels solid.
 
 ## Success Criteria
 
-- Production behavior remains unchanged.
-- Tests can drive `runner.execute()` with real TinyBase and real AI SDK streaming.
-- No test mocks `streamText`, `readUIMessageStream`, `convertToModelMessages`, or TinyBase.
-- Request status, assistant parts, and `requests.steps` can be asserted through public core APIs or TinyBase rows.
-- The new modules make code easier to delete or move, not harder.
+- Tests drive `Runs` and `Run`, not private helpers.
+- Tests assert both live `Run` state and durable TinyBase rows.
+- Tests use real AI SDK `streamText`, `readUIMessageStream`, `convertToModelMessages`, and tool execution.
+- The only replaced production dependency is remote model resolution.
+- The same core runtime shape serves web, CLI, and tests.

@@ -1,6 +1,6 @@
-import type { Message, Session } from '@tetra/core'
+import type { Rows } from '@tetra/core-redesign'
 
-export function formatSession(session: Session, activeSessionId?: string): string {
+export function formatSession(session: Rows.Session, activeSessionId?: string): string {
   // Keep the list scan-friendly: active marker, stable short id, title, and update time.
   const marker = session.id === activeSessionId ? '*' : ' '
   const title = session.title.trim() || '(untitled)'
@@ -8,7 +8,7 @@ export function formatSession(session: Session, activeSessionId?: string): strin
   return `${marker} ${session.id}  ${title}  ${updated}`
 }
 
-export function printMessages(messages: Message[]): void {
+export function printMessages(messages: Rows.Message[]): void {
   // Render only human-readable text-ish parts from stored UIMessage parts.
   for (const msg of messages) {
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- parts are stored as UIMessage parts; this renderer only needs text-bearing fields
