@@ -148,7 +148,7 @@ Exercise:
 Assert:
 
 - request status is `cancelled`
-- terminal row has `completedAt`
+- terminal row has `terminalAt`
 - no further snapshots are applied after cancellation
 
 ### Recovery

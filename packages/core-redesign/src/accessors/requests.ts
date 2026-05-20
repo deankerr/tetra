@@ -24,7 +24,7 @@ export class RequestAccessors {
   }
 
   complete(requestId: string): void {
-    this.updateStatus(requestId, { completedAt: Date.now(), status: 'completed' })
+    this.updateStatus(requestId, { status: 'completed', terminalAt: Date.now() })
   }
 
   create(args: {
@@ -36,13 +36,13 @@ export class RequestAccessors {
 
     this.db.store.setRow('requests', requestId, {
       assistantMessageId: args.assistantMessageId,
-      completedAt: 0,
       config: RequestConfig.parse(args.config),
       createdAt: Date.now(),
       errorMessage: '',
       sessionId: args.sessionId,
-      status: 'streaming',
+      status: 'preparing',
       steps: [],
+      terminalAt: 0,
     })
 
     return requestId
@@ -50,9 +50,9 @@ export class RequestAccessors {
 
   cancel(requestId: string, message = ''): void {
     this.updateStatus(requestId, {
-      completedAt: Date.now(),
       errorMessage: message,
       status: 'cancelled',
+      terminalAt: Date.now(),
     })
   }
 
@@ -62,9 +62,9 @@ export class RequestAccessors {
 
   fail(requestId: string, error: unknown): void {
     this.updateStatus(requestId, {
-      completedAt: Date.now(),
       errorMessage: String(error),
       status: 'error',
+      terminalAt: Date.now(),
     })
   }
 
@@ -76,7 +76,6 @@ export class RequestAccessors {
     const row = this.db.store.getRow('requests', requestId)
     return {
       assistantMessageId: row.assistantMessageId,
-      completedAt: row.completedAt,
       config: RequestConfig.parse(row.config),
       createdAt: row.createdAt,
       errorMessage: row.errorMessage,
@@ -85,6 +84,7 @@ export class RequestAccessors {
       status: RequestStatus.parse(row.status),
       // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- StepRecord[] is stored verbatim in TinyBase's array cell.
       steps: row.steps as StepRecord[],
+      terminalAt: row.terminalAt,
     }
   }
 
@@ -95,10 +95,18 @@ export class RequestAccessors {
   recoverInterrupted(message = 'Request interrupted'): void {
     for (const requestId of this.ids()) {
       const request = this.get(requestId)
-      if (request.status === 'streaming') {
+      if (request.status === 'preparing' || request.status === 'streaming') {
         this.fail(requestId, message)
       }
     }
+  }
+
+  startStreaming(requestId: string): void {
+    this.get(requestId)
+    this.db.store.setPartialRow('requests', requestId, {
+      errorMessage: '',
+      status: RequestStatus.parse('streaming'),
+    })
   }
 
   private ids(): string[] {
@@ -111,14 +119,14 @@ export class RequestAccessors {
 
   private updateStatus(
     requestId: string,
-    patch: { completedAt: number; errorMessage?: string; status: RequestStatusType },
+    patch: { errorMessage?: string; status: RequestStatusType; terminalAt: number },
   ): void {
     this.get(requestId)
 
     this.db.store.setPartialRow('requests', requestId, {
-      completedAt: patch.completedAt,
       errorMessage: patch.errorMessage ?? '',
       status: RequestStatus.parse(patch.status),
+      terminalAt: patch.terminalAt,
     })
   }
 }

@@ -6,11 +6,11 @@
     "#accessors": "./src/accessors/index.ts",
     "#catalog": "./src/catalog.ts",
     "#db": "./src/db.ts",
-    "#execute": "./src/execute.ts",
     "#prompts": "./src/prompts.ts",
-    "#runner": "./src/runner/index.ts",
+    "#run": "./src/run.ts",
     "#runs": "./src/runs.ts",
     "#sessions": "./src/sessions.ts",
+    "#steps": "./src/steps.ts",
     "#tools": "./src/tools/tools.ts",
     "#transcripts": "./src/transcripts.ts"
   },

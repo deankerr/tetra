@@ -37,13 +37,13 @@ This is not a rendering cache derived from other data — it is the authoritativ
 ```ts
 requests: {
   assistantMessageId: string
-  completedAt: number
   config: object // ModelConfig snapshot — what was actually used
   createdAt: number
   errorMessage: string
   sessionId: string
-  status: string // 'streaming' | 'completed' | 'error' | 'cancelled'
+  status: string // 'preparing' | 'streaming' | 'completed' | 'error' | 'cancelled'
   steps: StepRecord[] // embedded accounting records, one per completed model step
+  terminalAt: number
 }
 ```
 

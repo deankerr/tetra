@@ -54,7 +54,6 @@
       "name": "@tetra/cli",
       "dependencies": {
         "@tetra/core": "workspace:*",
-        "@tetra/core-redesign": "workspace:*",
         "@tetra/credentials": "workspace:*",
         "commander": "^14.0.3",
         "tinybase": "catalog:",

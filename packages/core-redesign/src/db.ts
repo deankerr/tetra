@@ -11,7 +11,7 @@ import { z } from 'zod'
 export const MessageRole = z.enum(['assistant', 'user'])
 export type MessageRole = z.infer<typeof MessageRole>
 
-export const RequestStatus = z.enum(['cancelled', 'completed', 'error', 'streaming'])
+export const RequestStatus = z.enum(['cancelled', 'completed', 'error', 'preparing', 'streaming'])
 export type RequestStatus = z.infer<typeof RequestStatus>
 
 export const LanguageModelRecord = z.object({
@@ -101,13 +101,13 @@ export const tablesSchema = {
   },
   requests: {
     assistantMessageId: { default: '', type: 'string' },
-    completedAt: { default: 0, type: 'number' },
     config: { default: {}, type: 'object' },
     createdAt: { default: 0, type: 'number' },
     errorMessage: { default: '', type: 'string' },
     sessionId: { default: '', type: 'string' },
-    status: { default: 'streaming', type: 'string' },
+    status: { default: 'preparing', type: 'string' },
     steps: { default: [], type: 'array' },
+    terminalAt: { default: 0, type: 'number' },
   },
   sessions: {
     config: { default: {}, type: 'object' },
