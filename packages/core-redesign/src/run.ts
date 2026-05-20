@@ -17,7 +17,6 @@ export interface CredentialReader {
 export interface RunStart {
   assistantMessageId: string
   config: RequestConfigType
-  onSnapshot?: (message: UIMessage) => void
   requestId: string
   session: Rows.Session
   system?: string
@@ -57,7 +56,6 @@ export class Run extends EventTarget {
   private readonly accessors: Accessors
   private readonly credentials: CredentialReader
   private readonly doneController = Promise.withResolvers<undefined>()
-  private readonly onSnapshot: ((message: UIMessage) => void) | undefined
 
   constructor(init: RunInit) {
     super()
@@ -66,7 +64,6 @@ export class Run extends EventTarget {
     this.config = init.start.config
     this.credentials = init.credentials
     this.done = this.doneController.promise
-    this.onSnapshot = init.start.onSnapshot
     this.requestId = init.start.requestId
     this.session = init.start.session
     this.sessionId = init.start.session.id
@@ -110,7 +107,6 @@ export class Run extends EventTarget {
 
   private notifySnapshot(message: UIMessage): void {
     this.parts = [...message.parts]
-    this.onSnapshot?.(message)
     this.dispatchEvent(new Event('snapshot'))
   }
 

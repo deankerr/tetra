@@ -183,4 +183,4 @@ export function createTetraMergeableDb() {
   }
 }
 
-export type TetraDb = ReturnType<typeof createTetraDb>
+export type TetraDb = ReturnType<typeof createTetraDb> | ReturnType<typeof createTetraMergeableDb>

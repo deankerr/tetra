@@ -1,5 +1,3 @@
-import type { UIMessage } from 'ai'
-
 import type { Accessors } from '#accessors'
 import { RequestConfig } from '#db'
 import type { RequestConfig as RequestConfigType, Rows } from '#db'
@@ -9,12 +7,10 @@ import type { CredentialReader, RunStart } from '#run'
 export interface SendMessageArgs {
   config?: Partial<RequestConfigType>
   content: string
-  onSnapshot?: (message: UIMessage) => void
 }
 
 export interface RegenerateArgs {
   config?: Partial<RequestConfigType>
-  onSnapshot?: (message: UIMessage) => void
 }
 
 export class Runs {
@@ -29,10 +25,6 @@ export class Runs {
 
   cancel(requestId: string): void {
     this.active.get(requestId)?.cancel()
-  }
-
-  execute(sessionId: string, args: SendMessageArgs): Run {
-    return this.sendMessage(sessionId, args)
   }
 
   get(requestId: string): Run | null {
@@ -74,18 +66,20 @@ export class Runs {
     const system = this.requireSystemPrompt(config)
     const transcriptMessages = this.collectMessagesBefore(assistantMessageId, config)
 
-    this.accessors.messages.update(assistantMessageId, { parts: [] })
-    this.accessors.sessions.touch(session.id)
-    const requestId = this.accessors.requests.create({
-      assistantMessageId,
-      config,
-      sessionId: session.id,
+    let requestId = ''
+    this.accessors.transaction(() => {
+      this.accessors.messages.update(assistantMessageId, { parts: [] })
+      this.accessors.sessions.touch(session.id)
+      requestId = this.accessors.requests.create({
+        assistantMessageId,
+        config,
+        sessionId: session.id,
+      })
     })
 
     return this.start({
       assistantMessageId,
       config,
-      onSnapshot: args.onSnapshot,
       requestId,
       session,
       system,
@@ -103,38 +97,34 @@ export class Runs {
     const config = RequestConfig.parse({ ...session.config, ...args.config })
     const system = this.requireSystemPrompt(config)
 
-    const userMessageId = this.accessors.messages.create(sessionId, {
-      parts: [{ text: args.content, type: 'text' }],
-      role: 'user',
+    let assistantMessageId = ''
+    let requestId = ''
+    this.accessors.transaction(() => {
+      this.accessors.messages.create(sessionId, {
+        parts: [{ text: args.content, type: 'text' }],
+        role: 'user',
+      })
+      assistantMessageId = this.accessors.messages.create(sessionId, {
+        parts: [],
+        role: 'assistant',
+      })
+      this.accessors.sessions.touch(sessionId)
+      requestId = this.accessors.requests.create({
+        assistantMessageId,
+        config,
+        sessionId,
+      })
     })
-    const assistantMessageId = this.accessors.messages.create(sessionId, {
-      parts: [],
-      role: 'assistant',
-    })
-    this.accessors.sessions.touch(sessionId)
 
-    const requestId = this.accessors.requests.create({
-      assistantMessageId,
-      config,
-      sessionId,
-    })
     const transcriptMessages = this.collectMessagesForRun({
       excludeMessageId: assistantMessageId,
       maxMessages: config.maxMessages,
       sessionId,
     })
 
-    console.log('[runs] prepared send-message request', {
-      assistantMessageId,
-      requestId,
-      transcriptMessageCount: transcriptMessages.length,
-      userMessageId,
-    })
-
     return this.start({
       assistantMessageId,
       config,
-      onSnapshot: args.onSnapshot,
       requestId,
       session,
       system,

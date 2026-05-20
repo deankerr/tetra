@@ -1,0 +1,240 @@
+{
+  "exportedAt": "2026-05-19T05:14:43.535Z",
+  "messages": [
+    {
+      "createdAt": 1779167608304,
+      "id": "mesg_Osydnrk----wzvFR",
+      "parts": [
+        {
+          "text": "I need a cheatsheet for the new classes/variants/utilities added in Tailwind v4",
+          "type": "text"
+        }
+      ],
+      "role": "user",
+      "sessionId": "sess_OsyJwZv----kQWHS",
+      "updatedAt": 1779167608304
+    },
+    {
+      "createdAt": 1779167608306,
+      "id": "mesg_Osydnrm----wzvFR",
+      "parts": [
+        {
+          "type": "step-start"
+        },
+        {
+          "type": "reasoning",
+          "text": "The user is asking for information about new classes, variants, and utilities added in Tailwind CSS v4. This is specific technical documentation that I should search for to provide accurate and up-to-date information.\n\nLet me search for information about what's new in Tailwind v4.",
+          "providerMetadata": {
+            "openrouter": {
+              "reasoning_details": [
+                {
+                  "type": "reasoning.text",
+                  "text": "The user is asking for information about new classes, variants, and utilities added in Tailwind CSS v4. This is specific technical documentation that I should search for to provide accurate and up-to-date information.\n\nLet me search for information about what's new in Tailwind v4.",
+                  "format": "anthropic-claude-v1",
+                  "index": 0,
+                  "signature": "EsQDCkgIDRABGAIqQPhwxWlB4JP1K46ZSRLIoHy9Z2eGOQ3TJzsrKMl+flOtmTT/GmQ5ZIBe2+m3h/Nbs0nqUGXn/HNAod2qSjMUo5wSDKuv2E3tZm8Xs+x4KhoMXzx4AG4v/txWhF7lIjDCd13JYxsQNnRUJhyCJjg+EFIsfiIQAY3qn2RNcLRNH9jeOb3g12TterqkwXG/yrkqqQLmHxzrNevhtubGVaYloLisaweL4QGPnW5VLhO1UKdM49po6K+Wr9wa3NzxyoqhexhUxcHu1cNmec6an0swi1Zq7EhQ+BWAhF1V5nhIFBeZabHjU2QR7+6fvZEK2ZihMO0K3OtslDfQWDOaYsr8Pp/3J5krvQXdKXy+N0tMc0IEMeiDQ3nC72b5C/vzogPaMJnY4/2kWb15h58jbUMyTBjHcGSdDaOQpSNaxMztKrtHEfjawOECu+UWEWaeYsO0Esdyk0XyRJzKOwyEtYQiUUW/F+ruyBWMS8p/w76ckto8F63oowY1ZRPJgHhd9qllKd+srlzetMfEwvhSFEWPOu4ecqJ5lHM1E39DWyziDCAS2hdNEFGzWTtge3aKpAFL0mxDIKVeXG4DX8AYAQ=="
+                }
+              ]
+            }
+          },
+          "state": "done"
+        },
+        {
+          "type": "tool-exaSearchWeb",
+          "toolCallId": "toolu_bdrk_01BDTTs8aTxPj92m6w7Xtn9C",
+          "state": "output-available",
+          "input": {
+            "query": "Tailwind CSS v4 new classes variants utilities features"
+          },
+          "output": {
+            "requestId": "8b98a49708db66a1e471eece05f15bd2",
+            "resolvedSearchType": "",
+            "results": [
+              {
+                "id": "https://dev.to/whoffagents/tailwind-css-v4-what-actually-changed-and-how-to-migrate-2ieh",
+                "title": "Tailwind CSS v4: What Actually Changed and How to Migrate - DEV Community",
+                "url": "https://dev.to/whoffagents/tailwind-css-v4-what-actually-changed-and-how-to-migrate-2ieh",
+                "publishedDate": "2026-04-20T02:04:56.000Z",
+                "text": "Tailwind CSS v4: What Actually Changed and How to Migrate - DEV Community\n\n# Tailwind CSS v4: What Actually Changed and How to Migrate\n\nTailwind v4 is a complete rewrite. The utility classes you know still work, but the configuration system, build pipeline, and theming model are all different. Here's what changed and how to migrate without breaking your project.\n\n## The Biggest Change: No More tailwind.config.js\n\nv4 moves configuration into CSS itself:\n\n```\n/* v4: app/globals.css */\n@import \"tailwindcss\";\n\n@theme {\n  --color-primary: oklch(55% 0.2 250);\n  --color-primary-foreground: white;\n  --font-sans: \"Inter\", sans-serif;\n  --radius: 0.5rem;\n  --spacing-18: 4.5rem;\n}\n\n```\n\n```\n// v3: tailwind.config.ts (gone in v4)\nmodule.exports = {\n  theme: {\n    extend: {\n      colors: { primary: '#3b82f6' },\n    },\n  },\n}\n\n```\n\nYour entire theme is now CSS custom properties. This means:\n\n- Live theme updates without rebuilding\n- Easy runtime theming (dark mode, user preferences)\n- Framework-agnostic (works in any CSS context)\n\n## New Build Engine: Oxide\n\nv4 ships with a Rust-based engine (Oxide) that replaces PostCSS as the primary build tool:\n\n```\n# v3\nnpm install -D tailwindcss postcss autoprefixer\n\n# v4\nnpm install -D @tailwindcss/vite   # or @tailwindcss/cli\n# postcss config no longer needed for most setups\n\n```\n\nVite config:\n\n```\n// vite.config.ts\nimport tailwindcss from '@tailwindcss/vite';\n\nexport default {\n  plugins: [tailwindcss()],\n};\n\n```\n\nNext.js (still uses PostCSS plugin):\n\n```\n// postcss.config.js\nmodule.exports = { plugins: { '@tailwindcss/postcss': {} } };\n\n```\n\nBuild times drop 5-10x for large projects. Full rebuild on cold start is instant for most apps.\n\n## What's New in the Utility Layer\n\n### CSS Variables as First-Class Citizens\n\n```\n<!-- v4: use CSS variables directly in utilities -->\n<div class=\"bg-[--color-primary] text-[--color-primary-foreground]\">\n  Uses your theme tokens\n</div>\n\n```\n\n### Arbitrary Property Shorthand\n\n```\n<!-- v4 shorthand -->\n<div class=\"[mask-type:luminance]\">\n\n<!-- v3 was the same syntax, but v4 resolves CSS variables inside -->\n<div class=\"[color:--my-color]\">\n\n```\n\n### New Variants\n\n```\n<!-- Nth-child selectors -->\n<li class=\"odd:bg-gray-50 even:bg-white\">\n\n<!-- Field sizing (new CSS property) -->\n<textarea class=\"field-sizing-content\">\n\n<!-- Starting style for enter animations -->\n<div class=\"starting:opacity-0 transition-opacity\">\n  Fades in on mount without JavaScript\n</div>\n\n```\n\n### not-* Variant\n\n```\n<!-- Style when NOT matching -->\n<button class=\"not-disabled:hover:bg-blue-600 disabled:opacity-50\">\n\n```\n\n## Migration Steps\n\n### Step 1: Update Dependencies\n\n```\nnpm install -D tailwindcss@next @tailwindcss/vite\n# or for Next.js:\nnpm install -D tailwindcss@next @tailwindcss/postcss\n\n```\n\n### Step 2: Update CSS Entry Point\n\n```\n/* Before (v3) */\n@tailwind base;\n@tailwind components;\n@tailwind utilities;\n\n/* After (v4) */\n@import \"tailwindcss\";\n\n```\n\n### Step 3: Move Theme to CSS\n\n```\n/* Before: tailwind.",
+                "image": "https://media2.dev.to/dynamic/image/width=1200,height=627,fit=cover,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2Fb4i7elo763en4lywqg31.png",
+                "favicon": "https://media2.dev.to/dynamic/image/width=32,height=,fit=scale-down,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2F8j7kvp660rqzt99zui8e.png"
+              },
+              {
+                "id": "https://tailwindcss.com/blog/tailwindcss-v4-1",
+                "title": "Tailwind CSS v4.1: Text shadows, masks, and tons more - Tailwind CSS",
+                "url": "https://tailwindcss.com/blog/tailwindcss-v4-1",
+                "text": "Tailwind CSS v4.1: Text shadows, masks, and tons more - Tailwind CSS\n\nv4.3\n\nApril 3, 2025\n\n# Tailwind CSS v4.1: Text shadows, masks, and tons more\n\nAdam Wathan\n\nDan Hollick\n\nI wasn't sure it would ever happen but we did it — we released a version of Tailwind CSS that includes`text-shadow` utilities.\n\nTailwind CSS v4.1 is here and it's packed with new utilities, variants, and developer experience improvements that will help you (or your LLM, you coward) build even better interactive experiences.\n\nHere's all the best stuff we got into this release:\n\n- New`text-shadow-*` utilities — only about twenty years after they were first supported by a browser.\n- Mask elements with the`mask-*` utilities — use images and gradients to mask elements with new ergonomic APIs.\n- Improved compatibility with older browsers — we've made things degrade way more gracefully for older browsers, while still taking advantage of modern features in browsers that support them.\n- Fine-grained text wrapping with`overflow-wrap`— defend the integrity of your layouts from even the longest German words your users will throw at you.\n- Colored`drop-shadow` support — can't really remember why we didn't have these before but we do now.\n- Target input devices with`pointer-*` and`any-pointer-*`— tweak your design for touch devices explicitly instead of relying on viewport size.\n- Align items to the last baseline — align flex or grid items to the baseline of the last line of text using the new`items-baseline-last` and`self-baseline-last` utilities.\n- Keep content visible with`safe` alignment — center content in flex and grid layouts without it disappearing when there's not enough space.\n- Ignore specific paths with`@source not`— explicitly ignore irrelevant large directories and speed up your builds even more.\n- Safelist specific utilities with`@source inline(…)`— force Tailwind to include classes that aren't in your source files.\n- A bunch of other new variants — including`noscript`,`user-valid`,`inverted-colors`, and more.\n\nThat's all the cool stuff, but there's a few other little things hiding in the release notes that you might want to check out too.\n\nUpgrade your projects by installing the latest version of`tailwindcss` from npm:\n\nUsing the Tailwind CLI\n\n```\nnpm install tailwindcss@latest @tailwindcss/cli@latest\n```\n\nUsing Vite\n\n```\nnpm install tailwindcss@latest @tailwindcss/vite@latest\n```\n\nUsing PostCSS\n\n```\nnpm install tailwindcss@latest @tailwindcss/postcss@latest\n```\n\n---\n\n## New text-shadow-* utilities\n\nWe've been threatening to add text shadows for at least the last six years and today they are finally here.\n\nWe've added five text shadows to the default theme, from`text-shadow-2xs` to`text-shadow-lg`. They are particularly useful for making headings stand out against a busy background:\n\nThe quick brown fox jumps over the lazy dog.\n\nThe quick brown fox jumps over the lazy dog.\n\nThe quick brown fox jumps over the lazy dog.\n\nThe quick brown fox jumps over the lazy dog.\n\nThe quick",
+                "image": "https://tailwindcss.com/_next/static/media/card.07i8wip_ymzcx.jpg",
+                "favicon": "https://tailwindcss.com/favicons/favicon-32x32.png?v=4"
+              },
+              {
+                "id": "https://webcoderspeed.com/blog/web-dev/03-tailwind-css-4-guide-2026",
+                "title": "Tailwind CSS 4.0 Complete Guide 2026: New Features, Performance, and Migration | Webcoderspeed",
+                "url": "https://webcoderspeed.com/blog/web-dev/03-tailwind-css-4-guide-2026",
+                "publishedDate": "2026-03-26T00:00:00.000Z",
+                "author": "webcoderspeed",
+                "text": "Tailwind CSS 4.0 Complete Guide 2026: New Features, Performance, and Migration | Webcoderspeed\n\nAdvertisement\n\n## Tailwind CSS 4.0: The CSS-First Redesign\n\nTailwind CSS 4.0 is a complete rewrite. The build is 5x faster, configuration moves to CSS, and the utility set is massively expanded.\n\n- Installation\n- CSS-First Configuration\n- Container Queries (First-Class Support)\n- Dynamic Values Without Config\n- New Utilities in Tailwind 4\n- New Variant System\n- Performance: Lightning CSS\n- Component Patterns in 2026\n- Migration from Tailwind v3\n\n## Installation\n\n```\nnpm install tailwindcss@4 @tailwindcss/vite\n# or\nnpm install tailwindcss@4 @tailwindcss/postcss\n\n```\n\n```\n/* app/globals.css — CSS-first configuration */\n@import \"tailwindcss\";\n\n@theme {\n  --font-display: \"Inter\", sans-serif;\n  --color-brand: oklch(70% 0.2 240);\n  --color-brand-dark: oklch(55% 0.2 240);\n  --radius-card: 12px;\n  --shadow-card: 0 4px 24px oklch(0% 0 0 / 0.1);\n  --breakpoint-3xl: 1920px;\n}\n\n```\n\nNo more`tailwind.config.js`— everything lives in CSS.\n\n---\n\n## CSS-First Configuration\n\n```\n@import \"tailwindcss\";\n\n@theme {\n  /* Colors using OKLCH (perceptually uniform) */\n  --color-primary-50: oklch(97% 0.02 250);\n  --color-primary-100: oklch(93% 0.05 250);\n  --color-primary-500: oklch(60% 0.2 250);\n  --color-primary-900: oklch(25% 0.15 250);\n\n  /* Custom fonts */\n  --font-sans: \"Inter Variable\", system-ui, sans-serif;\n  --font-mono: \"JetBrains Mono\", monospace;\n\n  /* Spacing scale */\n  --spacing-18: 4.5rem;\n  --spacing-88: 22rem;\n\n  /* Custom screens */\n  --breakpoint-xs: 480px;\n  --breakpoint-3xl: 1920px;\n\n  /* Animations */\n  --animate-shimmer: shimmer 2s linear infinite;\n  --keyframes-shimmer: {\n    to { background-position: 200% center; }\n  };\n}\n\n```\n\nGenerated utilities automatically:\n\n```\n<div class=\"text-primary-500 font-display pt-18 max-w-3xl\">\n  Custom theme values are instant utilities\n</div>\n\n```\n\n---\n\n## Container Queries (First-Class Support)\n\n```\n<!-- @container queries without plugins -->\n<div class=\"@container\">\n  <div class=\"grid grid-cols-1 @md:grid-cols-2 @xl:grid-cols-4 gap-4\">\n    <ProductCard />\n  </div>\n</div>\n\n<!-- Named containers -->\n<aside class=\"@container/sidebar\">\n  <nav class=\"flex-col @sm/sidebar:flex-row flex gap-2\">\n    <!-- Changes layout based on sidebar's width, not viewport -->\n  </nav>\n</aside>\n\n```\n\n---\n\n## Dynamic Values Without Config\n\n```\n<!-- Tailwind 4: Any value with arbitrary syntax -->\n<div class=\"grid-cols-[repeat(auto-fill,minmax(280px,1fr))]\">\n<div class=\"bg-[oklch(70%_0.15_250)]\">\n<div class=\"w-[clamp(200px,50vw,800px)]\">\n<div class=\"[--card-shadow:0_8px_32px_oklch(0%_0_0/0.15)]\">\n\n<!-- CSS variables as utilities -->\n<div class=\"shadow-[var(--card-shadow)]\">\n\n```\n\n---\n\n## New Utilities in Tailwind 4\n\n```\n<!-- 3D Transforms -->\n<div class=\"rotate-x-45 rotate-y-12 translate-z-8 perspective-1000\">\n  3D card effect\n</div>\n\n<!-- Starting style for animations -->\n<div class=\"transition-all @starting-style:opacity-0 @starting-style:tra",
+                "image": "https://webcoderspeed.com/static/images/twitter-card.png",
+                "favicon": "https://webcoderspeed.com/static/favicons/apple-touch-icon.png"
+              },
+              {
+                "id": "https://www.vibestacks.io/blog/tailwind-css-v4-what-changed",
+                "title": "Tailwind CSS v4: What Changed and Why It's Better",
+                "url": "https://www.vibestacks.io/blog/tailwind-css-v4-what-changed",
+                "publishedDate": "2026-01-09T10:00:40.000Z",
+                "author": "raman",
+                "text": "Tailwind CSS v4: What Changed and Why It's Better\n\nTechnicalFeature\n\nJanuary 9, 2026\n\n# Tailwind CSS v4: What Changed and Why It's Better\n\nNo more tailwind.config.ts. Tailwind v4 moves configuration to CSS, drops JavaScript, and ships 2x faster. Here's everything that changed.\n\nTailwind CSS v4 is a complete rewrite. Not a minor version bump - a fundamental rethinking of how the framework works.\n\nThe biggest change? No more`tailwind.config.ts`. Configuration now lives in CSS.\n\nIn this post, I'll walk you through everything that changed in Tailwind v4, why these changes matter, and how we've set it up in OmniKit.\n\n## The Big Picture\n\nHere's what's different in v4:\n\n| Feature | Tailwind v3 | Tailwind v4 |\n| --- | --- | --- |\n| Configuration | `tailwind.config.ts`(JavaScript) | `@theme` in CSS |\n| Build tool | PostCSS plugin | New`@tailwindcss/postcss` |\n| Performance | Fast | 40-60% faster |\n| CSS variables | Optional | Native, first-class |\n| Dark mode | `darkMode: 'class'` config | `@custom-variant dark` |\n| Content detection | Manual`content` array | Automatic |\n\nLet's break down each change.\n\n## No More JavaScript Config\n\nIn Tailwind v3, you'd configure everything in`tailwind.config.ts`:\n\ntailwind.config.ts (v3)\n\n```\nimport type { Config } from 'tailwindcss'\n\nconst config: Config = {\n  content: ['./app/**/*.{ts,tsx}', './components/**/*.{ts,tsx}'],\n  darkMode: 'class',\n  theme: {\n    extend: {\n      colors: {\n        brand: '#3b82f6',\n        'brand-dark': '#1d4ed8',\n      },\n      animation: {\n        'spin-slow': 'spin 3s linear infinite',\n      },\n    },\n  },\n  plugins: [],\n}\n\nexport default config\n```\n\nIn v4, all of this moves to CSS:\n\napp/globals.css (v4)\n\n```\n@import \"tailwindcss\";\n\n@custom-variant dark (&:is(.dark *));\n\n@theme inline {\n  --color-brand: #3b82f6;\n  --color-brand-dark: #1d4ed8;\n  --animate-spin-slow: spin 3s linear infinite;\n}\n```\n\nWhy is this better?\n\n1. No JavaScript in your styling - CSS stays in CSS\n2. IDE support - CSS syntax highlighting and autocomplete work everywhere\n3. Faster builds - No JavaScript parsing or execution\n4. Simpler mental model - Everything style-related is in one place\n\n## CSS Variables Are Now Native\n\nIn v3, using CSS variables required extra setup. In v4, they're the default.\n\nWhen you define a color in`@theme`:\n\n```\n@theme inline {\n  --color-primary: oklch(0.205 0 0);\n}\n```\n\nTailwind automatically generates:\n\n- The utility class`bg-primary`,`text-primary`, etc.\n- A CSS variable`--color-primary` you can use anywhere\n\nThis means you can do things like:\n\n```\n.custom-element {\n  /* Use Tailwind's variable directly */\n  background: var(--color-primary);\n  \n  /* Or with opacity */\n  background: oklch(from var(--color-primary) l c h / 50%);\n}\n```\n\nThe tight integration between Tailwind utilities and CSS variables makes theming dramatically simpler.\n\n## The New @theme Directive\n\nThe`@theme` block is where you define your design tokens:\n\n```\n@theme inline {\n  /* Colors */\n  --color-background: var(--backg",
+                "image": "https://www.vibestacks.io/og-image.png",
+                "favicon": "https://www.vibestacks.io/favicon-32x32.png"
+              },
+              {
+                "id": "https://tailwindcss.com/blog/tailwindcss-v4",
+                "title": "Tailwind CSS v4.0",
+                "url": "https://tailwindcss.com/blog/tailwindcss-v4",
+                "publishedDate": "2025-01-22T00:00:00.000Z",
+                "text": "Tailwind CSS v4.0 - Tailwind CSS\n\nv4.3\n\nJanuary 22, 2025\n\n# Tailwind CSS v4.0\n\nAdam Wathan\n\nHoly shit it's actually done — we just tagged Tailwind CSS v4.0.\n\nTailwind CSS v4.0 is an all-new version of the framework optimized for performance and flexibility, with a reimagined configuration and customization experience, and taking full advantage of the latest advancements the web platform has to offer.\n\n- New high-performance engine — where full builds are up to 5x faster, and incremental builds are over 100x faster — and measured in microseconds.\n- Designed for the modern web — built on cutting-edge CSS features like cascade layers, registered custom properties with`@property`, and`color-mix()`.\n- Simplified installation — fewer dependencies, zero configuration, and just a single line of code in your CSS file.\n- First-party Vite plugin — tight integration for maximum performance and minimum configuration.\n- Automatic content detection — all of your template files are discovered automatically, with no configuration required.\n- Built-in import support — no additional tooling necessary to bundle multiple CSS files.\n- CSS-first configuration — a reimagined developer experience where you customize and extend the framework directly in CSS instead of a JavaScript configuration file.\n- CSS theme variables — all of your design tokens exposed as native CSS variables so you can access them anywhere.\n- Dynamic utility values and variants — stop guessing what values exist in your spacing scale, or extending your configuration for things like basic data attributes.\n- Modernized P3 color palette — a redesigned, more vivid color palette that takes full advantage of modern display technology.\n- Container queries — first-class APIs for styling elements based on their container size, no plugins required.\n- New 3D transform utilities — transform elements in 3D space directly in your HTML.\n- Expanded gradient APIs — radial and conic gradients, interpolation modes, and more.\n- @starting-style support — a new variant you can use to create enter and exit transitions, without the need for JavaScript.\n- not-* variant — style an element only when it doesn't match another variant, custom selector, or media or feature query.\n- Even more new utilities and variants — including support for`color-scheme`,`field-sizing`, complex shadows,`inert`, and more.\n\nStart using Tailwind CSS v4.0 today by installing it in a new project, or playing with it directly in the browser on Tailwind Play.\n\nFor existing projects, we've published a comprehensive upgrade guide and built an automated upgrade tool to get you on the latest version as quickly and painlessly as possible.\n\n---\n\n## New high-performance engine\n\nTailwind CSS v4.0 is a ground-up rewrite of the framework, taking everything we've learned about the architecture over the years and optimizing it to be as fast as possible.\n\nWhen benchmarking it on our own projects, we've found full rebuilds to be over 3.5x faster, and incremental build",
+                "image": "https://tailwindcss.com/_next/static/media/card.0_24evxv_9oi5.jpg",
+                "favicon": "https://tailwindcss.com/favicons/favicon-32x32.png?v=4"
+              }
+            ],
+            "searchTime": 839.3,
+            "costDollars": {
+              "total": 0.007,
+              "search": {
+                "neural": 0.007
+              }
+            }
+          },
+          "callProviderMetadata": {
+            "openrouter": {
+              "reasoning_details": [
+                {
+                  "type": "reasoning.text",
+                  "text": "The user is asking for information about new classes, variants, and utilities added in Tailwind CSS v4. This is specific technical documentation that I should search for to provide accurate and up-to-date information.\n\nLet me search for information about what's new in Tailwind v4.",
+                  "format": "anthropic-claude-v1",
+                  "index": 0,
+                  "signature": "EsQDCkgIDRABGAIqQPhwxWlB4JP1K46ZSRLIoHy9Z2eGOQ3TJzsrKMl+flOtmTT/GmQ5ZIBe2+m3h/Nbs0nqUGXn/HNAod2qSjMUo5wSDKuv2E3tZm8Xs+x4KhoMXzx4AG4v/txWhF7lIjDCd13JYxsQNnRUJhyCJjg+EFIsfiIQAY3qn2RNcLRNH9jeOb3g12TterqkwXG/yrkqqQLmHxzrNevhtubGVaYloLisaweL4QGPnW5VLhO1UKdM49po6K+Wr9wa3NzxyoqhexhUxcHu1cNmec6an0swi1Zq7EhQ+BWAhF1V5nhIFBeZabHjU2QR7+6fvZEK2ZihMO0K3OtslDfQWDOaYsr8Pp/3J5krvQXdKXy+N0tMc0IEMeiDQ3nC72b5C/vzogPaMJnY4/2kWb15h58jbUMyTBjHcGSdDaOQpSNaxMztKrtHEfjawOECu+UWEWaeYsO0Esdyk0XyRJzKOwyEtYQiUUW/F+ruyBWMS8p/w76ckto8F63oowY1ZRPJgHhd9qllKd+srlzetMfEwvhSFEWPOu4ecqJ5lHM1E39DWyziDCAS2hdNEFGzWTtge3aKpAFL0mxDIKVeXG4DX8AYAQ=="
+                }
+              ]
+            }
+          },
+          "resultProviderMetadata": {
+            "openrouter": {
+              "reasoning_details": [
+                {
+                  "type": "reasoning.text",
+                  "text": "The user is asking for information about new classes, variants, and utilities added in Tailwind CSS v4. This is specific technical documentation that I should search for to provide accurate and up-to-date information.\n\nLet me search for information about what's new in Tailwind v4.",
+                  "format": "anthropic-claude-v1",
+                  "index": 0,
+                  "signature": "EsQDCkgIDRABGAIqQPhwxWlB4JP1K46ZSRLIoHy9Z2eGOQ3TJzsrKMl+flOtmTT/GmQ5ZIBe2+m3h/Nbs0nqUGXn/HNAod2qSjMUo5wSDKuv2E3tZm8Xs+x4KhoMXzx4AG4v/txWhF7lIjDCd13JYxsQNnRUJhyCJjg+EFIsfiIQAY3qn2RNcLRNH9jeOb3g12TterqkwXG/yrkqqQLmHxzrNevhtubGVaYloLisaweL4QGPnW5VLhO1UKdM49po6K+Wr9wa3NzxyoqhexhUxcHu1cNmec6an0swi1Zq7EhQ+BWAhF1V5nhIFBeZabHjU2QR7+6fvZEK2ZihMO0K3OtslDfQWDOaYsr8Pp/3J5krvQXdKXy+N0tMc0IEMeiDQ3nC72b5C/vzogPaMJnY4/2kWb15h58jbUMyTBjHcGSdDaOQpSNaxMztKrtHEfjawOECu+UWEWaeYsO0Esdyk0XyRJzKOwyEtYQiUUW/F+ruyBWMS8p/w76ckto8F63oowY1ZRPJgHhd9qllKd+srlzetMfEwvhSFEWPOu4ecqJ5lHM1E39DWyziDCAS2hdNEFGzWTtge3aKpAFL0mxDIKVeXG4DX8AYAQ=="
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "step-start"
+        },
+        {
+          "type": "text",
+          "text": "Based on the latest information, here's a comprehensive cheatsheet for **Tailwind CSS v4**:\n\n---\n\n## 🚀 **Tailwind v4 Cheatsheet**\n\n### **Major Changes**\n- ✅ **No more `tailwind.config.js`** - Configuration now in CSS via `@theme`\n- ✅ **5x faster builds** with new Rust-based Oxide engine\n- ✅ **Automatic content detection** - no manual file path configuration\n- ✅ **CSS-first configuration** using CSS variables\n- ✅ **Built-in import support** - no extra bundling needed\n\n---\n\n## 📦 **Installation**\n\n```bash\n# Vite\nnpm install tailwindcss@latest @tailwindcss/vite@latest\n\n# PostCSS (Next.js, etc.)\nnpm install tailwindcss@latest @tailwindcss/postcss@latest\n\n# CLI\nnpm install tailwindcss@latest @tailwindcss/cli@latest\n```\n\n**CSS Entry Point:**\n```css\n/* Before (v3) */\n@tailwind base;\n@tailwind components;\n@tailwind utilities;\n\n/* After (v4) */\n@import \"tailwindcss\";\n```\n\n---\n\n## 🎨 **CSS-First Configuration with @theme**\n\n```css\n@import \"tailwindcss\";\n\n@theme {\n  /* Colors (OKLCH for better color accuracy) */\n  --color-primary: oklch(60% 0.2 250);\n  --color-primary-foreground: white;\n  --color-brand-500: oklch(70% 0.15 240);\n  \n  /* Typography */\n  --font-sans: \"Inter Variable\", system-ui, sans-serif;\n  --font-display: \"Poppins\", sans-serif;\n  \n  /* Spacing */\n  --spacing-18: 4.5rem;\n  --spacing-88: 22rem;\n  \n  /* Border radius */\n  --radius: 0.5rem;\n  --radius-card: 12px;\n  \n  /* Breakpoints */\n  --breakpoint-xs: 480px;\n  --breakpoint-3xl: 1920px;\n  \n  /* Shadows */\n  --shadow-card: 0 4px 24px oklch(0% 0 0 / 0.1);\n  \n  /* Animations */\n  --animate-shimmer: shimmer 2s linear infinite;\n  --keyframes-shimmer: {\n    to { background-position: 200% center; }\n  };\n}\n```\n\n---\n\n## 🆕 **New Utilities**\n\n### **Text Shadows** (v4.1+)\n```html\n<h1 class=\"text-shadow-2xs\">Subtle shadow</h1>\n<h1 class=\"text-shadow-xs\">Extra small</h1>\n<h1 class=\"text-shadow-sm\">Small</h1>\n<h1 class=\"text-shadow\">Default</h1>\n<h1 class=\"text-shadow-lg\">Large</h1>\n```\n\n### **Mask Utilities** (v4.1+)\n```html\n<div class=\"mask-linear-to-b\">Gradient mask</div>\n<div class=\"mask-radial\">Radial mask</div>\n<div class=\"mask-image-[url('/mask.svg')]\">Custom mask</div>\n```\n\n### **3D Transforms**\n```html\n<div class=\"rotate-x-45 rotate-y-12 rotate-z-30\">3D rotation</div>\n<div class=\"translate-z-8 perspective-1000\">3D translation</div>\n```\n\n### **Container Queries** (First-Class)\n```html\n<div class=\"@container\">\n  <div class=\"grid-cols-1 @md:grid-cols-2 @xl:grid-cols-4\">\n    <!-- Changes based on container, not viewport -->\n  </div>\n</div>\n\n<!-- Named containers -->\n<aside class=\"@container/sidebar\">\n  <nav class=\"flex-col @sm/sidebar:flex-row\">\n    Responsive to sidebar width\n  </nav>\n</aside>\n```\n\n### **Overflow Wrap** (v4.1+)\n```html\n<p class=\"overflow-wrap-normal\">Normal wrapping</p>\n<p class=\"overflow-wrap-break-word\">Break long words</p>\n<p class=\"overflow-wrap-anywhere\">Break anywhere</p>\n```\n\n### **Colored Drop Shadows**\n```html\n<div class=\"drop-shadow-[0_4px_12px_rgb(255,0,0)]\">Red shadow</div>\n```\n\n### **Expanded Gradients**\n```html\n<!-- Radial gradients -->\n<div class=\"bg-gradient-radial from-blue-500 to-purple-500\"></div>\n\n<!-- Conic gradients -->\n<div class=\"bg-gradient-conic from-red-500 to-blue-500\"></div>\n\n<!-- Interpolation modes -->\n<div class=\"bg-gradient-to-r from-red-500 to-blue-500 in-oklch\"></div>\n```\n\n---\n\n## 🎯 **New Variants**\n\n### **Nth-child Selectors**\n```html\n<li class=\"odd:bg-gray-50 even:bg-white\">Zebra striping</li>\n<li class=\"first:font-bold last:border-b-0\">Edge items</li>\n```\n\n### **not-* Variant**\n```html\n<button class=\"not-disabled:hover:bg-blue-600 disabled:opacity-50\">\n  Button\n</button>\n\n<div class=\"not-[.active]:opacity-50\">Not active</div>\n```\n\n### **@starting-style** (enter/exit animations)\n```html\n<div class=\"starting:opacity-0 transition-opacity\">\n  Fades in on mount without JavaScript\n</div>\n```\n\n### **Field Sizing**\n```html\n<textarea class=\"field-sizing-content\">Auto-grows</textarea>\n```\n\n### **Input Device Detection** (v4.1+)\n```html\n<!-- Target pointer devices -->\n<button class=\"pointer-fine:hover:scale-105\">Mouse/trackpad</button>\n<button class=\"pointer-coarse:p-4\">Touch devices</button>\n\n<!-- Any pointer device -->\n<div class=\"any-pointer-fine:text-sm\">Has precision pointer</div>\n```\n\n### **Other New Variants** (v4.1+)\n```html\n<div class=\"noscript:block hidden\">No JavaScript fallback</div>\n<input class=\"user-valid:border-green-500\">User validation</input>\n<div class=\"inverted-colors:bg-black\">Inverted colors mode</div>\n```\n\n### **Baseline Alignment** (v4.1+)\n```html\n<div class=\"flex items-baseline-last\">Align to last baseline</div>\n<div class=\"self-baseline-last\">Self align to last baseline</div>\n```\n\n### **Safe Alignment** (v4.1+)\n```html\n<div class=\"flex justify-center-safe\">Won't overflow container</div>\n```\n\n---\n\n## 🔧 **CSS Variables in Utilities**\n\n```html\n<!-- Use CSS variables directly -->\n<div class=\"bg-[--color-primary] text-[--color-primary-foreground]\">\n  Theme tokens\n</div>\n\n<!-- Arbitrary properties with variables -->\n<div class=\"[mask-type:luminance]\">Custom property</div>\n<div class=\"[color:--my-color]\">CSS variable</div>\n```\n\n---\n\n## 🎭 **Custom Variants**\n\n```css\n/* Define custom variants */\n@custom-variant dark (&:is(.dark *));\n@custom-variant hocus (&:is(:hover, :focus));\n```\n\n---\n\n## 📁 **Source Control** (v4.1+)\n\n```css\n/* Ignore specific paths */\n@source not \"node_modules/**\";\n@source not \"dist/**\";\n\n/* Safelist utilities not in source */\n@source inline(\"flex items-center justify-center\");\n```\n\n---\n\n## 🌈 **Modernized Color Palette**\n\nv4 uses **OKLCH color space** for perceptually uniform colors:\n- Better color accuracy across devices\n- P3 wide-gamut display support\n- More vivid colors\n\n```css\n@theme {\n  --color-blue-500: oklch(60% 0.2 250);\n}\n```\n\n---\n\n## ⚡ **Performance Improvements**\n\n- **5x faster** full rebuilds\n- **100x faster** incremental builds (measured in microseconds)\n- Automatic content detection (no manual path config)\n- Built on Rust-based Oxide engine\n\n---\n\n## 🔄 **Migration Quick Reference**\n\n| v3 | v4 |\n|---|---|\n| `tailwind.config.js` | `@theme` in CSS |\n| `@tailwind base` | `@import \"tailwindcss\"` |\n| `darkMode: 'class'` | `@custom-variant dark` |\n| `content: [...]` | Automatic detection |\n| Plugin for containers | Built-in `@container` |\n\n---\n\nThis cheatsheet covers the major new features! For full migration guides, check the [official v4 documentation](https://tailwindcss.com/blog/tailwindcss-v4).",
+          "state": "done"
+        }
+      ],
+      "role": "assistant",
+      "sessionId": "sess_OsyJwZv----kQWHS",
+      "updatedAt": 1779167646752
+    }
+  ],
+  "requests": [
+    {
+      "assistantMessageId": "mesg_Osydnrm----wzvFR",
+      "config": {
+        "modelId": "anthropic/claude-sonnet-4.5",
+        "providerOptions": {
+          "max_tokens": 10240,
+          "reasoning": {
+            "enabled": true
+          }
+        },
+        "toolIds": ["exaSearchWeb"]
+      },
+      "createdAt": 1779167608306,
+      "errorMessage": "",
+      "id": "rqst_Osydnrm---0wzvFR",
+      "sessionId": "sess_OsyJwZv----kQWHS",
+      "status": "completed",
+      "terminalAt": 1779167646754,
+      "steps": [
+        {
+          "cost": {
+            "completion": 0.00201,
+            "isByok": false,
+            "prompt": 0.002139,
+            "total": 0.004149
+          },
+          "createdAt": 1779167613365,
+          "finishReason": "tool-calls",
+          "generationId": "gen-1779167608-sc9TUbu1F8Vs4nhlPsig",
+          "model": "anthropic/claude-4.5-sonnet-20250929",
+          "provider": "Amazon Bedrock",
+          "stepNumber": 0,
+          "tokens": {
+            "audioIn": 0,
+            "audioOut": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "imageOut": 0,
+            "input": 713,
+            "output": 134,
+            "reasoning": 72,
+            "total": 847,
+            "videoIn": 0
+          }
+        },
+        {
+          "cost": {
+            "completion": 0.03453,
+            "isByok": false,
+            "prompt": 0.020421,
+            "total": 0.054951
+          },
+          "createdAt": 1779167646741,
+          "finishReason": "stop",
+          "generationId": "gen-1779167613-uBkuEs1WQsVG8DRxuIIW",
+          "model": "anthropic/claude-4.5-sonnet-20250929",
+          "provider": "Amazon Bedrock",
+          "stepNumber": 1,
+          "tokens": {
+            "audioIn": 0,
+            "audioOut": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "imageOut": 0,
+            "input": 6807,
+            "output": 2302,
+            "reasoning": 0,
+            "total": 9109,
+            "videoIn": 0
+          }
+        }
+      ]
+    }
+  ],
+  "session": {
+    "config": {
+      "modelId": "anthropic/claude-sonnet-4.5",
+      "providerOptions": {
+        "max_tokens": 10240,
+        "reasoning": {
+          "enabled": true
+        }
+      },
+      "toolIds": ["exaSearchWeb"]
+    },
+    "createdAt": 1779162138939,
+    "id": "sess_OsyJwZv----kQWHS",
+    "title": "I need a cheatsheet for the new classes/variants/utilities a",
+    "updatedAt": 1779167608306
+  }
+}

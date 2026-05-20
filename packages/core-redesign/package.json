@@ -9,6 +9,7 @@
     "#prompts": "./src/prompts.ts",
     "#run": "./src/run.ts",
     "#runs": "./src/runs.ts",
+    "#seeds": "./src/seeds.ts",
     "#sessions": "./src/sessions.ts",
     "#steps": "./src/steps.ts",
     "#tools": "./src/tools/tools.ts",
