@@ -1,5 +1,5 @@
-import { RequestConfig, RequestStatus } from '@tetra/core-redesign'
-import type { Rows, StepRecord } from '@tetra/core-redesign'
+import { RequestConfig } from '@tetra/core-redesign'
+import type { RequestStatus, Rows, StepRecord } from '@tetra/core-redesign'
 
 import { tinybase } from '@/tetra/tinybase'
 
@@ -34,7 +34,8 @@ export const useRequest = (id: string): Rows.Request | null => {
     errorMessage: row.errorMessage,
     id,
     sessionId: row.sessionId,
-    status: RequestStatus.parse(row.status),
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+    status: row.status as RequestStatus,
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- StepRecord[] stored verbatim in TinyBase array cell.
     steps: row.steps as StepRecord[],
     terminalAt: row.terminalAt,

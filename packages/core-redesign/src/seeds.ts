@@ -1,5 +1,5 @@
-import { RequestConfig, RequestStatus } from '#db'
 import type { Rows } from '#db'
+import { RequestConfig } from '#db'
 import type { Store } from '#store'
 
 import tailwindV4Cheatsheet from './seeds/tailwind-v4-cheatsheet.json'
@@ -29,10 +29,7 @@ export function exportSession(store: Store, sessionId: string): SessionExport {
   }
 }
 
-export function importSession(
-  store: Store,
-  { messages, requests, session }: SessionExport,
-): string {
+function importSession(store: Store, { messages, requests, session }: SessionExport): string {
   store.transaction(() => {
     store.db.store.setRow('sessions', session.id, {
       config: RequestConfig.parse(session.config),
@@ -58,7 +55,7 @@ export function importSession(
         createdAt: request.createdAt,
         errorMessage: request.errorMessage,
         sessionId: request.sessionId,
-        status: RequestStatus.parse(request.status),
+        status: request.status,
         steps: request.steps,
         terminalAt: request.terminalAt,
       })

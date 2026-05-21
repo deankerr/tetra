@@ -1,5 +1,4 @@
-import { MessageRole } from '@tetra/core-redesign'
-import type { Rows } from '@tetra/core-redesign'
+import type { MessageRole, Rows } from '@tetra/core-redesign'
 import type { UIMessage } from 'ai'
 import { useSyncExternalStore } from 'react'
 
@@ -33,7 +32,8 @@ function useTinyBaseMessage(id: string): Rows.Message | null {
     id,
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- UIMessage parts stored verbatim in TinyBase array cell.
     parts: row.parts as UIMessage['parts'],
-    role: MessageRole.parse(row.role),
+    // oxlint-disable-next-line no-unsafe-type-assertion -- role is written as MessageRole and read back as string by TinyBase.
+    role: row.role as MessageRole,
     sessionId: row.sessionId,
     updatedAt: row.updatedAt,
   }

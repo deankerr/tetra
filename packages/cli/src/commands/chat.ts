@@ -18,7 +18,7 @@ interface ChatOptions {
   active?: boolean
 }
 
-export async function runChat(ctx: CliContext, parts: string[], opts: ChatOptions): Promise<void> {
+async function runChat(ctx: CliContext, parts: string[], opts: ChatOptions): Promise<void> {
   // Gather the user's request from argv and stdin before touching session state.
   const content = await readMessage({ message: opts.message, parts })
   await runChatContent(ctx, content, opts)
@@ -72,7 +72,7 @@ export async function runChatContent(
   console.log()
 }
 
-export function addChatOptions(command: Command): Command {
+function addChatOptions(command: Command): Command {
   return command
     .option('--new', 'Force a new session')
     .option('--no-active', 'Do not update the active session')

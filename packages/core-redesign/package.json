@@ -5,10 +5,7 @@
   "imports": {
     "#catalog": "./src/catalog.ts",
     "#db": "./src/db.ts",
-    "#ids": "./src/ids.ts",
-    "#requests": "./src/runtime/requests.ts",
-    "#run": "./src/runtime/run.ts",
-    "#runs": "./src/runtime/runs.ts",
+    "#runtime": "./src/runtime/index.ts",
     "#seeds": "./src/seeds.ts",
     "#store": "./src/store.ts",
     "#tools": "./src/tools/tools.ts"

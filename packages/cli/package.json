@@ -2,6 +2,7 @@
   "name": "@tetra/cli",
   "private": true,
   "type": "module",
+  "main": "src/index.ts",
   "scripts": {
     "start": "bun src/index.ts"
   },

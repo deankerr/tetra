@@ -6,8 +6,8 @@ import { MockLanguageModelV3 } from 'ai/test'
 import { z } from 'zod'
 
 import { createCoreModules, Runs } from '../index.ts'
-import type { CredentialReader, LanguageModelResolver } from '../index.ts'
 import { toolsRegistryMap } from '../tools/tools.ts'
+import type { CredentialReader, LanguageModelResolver } from './run.ts'
 
 function createTestRuntime() {
   const core = createCoreModules()

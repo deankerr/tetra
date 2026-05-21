@@ -9,23 +9,8 @@ import type { Store } from 'tinybase/store/with-schemas'
 import type { Row, TablesSchema, ValuesSchema } from 'tinybase/with-schemas'
 import { z } from 'zod'
 
-export const MessageRole = z.enum(['assistant', 'user'])
-export type MessageRole = z.infer<typeof MessageRole>
-
-export const RequestStatus = z.enum(['cancelled', 'completed', 'error', 'preparing', 'streaming'])
-export type RequestStatus = z.infer<typeof RequestStatus>
-
-export const LanguageModelRecord = z.object({
-  contextLength: z.number(),
-  createdAt: z.number(),
-  inputModalities: z.array(z.string()),
-  name: z.string(),
-  outputModalities: z.array(z.string()),
-  provider: z.string(),
-  providerName: z.string(),
-  supportedParameters: z.array(z.string()),
-})
-export type LanguageModelRecord = z.infer<typeof LanguageModelRecord>
+export type MessageRole = 'assistant' | 'user'
+export type RequestStatus = 'cancelled' | 'completed' | 'error' | 'preparing' | 'streaming'
 
 const ProviderOptions = z
   .record(z.string(), z.json())
@@ -131,7 +116,15 @@ type MergeableDbStore = MergeableStore<DbSchemas>
 
 // oxlint-disable-next-line typescript/no-namespace -- Namespaces keep contested schema row names grouped at call sites, e.g. Rows.Message.
 export namespace Rows {
-  export type LanguageModel = LanguageModelRecord & { id: string }
+  export type LanguageModel = Omit<
+    Row<Schema, 'languageModels'>,
+    'inputModalities' | 'outputModalities' | 'supportedParameters'
+  > & {
+    id: string
+    inputModalities: string[]
+    outputModalities: string[]
+    supportedParameters: string[]
+  }
   export type Message = Omit<Row<Schema, 'messages'>, 'parts' | 'role'> & {
     id: string
     parts: UIMessage['parts']

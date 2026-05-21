@@ -1,18 +1,11 @@
 import type { UIMessage } from 'ai'
 
-import {
-  DEFAULT_REQUEST_CONFIG,
-  LanguageModelRecord,
-  MessageRole,
-  RequestConfig,
-  RequestStatus,
-  createIdGenerator,
-} from '#db'
-import type { MessageRole as MessageRoleType, Rows, StepRecord, TetraDb } from '#db'
+import { DEFAULT_REQUEST_CONFIG, RequestConfig, createIdGenerator } from '#db'
+import type { MessageRole, Rows, StepRecord, TetraDb, RequestStatus } from '#db'
 
 export interface MessagePatch {
   parts?: UIMessage['parts']
-  role?: MessageRoleType
+  role?: MessageRole
 }
 
 export class Store {
@@ -110,10 +103,7 @@ export class Store {
 
   // ——— Messages ———
 
-  appendMessage(
-    sessionId: string,
-    args: { parts: UIMessage['parts']; role: MessageRoleType },
-  ): string {
+  appendMessage(sessionId: string, args: { parts: UIMessage['parts']; role: MessageRole }): string {
     this.requireSession(sessionId)
     const messageId = this.nextMessageId()
     const now = Date.now()
@@ -132,7 +122,7 @@ export class Store {
     return messageId
   }
 
-  appendTextMessage(sessionId: string, args: { role: MessageRoleType; text: string }): string {
+  appendTextMessage(sessionId: string, args: { role: MessageRole; text: string }): string {
     return this.appendMessage(sessionId, {
       parts: [{ text: args.text, type: 'text' }],
       role: args.role,
@@ -154,7 +144,8 @@ export class Store {
       id: messageId,
       // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- UIMessage parts are stored verbatim in TinyBase's array cell.
       parts: row.parts as UIMessage['parts'],
-      role: MessageRole.parse(row.role),
+      // oxlint-disable-next-line no-unsafe-type-assertion -- role is written as MessageRole and read back as string by TinyBase.
+      role: row.role as MessageRole,
       sessionId: row.sessionId,
       updatedAt: row.updatedAt,
     }
@@ -172,7 +163,7 @@ export class Store {
 
     this.db.store.setPartialRow('messages', messageId, {
       ...('parts' in patch && { parts: patch.parts ?? [] }),
-      ...('role' in patch && { role: MessageRole.parse(patch.role) }),
+      ...('role' in patch && { role: patch.role }),
       updatedAt: Date.now(),
     })
   }
@@ -193,7 +184,8 @@ export class Store {
       errorMessage: row.errorMessage,
       id: requestId,
       sessionId: row.sessionId,
-      status: RequestStatus.parse(row.status),
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- RequestStatus is stored verbatim.
+      status: row.status as RequestStatus,
       // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- StepRecord[] is stored verbatim in TinyBase's array cell.
       steps: row.steps as StepRecord[],
       terminalAt: row.terminalAt,
@@ -270,7 +262,8 @@ export class Store {
     }
 
     const row = this.db.store.getRow('languageModels', modelId)
-    return { ...LanguageModelRecord.parse(row), id: modelId }
+    // oxlint-disable-next-line no-unsafe-type-assertion -- TinyBase types arrays as Json[]; we write string[] and read them back as such.
+    return { ...row, id: modelId } as Rows.LanguageModel
   }
 
   listLanguageModels(): Rows.LanguageModel[] {
