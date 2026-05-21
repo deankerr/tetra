@@ -317,29 +317,21 @@ function ObjectRow({ dispatch, entry }: { dispatch: Dispatch<Action>; entry: Obj
 
 // --- Editor ---
 
+// Rendered with key={sessionId} by the parent — each session gets a fresh instance,
+// so sessionId never changes within this component's lifetime.
 export function ProviderOptionsEditor({ sessionId }: { sessionId: string }) {
   const { store } = useTetra()
   const options = useSessionConfig(sessionId).providerOptions ?? EMPTY_PROVIDER_OPTIONS
   const [entries, dispatch] = useReducer(entriesReducer, options, optionsToEntries)
-  const prevSessionId = useRef(sessionId)
   const isInitialRender = useRef(true)
-
-  useEffect(() => {
-    if (prevSessionId.current !== sessionId) {
-      dispatch({ entries: optionsToEntries(options), type: 'reset' })
-      prevSessionId.current = sessionId
-      isInitialRender.current = true
-    }
-  }, [sessionId, options])
 
   useEffect(() => {
     if (isInitialRender.current) {
       isInitialRender.current = false
       return
     }
-    const current = store.getSessionConfig(sessionId)
     store.setSessionConfig(sessionId, {
-      ...current,
+      ...store.getSessionConfig(sessionId),
       providerOptions: entriesToOptions(entries),
     })
   }, [entries, store, sessionId])

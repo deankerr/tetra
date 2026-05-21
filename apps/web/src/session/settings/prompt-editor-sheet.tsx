@@ -1,6 +1,4 @@
-import { RequestConfig } from '@tetra/core-redesign'
 import { Button } from '@tetra/ui/components/ui/button'
-import { Field, FieldTitle } from '@tetra/ui/components/ui/field'
 import { Input } from '@tetra/ui/components/ui/input'
 import {
   Select,
@@ -112,7 +110,7 @@ function PromptLabel({ promptId }: { promptId: string }) {
 }
 
 /** 3-line preview in the settings panel. Calls onOpen to open the dedicated editor sheet. */
-export function SystemPromptField({
+export function PromptPreviewButton({
   onOpen,
   sessionId,
 }: {
@@ -131,20 +129,17 @@ export function SystemPromptField({
   const previewContent = selectedPrompt?.content?.trim() ?? ''
 
   return (
-    <Field>
-      <FieldTitle>System Prompt</FieldTitle>
-      <button
-        className="border-input bg-input/30 hover:bg-input/50 w-full rounded-md border px-3 py-2 text-left text-xs transition-colors"
-        onClick={onOpen}
-        type="button"
-      >
-        {previewContent ? (
-          <span className="line-clamp-3 whitespace-pre-wrap">{previewContent}</span>
-        ) : (
-          <span className="text-muted-foreground">No system prompt</span>
-        )}
-      </button>
-    </Field>
+    <button
+      className="border-input bg-input/30 hover:bg-input/50 w-full rounded-md border px-3 py-2 text-left text-xs transition-colors"
+      onClick={onOpen}
+      type="button"
+    >
+      {previewContent ? (
+        <span className="line-clamp-3 whitespace-pre-wrap">{previewContent}</span>
+      ) : (
+        <span className="text-muted-foreground">No system prompt</span>
+      )}
+    </button>
   )
 }
 
@@ -153,7 +148,7 @@ export function SystemPromptField({
  * Rendered as a sibling to the settings sheet (not nested inside it) so that
  * base-ui's outside-click dismissal works correctly without React portal event bubbling interference.
  */
-export function SystemPromptSheet({
+export function PromptEditorSheet({
   onOpenChange,
   open,
   sessionId,
@@ -171,11 +166,7 @@ export function SystemPromptSheet({
       : undefined
 
   const updateSystemPromptId = (systemPromptId?: string) => {
-    const { systemPromptId: _removed, ...rest } = store.getSessionConfig(sessionId)
-    store.setSessionConfig(
-      sessionId,
-      RequestConfig.parse(systemPromptId === undefined ? rest : { ...rest, systemPromptId }),
-    )
+    store.setSessionConfig(sessionId, { ...store.getSessionConfig(sessionId), systemPromptId })
   }
 
   return (
