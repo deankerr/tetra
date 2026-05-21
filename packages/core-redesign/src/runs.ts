@@ -1,8 +1,8 @@
 import type { Accessors } from '#accessors'
 import { RequestConfig } from '#db'
 import type { RequestConfig as RequestConfigType, Rows } from '#db'
-import { Run } from '#run'
-import type { CredentialReader, RunStart } from '#run'
+import { Run, openRouterLanguageModelResolver } from '#run'
+import type { CredentialReader, LanguageModelResolver, RunStart } from '#run'
 
 export interface SendMessageArgs {
   config?: Partial<RequestConfigType>
@@ -17,10 +17,16 @@ export class Runs {
   private readonly accessors: Accessors
   private readonly active = new Map<string, Run>()
   private readonly credentials: CredentialReader
+  private readonly modelResolver: LanguageModelResolver
 
-  constructor(accessors: Accessors, credentials: CredentialReader) {
+  constructor(
+    accessors: Accessors,
+    credentials: CredentialReader,
+    modelResolver: LanguageModelResolver = openRouterLanguageModelResolver,
+  ) {
     this.accessors = accessors
     this.credentials = credentials
+    this.modelResolver = modelResolver
   }
 
   cancel(requestId: string): void {
@@ -136,6 +142,7 @@ export class Runs {
     const run = new Run({
       accessors: this.accessors,
       credentials: this.credentials,
+      modelResolver: this.modelResolver,
       start: args,
     })
 

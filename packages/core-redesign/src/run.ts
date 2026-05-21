@@ -14,6 +14,10 @@ export interface CredentialReader {
   get(id: string): string
 }
 
+export interface LanguageModelResolver {
+  resolve(args: { config: RequestConfigType; credentials: CredentialReader }): LanguageModel
+}
+
 export interface RunStart {
   assistantMessageId: string
   config: RequestConfigType
@@ -28,7 +32,19 @@ export type RunStatus = 'cancelled' | 'completed' | 'error' | 'preparing' | 'str
 interface RunInit {
   accessors: Accessors
   credentials: CredentialReader
+  modelResolver: LanguageModelResolver
   start: RunStart
+}
+
+export const openRouterLanguageModelResolver: LanguageModelResolver = {
+  resolve: ({ config, credentials }) => {
+    const openrouterApiKey = credentials.get('OPENROUTER_API_KEY').trim()
+    if (openrouterApiKey === '') {
+      throw new Error('OPENROUTER_API_KEY is required for model inference')
+    }
+
+    return createOpenRouter({ apiKey: openrouterApiKey })(config.modelId)
+  },
 }
 
 export class Run extends EventTarget {
@@ -56,6 +72,7 @@ export class Run extends EventTarget {
   private readonly accessors: Accessors
   private readonly credentials: CredentialReader
   private readonly doneController = Promise.withResolvers<undefined>()
+  private readonly modelResolver: LanguageModelResolver
 
   constructor(init: RunInit) {
     super()
@@ -64,6 +81,7 @@ export class Run extends EventTarget {
     this.config = init.start.config
     this.credentials = init.credentials
     this.done = this.doneController.promise
+    this.modelResolver = init.modelResolver
     this.requestId = init.start.requestId
     this.session = init.start.session
     this.sessionId = init.start.session.id
@@ -117,12 +135,7 @@ export class Run extends EventTarget {
   }
 
   private resolveModel(): LanguageModel {
-    const openrouterApiKey = this.credentials.get('OPENROUTER_API_KEY').trim()
-    if (openrouterApiKey === '') {
-      throw new Error('OPENROUTER_API_KEY is required for model inference')
-    }
-
-    return createOpenRouter({ apiKey: openrouterApiKey })(this.config.modelId)
+    return this.modelResolver.resolve({ config: this.config, credentials: this.credentials })
   }
 
   private resolveTools(): ToolSet {
