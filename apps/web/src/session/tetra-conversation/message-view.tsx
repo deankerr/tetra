@@ -122,9 +122,12 @@ export function TetraMessageView({
       })}
 
       {request?.errorMessage !== null && request?.errorMessage !== undefined && (
-        <div className="text-destructive border-destructive/30 border p-1 font-mono">
+        <Block
+          header="error"
+          className="*:border-destructive/30 border-destructive/30 *:text-destructive text-destructive font-mono"
+        >
           {request.errorMessage}
-        </div>
+        </Block>
       )}
 
       <MessageFooter message={message} />

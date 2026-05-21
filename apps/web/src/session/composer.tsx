@@ -1,4 +1,11 @@
 import {
+  Attachment,
+  AttachmentInfo,
+  AttachmentPreview,
+  AttachmentRemove,
+  Attachments,
+} from '@tetra/ui/components/ai-elements/attachments'
+import {
   PromptInput,
   PromptInputBody,
   PromptInputButton,
@@ -6,9 +13,11 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
   PromptInputTools,
+  usePromptInputAttachments,
 } from '@tetra/ui/components/ai-elements/prompt-input'
 import { toast } from '@tetra/ui/components/ui/sonner'
-import { ArrowUpFromDot } from 'lucide-react'
+import type { UIMessage } from 'ai'
+import { ArrowUpFromDot, ImageIcon } from 'lucide-react'
 import { useState } from 'react'
 
 import { useCredential } from '@/hooks/use-credential'
@@ -29,7 +38,13 @@ export function Composer({ sessionId }: { sessionId: string }) {
     message,
     event,
   ) => {
-    if (isStreaming || !message.text.trim()) {
+    const text = message.text.trim()
+    const parts: UIMessage['parts'] = [
+      ...(text === '' ? [] : [{ text, type: 'text' } satisfies UIMessage['parts'][number]]),
+      ...message.files,
+    ]
+
+    if (isStreaming || parts.length === 0) {
       return
     }
 
@@ -37,7 +52,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
     const isAdd = submitter instanceof HTMLElement && submitter.dataset.action === 'add'
 
     if (isAdd) {
-      tetra.store.appendTextMessage(sessionId, { role: 'user', text: message.text })
+      tetra.store.appendMessage(sessionId, { parts, role: 'user' })
       setDraft('')
       return
     }
@@ -48,7 +63,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
         description: 'Add an OpenRouter API key before running model inference.',
       })
       tetra.openCredentialSettings('OPENROUTER_API_KEY')
-      return
+      throw new Error('OpenRouter API key required')
     }
 
     const shouldSetTitle = tetra.store.getSession(sessionId).title === ''
@@ -58,27 +73,29 @@ export function Composer({ sessionId }: { sessionId: string }) {
 
     try {
       // Create user and assistant messages, then hand off to the run.
-      tetra.store.appendTextMessage(sessionId, { role: 'user', text: message.text })
+      tetra.store.appendMessage(sessionId, { parts, role: 'user' })
       const assistantMessageId = tetra.store.appendMessage(sessionId, {
         parts: [],
         role: 'assistant',
       })
       tetra.runs.start({ assistantMessageId })
       if (shouldSetTitle) {
-        tetra.store.renameSession(sessionId, message.text.trim().slice(0, 60))
+        tetra.store.renameSession(sessionId, text === '' ? 'Image' : text.slice(0, 60))
       }
     } catch (error) {
-      setDraft(message.text)
+      setDraft(text)
       toast.error('Could not start run', {
         description: error instanceof Error ? error.message : String(error),
       })
+      throw error
     }
   }
 
   return (
     <div className="shrink-0 border-t p-2">
-      <PromptInput onSubmit={handleSubmit}>
+      <PromptInput accept="image/*" multiple onSubmit={handleSubmit}>
         <PromptInputBody>
+          <ComposerAttachments />
           <PromptInputTextarea
             disabled={isStreaming}
             onChange={(e) => {
@@ -98,32 +115,97 @@ export function Composer({ sessionId }: { sessionId: string }) {
               }}
               value={config.modelId}
             />
+            <ImageInputButton disabled={isStreaming} />
           </PromptInputTools>
 
-          <div className="flex items-center gap-1">
-            <PromptInputButton
-              aria-label="Add"
-              data-action="add"
-              size="icon-sm"
-              type="submit"
-              variant="secondary"
-              disabled={!isStreaming && !draft.trim()}
-            >
-              <ArrowUpFromDot className="size-4" />
-            </PromptInputButton>
-
-            <PromptInputSubmit
-              disabled={!isStreaming && !draft.trim()}
-              status={isStreaming ? 'streaming' : 'ready'}
-              onStop={() => {
-                if (activeRequest) {
-                  tetra.runs.cancel(activeRequest.id)
-                }
-              }}
-            />
-          </div>
+          <ComposerSubmitControls
+            activeRequestId={activeRequest?.id ?? null}
+            draft={draft}
+            isStreaming={isStreaming}
+          />
         </PromptInputFooter>
       </PromptInput>
+    </div>
+  )
+}
+
+function ComposerAttachments() {
+  const attachments = usePromptInputAttachments()
+
+  if (attachments.files.length === 0) {
+    return null
+  }
+
+  return (
+    <Attachments className="px-2 pt-2" variant="grid">
+      {attachments.files.map((attachment) => (
+        <Attachment
+          data={attachment}
+          key={attachment.id}
+          onRemove={() => {
+            attachments.remove(attachment.id)
+          }}
+        >
+          <AttachmentPreview />
+          <AttachmentInfo showMediaType />
+          <AttachmentRemove />
+        </Attachment>
+      ))}
+    </Attachments>
+  )
+}
+
+function ImageInputButton({ disabled }: { disabled: boolean }) {
+  const attachments = usePromptInputAttachments()
+
+  return (
+    <PromptInputButton
+      aria-label="Add image"
+      disabled={disabled}
+      onClick={attachments.openFileDialog}
+      size="icon-sm"
+      type="button"
+    >
+      <ImageIcon className="size-4" />
+    </PromptInputButton>
+  )
+}
+
+function ComposerSubmitControls({
+  activeRequestId,
+  draft,
+  isStreaming,
+}: {
+  activeRequestId: string | null
+  draft: string
+  isStreaming: boolean
+}) {
+  const tetra = useTetra()
+  const attachments = usePromptInputAttachments()
+  const isEmpty = draft.trim() === '' && attachments.files.length === 0
+
+  return (
+    <div className="flex items-center gap-1">
+      <PromptInputButton
+        aria-label="Add"
+        data-action="add"
+        disabled={!isStreaming && isEmpty}
+        size="icon-sm"
+        type="submit"
+        variant="secondary"
+      >
+        <ArrowUpFromDot className="size-4" />
+      </PromptInputButton>
+
+      <PromptInputSubmit
+        disabled={!isStreaming && isEmpty}
+        onStop={() => {
+          if (activeRequestId !== null) {
+            tetra.runs.cancel(activeRequestId)
+          }
+        }}
+        status={isStreaming ? 'streaming' : 'ready'}
+      />
     </div>
   )
 }
