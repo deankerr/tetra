@@ -1,4 +1,4 @@
-# Core Redesign Notes
+# Core Design Notes
 
 This package is an experimental redesign space for Tetra's core. The structure will change often; keep this document conceptual rather than descriptive of the current files.
 
@@ -7,21 +7,6 @@ This package is an experimental redesign space for Tetra's core. The structure w
 TinyBase is the durable, synchronous substrate. Its synchronous queries and mutations are a major strength: most of core should be ordinary state reads and writes, not async actions.
 
 The raw TinyBase API is also sharp enough that it should not be the interface most code thinks in. The redesign should make TinyBase access safe, typed enough, and pleasant, so higher-level modules can express domain mutations directly.
-
-## Accessors
-
-Use Accessors as the placeholder concept for table-shaped, row-oriented APIs around TinyBase.
-
-Accessors exist to remove repeated TinyBase ceremony:
-
-- checking whether rows exist before reading or mutating them
-- turning raw rows into domain records with IDs
-- validating structured cells such as model config
-- hiding index lookup details
-- centralising common timestamp and row-update patterns
-- making transactions easy to read
-
-Accessors are not service boundaries. They are not an isolation mechanism. They are a practical ergonomics layer over TinyBase.
 
 ## Modules
 

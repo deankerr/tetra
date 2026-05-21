@@ -30,6 +30,14 @@ Dev data is wiped and regenerated as needed. This app is not public. There are h
 
 The TinyBase repo is cloned as a submodule in `reference/tinybase`.
 
+- TinyBase is explicitly an in-memory Store with tabular rows and cells, where cells can be arrays/objects, and reads return copies rather than network results.
+- Its reactivity is listener-based at table/row/cell granularity, not query-cache based like a server DB client.
+- The design pressure here is not “normalize because joins are expensive” or “avoid loading related data”, it’s mostly:
+  - what changes together,
+  - what components need to rerender,
+  - what needs an index,
+  - what needs to be persisted as a durable artifact.
+
 ## Monorepo
 
 Bun workspaces. Run scripts from the root.
@@ -48,10 +56,6 @@ Bun workspaces. Run scripts from the root.
 - `@types/*` packages are manually specified `"types": ["bun"]`, only if required
 - Subpath Imports support, e.g. `"#/*": "./dist/*"`, replace deep relative paths `../../utils.js` with `#root/utils.js`
 
-## Knip
-
-- A perfect (dev/)dependencies result is a non-goal - expect testing/frontend/tanstack deps to go unused for periods of time.
-
 ## Seeding the database
 
 When working in an isolated worktree or without an API key, load bundled seed sessions so you have real data to work with:
@@ -62,8 +66,6 @@ bun run --filter @tetra/cli start seed
 
 # Web (OPFS) — open the app, click the bug icon (bottom-left), choose "Load seed data"
 ```
-
-Seed sessions live in `packages/core/src/seeds/`. `loadSeeds(sessions)` is exported from `@tetra/core` and loads them all at once.
 
 ## Project Docs
 

@@ -31,6 +31,7 @@ import { RequestsTable } from './requests-table'
 import { SessionSettings } from './settings'
 import { PromptEditorSheet } from './settings/prompt-editor-sheet'
 import { TetraConversationView } from './tetra-conversation/view'
+import { SessionUsageMeter } from './usage-meter'
 
 export function SessionView() {
   const openSessionIds = useOpenSessionIds()
@@ -84,6 +85,7 @@ function ActiveSession({
           <span className="min-w-0 flex-1 truncate text-xs font-medium">
             {session.title ?? 'New session'}
           </span>
+          <SessionUsageMeter sessionId={sessionId} />
           <TabsList className="h-7">
             <TabsTrigger aria-label="Show chat view" value="chat">
               <MessagesSquareIcon />
