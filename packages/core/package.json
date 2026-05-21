@@ -18,6 +18,7 @@
     "@exalabs/ai-sdk": "^2.0.1",
     "@openrouter/ai-sdk-provider": "catalog:",
     "@tetra/credentials": "workspace:*",
+    "@tetra/tinybase-schema": "workspace:*",
     "ai": "catalog:",
     "tinybase": "catalog:",
     "zod": "catalog:"

@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test'
 
 import { z } from 'zod'
 
-import { defineTypedTinybase, tinybaseCell, tinybaseTable } from './index.ts'
+import { defineTypedTinybase, tinybaseCell, tinybaseIndex, tinybaseTable } from './index.ts'
 
 const ModelConfig = z.object({
   maxMessages: z.number().int().positive().optional(),
@@ -19,6 +19,9 @@ const MessagePart = z.discriminatedUnion('type', [
 
 const createTestDefinition = () =>
   defineTypedTinybase({
+    indexes: {
+      messagesBySession: tinybaseIndex('messages', 'sessionId'),
+    },
     tables: {
       messages: tinybaseTable({
         createdAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
@@ -94,12 +97,16 @@ test('binds a TinyBase store with explicit typed row CRUD methods', () => {
     updatedAt: 0,
   })
   expect(db.sessions.getEntity('sess_1')?.id).toBe('sess_1')
-  expect(db.sessions.listRowIds()).toEqual(['sess_1'])
+  expect(db.sessions.getRowIds()).toEqual(['sess_1'])
   expect(db.messages.requireEntity('msg_1').parts[0]).toEqual({
     text: 'hello from a typed TinyBase row',
     type: 'text',
   })
+  expect(db.sessions.hasRow('sess_1')).toBe(true)
+  expect(db.sessions.getCell('sess_1', 'title')).toBe('Typed TinyBase')
 
+  db.sessions.setCell('sess_1', 'title', 'Cell update')
+  expect(db.sessions.requireEntity('sess_1').title).toBe('Cell update')
   db.sessions.updateRow('sess_1', { title: 'Updated title' })
   expect(db.sessions.requireEntity('sess_1').title).toBe('Updated title')
 
@@ -119,6 +126,22 @@ test('binds typed value methods separately from table row methods', () => {
 
   db.getValue('activeSessionId').deleteValue()
   expect(db.getValue('activeSessionId').getValue()).toBe('')
+})
+
+test('creates and binds typed TinyBase indexes', () => {
+  const definition = createTestDefinition()
+  const store = definition.createTinybaseStore()
+  const db = definition.bindTinybaseStore(store)
+  const indexes = definition.bindTinybaseIndexes(definition.createTinybaseIndexes(store))
+
+  db.sessions.setRow('sess_1', { title: 'Indexed' })
+  db.messages.setRow('msg_1', {
+    parts: [{ text: 'hello', type: 'text' }],
+    sessionId: 'sess_1',
+  })
+
+  expect(indexes.getSliceRowIds('messagesBySession', 'sess_1')).toEqual(['msg_1'])
+  expect(indexes.messagesBySession.getSliceRowIds('sess_1')).toEqual(['msg_1'])
 })
 
 test('parses raw rows, entities, values, and individual cell schemas through zod', () => {
@@ -155,6 +178,9 @@ test('throws loudly when required entities or invalid rows cross the boundary', 
   const db = definition.bindTinybaseStore(definition.createTinybaseStore())
 
   expect(() => db.sessions.requireEntity('missing_session')).toThrow(
+    'Missing row: sessions/missing_session',
+  )
+  expect(() => db.sessions.updateRow('missing_session', { title: 'Nope' })).toThrow(
     'Missing row: sessions/missing_session',
   )
 

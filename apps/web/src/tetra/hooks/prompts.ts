@@ -1,25 +1,22 @@
 import type { Rows } from '@tetra/core'
 import { useMemo } from 'react'
 
-import { tinybase } from '@/tetra/tinybase'
+import { typedTinybase } from '@/tetra/tinybase'
 
 export const usePromptIds = () => {
-  const prompts = tinybase.useTable('prompts')
+  const prompts = typedTinybase.useEntityList('prompts')
   return useMemo(
     () =>
-      Object.entries(prompts)
-        .toSorted(([left], [right]) => left.localeCompare(right))
-        .map(([promptId]) => promptId),
+      prompts.toSorted((left, right) => left.id.localeCompare(right.id)).map((prompt) => prompt.id),
     [prompts],
   )
 }
 
 export const usePrompt = (id: string): Rows.Prompt | null => {
-  const hasRow = tinybase.useHasRow('prompts', id)
-  const row = tinybase.useRow('prompts', id)
-  if (!hasRow || id === '') {
+  const prompt = typedTinybase.useEntity('prompts', id)
+  if (id === '') {
     return null
   }
 
-  return { ...row, id }
+  return prompt
 }

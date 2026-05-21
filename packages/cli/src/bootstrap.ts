@@ -10,16 +10,17 @@ export async function bootstrap() {
   const runs = new Runs(core.store, credentialStore)
 
   // CLI-only active session state lives in TinyBase values.
+  const cliActiveSessionId = core.db.tables.getValue('cliActiveSessionId')
   const workspace = {
     clearActiveSessionId(): void {
-      core.db.store.setValue('cliActiveSessionId', '')
+      cliActiveSessionId.setValue('')
     },
     getActiveSessionId(): string | undefined {
-      const sessionId = core.db.store.getValue('cliActiveSessionId')
+      const sessionId = cliActiveSessionId.getValue()
       return sessionId.trim() === '' ? undefined : sessionId
     },
     setActiveSessionId(sessionId: string): void {
-      core.db.store.setValue('cliActiveSessionId', sessionId)
+      cliActiveSessionId.setValue(sessionId)
     },
   }
 

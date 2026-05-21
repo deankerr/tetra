@@ -1,12 +1,12 @@
-import type { MessageRole, Rows } from '@tetra/core'
+import type { Rows } from '@tetra/core'
 import type { UIMessage } from 'ai'
 import { useSyncExternalStore } from 'react'
 
 import { useTetra } from '@/tetra/provider'
-import { tinybase } from '@/tetra/tinybase'
+import { typedTinybase } from '@/tetra/tinybase'
 
 export const useSessionMessageIds = (sessionId: string) =>
-  tinybase.useSliceRowIds('messagesBySession', sessionId)
+  typedTinybase.useSliceRowIds('messagesBySession', sessionId)
 
 export const useMessage = (id: string): Rows.Message | null => {
   const stored = useTinyBaseMessage(id)
@@ -19,24 +19,14 @@ export const useMessage = (id: string): Rows.Message | null => {
   return liveParts === null ? stored : { ...stored, parts: liveParts }
 }
 
-// Reads the durable message row from TinyBase with inline type coercion.
+// Reads the durable message row through the typed TinyBase schema boundary.
 function useTinyBaseMessage(id: string): Rows.Message | null {
-  const hasRow = tinybase.useHasRow('messages', id)
-  const row = tinybase.useRow('messages', id)
-  if (!hasRow || id === '') {
+  const message = typedTinybase.useEntity('messages', id)
+  if (id === '') {
     return null
   }
 
-  return {
-    createdAt: row.createdAt,
-    id,
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- UIMessage parts stored verbatim in TinyBase array cell.
-    parts: row.parts as UIMessage['parts'],
-    // oxlint-disable-next-line no-unsafe-type-assertion -- role is written as MessageRole and read back as string by TinyBase.
-    role: row.role as MessageRole,
-    sessionId: row.sessionId,
-    updatedAt: row.updatedAt,
-  }
+  return message
 }
 
 // Subscribes to the live Run's in-flight parts via useSyncExternalStore.

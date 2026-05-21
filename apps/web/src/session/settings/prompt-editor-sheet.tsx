@@ -14,7 +14,7 @@ import { Trash2Icon, XIcon } from 'lucide-react'
 import { usePrompt, usePromptIds } from '@/tetra/hooks/prompts'
 import { useSessionConfig } from '@/tetra/hooks/sessions'
 import { useTetra } from '@/tetra/provider'
-import { tinybase } from '@/tetra/tinybase'
+import { typedTinybase } from '@/tetra/tinybase'
 
 const NO_PROMPT_VALUE = '__none__'
 const NEW_PROMPT_VALUE = '__new__'
@@ -71,8 +71,8 @@ function SelectedPromptFields({
 }
 
 function PromptCellFields({ onDelete, promptId }: { onDelete: () => void; promptId: string }) {
-  const [content, setContent] = tinybase.useCellState('prompts', promptId, 'content')
-  const [label, setLabel] = tinybase.useCellState('prompts', promptId, 'label')
+  const [content, setContent] = typedTinybase.useCellState('prompts', promptId, 'content')
+  const [label, setLabel] = typedTinybase.useCellState('prompts', promptId, 'label')
 
   return (
     <>

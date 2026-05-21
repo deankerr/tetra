@@ -1,6 +1,7 @@
 import { createStore as createTinybaseStore } from 'tinybase/store/with-schemas'
 import type { z } from 'zod'
 
+import { createIndexesApi, createIndexesFromDefinitions } from '../internal/index-api.ts'
 import {
   createTableApi,
   createValueApi,
@@ -12,12 +13,16 @@ import { toTinybaseTablesSchema, toTinybaseValuesSchema } from '../internal/tiny
 import type {
   BoundTinybase,
   EntityOf,
+  IndexDefinitions,
   OutputRowOf,
   TableApi,
   TableDefinitions,
   TableSchemaOf,
   TinybaseDefinition,
+  TinybaseSchemasOf,
+  TinybaseTablesSchemaOf,
   TinybaseStore,
+  TinybaseValuesSchemaOf,
   ValueApi,
   ValueDefinitions,
 } from './types.ts'
@@ -27,12 +32,26 @@ import type {
 export function defineTypedTinybase<
   const Tables extends TableDefinitions,
   const Values extends ValueDefinitions = Record<never, never>,
->({ tables, values }: { tables: Tables; values?: Values }): TinybaseDefinition<Tables, Values> {
+  const IndexDefs extends IndexDefinitions<Tables> = Record<never, never>,
+>({
+  indexes,
+  tables,
+  values,
+}: {
+  indexes?: IndexDefs
+  tables: Tables
+  values?: Values
+}): TinybaseDefinition<Tables, Values, IndexDefs> {
   const typedValues = (values ?? {}) as Values
-  const tinybaseTablesSchema = toTinybaseTablesSchema(tables)
-  const tinybaseValuesSchema = toTinybaseValuesSchema(typedValues)
+  const typedIndexes = (indexes ?? {}) as IndexDefs
+  const tinybaseTablesSchema = toTinybaseTablesSchema(tables) as TinybaseTablesSchemaOf<Tables>
+  const tinybaseValuesSchema = toTinybaseValuesSchema(typedValues) as TinybaseValuesSchemaOf<Values>
 
   return {
+    bindTinybaseIndexes(rawIndexes) {
+      return createIndexesApi(rawIndexes, typedIndexes)
+    },
+
     bindTinybaseStore(store) {
       const base = {
         getTable<TableId extends keyof Tables & string>(
@@ -46,6 +65,9 @@ export function defineTypedTinybase<
           return createValueApi(store, valueId, typedValues[valueId].schema)
         },
         store,
+        transaction(fn: () => void): void {
+          store.transaction(fn)
+        },
       }
 
       const accessors = Object.fromEntries(
@@ -58,18 +80,27 @@ export function defineTypedTinybase<
       return Object.assign(base, accessors) as BoundTinybase<Tables, Values>
     },
 
+    createTinybaseIndexes(store) {
+      return createIndexesFromDefinitions(
+        store,
+        typedIndexes as unknown as IndexDefinitions<TableDefinitions>,
+      )
+    },
+
     createTinybaseStore() {
       const storeTablesSchema = structuredClone(tinybaseTablesSchema)
       const storeValuesSchema = structuredClone(tinybaseValuesSchema)
       return createTinybaseStore().setSchema(
         storeTablesSchema,
         storeValuesSchema,
-      ) as unknown as TinybaseStore
+      ) as unknown as TinybaseStore<TinybaseSchemasOf<Tables, Values>>
     },
 
     getCellSchema(tableId, cellId) {
       return tables[tableId].fields[cellId].schema
     },
+
+    indexes: typedIndexes,
 
     // oxlint-disable-next-line no-unnecessary-type-parameters -- The contextual interface uses TableId to connect the table id to the returned entity type.
     parseEntity<TableId extends keyof Tables & string>(

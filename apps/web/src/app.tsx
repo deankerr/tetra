@@ -1,4 +1,4 @@
-import { Runs, createCoreModules, createTetraMergeableDb } from '@tetra/core'
+import { Runs, createCoreModules, createTetraDb } from '@tetra/core'
 import type { Catalog, DbSchemas, TetraDb, Store } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
 import { Sidebar, SidebarInset, SidebarProvider } from '@tetra/ui/components/ui/sidebar'
@@ -25,7 +25,7 @@ interface TetraApp {
 
 export function App() {
   const [tetra] = useState<TetraApp>(() => {
-    const db = createTetraMergeableDb()
+    const db = createTetraDb()
     const core = createCoreModules(db)
     const runs = new Runs(core.store, credentialStore)
 
@@ -86,7 +86,7 @@ export function App() {
   // oxlint-disable-next-line no-unsafe-type-assertion
   const runtimeStore = tetra.db.store as unknown as TinyStore
   // oxlint-disable-next-line no-unsafe-type-assertion
-  const runtimeIndexes = tetra.db.indexes as unknown as TinyIndexes
+  const runtimeIndexes = tetra.db.indexes.raw as unknown as TinyIndexes
   // oxlint-disable-next-line no-unsafe-type-assertion
   const runtimePersister = persister as unknown as TinyPersister
 

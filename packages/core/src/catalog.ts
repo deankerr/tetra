@@ -29,8 +29,9 @@ export class Catalog {
   }
 
   async refresh(args: { force?: boolean } = {}): Promise<void> {
-    const lastRefreshed = this.db.store.getValue('catalogLastRefreshed')
-    const isStale = !lastRefreshed || Date.now() - lastRefreshed > STALE_MS
+    const catalogLastRefreshed = this.db.tables.getValue('catalogLastRefreshed')
+    const lastRefreshed = catalogLastRefreshed.getValue()
+    const isStale = lastRefreshed === 0 || Date.now() - lastRefreshed > STALE_MS
     if (args.force !== true && !isStale) {
       return
     }
@@ -63,17 +64,17 @@ export class Catalog {
 
     // Replace the full catalog in one transaction: remove stale entries, upsert incoming.
     const incomingIds = new Set(models.map((m) => m.id))
-    this.db.store.transaction(() => {
-      for (const existingId of this.db.store.getRowIds('languageModels')) {
+    this.db.tables.transaction(() => {
+      for (const existingId of this.db.tables.languageModels.getRowIds()) {
         if (!incomingIds.has(existingId)) {
-          this.db.store.delRow('languageModels', existingId)
+          this.db.tables.languageModels.deleteRow(existingId)
         }
       }
       for (const { id, ...record } of models) {
-        this.db.store.setRow('languageModels', id, record)
+        this.db.tables.languageModels.setRow(id, record)
       }
     })
 
-    this.db.store.setValue('catalogLastRefreshed', Date.now())
+    catalogLastRefreshed.setValue(Date.now())
   }
 }

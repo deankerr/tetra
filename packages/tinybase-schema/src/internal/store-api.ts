@@ -1,7 +1,9 @@
+import type { TablesSchema, ValuesSchema } from 'tinybase/store/with-schemas'
 import type { z } from 'zod'
 
 import type {
   AnyZod,
+  CellOutputOf,
   InputRowOf,
   OutputRowOf,
   RowZod,
@@ -12,14 +14,26 @@ import type {
 
 // oxlint-disable no-unsafe-argument, no-unsafe-return, no-unsafe-type-assertion -- TinyBase stores coarse cells; zod owns the precise boundary parse.
 
-export function createTableApi<Schema extends RowZod>(
-  store: TinybaseStore,
+export function createTableApi<Schemas extends [TablesSchema, ValuesSchema], Schema extends RowZod>(
+  store: TinybaseStore<Schemas>,
   tableId: string,
   schema: Schema,
 ): TableApi<Schema> {
   return {
     deleteRow(rowId) {
       store.delRow(tableId, rowId)
+    },
+
+    getCell(rowId, cellId) {
+      if (!store.hasRow(tableId, rowId)) {
+        return undefined as CellOutputOf<Schema, typeof cellId> | undefined
+      }
+
+      const cellSchema = schema.shape[cellId]
+      return cellSchema.parse(store.getCell(tableId, rowId, cellId)) as CellOutputOf<
+        Schema,
+        typeof cellId
+      >
     },
 
     getEntity(rowId) {
@@ -39,12 +53,16 @@ export function createTableApi<Schema extends RowZod>(
       return schema.parse(store.getRow(tableId, rowId))
     },
 
-    listEntities() {
-      return store.getRowIds(tableId).map((rowId) => this.requireEntity(rowId))
+    getRowIds() {
+      return store.getRowIds(tableId)
     },
 
-    listRowIds() {
-      return store.getRowIds(tableId)
+    hasRow(rowId) {
+      return store.hasRow(tableId, rowId)
+    },
+
+    listEntities() {
+      return store.getRowIds(tableId).map((rowId) => this.requireEntity(rowId))
     },
 
     requireEntity(rowId) {
@@ -56,6 +74,13 @@ export function createTableApi<Schema extends RowZod>(
       return entity
     },
 
+    setCell(rowId, cellId, value) {
+      const cellSchema = schema.shape[cellId]
+      const parsed = cellSchema.parse(value)
+      store.setCell(tableId, rowId, cellId, parsed as never)
+      return parsed as CellOutputOf<Schema, typeof cellId>
+    },
+
     setRow(rowId, row) {
       const parsed = schema.parse(row)
       store.setRow(tableId, rowId, parsed as never)
@@ -63,14 +88,18 @@ export function createTableApi<Schema extends RowZod>(
     },
 
     updateRow(rowId, partialRow) {
-      const existing = (this.getRow(rowId) ?? {}) as Record<string, unknown>
+      const existing = this.getRow(rowId)
+      if (existing === null) {
+        throw new Error(`Missing row: ${tableId}/${rowId}`)
+      }
+
       return this.setRow(rowId, { ...existing, ...partialRow } as InputRowOf<Schema>)
     },
   }
 }
 
-export function createValueApi<Schema extends AnyZod>(
-  store: TinybaseStore,
+export function createValueApi<Schemas extends [TablesSchema, ValuesSchema], Schema extends AnyZod>(
+  store: TinybaseStore<Schemas>,
   valueId: string,
   schema: Schema,
 ): ValueApi<Schema> {

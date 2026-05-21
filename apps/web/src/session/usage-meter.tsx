@@ -12,7 +12,7 @@ import { useEffect, useMemo, useReducer } from 'react'
 
 import { useSessionRequestIds } from '@/tetra/hooks/requests'
 import { useSessionConfig } from '@/tetra/hooks/sessions'
-import { tinybase } from '@/tetra/tinybase'
+import { tinybase, typedTinybase } from '@/tetra/tinybase'
 
 interface SessionContextSummary {
   cost: {
@@ -77,13 +77,18 @@ export function SessionUsageMeter({ sessionId }: { sessionId: string }) {
 
 function useSessionContextSummary(sessionId: string): SessionContextSummary | null {
   const config = useSessionConfig(sessionId)
-  const hasLanguageModel = tinybase.useHasRow('languageModels', config.modelId)
-  const languageModel = tinybase.useRow('languageModels', config.modelId)
+  const hasLanguageModel = typedTinybase.useHasRow('languageModels', config.modelId)
+  const languageModel = typedTinybase.useRow('languageModels', config.modelId)
   const requestIds = useSessionRequestIds(sessionId)
   const steps = useSessionStepRecords(requestIds)
 
   return useMemo(() => {
-    if (!hasLanguageModel || languageModel.contextLength <= 0 || steps.length === 0) {
+    if (
+      !hasLanguageModel ||
+      languageModel === null ||
+      languageModel.contextLength <= 0 ||
+      steps.length === 0
+    ) {
       return null
     }
 

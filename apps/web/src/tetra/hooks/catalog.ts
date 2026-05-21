@@ -1,12 +1,11 @@
 import { useMemo } from 'react'
 
-import { tinybase } from '@/tetra/tinybase'
+import { typedTinybase } from '@/tetra/tinybase'
 
 export function useGroupedLanguageModels() {
-  const languageModelsTable = tinybase.useTable('languageModels')
+  const models = typedTinybase.useEntityList('languageModels')
 
   return useMemo(() => {
-    const models = Object.entries(languageModelsTable).map(([id, row]) => ({ ...row, id }))
     const byProvider = Map.groupBy(models, (lm) => {
       const providerName = lm.providerName.toLowerCase()
       if (providerName.startsWith('~')) {
@@ -21,5 +20,5 @@ export function useGroupedLanguageModels() {
         providerName,
       }))
       .toSorted((a, b) => a.providerName.localeCompare(b.providerName))
-  }, [languageModelsTable])
+  }, [models])
 }

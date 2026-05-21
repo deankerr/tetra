@@ -1,20 +1,21 @@
 import type { JSONObject } from '@ai-sdk/provider'
+import {
+  defineTypedTinybase,
+  tinybaseCell,
+  tinybaseIndex,
+  tinybaseTable,
+} from '@tetra/tinybase-schema'
+import type { EntityOf, OutputRowOf } from '@tetra/tinybase-schema'
 import type { UIMessage } from 'ai'
 import { getHlcFunctions } from 'tinybase/common'
-import { createIndexes } from 'tinybase/indexes/with-schemas'
-import { createMergeableStore } from 'tinybase/mergeable-store/with-schemas'
-import type { MergeableStore } from 'tinybase/mergeable-store/with-schemas'
-import { createStore as createTinybaseStore } from 'tinybase/store/with-schemas'
-import type { Store } from 'tinybase/store/with-schemas'
-import type { Row, TablesSchema, ValuesSchema } from 'tinybase/with-schemas'
 import { z } from 'zod'
 
 export type MessageRole = 'assistant' | 'user'
 export type RequestStatus = 'cancelled' | 'completed' | 'error' | 'preparing' | 'streaming'
 
-const ProviderOptions = z
-  .record(z.string(), z.json())
-  .transform((value): JSONObject => value as JSONObject)
+const ProviderOptions = z.custom<JSONObject>(
+  (value) => z.record(z.string(), z.json()).safeParse(value).success,
+)
 
 export const RequestConfig = z.object({
   maxMessages: z.number().int().positive().optional(),
@@ -63,130 +64,115 @@ export const StepRecord = z.object({
 })
 export type StepRecord = z.infer<typeof StepRecord>
 
-export const tablesSchema = {
-  languageModels: {
-    contextLength: { default: 0, type: 'number' },
-    createdAt: { default: 0, type: 'number' },
-    inputModalities: { default: [], type: 'array' },
-    name: { default: '', type: 'string' },
-    outputModalities: { default: [], type: 'array' },
-    provider: { default: '', type: 'string' },
-    providerName: { default: '', type: 'string' },
-    supportedParameters: { default: [], type: 'array' },
-  },
-  messages: {
-    createdAt: { default: 0, type: 'number' },
-    parts: { default: [], type: 'array' },
-    role: { default: 'user', type: 'string' },
-    sessionId: { default: '', type: 'string' },
-    updatedAt: { default: 0, type: 'number' },
-  },
-  prompts: {
-    content: { default: '', type: 'string' },
-    label: { default: '', type: 'string' },
-  },
-  requests: {
-    assistantMessageId: { default: '', type: 'string' },
-    config: { default: {}, type: 'object' },
-    createdAt: { default: 0, type: 'number' },
-    errorMessage: { default: '', type: 'string' },
-    sessionId: { default: '', type: 'string' },
-    status: { default: 'preparing', type: 'string' },
-    steps: { default: [], type: 'array' },
-    terminalAt: { default: 0, type: 'number' },
-  },
-  // Execution parameters for a session. Keyed by the same ID as the sessions table (1:1).
-  // Stored separately so sidebar reactive reads on sessions are not triggered by config edits.
-  sessionConfigs: {
-    maxMessages: { default: 0, type: 'number' }, // 0 = unlimited (sentinel for undefined)
-    modelId: { default: 'anthropic/claude-sonnet-4.5', type: 'string' },
-    providerOptions: { default: {}, type: 'object' },
-    systemPromptId: { default: '', type: 'string' }, // '' = none (sentinel for undefined)
-    toolIds: { default: [], type: 'array' },
-  },
-  sessions: {
-    createdAt: { default: 0, type: 'number' },
-    title: { default: '', type: 'string' },
-    updatedAt: { default: 0, type: 'number' },
-  },
-} as const satisfies TablesSchema
+const MessageParts = z.custom<UIMessage['parts']>((value) => Array.isArray(value))
+const MessageRoleSchema = z.enum(['assistant', 'user'])
+const RequestStatusSchema = z.enum(['cancelled', 'completed', 'error', 'preparing', 'streaming'])
+const StringArray = z.array(z.string())
 
-export const valuesSchema = {
-  catalogLastRefreshed: { default: 0, type: 'number' },
-  cliActiveSessionId: { default: '', type: 'string' },
-  // Mutable workspace-level default applied when creating a new session. Stored as a blob
-  // since it is a cold path (read once at session creation, not on every render).
-  defaultSessionConfig: { default: {}, type: 'object' },
-} as const satisfies ValuesSchema
+export const tetraDbDefinition = defineTypedTinybase({
+  indexes: {
+    // HLC row IDs are lexicographically sortable, giving creation-time order for free.
+    messagesBySession: tinybaseIndex('messages', 'sessionId'),
+    requestByAssistantMessage: tinybaseIndex('requests', 'assistantMessageId'),
+    requestsBySession: tinybaseIndex('requests', 'sessionId', {
+      rowIdSorter: (a, b) => Number(b) - Number(a),
+      sortBy: 'createdAt',
+    }),
+  },
+  tables: {
+    languageModels: tinybaseTable({
+      contextLength: tinybaseCell.number(z.number().default(0), { default: 0 }),
+      createdAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
+      inputModalities: tinybaseCell.array(StringArray.default([]), { default: [] }),
+      name: tinybaseCell.string(z.string().default(''), { default: '' }),
+      outputModalities: tinybaseCell.array(StringArray.default([]), { default: [] }),
+      provider: tinybaseCell.string(z.string().default(''), { default: '' }),
+      providerName: tinybaseCell.string(z.string().default(''), { default: '' }),
+      supportedParameters: tinybaseCell.array(StringArray.default([]), { default: [] }),
+    }),
+    messages: tinybaseTable({
+      createdAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
+      parts: tinybaseCell.array(MessageParts.default([]), { default: [] }),
+      role: tinybaseCell.string(MessageRoleSchema.default('user'), { default: 'user' }),
+      sessionId: tinybaseCell.string(z.string().default(''), { default: '' }),
+      updatedAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
+    }),
+    prompts: tinybaseTable({
+      content: tinybaseCell.string(z.string().default(''), { default: '' }),
+      label: tinybaseCell.string(z.string().default(''), { default: '' }),
+    }),
+    requests: tinybaseTable({
+      assistantMessageId: tinybaseCell.string(z.string().default(''), { default: '' }),
+      config: tinybaseCell.object(RequestConfig.default(DEFAULT_REQUEST_CONFIG), {
+        default: DEFAULT_REQUEST_CONFIG,
+      }),
+      createdAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
+      errorMessage: tinybaseCell.string(z.string().default(''), { default: '' }),
+      sessionId: tinybaseCell.string(z.string().default(''), { default: '' }),
+      status: tinybaseCell.string(RequestStatusSchema.default('preparing'), {
+        default: 'preparing',
+      }),
+      steps: tinybaseCell.array(z.array(StepRecord).default([]), { default: [] }),
+      terminalAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
+    }),
+    // Execution parameters for a session. Keyed by the same ID as the sessions table (1:1).
+    // Stored separately so sidebar reactive reads on sessions are not triggered by config edits.
+    sessionConfigs: tinybaseTable({
+      maxMessages: tinybaseCell.number(z.number().default(0), { default: 0 }),
+      modelId: tinybaseCell.string(z.string().default(DEFAULT_REQUEST_CONFIG.modelId), {
+        default: DEFAULT_REQUEST_CONFIG.modelId,
+      }),
+      providerOptions: tinybaseCell.object(ProviderOptions.default({}), { default: {} }),
+      systemPromptId: tinybaseCell.string(z.string().default(''), { default: '' }),
+      toolIds: tinybaseCell.array(StringArray.default([]), { default: [] }),
+    }),
+    sessions: tinybaseTable({
+      createdAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
+      title: tinybaseCell.string(z.string().default(''), { default: '' }),
+      updatedAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
+    }),
+  },
+  values: {
+    catalogLastRefreshed: tinybaseCell.number(z.number().default(0), { default: 0 }),
+    cliActiveSessionId: tinybaseCell.string(z.string().default(''), { default: '' }),
+    // Mutable workspace-level default applied when creating a new session. Stored as a blob
+    // since it is a cold path (read once at session creation, not on every render).
+    defaultSessionConfig: tinybaseCell.object(RequestConfig.default(DEFAULT_REQUEST_CONFIG), {
+      default: DEFAULT_REQUEST_CONFIG,
+    }),
+  },
+})
+
+export const tablesSchema = tetraDbDefinition.tinybaseTablesSchema
+export const valuesSchema = tetraDbDefinition.tinybaseValuesSchema
 
 export type DbSchemas = [typeof tablesSchema, typeof valuesSchema]
 
-type Schema = typeof tablesSchema
-type NormalStore = Store<DbSchemas>
-type MergeableDbStore = MergeableStore<DbSchemas>
-
 // oxlint-disable-next-line typescript/no-namespace -- Namespaces keep contested schema row names grouped at call sites, e.g. Rows.Message.
 export namespace Rows {
-  export type LanguageModel = Omit<
-    Row<Schema, 'languageModels'>,
-    'inputModalities' | 'outputModalities' | 'supportedParameters'
+  export type LanguageModel = EntityOf<(typeof tetraDbDefinition.tables.languageModels)['schema']>
+  export type Message = EntityOf<(typeof tetraDbDefinition.tables.messages)['schema']>
+  export type Prompt = EntityOf<(typeof tetraDbDefinition.tables.prompts)['schema']>
+  export type Request = EntityOf<(typeof tetraDbDefinition.tables.requests)['schema']>
+  export type Session = EntityOf<(typeof tetraDbDefinition.tables.sessions)['schema']>
+  export type SessionConfig = OutputRowOf<
+    (typeof tetraDbDefinition.tables.sessionConfigs)['schema']
   > & {
     id: string
-    inputModalities: string[]
-    outputModalities: string[]
-    supportedParameters: string[]
   }
-  export type Message = Omit<Row<Schema, 'messages'>, 'parts' | 'role'> & {
-    id: string
-    parts: UIMessage['parts']
-    role: MessageRole
-  }
-  export type Prompt = Row<Schema, 'prompts'> & { id: string }
-  export type Request = Omit<Row<Schema, 'requests'>, 'config' | 'status' | 'steps'> & {
-    config: RequestConfig
-    id: string
-    status: RequestStatus
-    steps: StepRecord[]
-  }
-  export type Session = Row<Schema, 'sessions'> & { id: string }
-  export type SessionConfig = RequestConfig & { id: string }
-}
-
-function addIndexes(store: NormalStore | MergeableDbStore) {
-  return (
-    createIndexes(store)
-      // HLC row IDs are lexicographically sortable, giving creation-time order for free.
-      .setIndexDefinition('messagesBySession', 'messages', 'sessionId')
-      .setIndexDefinition('requestByAssistantMessage', 'requests', 'assistantMessageId')
-      // Descending by createdAt — most recent request first.
-      .setIndexDefinition(
-        'requestsBySession',
-        'requests',
-        'sessionId',
-        'createdAt',
-        undefined,
-        (a, b) => Number(b) - Number(a),
-      )
-  )
 }
 
 export function createTetraDb() {
-  const store = createTinybaseStore().setSchema(tablesSchema, valuesSchema)
+  const store = tetraDbDefinition.createTinybaseStore()
+  const rawIndexes = tetraDbDefinition.createTinybaseIndexes(store)
   return {
-    indexes: addIndexes(store),
+    indexes: tetraDbDefinition.bindTinybaseIndexes(rawIndexes),
     store,
+    tables: tetraDbDefinition.bindTinybaseStore(store),
   }
 }
 
-export function createTetraMergeableDb() {
-  const store = createMergeableStore().setSchema(tablesSchema, valuesSchema)
-  return {
-    indexes: addIndexes(store),
-    store,
-  }
-}
-
-export type TetraDb = ReturnType<typeof createTetraDb> | ReturnType<typeof createTetraMergeableDb>
+export type TetraDb = ReturnType<typeof createTetraDb>
 
 const [getNextHlc] = getHlcFunctions()
 export function createIdGenerator(prefix: string): () => string {

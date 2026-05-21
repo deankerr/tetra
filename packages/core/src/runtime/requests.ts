@@ -1,11 +1,10 @@
-import { RequestConfig, createIdGenerator } from '#db'
+import { createIdGenerator } from '#db'
 import type { RequestConfig as RequestConfigType, StepRecord, TetraDb } from '#db'
 
 const nextId = createIdGenerator('req')
 
 function getSteps(db: TetraDb, requestId: string): StepRecord[] {
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- StepRecord[] stored verbatim in TinyBase array cell.
-  return db.store.getCell('requests', requestId, 'steps') as StepRecord[]
+  return db.tables.requests.getCell(requestId, 'steps') ?? []
 }
 
 export function createRequest(
@@ -14,9 +13,9 @@ export function createRequest(
 ): string {
   const requestId = nextId()
 
-  db.store.setRow('requests', requestId, {
+  db.tables.requests.setRow(requestId, {
     assistantMessageId: args.assistantMessageId,
-    config: RequestConfig.parse(args.config),
+    config: args.config,
     createdAt: Date.now(),
     errorMessage: '',
     sessionId: args.sessionId,
@@ -29,15 +28,15 @@ export function createRequest(
 }
 
 export function startStreaming(db: TetraDb, requestId: string): void {
-  db.store.setPartialRow('requests', requestId, { errorMessage: '', status: 'streaming' })
+  db.tables.requests.updateRow(requestId, { errorMessage: '', status: 'streaming' })
 }
 
 export function completeRequest(db: TetraDb, requestId: string): void {
-  db.store.setPartialRow('requests', requestId, { status: 'completed', terminalAt: Date.now() })
+  db.tables.requests.updateRow(requestId, { status: 'completed', terminalAt: Date.now() })
 }
 
 export function cancelRequest(db: TetraDb, requestId: string, message = ''): void {
-  db.store.setPartialRow('requests', requestId, {
+  db.tables.requests.updateRow(requestId, {
     errorMessage: message,
     status: 'cancelled',
     terminalAt: Date.now(),
@@ -45,7 +44,7 @@ export function cancelRequest(db: TetraDb, requestId: string, message = ''): voi
 }
 
 export function failRequest(db: TetraDb, requestId: string, error: unknown): void {
-  db.store.setPartialRow('requests', requestId, {
+  db.tables.requests.updateRow(requestId, {
     errorMessage: String(error),
     status: 'error',
     terminalAt: Date.now(),
@@ -54,12 +53,12 @@ export function failRequest(db: TetraDb, requestId: string, error: unknown): voi
 
 export function appendStep(db: TetraDb, requestId: string, step: StepRecord): void {
   const steps = getSteps(db, requestId)
-  db.store.setCell('requests', requestId, 'steps', [...steps, step])
+  db.tables.requests.setCell(requestId, 'steps', [...steps, step])
 }
 
 export function recoverInterrupted(db: TetraDb, message = 'Request interrupted'): void {
-  for (const requestId of db.store.getRowIds('requests')) {
-    const status = db.store.getCell('requests', requestId, 'status')
+  for (const requestId of db.tables.requests.getRowIds()) {
+    const status = db.tables.requests.getCell(requestId, 'status')
     if (status === 'preparing' || status === 'streaming') {
       failRequest(db, requestId, message)
     }

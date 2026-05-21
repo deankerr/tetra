@@ -3,8 +3,10 @@ import * as UiReact from 'tinybase/ui-react/with-schemas'
 import type { z } from 'zod'
 
 import type {
+  CellOutputOf,
   EntityOf,
   FieldDefinition,
+  IndexDefinitions,
   OutputRowOf,
   TableDefinition,
   TableDefinitions,
@@ -37,8 +39,29 @@ const tinyHooks = UiReact as unknown as LooseHooks
 export function createTypedTinybaseReactHooks<
   const Tables extends TableDefinitions,
   const Values extends ValueDefinitions,
->(definition: TinybaseDefinition<Tables, Values>) {
+  const Indexes extends IndexDefinitions<Tables>,
+>(definition: TinybaseDefinition<Tables, Values, Indexes>) {
   return {
+    useCell<
+      TableId extends keyof Tables & string,
+      CellId extends keyof z.output<TableSchemaOf<Tables[TableId]>> & string,
+    >(
+      tableId: TableId,
+      rowId: string,
+      cellId: CellId,
+    ): CellOutputOf<TableSchemaOf<Tables[TableId]>, CellId> | undefined {
+      const cell = tinyHooks.useCell(tableId, rowId, cellId)
+      const cellSchema = definition.getCellSchema(tableId, cellId)
+
+      return useMemo(
+        () =>
+          cell === undefined
+            ? undefined
+            : (cellSchema.parse(cell) as CellOutputOf<TableSchemaOf<Tables[TableId]>, CellId>),
+        [cell, cellSchema],
+      )
+    },
+
     useCellState<
       TableId extends keyof Tables & string,
       CellId extends keyof z.output<TableSchemaOf<Tables[TableId]>> &
@@ -101,6 +124,10 @@ export function createTypedTinybaseReactHooks<
       )
     },
 
+    useHasRow(tableId: keyof Tables & string, rowId: string): boolean {
+      return tinyHooks.useHasRow(tableId, rowId)
+    },
+
     useRow<TableId extends keyof Tables & string>(
       tableId: TableId,
       rowId: string,
@@ -115,6 +142,10 @@ export function createTypedTinybaseReactHooks<
 
         return definition.parseRow(tableId, row)
       }, [hasRow, row, tableId])
+    },
+
+    useSliceRowIds(indexId: keyof Indexes & string, sliceId: string): string[] {
+      return tinyHooks.useSliceRowIds(indexId, sliceId)
     },
 
     useValue<ValueId extends keyof Values & string>(

@@ -11,7 +11,7 @@ export {
   RequestConfig,
   StepRecord,
   createTetraDb,
-  createTetraMergeableDb,
+  tetraDbDefinition,
 } from '#db'
 export type { DbSchemas, RequestConfig as RequestConfigType, Rows, TetraDb } from '#db'
 export { Run, Runs } from '#runtime'

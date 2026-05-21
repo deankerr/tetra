@@ -41,13 +41,13 @@ function importSession(
   const sessionConfig = RequestConfig.safeParse(config).data ?? DEFAULT_REQUEST_CONFIG
 
   store.transaction(() => {
-    store.db.store.setRow('sessions', session.id, {
+    store.db.tables.sessions.setRow(session.id, {
       createdAt: session.createdAt,
       title: session.title,
       updatedAt: session.updatedAt,
     })
 
-    store.db.store.setRow('sessionConfigs', session.id, {
+    store.db.tables.sessionConfigs.setRow(session.id, {
       maxMessages: sessionConfig.maxMessages ?? 0,
       modelId: sessionConfig.modelId,
       providerOptions: sessionConfig.providerOptions ?? {},
@@ -56,7 +56,7 @@ function importSession(
     })
 
     for (const message of messages) {
-      store.db.store.setRow('messages', message.id, {
+      store.db.tables.messages.setRow(message.id, {
         createdAt: message.createdAt,
         parts: message.parts,
         role: message.role,
@@ -66,9 +66,9 @@ function importSession(
     }
 
     for (const request of requests) {
-      store.db.store.setRow('requests', request.id, {
+      store.db.tables.requests.setRow(request.id, {
         assistantMessageId: request.assistantMessageId,
-        config: RequestConfig.parse(request.config),
+        config: request.config,
         createdAt: request.createdAt,
         errorMessage: request.errorMessage,
         sessionId: request.sessionId,
