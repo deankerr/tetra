@@ -81,6 +81,38 @@ const model = new MockLanguageModelV3({
 
 Tool calls should use provider-level tool-call parts with stringified JSON input. The AI SDK should execute the real `tool()` definitions and feed results into the next model step.
 
+## Known MockLanguageModelV3 Gotchas
+
+### Array form has an off-by-one
+
+When `doStream` is an array, `MockLanguageModelV3` indexes it with `this.doStreamCalls.length` **after** pushing the current call, so the first call returns `doStream[1]` (not `doStream[0]`), and index 0 is never returned.
+
+Always use the function form for multi-step scenarios (tool loops, error recovery):
+
+```ts
+let callCount = 0
+const model = new MockLanguageModelV3({
+  doStream: async () => {
+    const call = callCount
+    callCount += 1
+    return { stream: simulateReadableStream({ chunks: call === 0 ? firstChunks : secondChunks }) }
+  },
+})
+```
+
+### `require-await` lint conflict
+
+`doStream` must return `PromiseLike<LanguageModelV3StreamResult>`, so the function must be `async`. When the body has no `await` (just a synchronous return or throw), oxlint raises `require-await`. Suppress it inline with the reason:
+
+```ts
+// eslint-disable-next-line require-await -- async required to satisfy PromiseLike<LanguageModelV3StreamResult> return type
+doStream: async () => { ... }
+```
+
+### Error propagation requires `terminateOnError`
+
+`readUIMessageStream` silently swallows stream errors by default — it calls `onError` but does not throw, so `for await` exits normally and `complete()` is called instead of `fail()`. Pass `terminateOnError: true` in `run.ts` to make the async iterator throw on error parts, which falls into the outer `catch` → `fail()` path.
+
 ## First Test Cases
 
 ### Request Happy Path

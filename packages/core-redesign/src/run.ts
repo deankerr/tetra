@@ -178,6 +178,7 @@ export class Run extends EventTarget {
       let finalParts: UIMessage['parts'] = []
       for await (const message of readUIMessageStream({
         stream: result.toUIMessageStream({ sendReasoning: true }),
+        terminateOnError: true,
       })) {
         finalParts = message.parts
         this.notifySnapshot(message)
