@@ -1,5 +1,5 @@
-import { RequestConfig } from '@tetra/core-redesign'
-import type { RequestStatus, Rows, StepRecord } from '@tetra/core-redesign'
+import { RequestConfig } from '@tetra/core'
+import type { RequestStatus, Rows, StepRecord } from '@tetra/core'
 
 import { tinybase } from '@/tetra/tinybase'
 

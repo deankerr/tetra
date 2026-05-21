@@ -1,6 +1,6 @@
 import { Database } from 'bun:sqlite'
 
-import { Runs, createCoreModules, createTetraDb } from '@tetra/core-redesign'
+import { Runs, createCoreModules, createTetraDb } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
 import { createSqliteBunPersister } from 'tinybase/persisters/persister-sqlite-bun/with-schemas'
 

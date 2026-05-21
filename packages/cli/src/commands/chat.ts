@@ -1,4 +1,4 @@
-import type { RequestConfigType } from '@tetra/core-redesign'
+import type { RequestConfigType } from '@tetra/core'
 import type { Command } from 'commander'
 
 import type { bootstrap } from '../bootstrap'

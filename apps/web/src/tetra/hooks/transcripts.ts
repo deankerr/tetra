@@ -1,4 +1,4 @@
-import type { MessageRole, Rows } from '@tetra/core-redesign'
+import type { MessageRole, Rows } from '@tetra/core'
 import type { UIMessage } from 'ai'
 import { useSyncExternalStore } from 'react'
 

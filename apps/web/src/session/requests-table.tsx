@@ -1,5 +1,5 @@
-import { StepRecord } from '@tetra/core-redesign'
-import type { Rows } from '@tetra/core-redesign'
+import { StepRecord } from '@tetra/core'
+import type { Rows } from '@tetra/core'
 import {
   Table,
   TableBody,

@@ -26,7 +26,7 @@
         "@tanstack/react-router": "^1.169.2",
         "@tanstack/react-router-devtools": "^1.166.13",
         "@tanstack/react-start": "^1.167.65",
-        "@tetra/core-redesign": "workspace:*",
+        "@tetra/core": "workspace:*",
         "@tetra/credentials": "workspace:*",
         "@tetra/ui": "workspace:*",
         "ai": "catalog:",
@@ -52,7 +52,7 @@
     "packages/cli": {
       "name": "@tetra/cli",
       "dependencies": {
-        "@tetra/core-redesign": "workspace:*",
+        "@tetra/core": "workspace:*",
         "@tetra/credentials": "workspace:*",
         "commander": "^14.0.3",
         "tinybase": "catalog:",
@@ -62,8 +62,8 @@
         "typescript": "catalog:",
       },
     },
-    "packages/core-redesign": {
-      "name": "@tetra/core-redesign",
+    "packages/core": {
+      "name": "@tetra/core",
       "dependencies": {
         "@ai-sdk/provider": "^3.0.8",
         "@exalabs/ai-sdk": "^2.0.1",
@@ -815,7 +815,7 @@
 
     "@tetra/cli": ["@tetra/cli@workspace:packages/cli"],
 
-    "@tetra/core-redesign": ["@tetra/core-redesign@workspace:packages/core-redesign"],
+    "@tetra/core": ["@tetra/core@workspace:packages/core"],
 
     "@tetra/credentials": ["@tetra/credentials@workspace:packages/credentials"],
 

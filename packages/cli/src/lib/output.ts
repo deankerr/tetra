@@ -1,4 +1,4 @@
-import type { Rows } from '@tetra/core-redesign'
+import type { Rows } from '@tetra/core'
 
 export function formatSession(session: Rows.Session, activeSessionId?: string): string {
   // Keep the list scan-friendly: active marker, stable short id, title, and update time.

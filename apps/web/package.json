@@ -15,7 +15,7 @@
     "@tanstack/react-router": "^1.169.2",
     "@tanstack/react-router-devtools": "^1.166.13",
     "@tanstack/react-start": "^1.167.65",
-    "@tetra/core-redesign": "workspace:*",
+    "@tetra/core": "workspace:*",
     "@tetra/credentials": "workspace:*",
     "@tetra/ui": "workspace:*",
     "ai": "catalog:",

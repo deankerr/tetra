@@ -1,5 +1,5 @@
-import { Runs, createCoreModules, createTetraMergeableDb } from '@tetra/core-redesign'
-import type { Catalog, DbSchemas, TetraDb, Store } from '@tetra/core-redesign'
+import { Runs, createCoreModules, createTetraMergeableDb } from '@tetra/core'
+import type { Catalog, DbSchemas, TetraDb, Store } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
 import { Sidebar, SidebarInset, SidebarProvider } from '@tetra/ui/components/ui/sidebar'
 import { Toaster } from '@tetra/ui/components/ui/sonner'

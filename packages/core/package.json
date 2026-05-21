@@ -1,5 +1,5 @@
 {
-  "name": "@tetra/core-redesign",
+  "name": "@tetra/core",
   "private": true,
   "type": "module",
   "imports": {

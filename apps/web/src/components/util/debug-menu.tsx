@@ -1,4 +1,4 @@
-import { loadSeeds } from '@tetra/core-redesign'
+import { loadSeeds } from '@tetra/core'
 import { Button } from '@tetra/ui/components/ui/button'
 import {
   DropdownMenu,

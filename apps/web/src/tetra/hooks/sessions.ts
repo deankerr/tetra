@@ -1,5 +1,5 @@
-import { DEFAULT_REQUEST_CONFIG } from '@tetra/core-redesign'
-import type { RequestConfigType, Rows } from '@tetra/core-redesign'
+import { DEFAULT_REQUEST_CONFIG } from '@tetra/core'
+import type { RequestConfigType, Rows } from '@tetra/core'
 import { useMemo } from 'react'
 
 import { tinybase } from '@/tetra/tinybase'

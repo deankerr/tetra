@@ -1,4 +1,4 @@
-import type { Catalog, Runs, Store } from '@tetra/core-redesign'
+import type { Catalog, Runs, Store } from '@tetra/core'
 import { createContext, useContext } from 'react'
 
 export interface TetraAppContext {

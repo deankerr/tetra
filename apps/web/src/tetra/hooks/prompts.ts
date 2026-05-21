@@ -1,4 +1,4 @@
-import type { Rows } from '@tetra/core-redesign'
+import type { Rows } from '@tetra/core'
 import { useMemo } from 'react'
 
 import { tinybase } from '@/tetra/tinybase'

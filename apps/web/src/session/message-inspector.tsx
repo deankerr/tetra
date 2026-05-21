@@ -1,4 +1,4 @@
-import { StepRecord } from '@tetra/core-redesign'
+import { StepRecord } from '@tetra/core'
 import { CodeBlockContent } from '@tetra/ui/components/ai-elements/code-block'
 import type { ToolPart as ToolPartType } from '@tetra/ui/components/ai-elements/tool'
 import { getStatusBadge } from '@tetra/ui/components/ai-elements/tool'

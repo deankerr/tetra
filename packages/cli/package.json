@@ -7,7 +7,7 @@
     "start": "bun src/index.ts"
   },
   "dependencies": {
-    "@tetra/core-redesign": "workspace:*",
+    "@tetra/core": "workspace:*",
     "@tetra/credentials": "workspace:*",
     "commander": "^14.0.3",
     "tinybase": "catalog:"

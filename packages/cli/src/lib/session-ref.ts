@@ -1,4 +1,4 @@
-import type { Store } from '@tetra/core-redesign'
+import type { Store } from '@tetra/core'
 
 export interface ResolveSessionArgs {
   forceNew?: boolean

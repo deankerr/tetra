@@ -1,4 +1,4 @@
-import { exportSession } from '@tetra/core-redesign'
+import { exportSession } from '@tetra/core'
 import { Button } from '@tetra/ui/components/ui/button'
 import { DownloadIcon } from 'lucide-react'
 

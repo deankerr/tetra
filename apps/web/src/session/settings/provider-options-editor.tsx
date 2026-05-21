@@ -1,4 +1,4 @@
-import type { RequestConfigType } from '@tetra/core-redesign'
+import type { RequestConfigType } from '@tetra/core'
 import { Button } from '@tetra/ui/components/ui/button'
 import { Input } from '@tetra/ui/components/ui/input'
 import { BracesIcon, PlusIcon, XIcon } from 'lucide-react'
