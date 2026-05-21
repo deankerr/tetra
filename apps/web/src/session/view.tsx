@@ -7,7 +7,7 @@ import {
 import { Button } from '@tetra/ui/components/ui/button'
 import { Sheet, SheetClose, SheetContent } from '@tetra/ui/components/ui/sheet'
 import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
-import { Toggle } from '@tetra/ui/components/ui/toggle'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@tetra/ui/components/ui/tabs'
 import { Code2Icon, MessagesSquareIcon, Settings2Icon, TableIcon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 
@@ -23,8 +23,6 @@ import { MessageInspector } from './message-inspector'
 import { RequestsTable } from './requests-table'
 import { SessionSettings } from './settings'
 import { PromptEditorSheet } from './settings/prompt-editor-sheet'
-
-type MessageView = 'chat' | 'debug' | 'requests'
 
 export function SessionView() {
   const openSessionIds = useOpenSessionIds()
@@ -64,7 +62,6 @@ function ActiveSession({
   const messageIds = useSessionMessageIds(sessionId)
   const [detailOpen, setDetailOpen] = useState(false)
   const [promptSheetOpen, setPromptSheetOpen] = useState(false)
-  const [messageView, setMessageView] = useState<MessageView>('debug')
 
   if (session === null) {
     return null
@@ -73,45 +70,23 @@ function ActiveSession({
   return (
     <div className="flex min-h-0 min-w-[420px] flex-1 flex-col border-r last:border-r-0">
       {/* Main content */}
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <header className="flex h-(--header-height) shrink-0 items-center justify-between gap-2 border-b px-2">
+      <Tabs className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b px-2">
           {showSidebarTrigger && <SidebarTrigger />}
           <span className="min-w-0 flex-1 truncate text-xs font-medium">
             {session.title ?? 'New session'}
           </span>
-          <Toggle
-            aria-label="Show chat view"
-            onPressedChange={() => {
-              setMessageView('chat')
-            }}
-            pressed={messageView === 'chat'}
-            size="sm"
-            variant="outline"
-          >
-            <MessagesSquareIcon />
-          </Toggle>
-          <Toggle
-            aria-label="Show debug view"
-            onPressedChange={() => {
-              setMessageView('debug')
-            }}
-            pressed={messageView === 'debug'}
-            size="sm"
-            variant="outline"
-          >
-            <Code2Icon />
-          </Toggle>
-          <Toggle
-            aria-label="Show requests"
-            onPressedChange={() => {
-              setMessageView('requests')
-            }}
-            pressed={messageView === 'requests'}
-            size="sm"
-            variant="outline"
-          >
-            <TableIcon />
-          </Toggle>
+          <TabsList className="h-7">
+            <TabsTrigger aria-label="Show chat view" value="chat">
+              <MessagesSquareIcon />
+            </TabsTrigger>
+            <TabsTrigger aria-label="Show inspector view" value="inspector">
+              <Code2Icon />
+            </TabsTrigger>
+            <TabsTrigger aria-label="Show requests table" value="requests">
+              <TableIcon />
+            </TabsTrigger>
+          </TabsList>
           <SessionExportButton sessionId={sessionId} />
           <Button
             onClick={() => {
@@ -128,37 +103,50 @@ function ActiveSession({
           </Button>
         </header>
 
-        {/* Requests table view */}
-        {messageView === 'requests' ? (
-          <RequestsTable sessionId={sessionId} />
-        ) : (
-          <>
-            {/* Messages */}
-            <Conversation>
-              <ConversationContent>
-                {messageIds.length === 0 ? (
-                  <ConversationEmptyState
-                    description="Send a message to get started."
-                    icon={<TetraLogo className="size-5" />}
-                    title="No messages yet"
-                  />
-                ) : (
-                  messageIds.map((messageId) =>
-                    messageView === 'debug' ? (
-                      <MessageInspector key={messageId} messageId={messageId} />
-                    ) : (
-                      <MessageBubble key={messageId} messageId={messageId} />
-                    ),
-                  )
-                )}
-              </ConversationContent>
-              <ConversationScrollButton />
-            </Conversation>
+        <TabsContent className="flex min-h-0 flex-1 flex-col" value="chat">
+          <Conversation>
+            <ConversationContent>
+              {messageIds.length === 0 ? (
+                <ConversationEmptyState
+                  description="Send a message to get started."
+                  icon={<TetraLogo className="size-5" />}
+                  title="No messages yet"
+                />
+              ) : (
+                messageIds.map((messageId) => (
+                  <MessageBubble key={messageId} messageId={messageId} />
+                ))
+              )}
+            </ConversationContent>
+            <ConversationScrollButton />
+          </Conversation>
+          <Composer sessionId={sessionId} />
+        </TabsContent>
 
-            <Composer sessionId={sessionId} />
-          </>
-        )}
-      </div>
+        <TabsContent className="flex min-h-0 flex-1 flex-col" value="inspector">
+          <Conversation>
+            <ConversationContent>
+              {messageIds.length === 0 ? (
+                <ConversationEmptyState
+                  description="Send a message to get started."
+                  icon={<TetraLogo className="size-5" />}
+                  title="No messages yet"
+                />
+              ) : (
+                messageIds.map((messageId) => (
+                  <MessageInspector key={messageId} messageId={messageId} />
+                ))
+              )}
+            </ConversationContent>
+            <ConversationScrollButton />
+          </Conversation>
+          <Composer sessionId={sessionId} />
+        </TabsContent>
+
+        <TabsContent className="flex min-h-0 flex-1 flex-col" value="requests">
+          <RequestsTable sessionId={sessionId} />
+        </TabsContent>
+      </Tabs>
 
       {/* Settings sheet */}
       <Sheet onOpenChange={setDetailOpen} open={detailOpen}>
