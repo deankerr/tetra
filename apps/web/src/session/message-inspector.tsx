@@ -20,6 +20,7 @@ import {
   CopyIcon,
   DotIcon,
   Loader2Icon,
+  RefreshCwIcon,
   TrashIcon,
   WrenchIcon,
 } from 'lucide-react'
@@ -168,6 +169,54 @@ function RequestStatusBadge({ status }: { status: string | undefined }) {
   return <Icon className={cn('size-3', config.className)} aria-label={config.label} />
 }
 
+function MessageActions({
+  canRegenerate,
+  messageId,
+  messageText,
+}: {
+  canRegenerate: boolean
+  messageId: string
+  messageText: string
+}) {
+  const tetra = useTetra()
+
+  return (
+    <div className="flex items-center gap-0.5 pt-1">
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        aria-label="Copy"
+        disabled={messageText === ''}
+        onClick={() => void navigator.clipboard.writeText(messageText)}
+      >
+        <CopyIcon />
+      </Button>
+      {canRegenerate && (
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          aria-label="Regenerate"
+          onClick={() => {
+            tetra.runs.regenerate({ messageId })
+          }}
+        >
+          <RefreshCwIcon />
+        </Button>
+      )}
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        aria-label="Delete"
+        onClick={() => {
+          tetra.store.deleteMessage(messageId)
+        }}
+      >
+        <TrashIcon />
+      </Button>
+    </div>
+  )
+}
+
 function MessagePartBlock({
   id,
   index,
@@ -246,6 +295,44 @@ function MessagePartBlock({
   )
 }
 
+function MessageParts({
+  id,
+  isStreaming,
+  parts,
+  reasoningColor,
+  role,
+  roleColor,
+  toolColor,
+}: {
+  id: string
+  isStreaming: boolean
+  parts: UIMessage['parts']
+  reasoningColor: string
+  role: string
+  roleColor: string
+  toolColor: string
+}) {
+  if (isStreaming && parts.length === 0 && role === 'assistant') {
+    return (
+      <Block className={cn('flex items-center justify-center py-6', roleColor)}>
+        <Loader2Icon className="text-muted-foreground size-4 animate-spin" />
+      </Block>
+    )
+  }
+
+  return parts.map((part, i) => (
+    <MessagePartBlock
+      key={`${id}-part-${i}`}
+      id={id}
+      index={i}
+      part={part}
+      reasoningColor={reasoningColor}
+      roleColor={roleColor}
+      toolColor={toolColor}
+    />
+  ))
+}
+
 export function MessageInspector({
   messageId,
   className,
@@ -283,6 +370,8 @@ export function MessageInspector({
   const roleColor = role === 'user' ? 'border-l-emerald-500' : 'border-l-indigo-500'
   const reasoningColor = 'border-l-violet-500'
   const toolColor = 'border-l-blue-500'
+  const lastMessage = store.listMessages(message.sessionId).at(-1)
+  const canRegenerate = lastMessage?.id === message.id
 
   const messageText = parts
     .filter((p): p is Extract<typeof p, { type: 'text' }> => p.type === 'text')
@@ -314,24 +403,15 @@ export function MessageInspector({
           </Badge>
         </Block>
 
-        {/* Show spinner while streaming with empty parts */}
-        {isStreaming && parts.length === 0 && role === 'assistant' ? (
-          <Block className={cn('flex items-center justify-center py-6', roleColor)}>
-            <Loader2Icon className="text-muted-foreground size-4 animate-spin" />
-          </Block>
-        ) : (
-          parts.map((part, i) => (
-            <MessagePartBlock
-              key={`${id}-part-${i}`}
-              id={id}
-              index={i}
-              part={part}
-              reasoningColor={reasoningColor}
-              roleColor={roleColor}
-              toolColor={toolColor}
-            />
-          ))
-        )}
+        <MessageParts
+          id={id}
+          isStreaming={isStreaming}
+          parts={parts}
+          reasoningColor={reasoningColor}
+          role={role}
+          roleColor={roleColor}
+          toolColor={toolColor}
+        />
 
         {request?.status === 'error' && request.errorMessage !== '' && (
           <PartBlock className="border-l-destructive" type="error">
@@ -342,27 +422,11 @@ export function MessageInspector({
 
       {/* Actions */}
       {!isStreaming && (
-        <div className="flex items-center gap-0.5 pt-1">
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            aria-label="Copy"
-            disabled={messageText === ''}
-            onClick={() => void navigator.clipboard.writeText(messageText)}
-          >
-            <CopyIcon />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            aria-label="Delete"
-            onClick={() => {
-              store.deleteMessage(messageId)
-            }}
-          >
-            <TrashIcon />
-          </Button>
-        </div>
+        <MessageActions
+          canRegenerate={canRegenerate}
+          messageId={messageId}
+          messageText={messageText}
+        />
       )}
     </div>
   )

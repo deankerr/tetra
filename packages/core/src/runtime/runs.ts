@@ -11,6 +11,11 @@ export interface StartArgs {
   config?: Partial<RequestConfigType>
 }
 
+export interface RegenerateArgs {
+  config?: Partial<RequestConfigType>
+  messageId: string
+}
+
 export class Runs {
   private readonly active = new Map<string, Run>()
   private readonly credentials: CredentialReader
@@ -57,6 +62,31 @@ export class Runs {
 
   recover(): void {
     recoverInterrupted(this.store.db)
+  }
+
+  // Re-run the final conversation turn by reusing an assistant tail or appending one after a user tail.
+  regenerate(args: RegenerateArgs): Run {
+    const message = this.store.getMessage(args.messageId)
+    const messages = this.store.listMessages(message.sessionId)
+    const lastMessage = messages.at(-1)
+    if (lastMessage?.id !== message.id) {
+      throw new Error('Only the last message in a conversation can be regenerated')
+    }
+
+    if (this.getBySession(message.sessionId) !== null) {
+      throw new Error('A run is already active for this conversation')
+    }
+
+    if (message.role === 'assistant') {
+      this.store.updateMessage(message.id, { parts: [] })
+      return this.start({ assistantMessageId: message.id, config: args.config })
+    }
+
+    const assistantMessageId = this.store.appendMessage(message.sessionId, {
+      parts: [],
+      role: 'assistant',
+    })
+    return this.start({ assistantMessageId, config: args.config })
   }
 
   // Callers are responsible for creating the user and assistant messages before calling start.

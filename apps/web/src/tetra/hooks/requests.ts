@@ -44,5 +44,5 @@ export const useRequest = (id: string): Rows.Request | null => {
 
 export const useRequestForMessage = (messageId: string): Rows.Request | null => {
   const ids = tinybase.useSliceRowIds('requestByAssistantMessage', messageId)
-  return useRequest(ids[0] ?? '')
+  return useRequest(ids.at(-1) ?? '')
 }

@@ -137,6 +137,61 @@ test('History Reconstruction — maxMessages limits history at the execution bou
   ])
 })
 
+test('Regenerate — assistant tail is cleared and reused', async () => {
+  const { core, model, runs } = createTestRuntime()
+  const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
+
+  core.store.appendTextMessage(sessionId, { role: 'user', text: 'again' })
+  const assistantMessageId = core.store.appendTextMessage(sessionId, {
+    role: 'assistant',
+    text: 'stale answer',
+  })
+
+  const run = runs.regenerate({ messageId: assistantMessageId })
+  expect(run.assistantMessageId).toBe(assistantMessageId)
+  expect(core.store.getMessage(assistantMessageId).parts).toEqual([])
+
+  await run.done
+
+  const messages = core.store.listMessages(sessionId)
+  expect(messages).toHaveLength(2)
+  expect(messages[1]?.id).toBe(assistantMessageId)
+  expect(model.doStreamCalls[0]?.prompt).toEqual([
+    { content: [{ text: 'again', type: 'text' }], role: 'user' },
+  ])
+})
+
+test('Regenerate — user tail appends an assistant message and starts it', async () => {
+  const { core, model, runs } = createTestRuntime()
+  const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
+
+  const userMessageId = core.store.appendTextMessage(sessionId, { role: 'user', text: 'continue' })
+
+  const run = runs.regenerate({ messageId: userMessageId })
+  await run.done
+
+  const messages = core.store.listMessages(sessionId)
+  expect(messages).toHaveLength(2)
+  expect(messages[0]?.id).toBe(userMessageId)
+  expect(messages[1]?.id).toBe(run.assistantMessageId)
+  expect(messages[1]?.role).toBe('assistant')
+  expect(model.doStreamCalls[0]?.prompt).toEqual([
+    { content: [{ text: 'continue', type: 'text' }], role: 'user' },
+  ])
+})
+
+test('Regenerate — only the last message can be regenerated', () => {
+  const { core, runs } = createTestRuntime()
+  const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
+
+  const userMessageId = core.store.appendTextMessage(sessionId, { role: 'user', text: 'old' })
+  core.store.appendTextMessage(sessionId, { role: 'assistant', text: 'answer' })
+
+  expect(() => runs.regenerate({ messageId: userMessageId })).toThrow(
+    'Only the last message in a conversation can be regenerated',
+  )
+})
+
 test('Tool Loop — tool call executes and result appears in final parts', async () => {
   const core = createCoreModules()
   const credentials: CredentialReader = { get: () => '' }
