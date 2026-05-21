@@ -7,9 +7,8 @@ import {
   PromptInputTextarea,
   PromptInputTools,
 } from '@tetra/ui/components/ai-elements/prompt-input'
-import type { PromptInputMessage } from '@tetra/ui/components/ai-elements/prompt-input'
 import { toast } from '@tetra/ui/components/ui/sonner'
-import { PlusIcon } from 'lucide-react'
+import { ArrowUpFromDot } from 'lucide-react'
 import { useState } from 'react'
 
 import { useCredential } from '@/hooks/use-credential'
@@ -26,17 +25,20 @@ export function Composer({ sessionId }: { sessionId: string }) {
   const [openrouterApiKey] = useCredential('OPENROUTER_API_KEY')
   const [draft, setDraft] = useState('')
 
-  const handleAdd = () => {
-    if (!draft.trim()) {
+  const handleSubmit: NonNullable<Parameters<typeof PromptInput>[0]['onSubmit']> = (
+    message,
+    event,
+  ) => {
+    if (isStreaming || !message.text.trim()) {
       return
     }
 
-    tetra.store.appendTextMessage(sessionId, { role: 'user', text: draft })
-    setDraft('')
-  }
+    const submitter = event.nativeEvent instanceof SubmitEvent ? event.nativeEvent.submitter : null
+    const isAdd = submitter instanceof HTMLElement && submitter.dataset.action === 'add'
 
-  const handleSubmit = (message: PromptInputMessage) => {
-    if (isStreaming || !message.text.trim()) {
+    if (isAdd) {
+      tetra.store.appendTextMessage(sessionId, { role: 'user', text: message.text })
+      setDraft('')
       return
     }
 
@@ -101,21 +103,23 @@ export function Composer({ sessionId }: { sessionId: string }) {
           <div className="flex items-center gap-1">
             <PromptInputButton
               aria-label="Add"
-              onClick={handleAdd}
+              data-action="add"
               size="icon-sm"
+              type="submit"
               variant="secondary"
+              disabled={!isStreaming && !draft.trim()}
             >
-              <PlusIcon className="size-4" />
+              <ArrowUpFromDot className="size-4" />
             </PromptInputButton>
 
             <PromptInputSubmit
               disabled={!isStreaming && !draft.trim()}
               status={isStreaming ? 'streaming' : 'ready'}
-              {...(activeRequest && {
-                onStop: () => {
+              onStop={() => {
+                if (activeRequest) {
                   tetra.runs.cancel(activeRequest.id)
-                },
-              })}
+                }
+              }}
             />
           </div>
         </PromptInputFooter>

@@ -3,6 +3,7 @@ import { DEFAULT_REQUEST_CONFIG, RequestConfig } from '#db'
 import type { Store } from '#store'
 
 import tailwindV4Cheatsheet from './seeds/tailwind-v4-cheatsheet.json'
+import timeInNewYork from './seeds/time-in-new-york.json'
 
 export interface SessionExport {
   config?: RequestConfigType
@@ -15,6 +16,8 @@ export interface SessionExport {
 const bundledSeeds: SessionExport[] = [
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- JSON structure matches the portable session export shape.
   tailwindV4Cheatsheet as unknown as SessionExport,
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- JSON structure matches the portable session export shape.
+  timeInNewYork as unknown as SessionExport,
 ]
 
 export function exportSession(store: Store, sessionId: string): SessionExport {

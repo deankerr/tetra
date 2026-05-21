@@ -8,7 +8,14 @@ import { Button } from '@tetra/ui/components/ui/button'
 import { Sheet, SheetClose, SheetContent } from '@tetra/ui/components/ui/sheet'
 import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@tetra/ui/components/ui/tabs'
-import { Code2Icon, MessagesSquareIcon, Settings2Icon, TableIcon, XIcon } from 'lucide-react'
+import {
+  Code2Icon,
+  MessagesSquareIcon,
+  Settings2Icon,
+  TableIcon,
+  TriangleIcon,
+  XIcon,
+} from 'lucide-react'
 import { useState } from 'react'
 
 import { TetraLogo } from '@/components/tetra-logo'
@@ -23,6 +30,7 @@ import { MessageInspector } from './message-inspector'
 import { RequestsTable } from './requests-table'
 import { SessionSettings } from './settings'
 import { PromptEditorSheet } from './settings/prompt-editor-sheet'
+import { TetraConversationView } from './tetra-conversation/view'
 
 export function SessionView() {
   const openSessionIds = useOpenSessionIds()
@@ -83,6 +91,9 @@ function ActiveSession({
             <TabsTrigger aria-label="Show inspector view" value="inspector">
               <Code2Icon />
             </TabsTrigger>
+            <TabsTrigger aria-label="Show Tetra conversation view" value="tetra">
+              <TriangleIcon />
+            </TabsTrigger>
             <TabsTrigger aria-label="Show requests table" value="requests">
               <TableIcon />
             </TabsTrigger>
@@ -141,6 +152,10 @@ function ActiveSession({
             <ConversationScrollButton />
           </Conversation>
           <Composer sessionId={sessionId} />
+        </TabsContent>
+
+        <TabsContent className="flex min-h-0 flex-1 flex-col" value="tetra">
+          <TetraConversationView sessionId={sessionId} />
         </TabsContent>
 
         <TabsContent className="flex min-h-0 flex-1 flex-col" value="requests">
