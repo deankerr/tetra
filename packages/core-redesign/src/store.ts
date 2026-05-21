@@ -21,15 +21,25 @@ export class Store {
 
   // ——— Sessions ———
 
-  createSession(args: { config?: Rows.Session['config']; title?: string } = {}): string {
+  createSession(args: { config?: RequestConfig; title?: string } = {}): string {
     const sessionId = this.nextSessionId()
+    const config = args.config ?? this.getDefaultConfig()
     const now = Date.now()
 
-    this.db.store.setRow('sessions', sessionId, {
-      config: args.config ?? DEFAULT_REQUEST_CONFIG,
-      createdAt: now,
-      title: args.title ?? '',
-      updatedAt: now,
+    // Write session identity and config rows atomically.
+    this.db.store.transaction(() => {
+      this.db.store.setRow('sessions', sessionId, {
+        createdAt: now,
+        title: args.title ?? '',
+        updatedAt: now,
+      })
+      this.db.store.setRow('sessionConfigs', sessionId, {
+        maxMessages: config.maxMessages ?? 0,
+        modelId: config.modelId,
+        providerOptions: config.providerOptions ?? {},
+        systemPromptId: config.systemPromptId ?? '',
+        toolIds: config.toolIds ?? [],
+      })
     })
 
     return sessionId
@@ -38,7 +48,7 @@ export class Store {
   deleteSession(sessionId: string): void {
     this.requireSession(sessionId)
 
-    // Cascade: remove all messages and requests before deleting the session row.
+    // Cascade: remove messages, requests, and config before deleting the session row.
     this.db.store.transaction(() => {
       for (const messageId of this.db.indexes.getSliceRowIds('messagesBySession', sessionId)) {
         this.db.store.delRow('messages', messageId)
@@ -48,6 +58,7 @@ export class Store {
         this.db.store.delRow('requests', requestId)
       }
 
+      this.db.store.delRow('sessionConfigs', sessionId)
       this.db.store.delRow('sessions', sessionId)
     })
   }
@@ -55,21 +66,24 @@ export class Store {
   getSession(sessionId: string): Rows.Session {
     this.requireSession(sessionId)
     const row = this.db.store.getRow('sessions', sessionId)
-
-    return {
-      config: this.getSessionConfig(sessionId),
-      createdAt: row.createdAt,
-      id: sessionId,
-      title: row.title,
-      updatedAt: row.updatedAt,
-    }
+    return { ...row, id: sessionId }
   }
 
-  // Uses safeParse with a fallback so stored rows that predate schema changes don't throw.
-  getSessionConfig(sessionId: string): Rows.Session['config'] {
-    const raw = this.db.store.getCell('sessions', sessionId, 'config')
-    const result = RequestConfig.safeParse(raw)
-    return result.success ? result.data : DEFAULT_REQUEST_CONFIG
+  // Reads from the sessionConfigs table and normalises sentinel values back to undefined.
+  getSessionConfig(sessionId: string): RequestConfig {
+    const row = this.db.store.getRow('sessionConfigs', sessionId)
+    // JsonObject (TinyBase) and JSONObject (@ai-sdk/provider) are structurally identical.
+    // oxlint-disable-next-line no-unsafe-type-assertion
+    const providerOptions = row.providerOptions as unknown as RequestConfig['providerOptions']
+    // oxlint-disable-next-line no-unsafe-type-assertion -- toolIds written as string[], TinyBase reads back as Json[].
+    const toolIds = row.toolIds as string[]
+    return {
+      modelId: row.modelId,
+      ...(row.maxMessages !== 0 && { maxMessages: row.maxMessages }),
+      ...(row.systemPromptId !== '' && { systemPromptId: row.systemPromptId }),
+      ...(Object.keys(row.providerOptions).length > 0 && { providerOptions }),
+      ...(row.toolIds.length > 0 && { toolIds }),
+    }
   }
 
   listSessions(): Rows.Session[] {
@@ -84,11 +98,15 @@ export class Store {
     this.db.store.setPartialRow('sessions', sessionId, { title, updatedAt: Date.now() })
   }
 
-  setSessionConfig(sessionId: string, config: Rows.Session['config']): void {
+  // Writes config fields to the sessionConfigs table, converting undefined to sentinel values.
+  setSessionConfig(sessionId: string, config: RequestConfig): void {
     this.requireSession(sessionId)
-    this.db.store.setPartialRow('sessions', sessionId, {
-      config: RequestConfig.parse(config),
-      updatedAt: Date.now(),
+    this.db.store.setRow('sessionConfigs', sessionId, {
+      maxMessages: config.maxMessages ?? 0,
+      modelId: config.modelId,
+      providerOptions: config.providerOptions ?? {},
+      systemPromptId: config.systemPromptId ?? '',
+      toolIds: config.toolIds ?? [],
     })
   }
 
@@ -99,6 +117,19 @@ export class Store {
   touchSession(sessionId: string): void {
     this.requireSession(sessionId)
     this.db.store.setCell('sessions', sessionId, 'updatedAt', Date.now())
+  }
+
+  // ——— Workspace default config ———
+
+  // Reads the mutable workspace default, falling back to the hardcoded constant.
+  getDefaultConfig(): RequestConfig {
+    const raw = this.db.store.getValue('defaultSessionConfig')
+    const result = RequestConfig.safeParse(raw)
+    return result.success ? result.data : DEFAULT_REQUEST_CONFIG
+  }
+
+  setDefaultConfig(config: RequestConfig): void {
+    this.db.store.setValue('defaultSessionConfig', RequestConfig.parse(config))
   }
 
   // ——— Messages ———
@@ -215,16 +246,9 @@ export class Store {
 
     this.db.store.transaction(() => {
       for (const sessionId of this.db.store.getRowIds('sessions')) {
-        const config = this.getSessionConfig(sessionId)
-        if (config.systemPromptId !== promptId) {
-          continue
+        if (this.db.store.getCell('sessionConfigs', sessionId, 'systemPromptId') === promptId) {
+          this.db.store.setCell('sessionConfigs', sessionId, 'systemPromptId', '')
         }
-
-        const { systemPromptId: _removed, ...nextConfig } = config
-        this.db.store.setPartialRow('sessions', sessionId, {
-          config: RequestConfig.parse(nextConfig),
-          updatedAt: Date.now(),
-        })
       }
 
       this.db.store.delRow('prompts', promptId)

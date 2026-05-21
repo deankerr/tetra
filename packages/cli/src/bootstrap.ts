@@ -33,6 +33,7 @@ export async function bootstrap() {
         messages: { rowIdColumnName: 'id', tableId: 'messages' },
         prompts: { rowIdColumnName: 'id', tableId: 'prompts' },
         requests: { rowIdColumnName: 'id', tableId: 'requests' },
+        sessionConfigs: { rowIdColumnName: 'id', tableId: 'sessionConfigs' },
         sessions: { rowIdColumnName: 'id', tableId: 'sessions' },
       },
       save: {
@@ -40,6 +41,7 @@ export async function bootstrap() {
         messages: { rowIdColumnName: 'id', tableName: 'messages' },
         prompts: { rowIdColumnName: 'id', tableName: 'prompts' },
         requests: { rowIdColumnName: 'id', tableName: 'requests' },
+        sessionConfigs: { rowIdColumnName: 'id', tableName: 'sessionConfigs' },
         sessions: { rowIdColumnName: 'id', tableName: 'sessions' },
       },
     },

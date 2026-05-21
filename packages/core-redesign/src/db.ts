@@ -95,8 +95,16 @@ export const tablesSchema = {
     steps: { default: [], type: 'array' },
     terminalAt: { default: 0, type: 'number' },
   },
+  // Execution parameters for a session. Keyed by the same ID as the sessions table (1:1).
+  // Stored separately so sidebar reactive reads on sessions are not triggered by config edits.
+  sessionConfigs: {
+    maxMessages: { default: 0, type: 'number' }, // 0 = unlimited (sentinel for undefined)
+    modelId: { default: 'anthropic/claude-sonnet-4.5', type: 'string' },
+    providerOptions: { default: {}, type: 'object' },
+    systemPromptId: { default: '', type: 'string' }, // '' = none (sentinel for undefined)
+    toolIds: { default: [], type: 'array' },
+  },
   sessions: {
-    config: { default: {}, type: 'object' },
     createdAt: { default: 0, type: 'number' },
     title: { default: '', type: 'string' },
     updatedAt: { default: 0, type: 'number' },
@@ -106,6 +114,9 @@ export const tablesSchema = {
 export const valuesSchema = {
   catalogLastRefreshed: { default: 0, type: 'number' },
   cliActiveSessionId: { default: '', type: 'string' },
+  // Mutable workspace-level default applied when creating a new session. Stored as a blob
+  // since it is a cold path (read once at session creation, not on every render).
+  defaultSessionConfig: { default: {}, type: 'object' },
 } as const satisfies ValuesSchema
 
 export type DbSchemas = [typeof tablesSchema, typeof valuesSchema]
@@ -137,10 +148,8 @@ export namespace Rows {
     status: RequestStatus
     steps: StepRecord[]
   }
-  export type Session = Omit<Row<Schema, 'sessions'>, 'config'> & {
-    config: RequestConfig
-    id: string
-  }
+  export type Session = Row<Schema, 'sessions'> & { id: string }
+  export type SessionConfig = RequestConfig & { id: string }
 }
 
 function addIndexes(store: NormalStore | MergeableDbStore) {

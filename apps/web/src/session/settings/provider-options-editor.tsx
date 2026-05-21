@@ -341,7 +341,7 @@ export function ProviderOptionsEditor({ sessionId }: { sessionId: string }) {
     store.setSessionConfig(sessionId, {
       ...current,
       providerOptions: entriesToOptions(entries),
-    } as RequestConfigType)
+    })
   }, [entries, store, sessionId])
 
   return (

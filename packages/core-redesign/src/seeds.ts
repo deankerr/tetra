@@ -1,10 +1,11 @@
-import type { Rows } from '#db'
-import { RequestConfig } from '#db'
+import type { RequestConfig as RequestConfigType, Rows } from '#db'
+import { DEFAULT_REQUEST_CONFIG, RequestConfig } from '#db'
 import type { Store } from '#store'
 
 import tailwindV4Cheatsheet from './seeds/tailwind-v4-cheatsheet.json'
 
 export interface SessionExport {
+  config?: RequestConfigType
   exportedAt: string
   messages: Rows.Message[]
   requests: Rows.Request[]
@@ -22,6 +23,7 @@ export function exportSession(store: Store, sessionId: string): SessionExport {
   }
 
   return {
+    config: store.getSessionConfig(sessionId),
     exportedAt: new Date().toISOString(),
     messages: store.listMessages(sessionId),
     requests: store.listRequestIds(sessionId).map((id) => store.getRequest(id)),
@@ -29,13 +31,25 @@ export function exportSession(store: Store, sessionId: string): SessionExport {
   }
 }
 
-function importSession(store: Store, { messages, requests, session }: SessionExport): string {
+function importSession(
+  store: Store,
+  { config, messages, requests, session }: SessionExport,
+): string {
+  const sessionConfig = RequestConfig.safeParse(config).data ?? DEFAULT_REQUEST_CONFIG
+
   store.transaction(() => {
     store.db.store.setRow('sessions', session.id, {
-      config: RequestConfig.parse(session.config),
       createdAt: session.createdAt,
       title: session.title,
       updatedAt: session.updatedAt,
+    })
+
+    store.db.store.setRow('sessionConfigs', session.id, {
+      maxMessages: sessionConfig.maxMessages ?? 0,
+      modelId: sessionConfig.modelId,
+      providerOptions: sessionConfig.providerOptions ?? {},
+      systemPromptId: sessionConfig.systemPromptId ?? '',
+      toolIds: sessionConfig.toolIds ?? [],
     })
 
     for (const message of messages) {

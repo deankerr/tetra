@@ -64,7 +64,8 @@ export class Runs {
   start(args: StartArgs): Run {
     const assistantMessage = this.store.getMessage(args.assistantMessageId)
     const session = this.store.getSession(assistantMessage.sessionId)
-    const config = RequestConfig.parse({ ...session.config, ...args.config })
+    const sessionConfig = this.store.getSessionConfig(session.id)
+    const config = RequestConfig.parse({ ...sessionConfig, ...args.config })
     const system = this.requireSystemPrompt(config)
     const transcriptMessages = this.collectMessagesBefore(args.assistantMessageId, config)
 
