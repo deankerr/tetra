@@ -1,0 +1,22 @@
+{
+  "name": "@tetra/tinybase-schema",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./react": "./src/react.ts"
+  },
+  "scripts": {
+    "test": "bun test ./src"
+  },
+  "dependencies": {
+    "react": "catalog:",
+    "tinybase": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "@types/react": "catalog:",
+    "typescript": "catalog:"
+  }
+}

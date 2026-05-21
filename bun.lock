@@ -97,6 +97,19 @@
         "typescript": "catalog:",
       },
     },
+    "packages/tinybase-schema": {
+      "name": "@tetra/tinybase-schema",
+      "dependencies": {
+        "react": "catalog:",
+        "tinybase": "catalog:",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@types/bun": "catalog:",
+        "@types/react": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
     "packages/ui": {
       "name": "@tetra/ui",
       "dependencies": {
@@ -820,6 +833,8 @@
     "@tetra/credentials": ["@tetra/credentials@workspace:packages/credentials"],
 
     "@tetra/sdk-probe": ["@tetra/sdk-probe@workspace:packages/sdk-probe"],
+
+    "@tetra/tinybase-schema": ["@tetra/tinybase-schema@workspace:packages/tinybase-schema"],
 
     "@tetra/ui": ["@tetra/ui@workspace:packages/ui"],
 
