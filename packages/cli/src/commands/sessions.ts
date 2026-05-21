@@ -37,7 +37,9 @@ export function registerSessionCommands(
         const content = await readMessage({ message: opts.message, parts })
 
         if (content.trim() !== '') {
-          const sessionId = ctx.sessions.create({ title: opts.title ?? titleFromMessage(content) })
+          const sessionId = ctx.store.createSession({
+            title: opts.title ?? titleFromMessage(content),
+          })
           if (opts.active !== false) {
             ctx.workspace.setActiveSessionId(sessionId)
           }
@@ -51,7 +53,7 @@ export function registerSessionCommands(
           return
         }
 
-        const sessionId = ctx.sessions.create({ title: opts.title ?? 'Untitled Session' })
+        const sessionId = ctx.store.createSession({ title: opts.title ?? 'Untitled Session' })
         if (opts.active !== false) {
           ctx.workspace.setActiveSessionId(sessionId)
         }
@@ -66,7 +68,7 @@ export function registerSessionCommands(
     .description('List sessions')
     .action(async () => {
       const ctx = await getContext()
-      const sessions = ctx.sessions.list()
+      const sessions = ctx.store.listSessions()
       const activeSessionId = ctx.workspace.getActiveSessionId()
 
       if (sessions.length === 0) {
@@ -88,7 +90,7 @@ export function registerSessionCommands(
       const ctx = await getContext()
 
       if (sessionId !== undefined) {
-        if (!ctx.sessions.exists(sessionId)) {
+        if (!ctx.store.sessionExists(sessionId)) {
           throw new Error(`Session not found: ${sessionId}`)
         }
         ctx.workspace.setActiveSessionId(sessionId)
@@ -104,7 +106,7 @@ export function registerSessionCommands(
     .description('Set the active session')
     .action(async (sessionId: string) => {
       const ctx = await getContext()
-      if (!ctx.sessions.exists(sessionId)) {
+      if (!ctx.store.sessionExists(sessionId)) {
         throw new Error(`Session not found: ${sessionId}`)
       }
       ctx.workspace.setActiveSessionId(sessionId)
@@ -122,7 +124,7 @@ export function registerSessionCommands(
       if (resolvedSessionId === undefined) {
         throw new Error('No active session. Try: tetra "hello"')
       }
-      const messages = ctx.transcripts.listMessages(resolvedSessionId)
+      const messages = ctx.store.listMessages(resolvedSessionId)
       if (messages.length === 0) {
         console.log('No messages in this session.')
         return
@@ -142,8 +144,8 @@ export function registerSessionCommands(
         throw new Error('No active session. Try: tetra "hello"')
       }
       if (title !== undefined) {
-        ctx.sessions.rename(sessionId, title)
+        ctx.store.renameSession(sessionId, title)
       }
-      console.log(ctx.sessions.get(sessionId).title || '(untitled)')
+      console.log(ctx.store.getSession(sessionId).title ?? '(untitled)')
     })
 }

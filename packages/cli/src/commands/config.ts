@@ -37,14 +37,14 @@ export function registerConfigCommand(
         }
 
         if (Object.keys(overrides).length > 0 || opts.prompt === false) {
-          const next = { ...ctx.sessions.getConfig(resolvedSessionId), ...overrides }
+          const next = { ...ctx.store.getSessionConfig(resolvedSessionId), ...overrides }
           if (opts.prompt === false) {
             delete next.systemPromptId
           }
-          ctx.sessions.setConfig(resolvedSessionId, RequestConfig.parse(next))
+          ctx.store.setSessionConfig(resolvedSessionId, RequestConfig.parse(next))
         }
 
-        const config = ctx.sessions.getConfig(resolvedSessionId)
+        const config = ctx.store.getSessionConfig(resolvedSessionId)
         console.log(`session:      ${resolvedSessionId}`)
         console.log(`model:        ${config.modelId}`)
         console.log(`prompt:       ${config.systemPromptId ?? '(none)'}`)

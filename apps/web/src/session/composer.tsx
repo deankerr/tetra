@@ -31,10 +31,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
       return
     }
 
-    tetra.transcripts.appendTextMessage(sessionId, {
-      role: 'user',
-      text: draft,
-    })
+    tetra.store.appendTextMessage(sessionId, { role: 'user', text: draft })
     setDraft('')
   }
 
@@ -52,21 +49,21 @@ export function Composer({ sessionId }: { sessionId: string }) {
       return
     }
 
-    const shouldSetTitle = tetra.sessions.get(sessionId).title === ''
+    const shouldSetTitle = tetra.store.getSession(sessionId).title === ''
 
     // Clear draft before execute so any TinyBase-triggered re-render sees the empty value
     setDraft('')
 
     try {
       // Create user and assistant messages, then hand off to the run.
-      tetra.transcripts.appendTextMessage(sessionId, { role: 'user', text: message.text })
-      const assistantMessageId = tetra.transcripts.appendMessage(sessionId, {
+      tetra.store.appendTextMessage(sessionId, { role: 'user', text: message.text })
+      const assistantMessageId = tetra.store.appendMessage(sessionId, {
         parts: [],
         role: 'assistant',
       })
       tetra.runs.start({ assistantMessageId })
       if (shouldSetTitle) {
-        tetra.sessions.rename(sessionId, message.text.trim().slice(0, 60))
+        tetra.store.renameSession(sessionId, message.text.trim().slice(0, 60))
       }
     } catch (error) {
       setDraft(message.text)
@@ -94,8 +91,8 @@ export function Composer({ sessionId }: { sessionId: string }) {
           <PromptInputTools>
             <ModelPicker
               onValueChange={(modelId) => {
-                const current = tetra.sessions.getConfig(sessionId)
-                tetra.sessions.setConfig(sessionId, { ...current, modelId })
+                const current = tetra.store.getSessionConfig(sessionId)
+                tetra.store.setSessionConfig(sessionId, { ...current, modelId })
               }}
               value={config.modelId}
             />

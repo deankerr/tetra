@@ -52,14 +52,8 @@ export async function runChatContent(
   }
 
   // Create the user and assistant messages, then hand off to the run.
-  ctx.accessors.messages.create(sessionId, {
-    parts: [{ text: content, type: 'text' }],
-    role: 'user',
-  })
-  const assistantMessageId = ctx.accessors.messages.create(sessionId, {
-    parts: [],
-    role: 'assistant',
-  })
+  ctx.store.appendTextMessage(sessionId, { role: 'user', text: content })
+  const assistantMessageId = ctx.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
 
   // Stream new assistant text to stdout as UIMessage snapshots arrive.
   let lastLength = 0

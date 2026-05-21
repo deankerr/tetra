@@ -1,4 +1,4 @@
-import type { Sessions } from '@tetra/core-redesign'
+import type { Store } from '@tetra/core-redesign'
 
 export interface ResolveSessionArgs {
   forceNew?: boolean
@@ -8,7 +8,7 @@ export interface ResolveSessionArgs {
 }
 
 export interface ResolveSessionContext {
-  sessions: Sessions
+  store: Store
   workspace: {
     clearActiveSessionId(): void
     getActiveSessionId(): string | undefined
@@ -17,12 +17,12 @@ export interface ResolveSessionContext {
 }
 
 export function resolveSession(
-  { sessions, workspace }: ResolveSessionContext,
+  { store, workspace }: ResolveSessionContext,
   { forceNew = false, sessionId, setActive = true, title }: ResolveSessionArgs,
 ): string {
   // Explicit session IDs always win, and also become active by default.
   if (sessionId !== undefined) {
-    if (!sessions.exists(sessionId)) {
+    if (!store.sessionExists(sessionId)) {
       throw new Error(`Session not found: ${sessionId}`)
     }
     if (setActive) {
@@ -33,7 +33,7 @@ export function resolveSession(
 
   // Forced-new requests intentionally bypass the currently active session.
   if (forceNew) {
-    const nextSessionId = sessions.create({ title })
+    const nextSessionId = store.createSession({ title })
     if (setActive) {
       workspace.setActiveSessionId(nextSessionId)
     }
@@ -42,7 +42,7 @@ export function resolveSession(
 
   // Reuse the active session when it still points at a real session.
   const activeSessionId = workspace.getActiveSessionId()
-  if (activeSessionId !== undefined && sessions.exists(activeSessionId)) {
+  if (activeSessionId !== undefined && store.sessionExists(activeSessionId)) {
     return activeSessionId
   }
 
@@ -50,7 +50,7 @@ export function resolveSession(
   if (activeSessionId !== undefined) {
     workspace.clearActiveSessionId()
   }
-  const nextSessionId = sessions.create({ title })
+  const nextSessionId = store.createSession({ title })
   if (setActive) {
     workspace.setActiveSessionId(nextSessionId)
   }

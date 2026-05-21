@@ -1,14 +1,95 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 import { convertToModelMessages, readUIMessageStream, stepCountIs, streamText } from 'ai'
-import type { LanguageModel, ModelMessage, ToolSet, UIMessage } from 'ai'
+import type { LanguageModel, ModelMessage, OnStepFinishEvent, ToolSet, UIMessage } from 'ai'
+import { z } from 'zod'
 
-import type { Accessors } from '#accessors'
 import { RequestConfig } from '#db'
 import type { RequestConfig as RequestConfigType, Rows, StepRecord } from '#db'
-import { parseStep } from '#steps'
+import { appendStep, cancelRequest, completeRequest, failRequest, startStreaming } from '#requests'
+import type { Store } from '#store'
 import { resolveTools } from '#tools'
 
 const DURABLE_SNAPSHOT_INTERVAL_MS = 500
+
+// Parses OpenRouter-specific cost and token details from the raw provider metadata.
+const ProviderRaw = z.object({
+  completion_tokens_details: z
+    .object({
+      audio_tokens: z.number().default(0),
+      image_tokens: z.number().default(0),
+    })
+    .default({ audio_tokens: 0, image_tokens: 0 }),
+  cost: z.number().optional(),
+  cost_details: z
+    .object({
+      upstream_inference_completions_cost: z.number().optional(),
+      upstream_inference_prompt_cost: z.number().optional(),
+    })
+    .default({}),
+  is_byok: z.boolean().default(false),
+  prompt_tokens_details: z
+    .object({
+      audio_tokens: z.number().default(0),
+      video_tokens: z.number().default(0),
+    })
+    .default({ audio_tokens: 0, video_tokens: 0 }),
+})
+
+const StepEvent = z
+  .object({
+    finishReason: z.string(),
+    model: z.object({ modelId: z.string() }).optional(),
+    providerMetadata: z
+      .object({ openrouter: z.object({ provider: z.string() }).optional() })
+      .optional(),
+    response: z.object({ id: z.string(), modelId: z.string() }),
+    stepNumber: z.number(),
+    usage: z.object({
+      inputTokenDetails: z
+        .object({ cacheReadTokens: z.number().default(0), cacheWriteTokens: z.number().default(0) })
+        .default({ cacheReadTokens: 0, cacheWriteTokens: 0 }),
+      inputTokens: z.number().default(0),
+      outputTokenDetails: z
+        .object({ reasoningTokens: z.number().default(0) })
+        .default({ reasoningTokens: 0 }),
+      outputTokens: z.number().default(0),
+      raw: z.unknown().optional(),
+      totalTokens: z.number().default(0),
+    }),
+  })
+  .transform((event): StepRecord => {
+    const raw = ProviderRaw.parse(event.usage.raw ?? {})
+    return {
+      cost: {
+        completion: raw.cost_details.upstream_inference_completions_cost ?? null,
+        isByok: raw.is_byok,
+        prompt: raw.cost_details.upstream_inference_prompt_cost ?? null,
+        total: raw.cost ?? null,
+      },
+      createdAt: Date.now(),
+      finishReason: event.finishReason,
+      generationId: event.response.id,
+      model: event.response.modelId,
+      provider: event.providerMetadata?.openrouter?.provider ?? '',
+      stepNumber: event.stepNumber,
+      tokens: {
+        audioIn: raw.prompt_tokens_details.audio_tokens,
+        audioOut: raw.completion_tokens_details.audio_tokens,
+        cacheRead: event.usage.inputTokenDetails.cacheReadTokens,
+        cacheWrite: event.usage.inputTokenDetails.cacheWriteTokens,
+        imageOut: raw.completion_tokens_details.image_tokens,
+        input: event.usage.inputTokens,
+        output: event.usage.outputTokens,
+        reasoning: event.usage.outputTokenDetails.reasoningTokens,
+        total: event.usage.totalTokens,
+        videoIn: raw.prompt_tokens_details.video_tokens,
+      },
+    }
+  })
+
+function parseStep(event: OnStepFinishEvent): StepRecord {
+  return StepEvent.parse(event)
+}
 
 export interface CredentialReader {
   get(id: string): string
@@ -30,10 +111,10 @@ export interface RunStart {
 export type RunStatus = 'cancelled' | 'completed' | 'error' | 'preparing' | 'streaming'
 
 interface RunInit {
-  accessors: Accessors
   credentials: CredentialReader
   modelResolver: LanguageModelResolver
   start: RunStart
+  store: Store
 }
 
 export const openRouterLanguageModelResolver: LanguageModelResolver = {
@@ -69,19 +150,19 @@ export class Run extends EventTarget {
   steps: StepRecord[] = []
   tools: ToolSet = {}
 
-  private readonly accessors: Accessors
   private readonly credentials: CredentialReader
+  private readonly store: Store
   private readonly doneController = Promise.withResolvers<undefined>()
   private readonly modelResolver: LanguageModelResolver
 
   constructor(init: RunInit) {
     super()
-    this.accessors = init.accessors
     this.assistantMessageId = init.start.assistantMessageId
     this.config = init.start.config
     this.credentials = init.credentials
     this.done = this.doneController.promise
     this.modelResolver = init.modelResolver
+    this.store = init.store
     this.requestId = init.start.requestId
     this.session = init.start.session
     this.sessionId = init.start.session.id
@@ -100,8 +181,8 @@ export class Run extends EventTarget {
   private complete(parts: UIMessage['parts']): void {
     this.parts = [...parts]
     this.finalParts = [...parts]
-    this.accessors.messages.update(this.assistantMessageId, { parts })
-    this.accessors.requests.complete(this.requestId)
+    this.store.updateMessage(this.assistantMessageId, { parts })
+    completeRequest(this.store.db, this.requestId)
     this.setStatus('completed')
     this.dispatchEvent(new Event('finish'))
     this.doneController.resolve()
@@ -110,14 +191,14 @@ export class Run extends EventTarget {
   private fail(error: unknown): void {
     this.error = error
     if (this.abortController.signal.aborted) {
-      this.accessors.requests.cancel(this.requestId, 'Request cancelled')
+      cancelRequest(this.store.db, this.requestId, 'Request cancelled')
       this.setStatus('cancelled')
       this.dispatchEvent(new Event('cancel'))
       this.doneController.resolve()
       return
     }
 
-    this.accessors.requests.fail(this.requestId, error)
+    failRequest(this.store.db, this.requestId, error)
     this.setStatus('error')
     this.dispatchEvent(new Event('error'))
     this.doneController.resolve()
@@ -130,7 +211,7 @@ export class Run extends EventTarget {
 
   private recordStep(step: StepRecord): void {
     this.steps = [...this.steps, step]
-    this.accessors.requests.appendStep(this.requestId, step)
+    appendStep(this.store.db, this.requestId, step)
     this.dispatchEvent(new Event('step'))
   }
 
@@ -157,7 +238,7 @@ export class Run extends EventTarget {
       this.model = model
       this.modelMessages = modelMessages
       this.tools = tools
-      this.accessors.requests.startStreaming(this.requestId)
+      startStreaming(this.store.db, this.requestId)
       this.setStatus('streaming')
 
       const result = streamText({
@@ -211,7 +292,7 @@ export class Run extends EventTarget {
       return
     }
 
-    this.accessors.messages.update(this.assistantMessageId, { parts: message.parts })
+    this.store.updateMessage(this.assistantMessageId, { parts: message.parts })
     this.lastDurableWriteAt = now
   }
 }

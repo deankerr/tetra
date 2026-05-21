@@ -162,7 +162,7 @@ export function SystemPromptSheet({
   open: boolean
   sessionId: string
 }) {
-  const { prompts, sessions } = useTetra()
+  const { store } = useTetra()
   const config = useSessionConfig(sessionId)
   const promptIds = usePromptIds()
   const selectedPromptId =
@@ -171,8 +171,8 @@ export function SystemPromptSheet({
       : undefined
 
   const updateSystemPromptId = (systemPromptId?: string) => {
-    const { systemPromptId: _removed, ...rest } = sessions.getConfig(sessionId)
-    sessions.setConfig(
+    const { systemPromptId: _removed, ...rest } = store.getSessionConfig(sessionId)
+    store.setSessionConfig(
       sessionId,
       RequestConfig.parse(systemPromptId === undefined ? rest : { ...rest, systemPromptId }),
     )
@@ -201,7 +201,7 @@ export function SystemPromptSheet({
                 return
               }
               if (value === NEW_PROMPT_VALUE) {
-                updateSystemPromptId(prompts.create())
+                updateSystemPromptId(store.createPrompt())
                 return
               }
               updateSystemPromptId(value === NO_PROMPT_VALUE ? undefined : value)
@@ -234,7 +234,7 @@ export function SystemPromptSheet({
           <SelectedPromptFields
             onDelete={() => {
               if (selectedPromptId !== undefined) {
-                prompts.delete(selectedPromptId)
+                store.deletePrompt(selectedPromptId)
               }
             }}
             promptId={selectedPromptId}

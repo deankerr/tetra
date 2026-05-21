@@ -253,7 +253,7 @@ export function MessageInspector({
 }: {
   messageId: string
 } & React.ComponentProps<'div'>) {
-  const { transcripts } = useTetra()
+  const { store } = useTetra()
   const message = useMessage(messageId)
   const request = useRequestForMessage(messageId)
 
@@ -357,7 +357,7 @@ export function MessageInspector({
             size="icon-xs"
             aria-label="Delete"
             onClick={() => {
-              transcripts.deleteMessage(messageId)
+              store.deleteMessage(messageId)
             }}
           >
             <TrashIcon />

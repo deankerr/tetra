@@ -318,7 +318,7 @@ function ObjectRow({ dispatch, entry }: { dispatch: Dispatch<Action>; entry: Obj
 // --- Editor ---
 
 export function ProviderOptionsEditor({ sessionId }: { sessionId: string }) {
-  const { sessions } = useTetra()
+  const { store } = useTetra()
   const options = useSessionConfig(sessionId).providerOptions ?? EMPTY_PROVIDER_OPTIONS
   const [entries, dispatch] = useReducer(entriesReducer, options, optionsToEntries)
   const prevSessionId = useRef(sessionId)
@@ -337,12 +337,12 @@ export function ProviderOptionsEditor({ sessionId }: { sessionId: string }) {
       isInitialRender.current = false
       return
     }
-    const current = sessions.getConfig(sessionId)
-    sessions.setConfig(sessionId, {
+    const current = store.getSessionConfig(sessionId)
+    store.setSessionConfig(sessionId, {
       ...current,
       providerOptions: entriesToOptions(entries),
     } as RequestConfigType)
-  }, [entries, sessions, sessionId])
+  }, [entries, store, sessionId])
 
   return (
     <div className="flex flex-col gap-1.5">

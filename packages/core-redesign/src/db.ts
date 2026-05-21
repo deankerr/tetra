@@ -1,5 +1,6 @@
 import type { JSONObject } from '@ai-sdk/provider'
 import type { UIMessage } from 'ai'
+import { getHlcFunctions } from 'tinybase/common'
 import { createIndexes } from 'tinybase/indexes/with-schemas'
 import { createMergeableStore } from 'tinybase/mergeable-store/with-schemas'
 import type { MergeableStore } from 'tinybase/mergeable-store/with-schemas'
@@ -184,3 +185,8 @@ export function createTetraMergeableDb() {
 }
 
 export type TetraDb = ReturnType<typeof createTetraDb> | ReturnType<typeof createTetraMergeableDb>
+
+const [getNextHlc] = getHlcFunctions()
+export function createIdGenerator(prefix: string): () => string {
+  return () => `${prefix}_${getNextHlc()}`
+}

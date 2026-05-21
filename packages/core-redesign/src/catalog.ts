@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
-import type { Accessors } from '#accessors'
-import type { Rows } from '#db'
+import { LanguageModelRecord } from '#db'
+import type { Rows, TetraDb } from '#db'
 
 const STALE_MS = 60 * 60 * 1000
 const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models'
@@ -57,24 +57,49 @@ export function createOpenRouterCatalogSource(): CatalogSource {
   }
 }
 
+// Replaces the full language model catalog in one transaction: removes stale entries, upserts new ones.
+function replaceAll(db: TetraDb, models: Rows.LanguageModel[]): void {
+  const incomingIds = new Set(models.map((m) => m.id))
+
+  db.store.transaction(() => {
+    for (const existingId of db.store.getRowIds('languageModels')) {
+      if (!incomingIds.has(existingId)) {
+        db.store.delRow('languageModels', existingId)
+      }
+    }
+
+    for (const model of models) {
+      const { id, ...record } = model
+      db.store.setRow('languageModels', id, LanguageModelRecord.parse(record))
+    }
+  })
+}
+
+function markRefreshed(db: TetraDb): void {
+  db.store.setValue('catalogLastRefreshed', Date.now())
+}
+
+function lastRefreshAt(db: TetraDb): number {
+  return db.store.getValue('catalogLastRefreshed')
+}
+
 export class Catalog {
-  private readonly accessors: Accessors
+  private readonly db: TetraDb
   private readonly source: CatalogSource
 
-  constructor(accessors: Accessors, source: CatalogSource = createOpenRouterCatalogSource()) {
-    this.accessors = accessors
+  constructor(db: TetraDb, source: CatalogSource = createOpenRouterCatalogSource()) {
+    this.db = db
     this.source = source
   }
 
   async refresh(args: { force?: boolean } = {}): Promise<void> {
-    const lastRefreshAt = this.accessors.languageModels.lastCatalogRefreshAt()
-    const isStale = !lastRefreshAt || Date.now() - lastRefreshAt > STALE_MS
+    const isStale = !lastRefreshAt(this.db) || Date.now() - lastRefreshAt(this.db) > STALE_MS
     if (args.force !== true && !isStale) {
       return
     }
 
     const models = await this.source.listLanguageModels()
-    this.accessors.languageModels.replaceAll(models)
-    this.accessors.languageModels.markCatalogRefreshed()
+    replaceAll(this.db, models)
+    markRefreshed(this.db)
   }
 }

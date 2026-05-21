@@ -7,9 +7,9 @@ import { createSqliteBunPersister } from 'tinybase/persisters/persister-sqlite-b
 // Bootstrap: wire subsystems, attach SQLite persistence
 export async function bootstrap() {
   const core = createCoreModules(createTetraDb())
-  const runs = new Runs(core.accessors, credentialStore)
+  const runs = new Runs(core.store, credentialStore)
 
-  // CLI-only state lives in TinyBase values, but the CLI owns this convenience API.
+  // CLI-only active session state lives in TinyBase values.
   const workspace = {
     clearActiveSessionId(): void {
       core.db.store.setValue('cliActiveSessionId', '')
@@ -53,12 +53,11 @@ export async function bootstrap() {
   runs.recover()
 
   return {
-    ...core,
-    indexes: core.db.indexes,
+    catalog: core.catalog,
     persister,
     runs,
     sqlite,
-    store: core.db.store,
+    store: core.store,
     workspace,
   }
 }

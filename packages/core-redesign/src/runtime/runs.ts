@@ -1,8 +1,9 @@
-import type { Accessors } from '#accessors'
 import { RequestConfig } from '#db'
 import type { RequestConfig as RequestConfigType, Rows } from '#db'
+import { createRequest, recoverInterrupted } from '#requests'
 import { Run, openRouterLanguageModelResolver } from '#run'
 import type { CredentialReader, LanguageModelResolver, RunStart } from '#run'
+import type { Store } from '#store'
 
 export interface StartArgs {
   assistantMessageId: string
@@ -10,19 +11,19 @@ export interface StartArgs {
 }
 
 export class Runs {
-  private readonly accessors: Accessors
   private readonly active = new Map<string, Run>()
   private readonly credentials: CredentialReader
   private readonly modelResolver: LanguageModelResolver
+  private readonly store: Store
 
   constructor(
-    accessors: Accessors,
+    store: Store,
     credentials: CredentialReader,
     modelResolver: LanguageModelResolver = openRouterLanguageModelResolver,
   ) {
-    this.accessors = accessors
     this.credentials = credentials
     this.modelResolver = modelResolver
+    this.store = store
   }
 
   cancel(requestId: string): void {
@@ -54,22 +55,22 @@ export class Runs {
   }
 
   recover(): void {
-    this.accessors.requests.recoverInterrupted('Request interrupted')
+    recoverInterrupted(this.store.db)
   }
 
   // Callers are responsible for creating the user and assistant messages before calling start.
   // The assistant message should have empty parts; all messages before it become the transcript.
   start(args: StartArgs): Run {
-    const assistantMessage = this.accessors.messages.get(args.assistantMessageId)
-    const session = this.accessors.sessions.get(assistantMessage.sessionId)
+    const assistantMessage = this.store.getMessage(args.assistantMessageId)
+    const session = this.store.getSession(assistantMessage.sessionId)
     const config = RequestConfig.parse({ ...session.config, ...args.config })
     const system = this.requireSystemPrompt(config)
     const transcriptMessages = this.collectMessagesBefore(args.assistantMessageId, config)
 
     let requestId = ''
-    this.accessors.transaction(() => {
-      this.accessors.sessions.touch(session.id)
-      requestId = this.accessors.requests.create({
+    this.store.transaction(() => {
+      this.store.touchSession(session.id)
+      requestId = createRequest(this.store.db, {
         assistantMessageId: args.assistantMessageId,
         config,
         sessionId: session.id,
@@ -87,8 +88,8 @@ export class Runs {
   }
 
   private collectMessagesBefore(messageId: string, config: RequestConfigType): Rows.Message[] {
-    const target = this.accessors.messages.get(messageId)
-    const messages = this.accessors.messages.listForSession(target.sessionId)
+    const target = this.store.getMessage(messageId)
+    const messages = this.store.listMessages(target.sessionId)
     const targetIndex = messages.findIndex((message) => message.id === messageId)
     if (targetIndex === -1) {
       throw new Error(`Message not found in session transcript: ${messageId}`)
@@ -104,10 +105,10 @@ export class Runs {
 
   private launchRun(runStart: RunStart): Run {
     const run = new Run({
-      accessors: this.accessors,
       credentials: this.credentials,
       modelResolver: this.modelResolver,
       start: runStart,
+      store: this.store,
     })
 
     this.active.set(run.requestId, run)
@@ -127,7 +128,7 @@ export class Runs {
       return undefined
     }
 
-    const prompt = this.accessors.prompts.get(config.systemPromptId)
+    const prompt = this.store.getPrompt(config.systemPromptId)
     return prompt.content
   }
 }

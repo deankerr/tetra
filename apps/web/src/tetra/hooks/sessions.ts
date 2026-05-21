@@ -4,27 +4,17 @@ import { useMemo } from 'react'
 
 import { tinybase } from '@/tetra/tinybase'
 
+// Sessions sorted by updatedAt descending — most recently active first.
+// appendMessage touches updatedAt, so this order naturally tracks conversation activity.
 export const useSessionIds = () => {
-  const messages = tinybase.useTable('messages')
   const sessions = tinybase.useTable('sessions')
-
-  return useMemo(() => {
-    const latestMessageTimeBySessionId = new Map<string, number>()
-
-    for (const message of Object.values(messages)) {
-      const previous = latestMessageTimeBySessionId.get(message.sessionId) ?? 0
-      const next = Math.max(message.updatedAt, message.createdAt, previous)
-      latestMessageTimeBySessionId.set(message.sessionId, next)
-    }
-
-    return Object.entries(sessions)
-      .toSorted(([leftSessionId, leftSession], [rightSessionId, rightSession]) => {
-        const left = latestMessageTimeBySessionId.get(leftSessionId) ?? leftSession.createdAt
-        const right = latestMessageTimeBySessionId.get(rightSessionId) ?? rightSession.createdAt
-        return right - left
-      })
-      .map(([sessionId]) => sessionId)
-  }, [messages, sessions])
+  return useMemo(
+    () =>
+      Object.entries(sessions)
+        .toSorted(([, left], [, right]) => right.updatedAt - left.updatedAt)
+        .map(([id]) => id),
+    [sessions],
+  )
 }
 
 export const useSession = (id: string): Rows.Session | null => {

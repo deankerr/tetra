@@ -15,7 +15,7 @@ import { useTetra } from '@/tetra/provider'
 import { clearAllData } from './clear-data'
 
 export function DebugMenu() {
-  const { sessions } = useTetra()
+  const { store } = useTetra()
 
   return (
     <DropdownMenu>
@@ -31,7 +31,7 @@ export function DebugMenu() {
           <DropdownMenuLabel>Debug</DropdownMenuLabel>
           <DropdownMenuItem
             onClick={() => {
-              loadSeeds(sessions)
+              loadSeeds(store)
             }}
           >
             <DatabaseIcon />

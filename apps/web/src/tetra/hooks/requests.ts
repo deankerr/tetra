@@ -1,6 +1,6 @@
-import type { Rows } from '@tetra/core-redesign'
+import { RequestConfig, RequestStatus } from '@tetra/core-redesign'
+import type { Rows, StepRecord } from '@tetra/core-redesign'
 
-import { useTetra } from '@/tetra/provider'
 import { tinybase } from '@/tetra/tinybase'
 
 const activeStatuses = new Set(['preparing', 'streaming'])
@@ -21,14 +21,24 @@ export const useActiveRequest = (sessionId: string): Rows.Request | null => {
 }
 
 export const useRequest = (id: string): Rows.Request | null => {
-  const { accessors } = useTetra()
   const hasRow = tinybase.useHasRow('requests', id)
-  tinybase.useRow('requests', id)
+  const row = tinybase.useRow('requests', id)
   if (!hasRow || id === '') {
     return null
   }
 
-  return accessors.requests.get(id)
+  return {
+    assistantMessageId: row.assistantMessageId,
+    config: RequestConfig.parse(row.config),
+    createdAt: row.createdAt,
+    errorMessage: row.errorMessage,
+    id,
+    sessionId: row.sessionId,
+    status: RequestStatus.parse(row.status),
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- StepRecord[] stored verbatim in TinyBase array cell.
+    steps: row.steps as StepRecord[],
+    terminalAt: row.terminalAt,
+  }
 }
 
 export const useRequestForMessage = (messageId: string): Rows.Request | null => {

@@ -3,17 +3,15 @@
   "private": true,
   "type": "module",
   "imports": {
-    "#accessors": "./src/accessors/index.ts",
     "#catalog": "./src/catalog.ts",
     "#db": "./src/db.ts",
-    "#prompts": "./src/prompts.ts",
-    "#run": "./src/run.ts",
-    "#runs": "./src/runs.ts",
+    "#ids": "./src/ids.ts",
+    "#requests": "./src/runtime/requests.ts",
+    "#run": "./src/runtime/run.ts",
+    "#runs": "./src/runtime/runs.ts",
     "#seeds": "./src/seeds.ts",
-    "#sessions": "./src/sessions.ts",
-    "#steps": "./src/steps.ts",
-    "#tools": "./src/tools/tools.ts",
-    "#transcripts": "./src/transcripts.ts"
+    "#store": "./src/store.ts",
+    "#tools": "./src/tools/tools.ts"
   },
   "exports": {
     ".": "./src/index.ts"

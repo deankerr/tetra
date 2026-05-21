@@ -17,8 +17,8 @@ export function registerModelsCommand(
       const ctx = await getContext()
       await ctx.catalog.refresh({ force: true })
 
-      const rows = ctx.accessors.languageModels
-        .list()
+      const rows = ctx.store
+        .listLanguageModels()
         .filter((row) => row.outputModalities.includes('text'))
         .filter(
           (row) =>
@@ -36,7 +36,7 @@ export function registerModelsCommand(
       for (const row of rows) {
         const contextLength =
           row.contextLength > 0 ? `${(row.contextLength / 1000).toFixed(0)}k` : '?'
-        const inputModalities = row.inputModalities.join('+') || 'text'
+        const inputModalities = row.inputModalities.join('+') ?? 'text'
         console.log(
           `${row.id.padEnd(55)} ${row.name.padEnd(45)} ctx:${contextLength.padStart(5)}  in:${inputModalities}`,
         )

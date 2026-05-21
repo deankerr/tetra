@@ -18,12 +18,12 @@ export function SessionSettings({
   onOpenPromptSheet: () => void
   sessionId: string
 }) {
-  const { sessions } = useTetra()
+  const { store } = useTetra()
   const config = useSessionConfig(sessionId)
 
   const updateConfig = (patch: Partial<typeof config>) => {
-    const current = sessions.getConfig(sessionId)
-    sessions.setConfig(sessionId, RequestConfig.parse({ ...current, ...patch }))
+    const current = store.getSessionConfig(sessionId)
+    store.setSessionConfig(sessionId, RequestConfig.parse({ ...current, ...patch }))
   }
 
   return (
