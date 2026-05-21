@@ -7,18 +7,20 @@
       "packages/*"
     ],
     "catalog": {
-      "@openrouter/ai-sdk-provider": "^2.9.0",
+      "@openrouter/ai-sdk-provider": "2.9.0",
       "@types/bun": "1.3.13",
       "@types/node": "24.12.4",
       "@types/react": "19.2.14",
       "@types/react-dom": "19.2.3",
       "ai": "6.0.177",
+      "lucide-react": "1.14.0",
       "react": "19.2.6",
       "react-dom": "19.2.6",
+      "shiki": "4.0.2",
       "tailwindcss": "4.3.0",
       "tinybase": "8.3.0",
       "typescript": "6.0.3",
-      "zod": "^4.3.6"
+      "zod": "4.4.3"
     }
   },
   "type": "module",
@@ -43,6 +45,9 @@
     "turbo": "^2.9.14",
     "typescript": "catalog:",
     "ultracite": "7.6.4"
+  },
+  "overrides": {
+    "shiki": "^4.0.2"
   },
   "packageManager": "bun@1.3.13"
 }

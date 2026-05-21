@@ -24,6 +24,7 @@ Dev data is wiped and regenerated as needed. This app is not public. There are h
 - `@tetra/cli` — Bun CLI frontend, bootstraps core with SQLite persistence.
 - `@tetra/credentials` — credential registry and localStorage store.
 - `@tetra/ui` — shadcn/ai-elements component library.
+- `@tetra/tinybase-schema` — typed TinyBase schema, store, index, and React wrappers.
 - `@tetra/sdk-probe` — scratch space for AI SDK experiments.
 
 ## TinyBase
@@ -37,6 +38,15 @@ The TinyBase repo is cloned as a submodule in `reference/tinybase`.
   - what components need to rerender,
   - what needs an index,
   - what needs to be persisted as a durable artifact.
+
+### TinyBase Schema
+
+`packages/tinybase-schema` wraps TinyBase with zod-derived table, value, index, and React APIs. Keep it close to TinyBase's API first, and let concrete app usage justify any more opinionated helpers.
+
+- Define Tetra store shape in `@tetra/core` with `defineTypedTinybase`, `tinybaseTable`, `tinybaseCell`, and `tinybaseIndex`.
+- Prefer `db.tables.*`, `db.tables.getValue`, typed indexes, and typed React hooks over raw TinyBase calls in app code.
+- Use raw `store`/`indexes.raw` only for TinyBase integration points such as persisters, providers, or APIs the wrapper intentionally does not cover yet.
+- Track wrapper design notes, gaps, and deferred ideas in `packages/tinybase-schema/README.md`.
 
 ## Monorepo
 

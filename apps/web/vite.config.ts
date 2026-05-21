@@ -2,11 +2,13 @@ import tailwindcss from '@tailwindcss/vite'
 import { devtools } from '@tanstack/devtools-vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
-import { nitro } from 'nitro/vite'
 import { defineConfig } from 'vite'
 
 const config = defineConfig({
-  plugins: [devtools(), nitro(), tailwindcss(), tanstackStart(), viteReact()],
+  build: {
+    chunkSizeWarningLimit: 2000,
+  },
+  plugins: [devtools(), tailwindcss(), tanstackStart({ spa: { enabled: true } }), viteReact()],
   resolve: {
     tsconfigPaths: true,
   },

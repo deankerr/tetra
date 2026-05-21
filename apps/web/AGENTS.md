@@ -4,7 +4,7 @@
 
 - ALWAYS activate the `shadcn` skill when authoring, adding, reviewing, or using `shadcn/ui` components.
 - ALWAYS activate the `ai-elements` skill when adding, reviewing, or using AI Elements components.
-- Install `shadcn/ui` components as needed with `bunx --bun shadcn@latest add <component>`.
+- Install `shadcn/ui` components as needed with `bunx --bun shadcn add -c packages/ui <component>`.
 - Never put padding directly on a ScrollArea component.
 
 ### Custom Components
