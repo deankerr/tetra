@@ -42,11 +42,20 @@ function createTestRuntime() {
   return { core, model, runs }
 }
 
-test('sendMessage streams through the AI SDK into TinyBase rows', async () => {
+test('start streams through the AI SDK into TinyBase rows', async () => {
   const { core, model, runs } = createTestRuntime()
   const sessionId = core.sessions.create({ config: { modelId: 'mock-model' } })
 
-  const run = runs.sendMessage(sessionId, { content: 'hello' })
+  core.accessors.messages.create(sessionId, {
+    parts: [{ text: 'hello', type: 'text' }],
+    role: 'user',
+  })
+  const assistantMessageId = core.accessors.messages.create(sessionId, {
+    parts: [],
+    role: 'assistant',
+  })
+
+  const run = runs.start({ assistantMessageId })
   expect(core.accessors.requests.get(run.requestId).status).toBe('preparing')
 
   await run.done
@@ -74,25 +83,28 @@ test('sendMessage streams through the AI SDK into TinyBase rows', async () => {
   ])
 })
 
-test('Pre-Run Invariants — throws before creating rows when systemPromptId is missing', () => {
+test('Pre-Run Invariants — throws before creating request when systemPromptId is missing', () => {
   const { core, runs } = createTestRuntime()
   const sessionId = core.sessions.create({
     config: { modelId: 'mock-model', systemPromptId: 'non-existent-prompt' },
   })
 
-  const messagesBefore = core.accessors.messages.listForSession(sessionId)
+  core.accessors.messages.create(sessionId, {
+    parts: [{ text: 'hello', type: 'text' }],
+    role: 'user',
+  })
+  const assistantMessageId = core.accessors.messages.create(sessionId, {
+    parts: [],
+    role: 'assistant',
+  })
   const requestsBefore = core.accessors.requests.idsForSession(sessionId)
   const sessionBefore = core.accessors.sessions.get(sessionId)
 
-  expect(() => runs.sendMessage(sessionId, { content: 'hello' })).toThrow(
-    'Prompt not found: non-existent-prompt',
-  )
+  expect(() => runs.start({ assistantMessageId })).toThrow('Prompt not found: non-existent-prompt')
 
-  const messagesAfter = core.accessors.messages.listForSession(sessionId)
   const requestsAfter = core.accessors.requests.idsForSession(sessionId)
   const sessionAfter = core.accessors.sessions.get(sessionId)
 
-  expect(messagesAfter).toHaveLength(messagesBefore.length)
   expect(requestsAfter).toHaveLength(requestsBefore.length)
   expect(sessionAfter.updatedAt).toBe(sessionBefore.updatedAt)
 })
@@ -110,11 +122,19 @@ test('History Reconstruction — prior messages appear in prompt, current placeh
     parts: [{ text: 'prior assistant', type: 'text' }],
     role: 'assistant',
   })
+  core.accessors.messages.create(sessionId, {
+    parts: [{ text: 'new message', type: 'text' }],
+    role: 'user',
+  })
+  const assistantMessageId = core.accessors.messages.create(sessionId, {
+    parts: [],
+    role: 'assistant',
+  })
 
-  const run = runs.sendMessage(sessionId, { content: 'new message' })
+  const run = runs.start({ assistantMessageId })
   await run.done
 
-  // Prompt includes prior messages but excludes the current assistant placeholder
+  // Prompt includes all prior messages but excludes the current assistant placeholder
   expect(model.doStreamCalls).toHaveLength(1)
   expect(model.doStreamCalls[0]?.prompt).toEqual([
     { content: [{ text: 'prior user', type: 'text' }], role: 'user' },
@@ -129,7 +149,7 @@ test('History Reconstruction — maxMessages limits history at the execution bou
     config: { maxMessages: 2, modelId: 'mock-model' },
   })
 
-  // Create 4 prior messages (2 user + 2 assistant)
+  // Create 4 prior messages (2 user + 2 assistant) + the new turn
   core.accessors.messages.create(sessionId, {
     parts: [{ text: 'oldest user', type: 'text' }],
     role: 'user',
@@ -146,8 +166,16 @@ test('History Reconstruction — maxMessages limits history at the execution bou
     parts: [{ text: 'recent assistant', type: 'text' }],
     role: 'assistant',
   })
+  core.accessors.messages.create(sessionId, {
+    parts: [{ text: 'latest', type: 'text' }],
+    role: 'user',
+  })
+  const assistantMessageId = core.accessors.messages.create(sessionId, {
+    parts: [],
+    role: 'assistant',
+  })
 
-  const run = runs.sendMessage(sessionId, { content: 'latest' })
+  const run = runs.start({ assistantMessageId })
   await run.done
 
   // maxMessages=2 means only the last 2 prior messages are included
@@ -239,7 +267,15 @@ test('Tool Loop — tool call executes and result appears in final parts', async
   })
 
   try {
-    const run = runs.sendMessage(sessionId, { content: 'what is the weather?' })
+    core.accessors.messages.create(sessionId, {
+      parts: [{ text: 'what is the weather?', type: 'text' }],
+      role: 'user',
+    })
+    const assistantMessageId = core.accessors.messages.create(sessionId, {
+      parts: [],
+      role: 'assistant',
+    })
+    const run = runs.start({ assistantMessageId })
     await run.done
 
     expect(model.doStreamCalls).toHaveLength(2)
@@ -274,7 +310,15 @@ test('Error Path — stream error sets request to error status', async () => {
   const runs = new Runs(core.accessors, credentials, modelResolver)
   const sessionId = core.sessions.create({ config: { modelId: 'mock-model' } })
 
-  const run = runs.sendMessage(sessionId, { content: 'hello' })
+  core.accessors.messages.create(sessionId, {
+    parts: [{ text: 'hello', type: 'text' }],
+    role: 'user',
+  })
+  const assistantMessageId = core.accessors.messages.create(sessionId, {
+    parts: [],
+    role: 'assistant',
+  })
+  const run = runs.start({ assistantMessageId })
   await run.done
 
   const request = core.accessors.requests.get(run.requestId)
@@ -326,12 +370,28 @@ test('Error Path — later requests can still run after an error', async () => {
   const sessionId = core.sessions.create({ config: { modelId: 'mock-model' } })
 
   // First request fails
-  const failedRun = runs.sendMessage(sessionId, { content: 'fail' })
+  core.accessors.messages.create(sessionId, {
+    parts: [{ text: 'fail', type: 'text' }],
+    role: 'user',
+  })
+  const failAssistantId = core.accessors.messages.create(sessionId, {
+    parts: [],
+    role: 'assistant',
+  })
+  const failedRun = runs.start({ assistantMessageId: failAssistantId })
   await failedRun.done
   expect(failedRun.status).toBe('error')
 
   // Second request succeeds
-  const successRun = runs.sendMessage(sessionId, { content: 'retry' })
+  core.accessors.messages.create(sessionId, {
+    parts: [{ text: 'retry', type: 'text' }],
+    role: 'user',
+  })
+  const retryAssistantId = core.accessors.messages.create(sessionId, {
+    parts: [],
+    role: 'assistant',
+  })
+  const successRun = runs.start({ assistantMessageId: retryAssistantId })
   await successRun.done
   expect(successRun.status).toBe('completed')
   expect(successRun.finalParts?.find((p) => p.type === 'text')).toMatchObject({

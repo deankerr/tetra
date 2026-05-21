@@ -4,12 +4,8 @@ import type { RequestConfig as RequestConfigType, Rows } from '#db'
 import { Run, openRouterLanguageModelResolver } from '#run'
 import type { CredentialReader, LanguageModelResolver, RunStart } from '#run'
 
-export interface SendMessageArgs {
-  config?: Partial<RequestConfigType>
-  content: string
-}
-
-export interface RegenerateArgs {
+export interface StartArgs {
+  assistantMessageId: string
   config?: Partial<RequestConfigType>
 }
 
@@ -61,96 +57,33 @@ export class Runs {
     this.accessors.requests.recoverInterrupted('Request interrupted')
   }
 
-  regenerate(assistantMessageId: string, args: RegenerateArgs = {}): Run {
-    const assistantMessage = this.accessors.messages.get(assistantMessageId)
-    if (assistantMessage.role !== 'assistant') {
-      throw new Error(`Cannot regenerate non-assistant message: ${assistantMessageId}`)
-    }
-
+  // Callers are responsible for creating the user and assistant messages before calling start.
+  // The assistant message should have empty parts; all messages before it become the transcript.
+  start(args: StartArgs): Run {
+    const assistantMessage = this.accessors.messages.get(args.assistantMessageId)
     const session = this.accessors.sessions.get(assistantMessage.sessionId)
     const config = RequestConfig.parse({ ...session.config, ...args.config })
     const system = this.requireSystemPrompt(config)
-    const transcriptMessages = this.collectMessagesBefore(assistantMessageId, config)
+    const transcriptMessages = this.collectMessagesBefore(args.assistantMessageId, config)
 
     let requestId = ''
     this.accessors.transaction(() => {
-      this.accessors.messages.update(assistantMessageId, { parts: [] })
       this.accessors.sessions.touch(session.id)
       requestId = this.accessors.requests.create({
-        assistantMessageId,
+        assistantMessageId: args.assistantMessageId,
         config,
         sessionId: session.id,
       })
     })
 
-    return this.start({
-      assistantMessageId,
+    return this.launchRun({
+      assistantMessageId: args.assistantMessageId,
       config,
       requestId,
       session,
       system,
       transcriptMessages,
     })
-  }
-
-  sendMessage(sessionId: string, args: SendMessageArgs): Run {
-    const content = args.content.trim()
-    if (content === '') {
-      throw new Error('Cannot start a run with an empty user message')
-    }
-
-    const session = this.accessors.sessions.get(sessionId)
-    const config = RequestConfig.parse({ ...session.config, ...args.config })
-    const system = this.requireSystemPrompt(config)
-
-    let assistantMessageId = ''
-    let requestId = ''
-    this.accessors.transaction(() => {
-      this.accessors.messages.create(sessionId, {
-        parts: [{ text: args.content, type: 'text' }],
-        role: 'user',
-      })
-      assistantMessageId = this.accessors.messages.create(sessionId, {
-        parts: [],
-        role: 'assistant',
-      })
-      this.accessors.sessions.touch(sessionId)
-      requestId = this.accessors.requests.create({
-        assistantMessageId,
-        config,
-        sessionId,
-      })
-    })
-
-    const transcriptMessages = this.collectMessagesForRun({
-      excludeMessageId: assistantMessageId,
-      maxMessages: config.maxMessages,
-      sessionId,
-    })
-
-    return this.start({
-      assistantMessageId,
-      config,
-      requestId,
-      session,
-      system,
-      transcriptMessages,
-    })
-  }
-
-  start(args: RunStart): Run {
-    const run = new Run({
-      accessors: this.accessors,
-      credentials: this.credentials,
-      modelResolver: this.modelResolver,
-      start: args,
-    })
-
-    this.active.set(run.requestId, run)
-    void this.removeWhenDone(run)
-    run.start()
-
-    return run
   }
 
   private collectMessagesBefore(messageId: string, config: RequestConfigType): Rows.Message[] {
@@ -169,20 +102,19 @@ export class Runs {
     return transcriptMessages.slice(-config.maxMessages)
   }
 
-  private collectMessagesForRun(args: {
-    excludeMessageId: string
-    maxMessages?: number
-    sessionId: string
-  }): Rows.Message[] {
-    let messages = this.accessors.messages
-      .listForSession(args.sessionId)
-      .filter((message) => message.id !== args.excludeMessageId)
+  private launchRun(runStart: RunStart): Run {
+    const run = new Run({
+      accessors: this.accessors,
+      credentials: this.credentials,
+      modelResolver: this.modelResolver,
+      start: runStart,
+    })
 
-    if (args.maxMessages !== undefined) {
-      messages = messages.slice(-args.maxMessages)
-    }
+    this.active.set(run.requestId, run)
+    void this.removeWhenDone(run)
+    run.start()
 
-    return messages
+    return run
   }
 
   private async removeWhenDone(run: Run): Promise<void> {

@@ -21,6 +21,7 @@ Dev data is wiped and regenerated as needed. This app is not public. There are h
 ## Packages
 
 - `@tetra/core` — store schema, sessions, runner, tool registry. UI-agnostic.
+- `@tetra/core-redesign` — replacing `core` **IN PROGRESS**
 - `@tetra/cli` — Bun CLI frontend, bootstraps core with SQLite persistence.
 - `@tetra/credentials` — credential registry and localStorage store.
 - `@tetra/ui` — shadcn/ai-elements component library.

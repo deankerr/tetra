@@ -58,7 +58,13 @@ export function Composer({ sessionId }: { sessionId: string }) {
     setDraft('')
 
     try {
-      tetra.runs.sendMessage(sessionId, { content: message.text })
+      // Create user and assistant messages, then hand off to the run.
+      tetra.transcripts.appendTextMessage(sessionId, { role: 'user', text: message.text })
+      const assistantMessageId = tetra.transcripts.appendMessage(sessionId, {
+        parts: [],
+        role: 'assistant',
+      })
+      tetra.runs.start({ assistantMessageId })
       if (shouldSetTitle) {
         tetra.sessions.rename(sessionId, message.text.trim().slice(0, 60))
       }
