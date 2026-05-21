@@ -1,4 +1,5 @@
-import { ModelConfig } from '@tetra/core'
+import { RequestConfig } from '@tetra/core'
+import type { RequestConfigType } from '@tetra/core'
 import type { Command } from 'commander'
 
 import type { bootstrap } from '../bootstrap'
@@ -29,21 +30,21 @@ export function registerConfigCommand(
           throw new Error('No active session. Try: tetra "hello"')
         }
 
-        const overrides: Partial<ModelConfig> = {
+        const overrides: Partial<RequestConfigType> = {
           ...(opts.maxMessages !== undefined && { maxMessages: opts.maxMessages }),
           ...(opts.model !== undefined && { modelId: opts.model }),
           ...(typeof opts.prompt === 'string' && { systemPromptId: opts.prompt }),
         }
 
         if (Object.keys(overrides).length > 0 || opts.prompt === false) {
-          const next = { ...ctx.sessions.getConfig(resolvedSessionId), ...overrides }
+          const next = { ...ctx.store.getSessionConfig(resolvedSessionId), ...overrides }
           if (opts.prompt === false) {
             delete next.systemPromptId
           }
-          ctx.sessions.setConfig(resolvedSessionId, ModelConfig.parse(next))
+          ctx.store.setSessionConfig(resolvedSessionId, RequestConfig.parse(next))
         }
 
-        const config = ctx.sessions.getConfig(resolvedSessionId)
+        const config = ctx.store.getSessionConfig(resolvedSessionId)
         console.log(`session:      ${resolvedSessionId}`)
         console.log(`model:        ${config.modelId}`)
         console.log(`prompt:       ${config.systemPromptId ?? '(none)'}`)

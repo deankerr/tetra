@@ -31,7 +31,7 @@ async function saveAndClose() {
     }
     await ctx.persister.save()
     await ctx.persister.destroy()
-    ctx.db.close()
+    ctx.sqlite.close()
   })()
   await closePromise
 }

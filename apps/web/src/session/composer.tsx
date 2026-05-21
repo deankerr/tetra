@@ -10,41 +10,28 @@ import {
 import type { PromptInputMessage } from '@tetra/ui/components/ai-elements/prompt-input'
 import { toast } from '@tetra/ui/components/ui/sonner'
 import { PlusIcon } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 
-import { useStreamingRequest, useSessionConfig } from '@/api'
 import { useCredential } from '@/hooks/use-credential'
 import { ModelPicker } from '@/session/settings/model-picker'
-import { useTetra } from '@/tetra-provider'
+import { useActiveRequest } from '@/tetra/hooks/requests'
+import { useSessionConfig } from '@/tetra/hooks/sessions'
+import { useTetra } from '@/tetra/provider'
 
 export function Composer({ sessionId }: { sessionId: string }) {
   const tetra = useTetra()
-  const activeRequest = useStreamingRequest(sessionId)
+  const activeRequest = useActiveRequest(sessionId)
   const isStreaming = activeRequest !== null
   const config = useSessionConfig(sessionId)
   const [openrouterApiKey] = useCredential('OPENROUTER_API_KEY')
   const [draft, setDraft] = useState('')
-
-  // Track the assistant message ID for the active stream so we can clean up StreamingState
-  const activeAssistantRef = useRef<string | null>(null)
-  useEffect(() => {
-    if (activeRequest !== null) {
-      activeAssistantRef.current = activeRequest.assistantMessageId
-    } else if (activeAssistantRef.current !== null) {
-      tetra.streamingState.delete(activeAssistantRef.current)
-      activeAssistantRef.current = null
-    }
-  }, [activeRequest, tetra.streamingState])
 
   const handleAdd = () => {
     if (!draft.trim()) {
       return
     }
 
-    tetra.sessions.addMessage(sessionId, {
-      content: draft,
-      role: 'user',
-    })
+    tetra.store.appendTextMessage(sessionId, { role: 'user', text: draft })
     setDraft('')
   }
 
@@ -62,20 +49,28 @@ export function Composer({ sessionId }: { sessionId: string }) {
       return
     }
 
+    const shouldSetTitle = tetra.store.getSession(sessionId).title === ''
+
     // Clear draft before execute so any TinyBase-triggered re-render sees the empty value
     setDraft('')
 
-    // Set title from first message if session is untitled
-    if (!tetra.sessions.get(sessionId).title) {
-      tetra.sessions.rename(sessionId, message.text.trim().slice(0, 60))
+    try {
+      // Create user and assistant messages, then hand off to the run.
+      tetra.store.appendTextMessage(sessionId, { role: 'user', text: message.text })
+      const assistantMessageId = tetra.store.appendMessage(sessionId, {
+        parts: [],
+        role: 'assistant',
+      })
+      tetra.runs.start({ assistantMessageId })
+      if (shouldSetTitle) {
+        tetra.store.renameSession(sessionId, message.text.trim().slice(0, 60))
+      }
+    } catch (error) {
+      setDraft(message.text)
+      toast.error('Could not start run', {
+        description: error instanceof Error ? error.message : String(error),
+      })
     }
-
-    const { assistantMessageId } = tetra.runner.execute(sessionId, {
-      content: message.text,
-      onSnapshot: (msg) => {
-        tetra.streamingState.update(assistantMessageId, msg)
-      },
-    })
   }
 
   return (
@@ -96,8 +91,8 @@ export function Composer({ sessionId }: { sessionId: string }) {
           <PromptInputTools>
             <ModelPicker
               onValueChange={(modelId) => {
-                const current = tetra.sessions.getConfig(sessionId)
-                tetra.sessions.setConfig(sessionId, { ...current, modelId })
+                const current = tetra.store.getSessionConfig(sessionId)
+                tetra.store.setSessionConfig(sessionId, { ...current, modelId })
               }}
               value={config.modelId}
             />
@@ -118,7 +113,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
               status={isStreaming ? 'streaming' : 'ready'}
               {...(activeRequest && {
                 onStop: () => {
-                  tetra.runner.cancel(activeRequest.id)
+                  tetra.runs.cancel(activeRequest.id)
                 },
               })}
             />

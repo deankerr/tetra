@@ -1,13 +1,13 @@
-import { ModelConfig } from '@tetra/core'
+import { Button } from '@tetra/ui/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@tetra/ui/components/ui/card'
 import { Field, FieldGroup, FieldTitle } from '@tetra/ui/components/ui/field'
 import { Input } from '@tetra/ui/components/ui/input'
 
-import { useSessionConfig } from '@/api'
-import { useTetra } from '@/tetra-provider'
+import { useSessionConfig } from '@/tetra/hooks/sessions'
+import { useTetra } from '@/tetra/provider'
 
 import { ModelPicker } from './settings/model-picker'
-import { SystemPromptField } from './settings/prompt-field'
+import { PromptPreviewButton } from './settings/prompt-editor-sheet'
 import { ProviderOptionsEditor } from './settings/provider-options-editor'
 import { ToolSelector } from './settings/tool-selector'
 
@@ -18,12 +18,11 @@ export function SessionSettings({
   onOpenPromptSheet: () => void
   sessionId: string
 }) {
-  const { sessions } = useTetra()
+  const { store } = useTetra()
   const config = useSessionConfig(sessionId)
 
   const updateConfig = (patch: Partial<typeof config>) => {
-    const current = sessions.getConfig(sessionId)
-    sessions.setConfig(sessionId, ModelConfig.parse({ ...current, ...patch }))
+    store.setSessionConfig(sessionId, { ...store.getSessionConfig(sessionId), ...patch })
   }
 
   return (
@@ -53,7 +52,10 @@ export function SessionSettings({
         />
       </Field>
 
-      <SystemPromptField onOpen={onOpenPromptSheet} sessionId={sessionId} />
+      <Field>
+        <FieldTitle>System Prompt</FieldTitle>
+        <PromptPreviewButton onOpen={onOpenPromptSheet} sessionId={sessionId} />
+      </Field>
 
       <Card size="sm">
         <CardHeader>
@@ -74,9 +76,19 @@ export function SessionSettings({
           <CardTitle className="text-xs">Provider Options</CardTitle>
         </CardHeader>
         <CardContent>
-          <ProviderOptionsEditor sessionId={sessionId} />
+          <ProviderOptionsEditor key={sessionId} sessionId={sessionId} />
         </CardContent>
       </Card>
+
+      <Button
+        className="w-full"
+        onClick={() => {
+          store.setDefaultConfig(store.getSessionConfig(sessionId))
+        }}
+        variant="outline"
+      >
+        Use as default for new sessions
+      </Button>
     </FieldGroup>
   )
 }

@@ -1,16 +1,17 @@
+import { exportSession } from '@tetra/core'
 import { Button } from '@tetra/ui/components/ui/button'
 import { DownloadIcon } from 'lucide-react'
 
-import { useTetra } from '@/tetra-provider'
+import { useTetra } from '@/tetra/provider'
 
 export function SessionExportButton({ sessionId }: { sessionId: string }) {
-  const { sessions } = useTetra()
+  const { store } = useTetra()
 
   return (
     <Button
       onClick={() => {
-        const exported = sessions.exportSession(sessionId)
-        const title = exported.session.title.trim() || sessionId
+        const exported = exportSession(store, sessionId)
+        const title = exported.session.title.trim() ?? sessionId
         const safeTitle = title.replaceAll(/[^a-z0-9_-]+/giu, '-').replaceAll(/^-|-$/gu, '')
         const blob = new Blob([JSON.stringify(exported, null, 2)], {
           type: 'application/json',

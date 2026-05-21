@@ -1,7 +1,4 @@
-import { ModelConfig } from '@tetra/core'
-import type { TetraSchemas } from '@tetra/core'
 import { Button } from '@tetra/ui/components/ui/button'
-import { Field, FieldTitle } from '@tetra/ui/components/ui/field'
 import { Input } from '@tetra/ui/components/ui/input'
 import {
   Select,
@@ -13,13 +10,11 @@ import {
 import { Sheet, SheetClose, SheetContent } from '@tetra/ui/components/ui/sheet'
 import { Textarea } from '@tetra/ui/components/ui/textarea'
 import { Trash2Icon, XIcon } from 'lucide-react'
-import * as UiReact from 'tinybase/ui-react/with-schemas'
 
-import { usePrompt, usePromptIds, useSessionConfig } from '@/api'
-import { useTetra } from '@/tetra-provider'
-
-// oxlint-disable-next-line no-unsafe-type-assertion -- TinyBase WithSchemas pattern
-const store = UiReact as unknown as UiReact.WithSchemas<TetraSchemas>
+import { usePrompt, usePromptIds } from '@/tetra/hooks/prompts'
+import { useSessionConfig } from '@/tetra/hooks/sessions'
+import { useTetra } from '@/tetra/provider'
+import { tinybase } from '@/tetra/tinybase'
 
 const NO_PROMPT_VALUE = '__none__'
 const NEW_PROMPT_VALUE = '__new__'
@@ -76,8 +71,8 @@ function SelectedPromptFields({
 }
 
 function PromptCellFields({ onDelete, promptId }: { onDelete: () => void; promptId: string }) {
-  const [content, setContent] = store.useCellState('prompts', promptId, 'content')
-  const [label, setLabel] = store.useCellState('prompts', promptId, 'label')
+  const [content, setContent] = tinybase.useCellState('prompts', promptId, 'content')
+  const [label, setLabel] = tinybase.useCellState('prompts', promptId, 'label')
 
   return (
     <>
@@ -115,7 +110,7 @@ function PromptLabel({ promptId }: { promptId: string }) {
 }
 
 /** 3-line preview in the settings panel. Calls onOpen to open the dedicated editor sheet. */
-export function SystemPromptField({
+export function PromptPreviewButton({
   onOpen,
   sessionId,
 }: {
@@ -134,20 +129,17 @@ export function SystemPromptField({
   const previewContent = selectedPrompt?.content?.trim() ?? ''
 
   return (
-    <Field>
-      <FieldTitle>System Prompt</FieldTitle>
-      <button
-        className="border-input bg-input/30 hover:bg-input/50 w-full rounded-md border px-3 py-2 text-left text-xs transition-colors"
-        onClick={onOpen}
-        type="button"
-      >
-        {previewContent ? (
-          <span className="line-clamp-3 whitespace-pre-wrap">{previewContent}</span>
-        ) : (
-          <span className="text-muted-foreground">No system prompt</span>
-        )}
-      </button>
-    </Field>
+    <button
+      className="border-input bg-input/30 hover:bg-input/50 w-full rounded-md border px-3 py-2 text-left text-xs transition-colors"
+      onClick={onOpen}
+      type="button"
+    >
+      {previewContent ? (
+        <span className="line-clamp-3 whitespace-pre-wrap">{previewContent}</span>
+      ) : (
+        <span className="text-muted-foreground">No system prompt</span>
+      )}
+    </button>
   )
 }
 
@@ -156,7 +148,7 @@ export function SystemPromptField({
  * Rendered as a sibling to the settings sheet (not nested inside it) so that
  * base-ui's outside-click dismissal works correctly without React portal event bubbling interference.
  */
-export function SystemPromptSheet({
+export function PromptEditorSheet({
   onOpenChange,
   open,
   sessionId,
@@ -165,7 +157,7 @@ export function SystemPromptSheet({
   open: boolean
   sessionId: string
 }) {
-  const { prompts, sessions } = useTetra()
+  const { store } = useTetra()
   const config = useSessionConfig(sessionId)
   const promptIds = usePromptIds()
   const selectedPromptId =
@@ -174,11 +166,7 @@ export function SystemPromptSheet({
       : undefined
 
   const updateSystemPromptId = (systemPromptId?: string) => {
-    const { systemPromptId: _removed, ...rest } = sessions.getConfig(sessionId)
-    sessions.setConfig(
-      sessionId,
-      ModelConfig.parse(systemPromptId === undefined ? rest : { ...rest, systemPromptId }),
-    )
+    store.setSessionConfig(sessionId, { ...store.getSessionConfig(sessionId), systemPromptId })
   }
 
   return (
@@ -204,7 +192,7 @@ export function SystemPromptSheet({
                 return
               }
               if (value === NEW_PROMPT_VALUE) {
-                updateSystemPromptId(prompts.create())
+                updateSystemPromptId(store.createPrompt())
                 return
               }
               updateSystemPromptId(value === NO_PROMPT_VALUE ? undefined : value)
@@ -237,7 +225,7 @@ export function SystemPromptSheet({
           <SelectedPromptFields
             onDelete={() => {
               if (selectedPromptId !== undefined) {
-                prompts.delete(selectedPromptId)
+                store.deletePrompt(selectedPromptId)
               }
             }}
             promptId={selectedPromptId}

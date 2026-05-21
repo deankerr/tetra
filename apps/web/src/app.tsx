@@ -1,11 +1,5 @@
-import {
-  createCatalog,
-  createPrompts,
-  createRunner,
-  createSessions,
-  createTetraMergeableStore,
-} from '@tetra/core'
-import type { Catalog, Prompts, Runner, Sessions, TetraSchemas, TetraStore } from '@tetra/core'
+import { Runs, createCoreModules, createTetraMergeableDb } from '@tetra/core'
+import type { Catalog, DbSchemas, TetraDb, Store } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
 import { Sidebar, SidebarInset, SidebarProvider } from '@tetra/ui/components/ui/sidebar'
 import { Toaster } from '@tetra/ui/components/ui/sonner'
@@ -20,51 +14,36 @@ import { Inspector } from 'tinybase/ui-react-inspector'
 
 import { SessionView } from '@/session/view'
 import { AppSidebar } from '@/sidebar/app-sidebar'
-import { StreamingState } from '@/streaming-state'
-import { TetraContext } from '@/tetra-provider'
+import { TetraContext } from '@/tetra/provider'
 
 interface TetraApp {
-  indexes: TetraStore['indexes']
-  models: Catalog
-  prompts: Prompts
-  runner: Runner
-  sessions: Sessions
-  store: TetraStore['store']
-  streamingState: StreamingState
+  catalog: Catalog
+  db: TetraDb
+  runs: Runs
+  store: Store
 }
 
 export function App() {
   const [tetra] = useState<TetraApp>(() => {
-    const tetraStore = createTetraMergeableStore()
-    const sessions = createSessions(tetraStore)
-    const prompts = createPrompts(tetraStore)
-    const runner = createRunner(tetraStore, sessions, credentialStore)
-    const models = createCatalog(tetraStore)
-    const streamingState = new StreamingState()
+    const db = createTetraMergeableDb()
+    const core = createCoreModules(db)
+    const runs = new Runs(core.store, credentialStore)
 
     console.log('store initialized')
-    return {
-      indexes: tetraStore.indexes,
-      models,
-      prompts,
-      runner,
-      sessions,
-      store: tetraStore.store,
-      streamingState,
-    }
+    return { catalog: core.catalog, db, runs, store: core.store }
   })
-  const [persister, setPersister] = useState<OpfsPersister<TetraSchemas> | null>(null)
+  const [persister, setPersister] = useState<OpfsPersister<DbSchemas> | null>(null)
   const [activeCredentialId, setActiveCredentialId] = useState('')
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
-    let opfsPersister: OpfsPersister<TetraSchemas> | null = null
+    let opfsPersister: OpfsPersister<DbSchemas> | null = null
 
     const init = async () => {
       const root = await navigator.storage.getDirectory()
-      const handle = await root.getFileHandle('tetra-runtime.json', { create: true })
-      opfsPersister = createOpfsPersister(tetra.store, handle)
+      const handle = await root.getFileHandle('tetra-redesign-runtime.json', { create: true })
+      opfsPersister = createOpfsPersister(tetra.db.store, handle)
       // Load once on startup, then auto-save on store changes.
       // startAutoPersisting() also starts auto-load, which re-reads the file after every
       // save and produces a merge mutation, triggering another save — an infinite loop.
@@ -77,8 +56,8 @@ export function App() {
         return
       }
 
-      tetra.runner.recover()
-      void tetra.models.refresh()
+      tetra.runs.recover()
+      void tetra.catalog.refresh()
       setPersister(opfsPersister)
       console.log('opfs persister initialized')
     }
@@ -103,26 +82,29 @@ export function App() {
     )
   }
 
-  // TinyBase uses the single-store provider form for the app runtime store.
+  // TinyBase requires untyped store/indexes/persister for the Provider component.
   // oxlint-disable-next-line no-unsafe-type-assertion
-  const runtimeStore = tetra.store as unknown as TinyStore
+  const runtimeStore = tetra.db.store as unknown as TinyStore
   // oxlint-disable-next-line no-unsafe-type-assertion
-  const runtimeIndexes = tetra.indexes as unknown as TinyIndexes
+  const runtimeIndexes = tetra.db.indexes as unknown as TinyIndexes
   // oxlint-disable-next-line no-unsafe-type-assertion
   const runtimePersister = persister as unknown as TinyPersister
-  const contextValue = {
-    ...tetra,
-    activeCredentialId,
-    openCredentialSettings: (id: string) => {
-      setActiveCredentialId(id)
-      setSettingsOpen(true)
-    },
-    setSettingsOpen,
-    settingsOpen,
-  }
 
   return (
-    <TetraContext value={contextValue}>
+    <TetraContext
+      value={{
+        activeCredentialId,
+        catalog: tetra.catalog,
+        openCredentialSettings: (id: string) => {
+          setActiveCredentialId(id)
+          setSettingsOpen(true)
+        },
+        runs: tetra.runs,
+        setSettingsOpen,
+        settingsOpen,
+        store: tetra.store,
+      }}
+    >
       <Provider store={runtimeStore} indexes={runtimeIndexes} persister={runtimePersister}>
         <SidebarProvider>
           <Sidebar>

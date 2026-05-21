@@ -20,6 +20,11 @@
     "packages/*": {
       "includeEntryExports": true,
       "project": ["src/**/*.{ts,tsx}"]
+    },
+    "packages/core": {
+      "includeEntryExports": true,
+      "project": ["src/**/*.{ts,tsx}"],
+      "entry": ["src/**/*.test.ts"]
     }
   }
 }

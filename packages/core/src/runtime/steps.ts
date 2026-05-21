@@ -1,10 +1,8 @@
-import type { OnStepFinishEvent } from 'ai'
 import { z } from 'zod'
 
-import type { StepRecord } from '#model'
+import type { StepRecord } from '#db'
 
-// Verbatim provider JSON at step.usage.raw — OpenRouter extensions on top of the OpenAI schema.
-// Only the fields we actually use are declared; defaults are set here rather than scattered at call sites.
+// Parses OpenRouter-specific cost and token details from the raw provider metadata.
 const ProviderRaw = z.object({
   completion_tokens_details: z
     .object({
@@ -28,9 +26,7 @@ const ProviderRaw = z.object({
     .default({ audio_tokens: 0, video_tokens: 0 }),
 })
 
-// OnStepFinishEvent schema — declares exactly the fields we need, with defaults for sparse providers.
-// Transforms directly to StepRecord; no manual ?? fallbacks needed at call sites.
-const StepEvent = z
+export const StepEvent = z
   .object({
     finishReason: z.string(),
     model: z.object({ modelId: z.string() }).optional(),
@@ -81,7 +77,3 @@ const StepEvent = z
       },
     }
   })
-
-export function parseStep(event: OnStepFinishEvent): StepRecord {
-  return StepEvent.parse(event)
-}

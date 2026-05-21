@@ -15,7 +15,7 @@ import { SettingsIcon } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 
 import { useCredential } from '@/hooks/use-credential'
-import { useTetra } from '@/tetra-provider'
+import { useTetra } from '@/tetra/provider'
 
 export function SettingsDialog() {
   const tetra = useTetra()

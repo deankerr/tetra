@@ -1,0 +1,318 @@
+import { expect, test } from 'bun:test'
+
+import type { LanguageModelV3StreamPart } from '@ai-sdk/provider'
+import { simulateReadableStream, tool } from 'ai'
+import { MockLanguageModelV3 } from 'ai/test'
+import { z } from 'zod'
+
+import { createCoreModules, Runs } from '../index.ts'
+import { toolsRegistryMap } from '../tools/tools.ts'
+import type { CredentialReader, LanguageModelResolver } from './run.ts'
+
+function createTestRuntime() {
+  const core = createCoreModules()
+  const credentials: CredentialReader = { get: () => '' }
+  const streamChunks: LanguageModelV3StreamPart[] = [
+    { type: 'stream-start', warnings: [] },
+    { id: 'text-1', type: 'text-start' },
+    { delta: 'hello', id: 'text-1', type: 'text-delta' },
+    { delta: ' world', id: 'text-1', type: 'text-delta' },
+    { id: 'text-1', type: 'text-end' },
+    {
+      finishReason: { raw: 'stop', unified: 'stop' },
+      type: 'finish',
+      usage: {
+        inputTokens: { cacheRead: 0, cacheWrite: 0, noCache: 1, total: 1 },
+        outputTokens: { reasoning: 0, text: 2, total: 2 },
+      },
+    },
+  ]
+  const model = new MockLanguageModelV3({
+    doStream: {
+      stream: simulateReadableStream<LanguageModelV3StreamPart>({
+        chunkDelayInMs: null,
+        chunks: streamChunks,
+        initialDelayInMs: null,
+      }),
+    },
+  })
+  const modelResolver: LanguageModelResolver = { resolve: () => model }
+  const runs = new Runs(core.store, credentials, modelResolver)
+
+  return { core, model, runs }
+}
+
+test('start streams through the AI SDK into TinyBase rows', async () => {
+  const { core, model, runs } = createTestRuntime()
+  const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
+
+  core.store.appendTextMessage(sessionId, { role: 'user', text: 'hello' })
+  const assistantMessageId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
+
+  const run = runs.start({ assistantMessageId })
+  expect(core.store.getRequest(run.requestId).status).toBe('preparing')
+
+  await run.done
+
+  const messages = core.store.listMessages(sessionId)
+  const request = core.store.getRequest(run.requestId)
+
+  expect(run.status).toBe('completed')
+  expect(request.status).toBe('completed')
+  expect(request.config).toEqual({ modelId: 'mock-model' })
+  expect(messages).toHaveLength(2)
+  expect(messages[0]?.role).toBe('user')
+  expect(messages[0]?.parts).toEqual([{ text: 'hello', type: 'text' }])
+  expect(messages[1]?.id).toBe(run.assistantMessageId)
+  expect(messages[1]?.role).toBe('assistant')
+  expect(messages[1]?.parts.find((part) => part.type === 'text')).toMatchObject({
+    state: 'done',
+    text: 'hello world',
+    type: 'text',
+  })
+  expect(run.finalParts).toEqual(messages[1]?.parts)
+  expect(model.doStreamCalls).toHaveLength(1)
+  expect(model.doStreamCalls[0]?.prompt).toEqual([
+    { content: [{ text: 'hello', type: 'text' }], role: 'user' },
+  ])
+})
+
+test('Pre-Run Invariants — throws before creating request when systemPromptId is missing', () => {
+  const { core, runs } = createTestRuntime()
+  const sessionId = core.store.createSession({
+    config: { modelId: 'mock-model', systemPromptId: 'non-existent-prompt' },
+  })
+
+  core.store.appendTextMessage(sessionId, { role: 'user', text: 'hello' })
+  const assistantMessageId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
+  const requestsBefore = core.store.listRequestIds(sessionId)
+  const sessionBefore = core.store.getSession(sessionId)
+
+  expect(() => runs.start({ assistantMessageId })).toThrow('Prompt not found: non-existent-prompt')
+
+  const requestsAfter = core.store.listRequestIds(sessionId)
+  const sessionAfter = core.store.getSession(sessionId)
+
+  expect(requestsAfter).toHaveLength(requestsBefore.length)
+  expect(sessionAfter.updatedAt).toBe(sessionBefore.updatedAt)
+})
+
+test('History Reconstruction — prior messages appear in prompt, current placeholder excluded', async () => {
+  const { core, model, runs } = createTestRuntime()
+  const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
+
+  core.store.appendTextMessage(sessionId, { role: 'user', text: 'prior user' })
+  core.store.appendTextMessage(sessionId, { role: 'assistant', text: 'prior assistant' })
+  core.store.appendTextMessage(sessionId, { role: 'user', text: 'new message' })
+  const assistantMessageId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
+
+  const run = runs.start({ assistantMessageId })
+  await run.done
+
+  expect(model.doStreamCalls).toHaveLength(1)
+  expect(model.doStreamCalls[0]?.prompt).toEqual([
+    { content: [{ text: 'prior user', type: 'text' }], role: 'user' },
+    { content: [{ text: 'prior assistant', type: 'text' }], role: 'assistant' },
+    { content: [{ text: 'new message', type: 'text' }], role: 'user' },
+  ])
+})
+
+test('History Reconstruction — maxMessages limits history at the execution boundary', async () => {
+  const { core, model, runs } = createTestRuntime()
+  const sessionId = core.store.createSession({ config: { maxMessages: 2, modelId: 'mock-model' } })
+
+  core.store.appendTextMessage(sessionId, { role: 'user', text: 'oldest user' })
+  core.store.appendTextMessage(sessionId, { role: 'assistant', text: 'oldest assistant' })
+  core.store.appendTextMessage(sessionId, { role: 'user', text: 'recent user' })
+  core.store.appendTextMessage(sessionId, { role: 'assistant', text: 'recent assistant' })
+  core.store.appendTextMessage(sessionId, { role: 'user', text: 'latest' })
+  const assistantMessageId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
+
+  const run = runs.start({ assistantMessageId })
+  await run.done
+
+  expect(model.doStreamCalls[0]?.prompt).toEqual([
+    { content: [{ text: 'recent assistant', type: 'text' }], role: 'assistant' },
+    { content: [{ text: 'latest', type: 'text' }], role: 'user' },
+  ])
+})
+
+test('Tool Loop — tool call executes and result appears in final parts', async () => {
+  const core = createCoreModules()
+  const credentials: CredentialReader = { get: () => '' }
+
+  const toolCallChunks: LanguageModelV3StreamPart[] = [
+    { type: 'stream-start', warnings: [] },
+    { id: 'tool-1', toolName: 'getWeather', type: 'tool-input-start' },
+    { delta: '{"city":"Paris"}', id: 'tool-1', type: 'tool-input-delta' },
+    { id: 'tool-1', type: 'tool-input-end' },
+    {
+      input: '{"city":"Paris"}',
+      toolCallId: 'call-1',
+      toolName: 'getWeather',
+      type: 'tool-call',
+    },
+    {
+      finishReason: { raw: 'tool-calls', unified: 'tool-calls' },
+      type: 'finish',
+      usage: {
+        inputTokens: { cacheRead: 0, cacheWrite: 0, noCache: 1, total: 1 },
+        outputTokens: { reasoning: 0, text: 0, total: 0 },
+      },
+    },
+  ]
+
+  const textChunks: LanguageModelV3StreamPart[] = [
+    { type: 'stream-start', warnings: [] },
+    { id: 'text-1', type: 'text-start' },
+    { delta: 'Paris is sunny', id: 'text-1', type: 'text-delta' },
+    { id: 'text-1', type: 'text-end' },
+    {
+      finishReason: { raw: 'stop', unified: 'stop' },
+      type: 'finish',
+      usage: {
+        inputTokens: { cacheRead: 0, cacheWrite: 0, noCache: 1, total: 2 },
+        outputTokens: { reasoning: 0, text: 2, total: 2 },
+      },
+    },
+  ]
+
+  let streamCallCount = 0
+  const model = new MockLanguageModelV3({
+    // eslint-disable-next-line require-await -- async required by PromiseLike<LanguageModelV3StreamResult>; no await needed when returning a pre-built stream
+    doStream: async () => {
+      const call = streamCallCount
+      streamCallCount += 1
+      return {
+        stream: simulateReadableStream<LanguageModelV3StreamPart>({
+          chunkDelayInMs: null,
+          chunks: call === 0 ? toolCallChunks : textChunks,
+          initialDelayInMs: null,
+        }),
+      }
+    },
+  })
+
+  const modelResolver: LanguageModelResolver = { resolve: () => model }
+  const runs = new Runs(core.store, credentials, modelResolver)
+  const sessionId = core.store.createSession({
+    config: { modelId: 'mock-model', toolIds: ['getWeather'] },
+  })
+
+  const getWeatherTool = tool({
+    description: 'Get weather for a city',
+    execute: ({ city }) => ({ city, weather: 'sunny' }),
+    inputSchema: z.object({ city: z.string() }),
+  })
+
+  toolsRegistryMap.set('getWeather', {
+    category: 'test',
+    createTool: () => getWeatherTool,
+    credentialIds: [],
+    description: 'Get weather for a city',
+    label: 'Get Weather',
+  })
+
+  try {
+    core.store.appendTextMessage(sessionId, { role: 'user', text: 'what is the weather?' })
+    const assistantMessageId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
+    const run = runs.start({ assistantMessageId })
+    await run.done
+
+    expect(model.doStreamCalls).toHaveLength(2)
+    expect(run.status).toBe('completed')
+    expect(model.doStreamCalls[1]?.prompt).toBeDefined()
+    expect(run.finalParts?.find((p) => p.type === 'text')).toMatchObject({
+      state: 'done',
+      text: 'Paris is sunny',
+      type: 'text',
+    })
+  } finally {
+    toolsRegistryMap.delete('getWeather')
+  }
+})
+
+test('Error Path — stream error sets request to error status', async () => {
+  const core = createCoreModules()
+  const credentials: CredentialReader = { get: () => '' }
+
+  const model = new MockLanguageModelV3({
+    doStream: () => {
+      throw new Error('Provider API error')
+    },
+  })
+
+  const modelResolver: LanguageModelResolver = { resolve: () => model }
+  const runs = new Runs(core.store, credentials, modelResolver)
+  const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
+
+  core.store.appendTextMessage(sessionId, { role: 'user', text: 'hello' })
+  const assistantMessageId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
+  const run = runs.start({ assistantMessageId })
+  await run.done
+
+  const request = core.store.getRequest(run.requestId)
+
+  expect(run.status).toBe('error')
+  expect(request.status).toBe('error')
+  expect(request.errorMessage).toContain('Provider API error')
+  expect(run.error).toBeDefined()
+  expect(String(run.error)).toContain('Provider API error')
+})
+
+test('Error Path — later requests can still run after an error', async () => {
+  const core = createCoreModules()
+  const credentials: CredentialReader = { get: () => '' }
+
+  let callCount = 0
+  const model = new MockLanguageModelV3({
+    // eslint-disable-next-line require-await -- async required by PromiseLike<LanguageModelV3StreamResult>; no await needed when branch throws or returns a pre-built stream
+    doStream: async () => {
+      callCount += 1
+      if (callCount === 1) {
+        throw new Error('First call fails')
+      }
+      return {
+        stream: simulateReadableStream<LanguageModelV3StreamPart>({
+          chunkDelayInMs: null,
+          chunks: [
+            { type: 'stream-start', warnings: [] },
+            { id: 'text-1', type: 'text-start' },
+            { delta: 'recovered', id: 'text-1', type: 'text-delta' },
+            { id: 'text-1', type: 'text-end' },
+            {
+              finishReason: { raw: 'stop', unified: 'stop' },
+              type: 'finish',
+              usage: {
+                inputTokens: { cacheRead: 0, cacheWrite: 0, noCache: 1, total: 1 },
+                outputTokens: { reasoning: 0, text: 1, total: 1 },
+              },
+            },
+          ],
+          initialDelayInMs: null,
+        }),
+      }
+    },
+  })
+
+  const modelResolver: LanguageModelResolver = { resolve: () => model }
+  const runs = new Runs(core.store, credentials, modelResolver)
+  const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
+
+  core.store.appendTextMessage(sessionId, { role: 'user', text: 'fail' })
+  const failAssistantId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
+  const failedRun = runs.start({ assistantMessageId: failAssistantId })
+  await failedRun.done
+  expect(failedRun.status).toBe('error')
+
+  core.store.appendTextMessage(sessionId, { role: 'user', text: 'retry' })
+  const retryAssistantId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
+  const successRun = runs.start({ assistantMessageId: retryAssistantId })
+  await successRun.done
+  expect(successRun.status).toBe('completed')
+  expect(successRun.finalParts?.find((p) => p.type === 'text')).toMatchObject({
+    state: 'done',
+    text: 'recovered',
+    type: 'text',
+  })
+})

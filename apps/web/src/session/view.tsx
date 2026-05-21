@@ -11,8 +11,10 @@ import { Toggle } from '@tetra/ui/components/ui/toggle'
 import { Code2Icon, MessagesSquareIcon, Settings2Icon, TableIcon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 
-import { useOpenSessionIds, useSession, useSessionMessageIds, useSetOpenSessionIds } from '@/api'
 import { TetraLogo } from '@/components/tetra-logo'
+import { useOpenSessionIds, useSetOpenSessionIds } from '@/tetra/hooks/app-state'
+import { useSession } from '@/tetra/hooks/sessions'
+import { useSessionMessageIds } from '@/tetra/hooks/transcripts'
 
 import { Composer } from './composer'
 import { SessionExportButton } from './export-button'
@@ -20,7 +22,7 @@ import { MessageBubble } from './message-bubble'
 import { MessageInspector } from './message-inspector'
 import { RequestsTable } from './requests-table'
 import { SessionSettings } from './settings'
-import { SystemPromptSheet } from './settings/prompt-field'
+import { PromptEditorSheet } from './settings/prompt-editor-sheet'
 
 type MessageView = 'chat' | 'debug' | 'requests'
 
@@ -158,7 +160,7 @@ function ActiveSession({
         )}
       </div>
 
-      {/* Config panel */}
+      {/* Settings sheet */}
       <Sheet onOpenChange={setDetailOpen} open={detailOpen}>
         <SheetContent className="w-80 sm:max-w-80" showCloseButton={false}>
           <div className="flex h-(--header-height) shrink-0 items-center justify-between border-b px-2">
@@ -179,7 +181,7 @@ function ActiveSession({
       </Sheet>
 
       {/* Prompt sheet — sibling to settings sheet so portal events don't bubble through its popup */}
-      <SystemPromptSheet
+      <PromptEditorSheet
         onOpenChange={setPromptSheetOpen}
         open={promptSheetOpen}
         sessionId={sessionId}

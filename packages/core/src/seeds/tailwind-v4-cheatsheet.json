@@ -149,7 +149,6 @@
   "requests": [
     {
       "assistantMessageId": "mesg_Osydnrm----wzvFR",
-      "completedAt": 1779167646754,
       "config": {
         "modelId": "anthropic/claude-sonnet-4.5",
         "providerOptions": {
@@ -165,6 +164,7 @@
       "id": "rqst_Osydnrm---0wzvFR",
       "sessionId": "sess_OsyJwZv----kQWHS",
       "status": "completed",
+      "terminalAt": 1779167646754,
       "steps": [
         {
           "cost": {

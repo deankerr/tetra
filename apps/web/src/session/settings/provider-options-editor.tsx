@@ -1,4 +1,4 @@
-import type { ModelConfig } from '@tetra/core'
+import type { RequestConfigType } from '@tetra/core'
 import { Button } from '@tetra/ui/components/ui/button'
 import { Input } from '@tetra/ui/components/ui/input'
 import { BracesIcon, PlusIcon, XIcon } from 'lucide-react'
@@ -6,8 +6,8 @@ import { useEffect, useReducer, useRef } from 'react'
 import type { Dispatch } from 'react'
 import { z } from 'zod'
 
-import { useSessionConfig } from '@/api'
-import { useTetra } from '@/tetra-provider'
+import { useSessionConfig } from '@/tetra/hooks/sessions'
+import { useTetra } from '@/tetra/provider'
 
 // --- Types ---
 
@@ -26,7 +26,7 @@ interface ObjectEntry {
 }
 
 type Entry = ObjectEntry | ScalarEntry
-type ProviderOptions = NonNullable<ModelConfig['providerOptions']>
+type ProviderOptions = NonNullable<RequestConfigType['providerOptions']>
 type ProviderOption = ProviderOptions[string]
 
 const EMPTY_PROVIDER_OPTIONS: ProviderOptions = {}
@@ -317,32 +317,24 @@ function ObjectRow({ dispatch, entry }: { dispatch: Dispatch<Action>; entry: Obj
 
 // --- Editor ---
 
+// Rendered with key={sessionId} by the parent — each session gets a fresh instance,
+// so sessionId never changes within this component's lifetime.
 export function ProviderOptionsEditor({ sessionId }: { sessionId: string }) {
-  const { sessions } = useTetra()
+  const { store } = useTetra()
   const options = useSessionConfig(sessionId).providerOptions ?? EMPTY_PROVIDER_OPTIONS
   const [entries, dispatch] = useReducer(entriesReducer, options, optionsToEntries)
-  const prevSessionId = useRef(sessionId)
   const isInitialRender = useRef(true)
-
-  useEffect(() => {
-    if (prevSessionId.current !== sessionId) {
-      dispatch({ entries: optionsToEntries(options), type: 'reset' })
-      prevSessionId.current = sessionId
-      isInitialRender.current = true
-    }
-  }, [sessionId, options])
 
   useEffect(() => {
     if (isInitialRender.current) {
       isInitialRender.current = false
       return
     }
-    const current = sessions.getConfig(sessionId)
-    sessions.setConfig(sessionId, {
-      ...current,
+    store.setSessionConfig(sessionId, {
+      ...store.getSessionConfig(sessionId),
       providerOptions: entriesToOptions(entries),
-    } as ModelConfig)
-  }, [entries, sessions, sessionId])
+    })
+  }, [entries, store, sessionId])
 
   return (
     <div className="flex flex-col gap-1.5">

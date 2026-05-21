@@ -1,10 +1,11 @@
 import { z } from 'zod'
 
-import type { TetraStore } from '#store'
+import type { Rows, TetraDb } from '#db'
 
-// --- OpenRouter API schema ---
+const STALE_MS = 60 * 60 * 1000
+const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models'
 
-const orModelSchema = z.object({
+const OpenRouterModel = z.object({
   architecture: z.object({
     input_modalities: z.array(z.string()),
     output_modalities: z.array(z.string()),
@@ -16,81 +17,63 @@ const orModelSchema = z.object({
   supported_parameters: z.array(z.string()),
 })
 
-const orResponseSchema = z.object({ data: z.array(orModelSchema) })
+const OpenRouterModelsResponse = z.object({
+  data: z.array(OpenRouterModel),
+})
 
-// --- Parsing ---
+export class Catalog {
+  private readonly db: TetraDb
 
-function parseProviderName(rawName: string): string {
-  // OpenRouter names are "Provider: Model Name" — extract the provider part
-  const colonIdx = rawName.indexOf(':')
-  return colonIdx > 0 ? rawName.slice(0, colonIdx).trim() : ''
-}
-
-function parseModelName(rawName: string): string {
-  const colonIdx = rawName.indexOf(':')
-  return colonIdx > 0 ? rawName.slice(colonIdx + 1).trim() : rawName
-}
-
-// --- Staleness threshold ---
-
-const STALE_MS = 60 * 60 * 1000
-
-// --- Factory ---
-
-export interface Catalog {
-  refresh(opts?: { force?: boolean }): Promise<void>
-}
-
-export function createCatalog(store: TetraStore): Catalog {
-  const isStale = () => {
-    const last = store.store.getValue('catalogLastRefreshed')
-    return !last || Date.now() - last > STALE_MS
+  constructor(db: TetraDb) {
+    this.db = db
   }
 
-  const refresh = async (opts?: { force?: boolean }) => {
-    if (opts?.force !== true && !isStale()) {
+  async refresh(args: { force?: boolean } = {}): Promise<void> {
+    const lastRefreshed = this.db.store.getValue('catalogLastRefreshed')
+    const isStale = !lastRefreshed || Date.now() - lastRefreshed > STALE_MS
+    if (args.force !== true && !isStale) {
       return
     }
 
-    const res = await fetch('https://openrouter.ai/api/v1/models')
-    if (!res.ok) {
-      throw new Error(`OpenRouter models fetch failed: ${res.status} ${res.statusText}`)
+    // Fetch and parse the OpenRouter model list.
+    const response = await fetch(OPENROUTER_MODELS_URL)
+    if (!response.ok) {
+      throw new Error(`OpenRouter models fetch failed: ${response.status} ${response.statusText}`)
     }
-    const json = orResponseSchema.parse(await res.json())
 
-    // Build new rows keyed by model id
-    const incoming: Record<string, Record<string, unknown>> = {}
-    for (const raw of json.data) {
-      const providerName = parseProviderName(raw.name)
-      const provider = raw.id.split('/')[0] ?? ''
-      incoming[raw.id] = {
-        contextLength: raw.context_length,
-        createdAt: raw.created,
-        inputModalities: raw.architecture.input_modalities.join(','),
-        name: parseModelName(raw.name),
-        outputModalities: raw.architecture.output_modalities.join(','),
+    const { data } = OpenRouterModelsResponse.parse(await response.json())
+    const models: Rows.LanguageModel[] = data.map((model) => {
+      const [provider = ''] = model.id.split('/')
+      const colonIndex = model.name.indexOf(':')
+      const rawProviderName = colonIndex > 0 ? model.name.slice(0, colonIndex).trim() : ''
+      const name = colonIndex > 0 ? model.name.slice(colonIndex + 1).trim() : model.name
+
+      return {
+        contextLength: model.context_length,
+        createdAt: model.created,
+        id: model.id,
+        inputModalities: model.architecture.input_modalities,
+        name,
+        outputModalities: model.architecture.output_modalities,
         provider,
-        providerName: providerName || provider,
-        supportedParameters: raw.supported_parameters.join(','),
+        providerName: rawProviderName || provider,
+        supportedParameters: model.supported_parameters,
       }
-    }
+    })
 
-    // Purge rows no longer returned by the API
-    const existingIds = store.store.getRowIds('languageModels')
-    const incomingIds = new Set(Object.keys(incoming))
-    for (const id of existingIds) {
-      if (!incomingIds.has(id)) {
-        store.store.delRow('languageModels', id)
+    // Replace the full catalog in one transaction: remove stale entries, upsert incoming.
+    const incomingIds = new Set(models.map((m) => m.id))
+    this.db.store.transaction(() => {
+      for (const existingId of this.db.store.getRowIds('languageModels')) {
+        if (!incomingIds.has(existingId)) {
+          this.db.store.delRow('languageModels', existingId)
+        }
       }
-    }
+      for (const { id, ...record } of models) {
+        this.db.store.setRow('languageModels', id, record)
+      }
+    })
 
-    // Write all new/updated rows
-    for (const [id, row] of Object.entries(incoming)) {
-      store.store.setRow('languageModels', id, row)
-    }
-
-    store.store.setValue('catalogLastRefreshed', Date.now())
+    this.db.store.setValue('catalogLastRefreshed', Date.now())
   }
-
-  return { refresh }
 }

@@ -19,11 +19,12 @@ import {
 import { MoreHorizontalIcon, PlusIcon } from 'lucide-react'
 import { useRef, useState } from 'react'
 
-import { useOpenSessionIds, useSession, useSessionIds, useSetOpenSessionIds } from '@/api'
-import { useTetra } from '@/tetra-provider'
+import { useOpenSessionIds, useSetOpenSessionIds } from '@/tetra/hooks/app-state'
+import { useSession, useSessionIds } from '@/tetra/hooks/sessions'
+import { useTetra } from '@/tetra/provider'
 
 export function SessionGroup() {
-  const { sessions } = useTetra()
+  const { store } = useTetra()
   const sessionIds = useSessionIds()
   const openSessionIds = useOpenSessionIds()
   const setOpenSessionIds = useSetOpenSessionIds()
@@ -34,7 +35,7 @@ export function SessionGroup() {
       <SidebarGroupAction
         className="top-2.5"
         onClick={() => {
-          const newId = sessions.create()
+          const newId = store.createSession()
           setOpenSessionIds([...openSessionIds, newId])
         }}
       >
@@ -48,7 +49,7 @@ export function SessionGroup() {
               active={openSessionIds.includes(sessionId)}
               key={sessionId}
               onDelete={() => {
-                sessions.delete(sessionId)
+                store.deleteSession(sessionId)
 
                 // Remove from open list; if that empties it, open the next available session
                 const remaining = openSessionIds.filter((id) => id !== sessionId)
@@ -56,11 +57,11 @@ export function SessionGroup() {
                   setOpenSessionIds(remaining)
                 } else {
                   const nextId = sessionIds.find((id) => id !== sessionId)
-                  setOpenSessionIds(nextId === undefined ? [sessions.create()] : [nextId])
+                  setOpenSessionIds(nextId === undefined ? [store.createSession()] : [nextId])
                 }
               }}
               onRename={(title) => {
-                sessions.rename(sessionId, title)
+                store.renameSession(sessionId, title)
               }}
               onSelect={() => {
                 if (openSessionIds.includes(sessionId)) {

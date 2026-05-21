@@ -1,4 +1,4 @@
-import type { ModelConfig } from '@tetra/core'
+import type { RequestConfigType } from '@tetra/core'
 import type { Command } from 'commander'
 
 import type { bootstrap } from '../bootstrap'
@@ -18,7 +18,7 @@ interface ChatOptions {
   active?: boolean
 }
 
-export async function runChat(ctx: CliContext, parts: string[], opts: ChatOptions): Promise<void> {
+async function runChat(ctx: CliContext, parts: string[], opts: ChatOptions): Promise<void> {
   // Gather the user's request from argv and stdin before touching session state.
   const content = await readMessage({ message: opts.message, parts })
   await runChatContent(ctx, content, opts)
@@ -43,7 +43,7 @@ export async function runChatContent(
   })
 
   // Only pass per-request config fields that the user explicitly provided.
-  const config: Partial<ModelConfig> = {
+  const config: Partial<RequestConfigType> = {
     ...(opts.model !== undefined && { modelId: opts.model }),
     ...(typeof opts.prompt === 'string' && { systemPromptId: opts.prompt }),
   }
@@ -51,27 +51,28 @@ export async function runChatContent(
     config.systemPromptId = undefined
   }
 
+  // Create the user and assistant messages, then hand off to the run.
+  ctx.store.appendTextMessage(sessionId, { role: 'user', text: content })
+  const assistantMessageId = ctx.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
+
   // Stream new assistant text to stdout as UIMessage snapshots arrive.
   let lastLength = 0
-  const { requestId } = ctx.runner.execute(sessionId, {
-    config,
-    content,
-    onSnapshot: (msg) => {
-      const text = msg.parts
-        .filter((part): part is { text: string; type: 'text' } => part.type === 'text')
-        .map((part) => part.text)
-        .join('')
-      process.stdout.write(text.slice(lastLength))
-      lastLength = text.length
-    },
+  const run = ctx.runs.start({ assistantMessageId, config })
+  run.addEventListener('snapshot', () => {
+    const text = run.parts
+      .filter((part): part is { text: string; type: 'text' } => part.type === 'text')
+      .map((part) => part.text)
+      .join('')
+    process.stdout.write(text.slice(lastLength))
+    lastLength = text.length
   })
 
   // Wait for the durable request row to reach a terminal status before exiting.
-  await waitForRequest(ctx.store, requestId)
+  await waitForRequest(run)
   console.log()
 }
 
-export function addChatOptions(command: Command): Command {
+function addChatOptions(command: Command): Command {
   return command
     .option('--new', 'Force a new session')
     .option('--no-active', 'Do not update the active session')

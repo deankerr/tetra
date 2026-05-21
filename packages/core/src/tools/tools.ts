@@ -30,7 +30,7 @@ const toolRegistry = {
   exaSearchWeb: {
     category: 'web',
     createTool: ({ EXA_API_KEY }) =>
-      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- webSearch compiled against an older ai version missing the onInputAvailable/onInputStart/onInputDelta Pick intersection; structurally compatible at runtime
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- webSearch compiled against an older ai version missing the onInputAvailable/onInputStart/onInputDelta Pick intersection; structurally compatible at runtime.
       webSearch({ apiKey: EXA_API_KEY, numResults: 5 }) as unknown as ToolSet[string],
     credentialIds: ['EXA_API_KEY'],
     description: 'Search the web using Exa neural search and return full content results.',
@@ -137,6 +137,7 @@ export function resolveTools(
       console.warn('[tools] unknown tool id ignored:', toolId)
       continue
     }
+
     const credentials = Object.fromEntries(def.credentialIds.map((id) => [id, getCredential(id)]))
     tools[toolId] = def.createTool(credentials)
   }

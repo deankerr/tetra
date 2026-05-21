@@ -14,7 +14,7 @@ export function registerPromptCommands(
     .description('List stored prompts')
     .action(async () => {
       const ctx = await getContext()
-      const prompts = ctx.prompts.list()
+      const prompts = ctx.store.listPrompts()
 
       if (prompts.length === 0) {
         console.log('No prompts. Run: tetra prompt create [content]')
@@ -22,7 +22,7 @@ export function registerPromptCommands(
       }
 
       for (const prompt of prompts) {
-        const label = prompt.label.trim() || prompt.content.trim().slice(0, 60) || '(empty)'
+        const label = prompt.label.trim() ?? prompt.content.trim().slice(0, 60) ?? '(empty)'
         console.log(`${prompt.id}  ${label}`)
       }
     })
@@ -37,7 +37,7 @@ export function registerPromptCommands(
     .description('Create a stored prompt')
     .action(async (content: string | undefined, opts: { label?: string }) => {
       const ctx = await getContext()
-      console.log(ctx.prompts.create({ content: content ?? '', label: opts.label ?? '' }))
+      console.log(ctx.store.createPrompt({ content: content ?? '', label: opts.label ?? '' }))
     })
 
   prompt
@@ -45,9 +45,9 @@ export function registerPromptCommands(
     .description('Show a stored prompt')
     .action(async (promptId: string) => {
       const ctx = await getContext()
-      const row = ctx.prompts.get(promptId)
+      const row = ctx.store.getPrompt(promptId)
       console.log(`id:      ${row.id}`)
-      console.log(`label:   ${row.label || '(none)'}`)
+      console.log(`label:   ${row.label ?? '(none)'}`)
       console.log(`content:\n${row.content}`)
     })
 
@@ -58,7 +58,7 @@ export function registerPromptCommands(
     .description('Update a stored prompt')
     .action(async (promptId: string, content: string | undefined, opts: { label?: string }) => {
       const ctx = await getContext()
-      ctx.prompts.update(promptId, {
+      ctx.store.updatePrompt(promptId, {
         ...(content !== undefined && { content }),
         ...(opts.label !== undefined && { label: opts.label }),
       })
@@ -70,7 +70,7 @@ export function registerPromptCommands(
     .description('Delete a stored prompt')
     .action(async (promptId: string) => {
       const ctx = await getContext()
-      ctx.prompts.delete(promptId)
+      ctx.store.deletePrompt(promptId)
       console.log(promptId)
     })
 }

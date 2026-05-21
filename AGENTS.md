@@ -63,7 +63,7 @@ bun run --filter @tetra/cli start seed
 # Web (OPFS) — open the app, click the bug icon (bottom-left), choose "Load seed data"
 ```
 
-Seed sessions live in `packages/core/src/seeds/`. `loadSeeds(sessions)` is exported from `@tetra/core` and loads them all at once. Idempotent — safe to call repeatedly.
+Seed sessions live in `packages/core/src/seeds/`. `loadSeeds(sessions)` is exported from `@tetra/core` and loads them all at once.
 
 ## Project Docs
 

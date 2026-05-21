@@ -1,5 +1,5 @@
-import type { Request } from '@tetra/core'
 import { StepRecord } from '@tetra/core'
+import type { Rows } from '@tetra/core'
 import {
   Table,
   TableBody,
@@ -10,7 +10,9 @@ import {
 } from '@tetra/ui/components/ui/table'
 import { useMemo } from 'react'
 
-import { useRequest, useSessionRequestIds } from '@/api'
+import { useRequest, useSessionRequestIds } from '@/tetra/hooks/requests'
+
+type Request = Rows.Request
 
 function formatTime(ts: number) {
   return new Date(ts).toLocaleTimeString([], {
@@ -51,6 +53,9 @@ function statusClass(status: string) {
   if (status === 'streaming') {
     return 'text-blue-500'
   }
+  if (status === 'preparing') {
+    return 'text-amber-500'
+  }
   return 'text-muted-foreground'
 }
 
@@ -62,8 +67,7 @@ function useRequestAccountingSummary(request: Request) {
     let inputTokens = 0
     let outputTokens = 0
 
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- steps stored as StepRecord[]
-    const steps = (request.steps as StepRecord[]) ?? []
+    const steps = request.steps ?? []
     for (const step of steps) {
       const parsed = StepRecord.safeParse(step)
       if (!parsed.success) {
@@ -105,7 +109,7 @@ function RequestRow({ request }: { request: Request }) {
       </TableCell>
       <TableCell className="font-mono">{formatCost(summary.cost)}</TableCell>
       <TableCell className="max-w-64 truncate text-red-400">
-        {request.errorMessage || null}
+        {request.errorMessage ?? null}
       </TableCell>
     </TableRow>
   )
