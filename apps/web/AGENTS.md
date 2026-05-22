@@ -1,5 +1,9 @@
 # web
 
+### Prototype Mode
+
+- Don't clutter our components with `useCallback` or `useMemo` unless absolutely necessary.
+
 ### shadcn/ui and AI Elements
 
 - ALWAYS activate the `shadcn` skill when authoring, adding, reviewing, or using `shadcn/ui` components.

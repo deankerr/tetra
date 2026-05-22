@@ -20,8 +20,8 @@ Dev data is wiped and regenerated as needed. This app is not public. There are h
 
 ## Packages
 
+- `@tetra/cli` — Bun CLI frontend, should always track the feature set of the web frontend (within reason)
 - `@tetra/core` — store schema, sessions, runner, tool registry. UI-agnostic.
-- `@tetra/cli` — Bun CLI frontend, bootstraps core with SQLite persistence.
 - `@tetra/credentials` — credential registry and localStorage store.
 - `@tetra/ui` — shadcn/ai-elements component library.
 - `@tetra/tinybase-schema` — typed TinyBase schema, store, index, and React wrappers.
@@ -57,7 +57,7 @@ The TinyBase repo is cloned as a submodule in `reference/tinybase`.
 - OPFS file (`tetra-redesign-runtime.json`) — local cache, survives offline/reload
 - `WsSynchronizer` → Cloudflare Durable Object at `VITE_WORKER_URL/tetra` — live sync across surfaces
 
-**CLI** (`packages/cli`) — mode selected by `--local` flag (default: sync):
+**CLI** (`apps/cli`) — mode selected by `--local` flag (default: sync):
 
 - `sync` (default): `MergeableStore` + `WsSynchronizer` to `TETRA_WORKER_URL/tetra` + JSON SQLite local cache (`tetra-sync-cache.db`)
 - `--local`: plain `Store` + tabular SQLite (`tetra-redesign.db`) — one SQL table per TinyBase table, no sync

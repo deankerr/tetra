@@ -13,9 +13,15 @@
       "entry": ["package.json"],
       "project": ["*.{js,cjs,mjs,ts,cts,mts}"]
     },
+    "apps/cli": {
+      "project": ["src/**/*.ts"]
+    },
     "apps/web": {
       "entry": ["src/router.tsx", "src/routes/**/*.{ts,tsx}"],
-      "project": ["src/**/*.{ts,tsx}", "*.{js,cjs,mjs,ts,cts,mts}"]
+      "project": ["src/**/*.{ts,tsx}"]
+    },
+    "apps/worker": {
+      "project": ["src/**/*.ts"]
     },
     "packages/*": {
       "includeEntryExports": true,
@@ -23,8 +29,13 @@
     },
     "packages/core": {
       "includeEntryExports": true,
-      "project": ["src/**/*.{ts,tsx}"],
-      "entry": ["src/**/*.test.ts"]
+      "entry": ["src/**/*.test.ts"],
+      "project": ["src/**/*.{ts,tsx}"]
+    },
+    "packages/tinybase-schema": {
+      "includeEntryExports": true,
+      "entry": ["src/**/*.test.ts"],
+      "project": ["src/**/*.{ts,tsx}"]
     }
   }
 }
