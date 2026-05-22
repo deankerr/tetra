@@ -6,15 +6,20 @@ import { Toaster } from '@tetra/ui/components/ui/sonner'
 import { Spinner } from '@tetra/ui/components/ui/spinner'
 import { useEffect, useState } from 'react'
 import type { Indexes as TinyIndexes, Store as TinyStore } from 'tinybase'
+import type { MergeableStore } from 'tinybase/mergeable-store'
 import type { Persister as TinyPersister } from 'tinybase/persisters'
 import type { OpfsPersister } from 'tinybase/persisters/persister-browser/with-schemas'
 import { createOpfsPersister } from 'tinybase/persisters/persister-browser/with-schemas'
+import type { WsSynchronizer } from 'tinybase/synchronizers/synchronizer-ws-client'
+import { createWsSynchronizer } from 'tinybase/synchronizers/synchronizer-ws-client'
 import { Provider } from 'tinybase/ui-react'
 import { Inspector } from 'tinybase/ui-react-inspector'
 
 import { SessionView } from '@/session/view'
 import { AppSidebar } from '@/sidebar/app-sidebar'
 import { TetraContext } from '@/tetra/provider'
+
+const WORKER_WS_URL = import.meta.env.VITE_WORKER_URL ?? 'ws://localhost:8787'
 
 interface TetraApp {
   catalog: Catalog
@@ -68,6 +73,36 @@ export function App() {
       cancelled = true
       void opfsPersister?.destroy()
       console.log('opfs persister destroyed')
+    }
+  }, [tetra])
+
+  useEffect(() => {
+    // MergeableStore at runtime — cast is safe since createTetraDb uses createTinybaseMergeableStore.
+    // oxlint-disable-next-line no-unsafe-type-assertion
+    const mergeableStore = tetra.db.store as unknown as MergeableStore
+    let cancelled = false
+    let synchronizer: WsSynchronizer<WebSocket> | null = null
+
+    const init = async () => {
+      const ws = new WebSocket(`${WORKER_WS_URL}/tetra`)
+      synchronizer = await createWsSynchronizer(mergeableStore, ws)
+      await synchronizer.startSync()
+
+      if (cancelled) {
+        await synchronizer.destroy()
+        console.log('worker synchronizer cancelled')
+        return
+      }
+
+      console.log('worker synchronizer started')
+    }
+
+    void init()
+
+    return () => {
+      cancelled = true
+      void synchronizer?.destroy()
+      console.log('worker synchronizer destroyed')
     }
   }, [tetra])
 

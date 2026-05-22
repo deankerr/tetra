@@ -48,6 +48,30 @@ The TinyBase repo is cloned as a submodule in `reference/tinybase`.
 - Use raw `store`/`indexes.raw` only for TinyBase integration points such as persisters, providers, or APIs the wrapper intentionally does not cover yet.
 - Track wrapper design notes, gaps, and deferred ideas in `packages/tinybase-schema/README.md`.
 
+## Sync & Persistence
+
+`createTetraDb({ mergeable })` in `@tetra/core` creates either a plain `Store` or a `MergeableStore` depending on the caller's needs. Both return the same typed API — the sync layer is invisible to business logic.
+
+**Web app** (`apps/web`) — always uses `MergeableStore`. Two persistence layers run in parallel:
+
+- OPFS file (`tetra-redesign-runtime.json`) — local cache, survives offline/reload
+- `WsSynchronizer` → Cloudflare Durable Object at `VITE_WORKER_URL/tetra` — live sync across surfaces
+
+**CLI** (`packages/cli`) — mode selected by `--local` flag (default: sync):
+
+- `sync` (default): `MergeableStore` + `WsSynchronizer` to `TETRA_WORKER_URL/tetra` + JSON SQLite local cache (`tetra-sync-cache.db`)
+- `--local`: plain `Store` + tabular SQLite (`tetra-redesign.db`) — one SQL table per TinyBase table, no sync
+
+**Worker** (`apps/worker`) — Cloudflare Worker + Durable Object. The DO extends `WsServerDurableObject` and persists to its own SQLite via `createDurableObjectSqlStoragePersister`. Deploy: `bun run --filter @tetra/worker deploy`.
+
+**Dump command** — snapshots the live DO store into a local tabular SQLite for SQL inspection without touching normal runtime state:
+
+```bash
+bun run --filter @tetra/cli start -- dump [--db path] [--settle ms]
+```
+
+See `docs/sync-architecture.md` for design notes and future directions (per-session DOs, session index).
+
 ## Monorepo
 
 Bun workspaces. Run scripts from the root.

@@ -1,3 +1,4 @@
+import { createMergeableStore as createTinybaseMergeableStore } from 'tinybase/mergeable-store/with-schemas'
 import { createStore as createTinybaseStore } from 'tinybase/store/with-schemas'
 import type { z } from 'zod'
 
@@ -85,6 +86,16 @@ export function defineTypedTinybase<
         store,
         typedIndexes as unknown as IndexDefinitions<TableDefinitions>,
       )
+    },
+
+    createTinybaseMergeableStore() {
+      const storeTablesSchema = structuredClone(tinybaseTablesSchema)
+      const storeValuesSchema = structuredClone(tinybaseValuesSchema)
+      // MergeableStore extends Store — safe to cast to the same TinybaseStore wrapper type.
+      return createTinybaseMergeableStore().setSchema(
+        storeTablesSchema,
+        storeValuesSchema,
+      ) as unknown as TinybaseStore<TinybaseSchemasOf<Tables, Values>>
     },
 
     createTinybaseStore() {

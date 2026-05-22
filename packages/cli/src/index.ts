@@ -1,20 +1,27 @@
 import { Command } from 'commander'
 
+import type { BootstrapMode } from './bootstrap'
 import { bootstrap } from './bootstrap'
 import { registerChatCommands } from './commands/chat'
 import { registerConfigCommand } from './commands/config'
+import { registerDumpCommand } from './commands/dump'
 import { registerModelsCommand } from './commands/models'
 import { registerPromptCommands } from './commands/prompts'
 import { registerSeedCommand } from './commands/seed'
 import { registerSessionCommands } from './commands/sessions'
 
 const program = new Command()
-program.name('tetra').description('Tetra CLI').version('0.1.0')
+program
+  .name('tetra')
+  .description('Tetra CLI')
+  .version('0.1.0')
+  .option('--local', 'Use local tabular SQLite instead of DO sync')
 
 // Lazily bootstrap so pure help/version output does not open the database.
 let context: Awaited<ReturnType<typeof bootstrap>> | undefined
 async function getContext() {
-  context ??= await bootstrap()
+  const mode: BootstrapMode = program.opts<{ local?: boolean }>().local === true ? 'local' : 'sync'
+  context ??= await bootstrap(mode)
   return context
 }
 
@@ -24,15 +31,7 @@ async function saveAndClose() {
   if (context === undefined) {
     return
   }
-  closePromise ??= (async () => {
-    const ctx = context
-    if (ctx === undefined) {
-      return
-    }
-    await ctx.persister.save()
-    await ctx.persister.destroy()
-    ctx.sqlite.close()
-  })()
+  closePromise ??= context.close()
   await closePromise
 }
 
@@ -56,6 +55,7 @@ registerConfigCommand(program, getContext)
 registerModelsCommand(program, getContext)
 registerPromptCommands(program, getContext)
 registerSeedCommand(program, getContext)
+registerDumpCommand(program)
 
 let exitCode = 0
 try {

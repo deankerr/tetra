@@ -162,8 +162,10 @@ export namespace Rows {
   }
 }
 
-export function createTetraDb() {
-  const store = tetraDbDefinition.createTinybaseStore()
+export function createTetraDb({ mergeable = true }: { mergeable?: boolean } = {}) {
+  const store = mergeable
+    ? tetraDbDefinition.createTinybaseMergeableStore()
+    : tetraDbDefinition.createTinybaseStore()
   const rawIndexes = tetraDbDefinition.createTinybaseIndexes(store)
   return {
     indexes: tetraDbDefinition.bindTinybaseIndexes(rawIndexes),

@@ -154,6 +154,7 @@ export interface TinybaseDefinition<
   createTinybaseIndexes(
     store: TinybaseStore<TinybaseSchemasOf<Tables, Values>>,
   ): TinybaseIndexes<TinybaseSchemasOf<Tables, Values>>
+  createTinybaseMergeableStore(): TinybaseStore<TinybaseSchemasOf<Tables, Values>>
   createTinybaseStore(): TinybaseStore<TinybaseSchemasOf<Tables, Values>>
   getCellSchema<TableId extends keyof Tables & string>(
     tableId: TableId,
