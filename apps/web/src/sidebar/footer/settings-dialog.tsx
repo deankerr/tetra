@@ -14,22 +14,17 @@ import { Label } from '@tetra/ui/components/ui/label'
 import { SettingsIcon } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 
-import { useCredential } from '@/hooks/use-credential'
-import { useTetra } from '@/tetra/provider'
+import { useSettings } from '@/settings-provider'
+import { useCredential } from '@/use-credential'
 
 export function SettingsDialog() {
-  const tetra = useTetra()
+  const settings = useSettings()
 
   return (
-    <Dialog
-      onOpenChange={(open) => {
-        tetra.setSettingsOpen(open)
-      }}
-      open={tetra.settingsOpen}
-    >
+    <Dialog onOpenChange={settings.setOpen} open={settings.open}>
       <DialogTrigger
         render={
-          <Button variant="ghost" size="icon">
+          <Button size="icon" variant="ghost">
             <SettingsIcon />
           </Button>
         }
@@ -45,7 +40,7 @@ export function SettingsDialog() {
         {credentialRegistry.map((definition) => (
           <CredentialField
             key={definition.id}
-            active={tetra.activeCredentialId === definition.id}
+            active={settings.activeCredentialId === definition.id}
             definition={definition}
           />
         ))}
@@ -69,7 +64,6 @@ function CredentialField({
     if (!active) {
       return
     }
-
     window.requestAnimationFrame(() => {
       inputRef.current?.focus()
     })

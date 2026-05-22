@@ -10,9 +10,8 @@ import {
 } from '@tetra/ui/components/ui/dropdown-menu'
 import { BugIcon, DatabaseIcon, Trash2Icon } from 'lucide-react'
 
+import { clearAllData } from '@/lib/clear-data'
 import { useTetra } from '@/tetra/provider'
-
-import { clearAllData } from './clear-data'
 
 export function DebugMenu() {
   const { store } = useTetra()
@@ -21,12 +20,12 @@ export function DebugMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button variant="ghost" size="icon">
+          <Button size="icon" variant="ghost">
             <BugIcon />
           </Button>
         }
-      ></DropdownMenuTrigger>
-      <DropdownMenuContent side="top" align="start" className="w-40">
+      />
+      <DropdownMenuContent align="start" className="w-40" side="top">
         <DropdownMenuGroup>
           <DropdownMenuLabel>Debug</DropdownMenuLabel>
           <DropdownMenuItem

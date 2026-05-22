@@ -2,11 +2,13 @@ import { Link } from '@tanstack/react-router'
 import { SidebarContent, SidebarFooter, SidebarHeader } from '@tetra/ui/components/ui/sidebar'
 
 import { TetraLogo } from '@/components/tetra-logo'
-import { DebugMenu } from '@/components/util/debug-menu'
-import { ThemeSwitcher } from '@/components/util/theme-switcher'
-import { PersistenceStatus } from '@/sidebar/persistence-status'
+import { ThemeSwitcher } from '@/sidebar/footer/theme-switcher'
 import { SessionGroup } from '@/sidebar/session-group'
-import { SettingsDialog } from '@/sidebar/settings-dialog'
+
+import { DebugMenu } from './footer/debug-menu'
+import { PersistenceStatus } from './footer/persistence-status'
+import { SettingsDialog } from './footer/settings-dialog'
+import { SyncStatus } from './footer/sync-status'
 
 export function AppSidebar() {
   return (
@@ -26,6 +28,7 @@ export function AppSidebar() {
 
       <SidebarFooter>
         <div className="flex items-center justify-center gap-2">
+          <SyncStatus />
           <PersistenceStatus />
           <DebugMenu />
           <SettingsDialog />

@@ -20,14 +20,16 @@ import type { UIMessage } from 'ai'
 import { ArrowUpFromDot, ImageIcon } from 'lucide-react'
 import { useState } from 'react'
 
-import { useCredential } from '@/hooks/use-credential'
 import { ModelPicker } from '@/session/settings/model-picker'
+import { useSettings } from '@/settings-provider'
 import { useActiveRequest } from '@/tetra/hooks/requests'
 import { useSessionConfig } from '@/tetra/hooks/sessions'
 import { useTetra } from '@/tetra/provider'
+import { useCredential } from '@/use-credential'
 
 export function Composer({ sessionId }: { sessionId: string }) {
   const tetra = useTetra()
+  const settings = useSettings()
   const activeRequest = useActiveRequest(sessionId)
   const isStreaming = activeRequest !== null
   const config = useSessionConfig(sessionId)
@@ -39,6 +41,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
     event,
   ) => {
     const text = message.text.trim()
+
     const parts: UIMessage['parts'] = [
       ...(text === '' ? [] : [{ text, type: 'text' } satisfies UIMessage['parts'][number]]),
       ...message.files,
@@ -62,7 +65,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
       toast.error('OpenRouter API key required', {
         description: 'Add an OpenRouter API key before running model inference.',
       })
-      tetra.openCredentialSettings('OPENROUTER_API_KEY')
+      settings.openCredentialSettings('OPENROUTER_API_KEY')
       throw new Error('OpenRouter API key required')
     }
 

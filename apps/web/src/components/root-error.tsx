@@ -3,7 +3,7 @@ import { useRouter } from '@tanstack/react-router'
 import { Button } from '@tetra/ui/components/ui/button'
 import { AlertCircleIcon, Trash2Icon } from 'lucide-react'
 
-import { clearAllData } from '@/components/util/clear-data'
+import { clearAllData } from '@/lib/clear-data'
 
 export function RootErrorComponent({ error, reset }: ErrorComponentProps) {
   const router = useRouter()

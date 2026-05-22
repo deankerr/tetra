@@ -8,9 +8,19 @@ const config = defineConfig({
   build: {
     chunkSizeWarningLimit: 2000,
   },
-  plugins: [devtools(), tailwindcss(), tanstackStart({ spa: { enabled: true } }), viteReact()],
+  plugins: [
+    devtools({
+      consolePiping: { enabled: false },
+    }),
+    tailwindcss(),
+    tanstackStart({ spa: { enabled: true } }),
+    viteReact(),
+  ],
   resolve: {
     tsconfigPaths: true,
+  },
+  server: {
+    forwardConsole: false,
   },
 })
 
