@@ -124,6 +124,10 @@ export class Store {
     })
   }
 
+  updateSessionConfig(sessionId: string, patch: Partial<RequestConfig>): void {
+    this.setSessionConfig(sessionId, { ...this.getSessionConfig(sessionId), ...patch })
+  }
+
   sessionExists(sessionId: string): boolean {
     return this.db.tables.sessions.hasRow(sessionId)
   }

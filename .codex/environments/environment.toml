@@ -9,6 +9,6 @@ cp $CODEX_SOURCE_TREE_PATH/apps/cli/.env $CODEX_WORKTREE_PATH/apps/cli/.env
 '''
 
 [[actions]]
-name = "start web dev server"
+name = "dev server"
 icon = "run"
 command = "bun run dev"

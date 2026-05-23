@@ -6,8 +6,7 @@ import { useEffect, useReducer, useRef } from 'react'
 import type { Dispatch } from 'react'
 import { z } from 'zod'
 
-import { useSessionConfig } from '@/tetra/hooks/sessions'
-import { useTetra } from '@/tetra/provider'
+import { useSessionConfig, useUpdateSessionConfig } from '@/tetra/hooks/sessions'
 
 // --- Types ---
 
@@ -320,8 +319,8 @@ function ObjectRow({ dispatch, entry }: { dispatch: Dispatch<Action>; entry: Obj
 // Rendered with key={sessionId} by the parent — each session gets a fresh instance,
 // so sessionId never changes within this component's lifetime.
 export function ProviderOptionsEditor({ sessionId }: { sessionId: string }) {
-  const { store } = useTetra()
   const options = useSessionConfig(sessionId).providerOptions ?? EMPTY_PROVIDER_OPTIONS
+  const updateConfig = useUpdateSessionConfig(sessionId)
   const [entries, dispatch] = useReducer(entriesReducer, options, optionsToEntries)
   const isInitialRender = useRef(true)
 
@@ -330,11 +329,8 @@ export function ProviderOptionsEditor({ sessionId }: { sessionId: string }) {
       isInitialRender.current = false
       return
     }
-    store.setSessionConfig(sessionId, {
-      ...store.getSessionConfig(sessionId),
-      providerOptions: entriesToOptions(entries),
-    })
-  }, [entries, store, sessionId])
+    updateConfig({ providerOptions: entriesToOptions(entries) })
+  }, [entries, updateConfig])
 
   return (
     <div className="flex flex-col gap-1.5">

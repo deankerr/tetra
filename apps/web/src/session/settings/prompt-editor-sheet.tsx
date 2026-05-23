@@ -12,7 +12,7 @@ import { Textarea } from '@tetra/ui/components/ui/textarea'
 import { Trash2Icon, XIcon } from 'lucide-react'
 
 import { usePrompt, usePromptIds } from '@/tetra/hooks/prompts'
-import { useSessionConfig } from '@/tetra/hooks/sessions'
+import { useSessionConfig, useUpdateSessionConfig } from '@/tetra/hooks/sessions'
 import { useTetra } from '@/tetra/provider'
 import { typedTinybase } from '@/tetra/tinybase'
 
@@ -159,6 +159,7 @@ export function PromptEditorSheet({
 }) {
   const { store } = useTetra()
   const config = useSessionConfig(sessionId)
+  const updateConfig = useUpdateSessionConfig(sessionId)
   const promptIds = usePromptIds()
   const selectedPromptId =
     config.systemPromptId !== undefined && promptIds.includes(config.systemPromptId)
@@ -166,7 +167,7 @@ export function PromptEditorSheet({
       : undefined
 
   const updateSystemPromptId = (systemPromptId?: string) => {
-    store.setSessionConfig(sessionId, { ...store.getSessionConfig(sessionId), systemPromptId })
+    updateConfig({ systemPromptId })
   }
 
   return (

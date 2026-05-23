@@ -1,7 +1,8 @@
 import { DEFAULT_REQUEST_CONFIG } from '@tetra/core'
 import type { RequestConfigType, Rows } from '@tetra/core'
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 
+import { useTetra } from '@/tetra/provider'
 import { typedTinybase } from '@/tetra/tinybase'
 
 // Sessions sorted by updatedAt descending — most recently active first.
@@ -42,4 +43,14 @@ export const useSessionConfig = (id: string): RequestConfigType => {
     ...(Object.keys(row.providerOptions).length > 0 && { providerOptions: row.providerOptions }),
     ...(row.toolIds.length > 0 && { toolIds: row.toolIds }),
   }
+}
+
+export const useUpdateSessionConfig = (sessionId: string) => {
+  const { store } = useTetra()
+  return useCallback(
+    (patch: Partial<RequestConfigType>) => {
+      store.updateSessionConfig(sessionId, patch)
+    },
+    [sessionId, store],
+  )
 }

@@ -22,7 +22,7 @@ import { useState } from 'react'
 
 import { ModelPicker } from '@/session/settings/model-picker'
 import { useSettings } from '@/settings-provider'
-import { useSessionConfig } from '@/tetra/hooks/sessions'
+import { useSessionConfig, useUpdateSessionConfig } from '@/tetra/hooks/sessions'
 import { useTetra } from '@/tetra/provider'
 import { useCredential } from '@/use-credential'
 
@@ -36,6 +36,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
   const activeRequest = useActiveRequest(sessionId)
   const isStreaming = activeRequest !== null
   const config = useSessionConfig(sessionId)
+  const updateConfig = useUpdateSessionConfig(sessionId)
   const [openrouterApiKey] = useCredential('OPENROUTER_API_KEY')
   const [draft, setDraft] = useState('')
 
@@ -116,8 +117,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
           <PromptInputTools>
             <ModelPicker
               onValueChange={(modelId) => {
-                const current = tetra.store.getSessionConfig(sessionId)
-                tetra.store.setSessionConfig(sessionId, { ...current, modelId })
+                updateConfig({ modelId })
               }}
               value={config.modelId}
             />

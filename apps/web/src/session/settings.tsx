@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@tetra/ui/components/u
 import { Field, FieldGroup, FieldTitle } from '@tetra/ui/components/ui/field'
 import { Input } from '@tetra/ui/components/ui/input'
 
-import { useSessionConfig } from '@/tetra/hooks/sessions'
+import { useSessionConfig, useUpdateSessionConfig } from '@/tetra/hooks/sessions'
 import { useTetra } from '@/tetra/provider'
 
 import { ModelPicker } from './settings/model-picker'
@@ -20,10 +20,7 @@ export function SessionSettings({
 }) {
   const { store } = useTetra()
   const config = useSessionConfig(sessionId)
-
-  const updateConfig = (patch: Partial<typeof config>) => {
-    store.setSessionConfig(sessionId, { ...store.getSessionConfig(sessionId), ...patch })
-  }
+  const updateConfig = useUpdateSessionConfig(sessionId)
 
   return (
     <FieldGroup>
