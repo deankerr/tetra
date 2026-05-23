@@ -9,8 +9,9 @@ import {
 } from '@tetra/ui/components/ui/table'
 import { useMemo } from 'react'
 
-import { useRequest, useSessionRequestIds } from '@/tetra/hooks/requests'
-import { useMessage } from '@/tetra/hooks/transcripts'
+import { typedTinybase } from '@/tetra/tinybase'
+
+import { useMessage, useRequest, useSessionRequestIds } from './hooks'
 
 type Request = Rows.Request
 
@@ -59,24 +60,18 @@ function statusClass(status: string) {
   return 'text-muted-foreground'
 }
 
-// Aggregates token counts and cost from the request's assistant message.
-// The message owns inference metadata, while the request owns lifecycle status.
 function useRequestAccountingSummary(message: Rows.Message | null) {
-  return useMemo(() => {
-    let cost: number | null = null
-    let inputTokens = 0
-    let outputTokens = 0
+  const generation = typedTinybase.useEntity('messageGenerations', message?.id ?? '')
+  const usage = generation?.usage ?? message?.usage
 
-    for (const { cost: stepCost, tokens } of message?.steps ?? []) {
-      inputTokens += tokens.inputTotal
-      outputTokens += tokens.outputTotal
-      if (stepCost.total !== undefined) {
-        cost = (cost ?? 0) + stepCost.total
-      }
-    }
-
-    return { cost, inputTokens, outputTokens }
-  }, [message?.steps])
+  return useMemo(
+    () => ({
+      cost: usage?.costTotal ?? null,
+      inputTokens: usage?.inputTokens ?? 0,
+      outputTokens: usage?.outputTokens ?? 0,
+    }),
+    [usage],
+  )
 }
 
 // Split out so each row subscribes independently to its request row.

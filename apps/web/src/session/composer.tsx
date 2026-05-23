@@ -22,10 +22,13 @@ import { useState } from 'react'
 
 import { ModelPicker } from '@/session/settings/model-picker'
 import { useSettings } from '@/settings-provider'
-import { useActiveRequest } from '@/tetra/hooks/requests'
 import { useSessionConfig } from '@/tetra/hooks/sessions'
 import { useTetra } from '@/tetra/provider'
 import { useCredential } from '@/use-credential'
+
+import { useRequest, useSessionRequestIds } from './hooks'
+
+const activeStatuses = new Set(['preparing', 'streaming'])
 
 export function Composer({ sessionId }: { sessionId: string }) {
   const tetra = useTetra()
@@ -130,6 +133,16 @@ export function Composer({ sessionId }: { sessionId: string }) {
       </PromptInput>
     </div>
   )
+}
+
+// Returns the current active request for this composer so submit controls stay in sync.
+const useActiveRequest = (sessionId: string) => {
+  const ids = useSessionRequestIds(sessionId)
+  const request = useRequest(ids[0] ?? '')
+  if (request === null || !activeStatuses.has(request.status)) {
+    return null
+  }
+  return request
 }
 
 function ComposerAttachments() {

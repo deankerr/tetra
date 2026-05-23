@@ -1,5 +1,5 @@
 import type { RequestConfig as RequestConfigType, Rows } from '#db'
-import { DEFAULT_REQUEST_CONFIG, RequestConfig, StepRecord } from '#db'
+import { DEFAULT_REQUEST_CONFIG, RequestConfig, StepRecord, deriveUsageSummary } from '#db'
 import type { Store } from '#store'
 
 import tailwindV4Cheatsheet from './seeds/tailwind-v4-cheatsheet.json'
@@ -8,10 +8,12 @@ import timeInNewYork from './seeds/time-in-new-york.json'
 export interface SessionExport {
   sessionConfig?: RequestConfigType
   exportedAt: string
-  messages: Rows.Message[]
+  messages: PortableMessage[]
   requests: Rows.Request[]
   session: Rows.Session
 }
+
+type PortableMessage = Omit<Rows.Message, 'usage'> & { usage?: Rows.Message['usage'] }
 
 // JSON imports type all string fields as `string`, not specific string literal unions.
 // This mapped type widens string fields to accept either, preserving structural checking.
@@ -60,7 +62,14 @@ function importSession(
       toolIds: sessionConfig.toolIds ?? [],
     })
 
+    store.db.tables.sessionSummaries.setRow(session.id, {
+      createdAt: session.createdAt,
+      updatedAt: session.updatedAt,
+      usage: {},
+    })
+
     for (const message of messages) {
+      const steps = parsePortableSteps(message.steps)
       store.db.tables.messages.setRow(message.id, {
         createdAt: message.createdAt,
         // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Loose<T> widens string fields for JSON import compatibility; data is validated by structure.
@@ -68,8 +77,9 @@ function importSession(
         // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Loose<T> widens string fields for JSON import compatibility; data is validated by structure.
         role: message.role as unknown as Rows.Message['role'],
         sessionId: message.sessionId,
-        steps: parsePortableSteps(message.steps),
+        steps,
         updatedAt: message.updatedAt,
+        usage: deriveUsageSummary(steps),
       })
     }
 
@@ -85,6 +95,8 @@ function importSession(
         terminalAt: request.terminalAt,
       })
     }
+
+    store.rebuildSessionUsage(session.id)
   })
 
   return session.id

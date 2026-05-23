@@ -11,6 +11,7 @@ import { getHlcFunctions } from 'tinybase/common'
 import { z } from 'zod'
 
 export type MessageRole = 'assistant' | 'user'
+export type GenerationStatus = 'cancelled' | 'completed' | 'error' | 'preparing' | 'streaming'
 export type RequestStatus = 'cancelled' | 'completed' | 'error' | 'preparing' | 'streaming'
 
 const ProviderOptions = z.custom<JSONObject>(
@@ -88,16 +89,36 @@ export const StepRecord = z.object({
 })
 export type StepRecord = z.infer<typeof StepRecord>
 
+export const UsageSummary = z.object({
+  cacheReadTokens: z.number().optional(),
+  cacheWriteTokens: z.number().optional(),
+  costInput: z.number().optional(),
+  costOutput: z.number().optional(),
+  costTotal: z.number().optional(),
+  inputTokens: z.number().optional(),
+  outputTokens: z.number().optional(),
+  reasoningTokens: z.number().optional(),
+  totalTokens: z.number().optional(),
+})
+export type UsageSummary = z.infer<typeof UsageSummary>
+
+const EMPTY_USAGE: UsageSummary = {}
 const MessageParts = z.custom<UIMessage['parts']>((value) => Array.isArray(value))
+const GenerationStatusSchema = z.enum(['cancelled', 'completed', 'error', 'preparing', 'streaming'])
 const MessageRoleSchema = z.enum(['assistant', 'user'])
 const RequestStatusSchema = z.enum(['cancelled', 'completed', 'error', 'preparing', 'streaming'])
 const StringArray = z.array(z.string())
 
 export const tetraDbDefinition = defineTypedTinybase({
   indexes: {
+    generationByRequest: tinybaseIndex('messageGenerations', 'requestId'),
+    generationBySession: tinybaseIndex('messageGenerations', 'sessionId'),
     // HLC row IDs are lexicographically sortable, giving creation-time order for free.
     messagesBySession: tinybaseIndex('messages', 'sessionId'),
-    requestByAssistantMessage: tinybaseIndex('requests', 'assistantMessageId'),
+    requestsByAssistantMessage: tinybaseIndex('requests', 'assistantMessageId', {
+      rowIdSorter: (a, b) => Number(b) - Number(a),
+      sortBy: 'createdAt',
+    }),
     requestsBySession: tinybaseIndex('requests', 'sessionId', {
       rowIdSorter: (a, b) => Number(b) - Number(a),
       sortBy: 'createdAt',
@@ -114,6 +135,18 @@ export const tetraDbDefinition = defineTypedTinybase({
       providerName: tinybaseCell.string(z.string().default(''), { default: '' }),
       supportedParameters: tinybaseCell.array(StringArray.default([]), { default: [] }),
     }),
+    messageGenerations: tinybaseTable({
+      createdAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
+      parts: tinybaseCell.array(MessageParts.default([]), { default: [] }),
+      requestId: tinybaseCell.string(z.string().default(''), { default: '' }),
+      sessionId: tinybaseCell.string(z.string().default(''), { default: '' }),
+      status: tinybaseCell.string(GenerationStatusSchema.default('preparing'), {
+        default: 'preparing',
+      }),
+      steps: tinybaseCell.array(z.array(StepRecord).default([]), { default: [] }),
+      updatedAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
+      usage: tinybaseCell.object(UsageSummary.default(EMPTY_USAGE), { default: EMPTY_USAGE }),
+    }),
     messages: tinybaseTable({
       createdAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
       parts: tinybaseCell.array(MessageParts.default([]), { default: [] }),
@@ -121,6 +154,7 @@ export const tetraDbDefinition = defineTypedTinybase({
       sessionId: tinybaseCell.string(z.string().default(''), { default: '' }),
       steps: tinybaseCell.array(z.array(StepRecord).default([]), { default: [] }),
       updatedAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
+      usage: tinybaseCell.object(UsageSummary.default(EMPTY_USAGE), { default: EMPTY_USAGE }),
     }),
     prompts: tinybaseTable({
       content: tinybaseCell.string(z.string().default(''), { default: '' }),
@@ -150,6 +184,13 @@ export const tetraDbDefinition = defineTypedTinybase({
       systemPromptId: tinybaseCell.string(z.string().default(''), { default: '' }),
       toolIds: tinybaseCell.array(StringArray.default([]), { default: [] }),
     }),
+    // Derived usage for a session. Keyed by the same ID as the sessions table (1:1).
+    // Stored separately so sidebar/session identity reads are not invalidated by usage churn.
+    sessionSummaries: tinybaseTable({
+      createdAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
+      updatedAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
+      usage: tinybaseCell.object(UsageSummary.default(EMPTY_USAGE), { default: EMPTY_USAGE }),
+    }),
     sessions: tinybaseTable({
       createdAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
       title: tinybaseCell.string(z.string().default(''), { default: '' }),
@@ -175,10 +216,16 @@ export type DbSchemas = [typeof tablesSchema, typeof valuesSchema]
 // oxlint-disable-next-line typescript/no-namespace -- Namespaces keep contested schema row names grouped at call sites, e.g. Rows.Message.
 export namespace Rows {
   export type LanguageModel = EntityOf<(typeof tetraDbDefinition.tables.languageModels)['schema']>
+  export type MessageGeneration = EntityOf<
+    (typeof tetraDbDefinition.tables.messageGenerations)['schema']
+  >
   export type Message = EntityOf<(typeof tetraDbDefinition.tables.messages)['schema']>
   export type Prompt = EntityOf<(typeof tetraDbDefinition.tables.prompts)['schema']>
   export type Request = EntityOf<(typeof tetraDbDefinition.tables.requests)['schema']>
   export type Session = EntityOf<(typeof tetraDbDefinition.tables.sessions)['schema']>
+  export type SessionSummary = EntityOf<
+    (typeof tetraDbDefinition.tables.sessionSummaries)['schema']
+  >
   export type SessionConfig = OutputRowOf<
     (typeof tetraDbDefinition.tables.sessionConfigs)['schema']
   > & {
@@ -203,4 +250,106 @@ export type TetraDb = ReturnType<typeof createTetraDb>
 const [getNextHlc] = getHlcFunctions()
 export function createIdGenerator(prefix: string): () => string {
   return () => `${prefix}_${getNextHlc()}`
+}
+
+export function combineUsageSummaries(summaries: UsageSummary[]): UsageSummary {
+  let cacheReadTokens = 0
+  let cacheWriteTokens = 0
+  let costInput = 0
+  let costOutput = 0
+  let costTotal = 0
+  let hasCostInput = false
+  let hasCostOutput = false
+  let hasCostTotal = false
+  let inputTokens = 0
+  let outputTokens = 0
+  let reasoningTokens = 0
+  let totalTokens = 0
+
+  for (const summary of summaries) {
+    cacheReadTokens += summary.cacheReadTokens ?? 0
+    cacheWriteTokens += summary.cacheWriteTokens ?? 0
+    inputTokens += summary.inputTokens ?? 0
+    outputTokens += summary.outputTokens ?? 0
+    reasoningTokens += summary.reasoningTokens ?? 0
+    totalTokens += summary.totalTokens ?? 0
+    if (summary.costInput !== undefined) {
+      costInput += summary.costInput
+      hasCostInput = true
+    }
+    if (summary.costOutput !== undefined) {
+      costOutput += summary.costOutput
+      hasCostOutput = true
+    }
+    if (summary.costTotal !== undefined) {
+      costTotal += summary.costTotal
+      hasCostTotal = true
+    }
+  }
+
+  return compactUsageSummary({
+    cacheReadTokens,
+    cacheWriteTokens,
+    costInput: hasCostInput ? costInput : undefined,
+    costOutput: hasCostOutput ? costOutput : undefined,
+    costTotal: hasCostTotal ? costTotal : undefined,
+    inputTokens,
+    outputTokens,
+    reasoningTokens,
+    totalTokens,
+  })
+}
+
+export function deriveUsageSummary(steps: StepRecord[]): UsageSummary {
+  let cacheReadTokens = 0
+  let cacheWriteTokens = 0
+  let costInput = 0
+  let costOutput = 0
+  let costTotal = 0
+  let hasCostInput = false
+  let hasCostOutput = false
+  let hasCostTotal = false
+  let inputTokens = 0
+  let outputTokens = 0
+  let reasoningTokens = 0
+  let totalTokens = 0
+
+  for (const { cost, tokens } of steps) {
+    cacheReadTokens += tokens.inputCacheRead ?? 0
+    cacheWriteTokens += tokens.inputCacheWrite ?? 0
+    inputTokens += tokens.inputTotal
+    outputTokens += tokens.outputTotal
+    reasoningTokens += tokens.outputReasoning ?? 0
+    totalTokens += tokens.total
+    if (cost.inputTotal !== undefined) {
+      costInput += cost.inputTotal
+      hasCostInput = true
+    }
+    if (cost.outputTotal !== undefined) {
+      costOutput += cost.outputTotal
+      hasCostOutput = true
+    }
+    if (cost.total !== undefined) {
+      costTotal += cost.total
+      hasCostTotal = true
+    }
+  }
+
+  return compactUsageSummary({
+    cacheReadTokens,
+    cacheWriteTokens,
+    costInput: hasCostInput ? costInput : undefined,
+    costOutput: hasCostOutput ? costOutput : undefined,
+    costTotal: hasCostTotal ? costTotal : undefined,
+    inputTokens,
+    outputTokens,
+    reasoningTokens,
+    totalTokens,
+  })
+}
+
+function compactUsageSummary(summary: UsageSummary): UsageSummary {
+  return Object.fromEntries(
+    Object.entries(summary).filter(([, value]) => value !== undefined && value !== 0),
+  ) as UsageSummary
 }

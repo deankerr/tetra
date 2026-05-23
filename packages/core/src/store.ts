@@ -1,12 +1,26 @@
 import type { UIMessage } from 'ai'
 
-import { createIdGenerator } from '#db'
-import type { MessageRole, RequestConfig, Rows, StepRecord, TetraDb } from '#db'
+import { combineUsageSummaries, createIdGenerator, deriveUsageSummary } from '#db'
+import type {
+  GenerationStatus,
+  MessageRole,
+  RequestConfig,
+  Rows,
+  StepRecord,
+  TetraDb,
+  UsageSummary,
+} from '#db'
 
 export interface MessagePatch {
   parts?: UIMessage['parts']
   role?: MessageRole
+}
+
+export interface MessageGenerationPatch {
+  parts?: UIMessage['parts']
+  status?: GenerationStatus
   steps?: StepRecord[]
+  usage?: UsageSummary
 }
 
 export class Store {
@@ -41,6 +55,11 @@ export class Store {
         systemPromptId: config.systemPromptId ?? '',
         toolIds: config.toolIds ?? [],
       })
+      this.db.tables.sessionSummaries.setRow(sessionId, {
+        createdAt: now,
+        updatedAt: now,
+        usage: {},
+      })
     })
 
     return sessionId
@@ -59,6 +78,11 @@ export class Store {
         this.db.tables.requests.deleteRow(requestId)
       }
 
+      for (const messageId of this.db.indexes.getSliceRowIds('generationBySession', sessionId)) {
+        this.db.tables.messageGenerations.deleteRow(messageId)
+      }
+
+      this.db.tables.sessionSummaries.deleteRow(sessionId)
       this.db.tables.sessionConfigs.deleteRow(sessionId)
       this.db.tables.sessions.deleteRow(sessionId)
     })
@@ -134,6 +158,7 @@ export class Store {
       sessionId,
       steps: [],
       updatedAt: now,
+      usage: {},
     })
 
     // Touch session to update its updatedAt whenever a message is appended.
@@ -151,8 +176,10 @@ export class Store {
 
   deleteMessage(messageId: string): void {
     const message = this.getMessage(messageId)
+    this.db.tables.messageGenerations.deleteRow(messageId)
     this.db.tables.messages.deleteRow(messageId)
     this.db.tables.sessions.setCell(message.sessionId, 'updatedAt', Date.now())
+    this.rebuildSessionUsage(message.sessionId)
   }
 
   getMessage(messageId: string): Rows.Message {
@@ -170,14 +197,87 @@ export class Store {
     this.db.tables.messages.updateRow(messageId, {
       ...('parts' in patch && { parts: patch.parts ?? [] }),
       ...('role' in patch && { role: patch.role }),
-      ...('steps' in patch && { steps: patch.steps ?? [] }),
       updatedAt: Date.now(),
     })
   }
 
   appendMessageStep(messageId: string, step: StepRecord): void {
     const message = this.getMessage(messageId)
-    this.updateMessage(messageId, { steps: [...message.steps, step] })
+    const steps = [...message.steps, step]
+    this.setMessageGenerationResult(messageId, { parts: message.parts, steps })
+    this.rebuildSessionUsage(message.sessionId)
+  }
+
+  clearMessageContent(messageId: string): void {
+    this.setMessageGenerationResult(messageId, { parts: [], steps: [] })
+    this.db.tables.messageGenerations.deleteRow(messageId)
+    this.rebuildSessionUsage(this.getMessage(messageId).sessionId)
+  }
+
+  // ——— Message generations ———
+
+  appendMessageGenerationStep(messageId: string, step: StepRecord): void {
+    const generation = this.getMessageGeneration(messageId)
+    const steps = [...generation.steps, step]
+    this.updateMessageGeneration(messageId, { steps, usage: deriveUsageSummary(steps) })
+    this.rebuildSessionUsage(generation.sessionId)
+  }
+
+  commitMessageGeneration(messageId: string): void {
+    const generation = this.getMessageGeneration(messageId)
+    this.setMessageGenerationResult(messageId, { parts: generation.parts, steps: generation.steps })
+    this.db.tables.messageGenerations.deleteRow(messageId)
+    this.rebuildSessionUsage(generation.sessionId)
+  }
+
+  createMessageGeneration(args: {
+    messageId: string
+    requestId: string
+    sessionId: string
+    status?: GenerationStatus
+  }): void {
+    const now = Date.now()
+    this.db.tables.messageGenerations.setRow(args.messageId, {
+      createdAt: now,
+      parts: [],
+      requestId: args.requestId,
+      sessionId: args.sessionId,
+      status: args.status ?? 'preparing',
+      steps: [],
+      updatedAt: now,
+      usage: {},
+    })
+    this.rebuildSessionUsage(args.sessionId)
+  }
+
+  getMessageGeneration(messageId: string): Rows.MessageGeneration {
+    return this.db.tables.messageGenerations.requireEntity(messageId)
+  }
+
+  updateMessageGeneration(messageId: string, patch: MessageGenerationPatch): void {
+    this.db.tables.messageGenerations.updateRow(messageId, {
+      ...('parts' in patch && { parts: patch.parts ?? [] }),
+      ...('status' in patch && { status: patch.status }),
+      ...('steps' in patch && { steps: patch.steps ?? [] }),
+      updatedAt: Date.now(),
+      ...('usage' in patch && { usage: patch.usage ?? {} }),
+    })
+  }
+
+  writeMessageGenerationSnapshot(messageId: string, parts: UIMessage['parts']): void {
+    this.updateMessageGeneration(messageId, { parts })
+  }
+
+  private setMessageGenerationResult(
+    messageId: string,
+    args: { parts: UIMessage['parts']; steps: StepRecord[] },
+  ): void {
+    this.db.tables.messages.updateRow(messageId, {
+      parts: args.parts,
+      steps: args.steps,
+      updatedAt: Date.now(),
+      usage: deriveUsageSummary(args.steps),
+    })
   }
 
   // ——— Requests (reads only — writes are owned by run.ts/requests.ts) ———
@@ -245,6 +345,22 @@ export class Store {
 
   transaction(fn: () => void): void {
     this.db.tables.transaction(fn)
+  }
+
+  rebuildSessionUsage(sessionId: string): void {
+    this.requireSession(sessionId)
+
+    const messageUsages = this.db.indexes
+      .getSliceRowIds('messagesBySession', sessionId)
+      .map((messageId) => this.db.tables.messages.getCell(messageId, 'usage') ?? {})
+    const generationUsages = this.db.indexes
+      .getSliceRowIds('generationBySession', sessionId)
+      .map((messageId) => this.db.tables.messageGenerations.getCell(messageId, 'usage') ?? {})
+
+    this.db.tables.sessionSummaries.updateRow(sessionId, {
+      updatedAt: Date.now(),
+      usage: combineUsageSummaries([...messageUsages, ...generationUsages]),
+    })
   }
 
   // ——— Private guards ———

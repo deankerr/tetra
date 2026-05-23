@@ -12,10 +12,19 @@ export {
   RequestConfig,
   StepRecord,
   TokenMetrics,
+  UsageSummary,
+  combineUsageSummaries,
   createTetraDb,
+  deriveUsageSummary,
   tetraDbDefinition,
 } from '#db'
-export type { DbSchemas, RequestConfig as RequestConfigType, Rows, TetraDb } from '#db'
+export type {
+  DbSchemas,
+  GenerationStatus,
+  RequestConfig as RequestConfigType,
+  Rows,
+  TetraDb,
+} from '#db'
 export { Run, Runs } from '#runtime'
 export { exportSession, loadSeeds } from '#seeds'
 export { Store } from '#store'

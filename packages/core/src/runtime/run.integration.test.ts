@@ -42,6 +42,26 @@ function createTestRuntime() {
   return { core, model, runs }
 }
 
+async function withoutExpectedConsoleErrors<T>(
+  args: { messages: string[] },
+  fn: () => Promise<T>,
+): Promise<T> {
+  const originalConsoleError = console.error
+  console.error = (...values: unknown[]) => {
+    const text = values.map(String).join(' ')
+    if (args.messages.some((message) => text.includes(message))) {
+      return
+    }
+    originalConsoleError(...values)
+  }
+
+  try {
+    return await fn()
+  } finally {
+    console.error = originalConsoleError
+  }
+}
+
 test('start streams through the AI SDK into TinyBase rows', async () => {
   const { core, model, runs } = createTestRuntime()
   const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
@@ -71,10 +91,69 @@ test('start streams through the AI SDK into TinyBase rows', async () => {
     type: 'text',
   })
   expect(run.finalParts).toEqual(messages[1]?.parts)
+  expect(messages[1]?.usage).toEqual({ inputTokens: 1, outputTokens: 2, totalTokens: 3 })
+  expect(core.db.tables.messageGenerations.getEntity(assistantMessageId)).toBeNull()
+  expect(core.db.tables.sessionSummaries.requireEntity(sessionId).usage).toEqual({
+    inputTokens: 1,
+    outputTokens: 2,
+    totalTokens: 3,
+  })
   expect(model.doStreamCalls).toHaveLength(1)
   expect(model.doStreamCalls[0]?.prompt).toEqual([
     { content: [{ text: 'hello', type: 'text' }], role: 'user' },
   ])
+})
+
+test('streaming snapshots persist to messageGenerations before message commit', async () => {
+  const core = createCoreModules()
+  const credentials: CredentialReader = { get: () => '' }
+  const model = new MockLanguageModelV3({
+    doStream: {
+      stream: simulateReadableStream<LanguageModelV3StreamPart>({
+        chunkDelayInMs: 20,
+        chunks: [
+          { type: 'stream-start', warnings: [] },
+          { id: 'text-1', type: 'text-start' },
+          { delta: 'hello', id: 'text-1', type: 'text-delta' },
+          { delta: ' world', id: 'text-1', type: 'text-delta' },
+          { id: 'text-1', type: 'text-end' },
+          {
+            finishReason: { raw: 'stop', unified: 'stop' },
+            type: 'finish',
+            usage: {
+              inputTokens: { cacheRead: 0, cacheWrite: 0, noCache: 1, total: 1 },
+              outputTokens: { reasoning: 0, text: 2, total: 2 },
+            },
+          },
+        ],
+        initialDelayInMs: 20,
+      }),
+    },
+  })
+  const runs = new Runs(core.store, credentials, { resolve: () => model })
+  const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
+
+  core.store.appendTextMessage(sessionId, { role: 'user', text: 'hello' })
+  const assistantMessageId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
+  const run = runs.start({ assistantMessageId })
+  const firstSnapshot = Promise.withResolvers<undefined>()
+  run.addEventListener(
+    'snapshot',
+    () => {
+      firstSnapshot.resolve()
+    },
+    { once: true },
+  )
+
+  await firstSnapshot.promise
+
+  const generation = core.db.tables.messageGenerations.requireEntity(assistantMessageId)
+  expect(core.store.getMessage(assistantMessageId).parts).toEqual([])
+  expect(generation.parts.length).toBeGreaterThan(0)
+
+  await run.done
+  expect(core.db.tables.messageGenerations.getEntity(assistantMessageId)).toBeNull()
+  expect(core.store.getMessage(assistantMessageId).parts.length).toBeGreaterThan(0)
 })
 
 test('Pre-Run Invariants — throws before creating request when systemPromptId is missing', () => {
@@ -150,6 +229,8 @@ test('Regenerate — assistant tail is cleared and reused', async () => {
   const run = runs.regenerate({ messageId: assistantMessageId })
   expect(run.assistantMessageId).toBe(assistantMessageId)
   expect(core.store.getMessage(assistantMessageId).parts).toEqual([])
+  expect(core.store.getMessage(assistantMessageId).steps).toEqual([])
+  expect(core.store.getMessage(assistantMessageId).usage).toEqual({})
 
   await run.done
 
@@ -303,16 +384,55 @@ test('Error Path — stream error sets request to error status', async () => {
 
   core.store.appendTextMessage(sessionId, { role: 'user', text: 'hello' })
   const assistantMessageId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
-  const run = runs.start({ assistantMessageId })
-  await run.done
+  const run = await withoutExpectedConsoleErrors({ messages: ['Provider API error'] }, async () => {
+    const startedRun = runs.start({ assistantMessageId })
+    await startedRun.done
+    return startedRun
+  })
 
   const request = core.store.getRequest(run.requestId)
 
   expect(run.status).toBe('error')
   expect(request.status).toBe('error')
   expect(request.errorMessage).toContain('Provider API error')
+  expect(core.db.tables.messageGenerations.getEntity(assistantMessageId)).toBeNull()
   expect(run.error).toBeDefined()
   expect(String(run.error)).toContain('Provider API error')
+})
+
+test('Recovery — interrupted requests commit partial generations and clean hot rows', () => {
+  const { core, runs } = createTestRuntime()
+  const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
+
+  core.store.appendTextMessage(sessionId, { role: 'user', text: 'hello' })
+  const assistantMessageId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
+  let requestId = ''
+  core.store.transaction(() => {
+    requestId = core.db.tables.requests.setRow('req_test', {
+      assistantMessageId,
+      config: { modelId: 'mock-model' },
+      createdAt: Date.now(),
+      errorMessage: '',
+      sessionId,
+      status: 'streaming',
+      terminalAt: 0,
+    }).id
+    core.store.createMessageGeneration({
+      messageId: assistantMessageId,
+      requestId,
+      sessionId,
+      status: 'streaming',
+    })
+  })
+
+  core.store.writeMessageGenerationSnapshot(assistantMessageId, [{ text: 'partial', type: 'text' }])
+  runs.recover()
+
+  expect(core.store.getRequest(requestId).status).toBe('error')
+  expect(core.db.tables.messageGenerations.getEntity(assistantMessageId)).toBeNull()
+  expect(core.store.getMessage(assistantMessageId).parts).toEqual([
+    { text: 'partial', type: 'text' },
+  ])
 })
 
 test('Error Path — later requests can still run after an error', async () => {
@@ -356,8 +476,14 @@ test('Error Path — later requests can still run after an error', async () => {
 
   core.store.appendTextMessage(sessionId, { role: 'user', text: 'fail' })
   const failAssistantId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
-  const failedRun = runs.start({ assistantMessageId: failAssistantId })
-  await failedRun.done
+  const failedRun = await withoutExpectedConsoleErrors(
+    { messages: ['First call fails'] },
+    async () => {
+      const startedRun = runs.start({ assistantMessageId: failAssistantId })
+      await startedRun.done
+      return startedRun
+    },
+  )
   expect(failedRun.status).toBe('error')
 
   core.store.appendTextMessage(sessionId, { role: 'user', text: 'retry' })

@@ -102,7 +102,8 @@ export class Run extends EventTarget {
   private complete(parts: UIMessage['parts']): void {
     this.parts = [...parts]
     this.finalParts = [...parts]
-    this.store.updateMessage(this.assistantMessageId, { parts })
+    this.store.writeMessageGenerationSnapshot(this.assistantMessageId, parts)
+    this.store.commitMessageGeneration(this.assistantMessageId)
     completeRequest(this.store.db, this.requestId)
     this.setStatus('completed')
     this.dispatchEvent(new Event('finish'))
@@ -112,6 +113,8 @@ export class Run extends EventTarget {
   private fail(error: unknown): void {
     this.error = error
     if (this.abortController.signal.aborted) {
+      this.store.updateMessageGeneration(this.assistantMessageId, { status: 'cancelled' })
+      this.store.commitMessageGeneration(this.assistantMessageId)
       cancelRequest(this.store.db, this.requestId, 'Request cancelled')
       this.setStatus('cancelled')
       this.dispatchEvent(new Event('cancel'))
@@ -119,6 +122,8 @@ export class Run extends EventTarget {
       return
     }
 
+    this.store.updateMessageGeneration(this.assistantMessageId, { status: 'error' })
+    this.store.commitMessageGeneration(this.assistantMessageId)
     failRequest(this.store.db, this.requestId, error)
     this.setStatus('error')
     this.dispatchEvent(new Event('error'))
@@ -132,7 +137,7 @@ export class Run extends EventTarget {
 
   private recordStep(step: StepRecord): void {
     this.steps = [...this.steps, step]
-    this.store.appendMessageStep(this.assistantMessageId, step)
+    this.store.appendMessageGenerationStep(this.assistantMessageId, step)
     this.dispatchEvent(new Event('step'))
   }
 
@@ -160,6 +165,7 @@ export class Run extends EventTarget {
       this.modelMessages = modelMessages
       this.tools = tools
       startStreaming(this.store.db, this.requestId)
+      this.store.updateMessageGeneration(this.assistantMessageId, { status: 'streaming' })
       this.setStatus('streaming')
 
       const result = streamText({
@@ -213,7 +219,7 @@ export class Run extends EventTarget {
       return
     }
 
-    this.store.updateMessage(this.assistantMessageId, { parts: message.parts })
+    this.store.writeMessageGenerationSnapshot(this.assistantMessageId, message.parts)
     this.lastDurableWriteAt = now
   }
 }

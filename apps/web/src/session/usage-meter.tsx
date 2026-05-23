@@ -10,7 +10,6 @@ import type { LanguageModelUsage } from 'ai'
 import { useMemo } from 'react'
 
 import { useSessionConfig } from '@/tetra/hooks/sessions'
-import { useSessionMessages } from '@/tetra/hooks/transcripts'
 import { typedTinybase } from '@/tetra/tinybase'
 
 interface SessionContextSummary {
@@ -74,58 +73,31 @@ function useSessionContextSummary(sessionId: string): SessionContextSummary | nu
   const config = useSessionConfig(sessionId)
   const hasLanguageModel = typedTinybase.useHasRow('languageModels', config.modelId)
   const languageModel = typedTinybase.useRow('languageModels', config.modelId)
-  const messages = useSessionMessages(sessionId)
-  const steps = useMemo(() => messages.flatMap((message) => message.steps), [messages])
+  const sessionSummary = typedTinybase.useRow('sessionSummaries', sessionId)
 
   return useMemo(() => {
+    const usage = sessionSummary?.usage ?? {}
     if (
       !hasLanguageModel ||
       languageModel === null ||
       languageModel.contextLength <= 0 ||
-      steps.length === 0
+      (usage.totalTokens ?? 0) === 0
     ) {
       return null
     }
 
-    let cacheRead = 0
-    let cacheWrite = 0
-    let completionCost = 0
-    let hasCompletionCost = false
-    let hasPromptCost = false
-    let hasTotalCost = false
-    let input = 0
-    let output = 0
-    let promptCost = 0
-    let reasoning = 0
-    let total = 0
-    let totalCost = 0
-
-    for (const { cost, tokens } of steps) {
-      cacheRead += tokens.inputCacheRead ?? 0
-      cacheWrite += tokens.inputCacheWrite ?? 0
-      input += tokens.inputTotal
-      output += tokens.outputTotal
-      reasoning += tokens.outputReasoning ?? 0
-      total += tokens.total
-      if (cost.outputTotal !== undefined) {
-        completionCost += cost.outputTotal
-        hasCompletionCost = true
-      }
-      if (cost.inputTotal !== undefined) {
-        promptCost += cost.inputTotal
-        hasPromptCost = true
-      }
-      if (cost.total !== undefined) {
-        totalCost += cost.total
-        hasTotalCost = true
-      }
-    }
+    const cacheRead = usage.cacheReadTokens ?? 0
+    const cacheWrite = usage.cacheWriteTokens ?? 0
+    const input = usage.inputTokens ?? 0
+    const output = usage.outputTokens ?? 0
+    const reasoning = usage.reasoningTokens ?? 0
+    const total = usage.totalTokens ?? 0
 
     return {
       cost: {
-        input: hasPromptCost ? promptCost : null,
-        output: hasCompletionCost ? completionCost : null,
-        total: hasTotalCost ? totalCost : null,
+        input: usage.costInput ?? null,
+        output: usage.costOutput ?? null,
+        total: usage.costTotal ?? null,
       },
       maxTokens: languageModel.contextLength,
       modelId: config.modelId,
@@ -149,7 +121,7 @@ function useSessionContextSummary(sessionId: string): SessionContextSummary | nu
       },
       usedTokens: input,
     }
-  }, [config.modelId, hasLanguageModel, languageModel, steps])
+  }, [config.modelId, hasLanguageModel, languageModel, sessionSummary])
 }
 
 function UsageRow({

@@ -318,12 +318,22 @@ During a run:
 - user message should exist durably before streaming starts
 - assistant placeholder should exist durably before streaming starts
 - request row should exist durably before streaming starts
-- live parts can update faster than durable writes
-- durable assistant parts should be written periodically and at completion
-- request steps stay embedded in `requests.steps`
+- generation-time parts and steps are persisted to `messageGenerations`
+- committed assistant parts and steps are written back to `messages` at terminal status
+- request rows stay focused on lifecycle/config/status
+- usage summaries are derived from steps in core write paths, not React render paths
 - terminal status must always be written for completed, failed, and cancelled runs
 
 Open question: whether the request row should begin as `preparing` instead of `streaming`.
+
+## Watchlist
+
+These are not bugs yet; they are design pressure to revisit when long sessions or richer editing make them visible.
+
+- `rebuildSessionUsage` currently scans all message and hot-generation usage for a session. Keep it until long sessions show pressure, then switch to delta updates.
+- Every rendered message currently subscribes to its own `messageGenerations` row. Keep it while transcripts are modest; revisit if large sessions make subscription count noticeable.
+- Cancelled/error assistant messages currently commit partial generation content into the transcript. Keep this explicit in UI semantics as editing/retry behavior grows.
+- Existing prototype data may have missing usage summaries. Avoid migrations for now; add a dev-only rebuild command if blank usage on old sessions becomes annoying.
 
 ## Failure Boundary
 

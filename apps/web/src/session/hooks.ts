@@ -1,156 +1,22 @@
-import type { RequestStatus, StepRecord } from '@tetra/core'
-import type { UIMessage } from 'ai'
-import { useMemo } from 'react'
+import type { Rows } from '@tetra/core'
 
-import { useRequestForMessage } from '@/tetra/hooks/requests'
-import { useMessage } from '@/tetra/hooks/transcripts'
+import { typedTinybase } from '@/tetra/tinybase'
 
-type Part = UIMessage['parts'][number]
-
-// Inference metadata for one assistant step.
-interface StepInference {
-  cost: StepRecord['cost']
-  finishReason: string
-  generationId: string
-  model: string
-  provider: string
-  tokens: StepRecord['tokens']
-}
-
-// A step groups parts that belong to one inference call (assistant) or the full user turn (virtual).
-// User messages produce one implicit step with inference: null.
-interface TetraStep {
-  inference: StepInference | null
-  parts: Part[]
-  stepIndex: number
-}
-
-interface TetraTotals {
-  cacheRead: number
-  cacheWrite: number
-  cost: number | null
-  input: number
-  output: number
-  reasoning: number
-  total: number
-}
-
-export interface TetraMessage {
-  createdAt: number
-  id: string
-  sessionId: string
-  // Null for user messages and assistant messages with no request record.
-  request: {
-    errorMessage: string | null
-    status: RequestStatus
-    totals: TetraTotals | null
-  } | null
-  role: UIMessage['role']
-  steps: TetraStep[]
-  updatedAt: number
-}
-
-export function useTetraMessage(messageId: string): TetraMessage | null {
-  const message = useMessage(messageId)
-  const request = useRequestForMessage(messageId)
-
-  return useMemo(() => {
-    if (!message) {
-      return null
-    }
-
-    const stepRecords = message.steps
-
-    return {
-      createdAt: message.createdAt,
-      id: message.id,
-      request: request
-        ? {
-            errorMessage: request.errorMessage || null,
-            status: request.status,
-            totals: deriveTotals(stepRecords),
-          }
-        : null,
-      role: message.role,
-      sessionId: message.sessionId,
-      steps: groupPartsByStep(message.parts, stepRecords),
-      updatedAt: message.updatedAt,
-    }
-  }, [message, request])
-}
-
-// Sums token and cost fields across all steps. Returns null when there are no steps yet.
-function deriveTotals(stepRecords: StepRecord[]): TetraTotals | null {
-  if (stepRecords.length === 0) {
+export const useMessage = (id: string): Rows.Message | null => {
+  const message = typedTinybase.useEntity('messages', id)
+  if (id === '' || message === null) {
     return null
   }
-
-  let cacheRead = 0
-  let cacheWrite = 0
-  let costTotal = 0
-  let hasCost = false
-  let input = 0
-  let output = 0
-  let reasoning = 0
-  let total = 0
-
-  for (const { tokens, cost } of stepRecords) {
-    cacheRead += tokens.inputCacheRead ?? 0
-    cacheWrite += tokens.inputCacheWrite ?? 0
-    input += tokens.inputTotal
-    output += tokens.outputTotal
-    reasoning += tokens.outputReasoning ?? 0
-    total += tokens.total
-    if (cost.total !== undefined) {
-      costTotal += cost.total
-      hasCost = true
-    }
-  }
-
-  return {
-    cacheRead,
-    cacheWrite,
-    cost: hasCost ? costTotal : null,
-    input,
-    output,
-    reasoning,
-    total,
-  }
+  return message
 }
 
-// Splits a flat parts array into step groups using step-start markers as boundaries.
-// step-start only appears in assistant messages; user messages produce one implicit step.
-// Each group index aligns with the corresponding StepRecord index.
-function groupPartsByStep(parts: Part[], stepRecords: StepRecord[]): TetraStep[] {
-  let current: Part[] = []
-  let hasSeenStepStart = false
-  const groups: Part[][] = []
+export const useSessionRequestIds = (sessionId: string) =>
+  typedTinybase.useSliceRowIds('requestsBySession', sessionId)
 
-  for (const part of parts) {
-    if (part.type === 'step-start') {
-      if (hasSeenStepStart) {
-        groups.push(current)
-      }
-      current = []
-      hasSeenStepStart = true
-    } else {
-      current.push(part)
-    }
+export const useRequest = (id: string): Rows.Request | null => {
+  const request = typedTinybase.useEntity('requests', id)
+  if (id === '' || request === null) {
+    return null
   }
-  groups.push(current)
-
-  return groups.map((stepParts, i) => {
-    const record = stepRecords[i] ?? null
-    const inference: StepInference | null = record
-      ? {
-          cost: record.cost,
-          finishReason: record.finishReason,
-          generationId: record.generationId,
-          model: record.model,
-          provider: record.provider,
-          tokens: record.tokens,
-        }
-      : null
-    return { inference, parts: stepParts, stepIndex: i }
-  })
+  return request
 }

@@ -7,7 +7,7 @@ import {
 import { cn } from '@tetra/ui/lib/utils'
 
 import { TetraLogo } from '@/components/tetra-logo'
-import { useSessionMessageIds } from '@/tetra/hooks/transcripts'
+import { typedTinybase } from '@/tetra/tinybase'
 
 import { Composer } from './composer'
 import { TetraMessageView } from './message-view'
@@ -30,8 +30,12 @@ export function TetraConversationView({
               title="No messages yet"
             />
           ) : (
-            messageIds.map((messageId) => (
-              <TetraMessageView key={messageId} messageId={messageId} />
+            messageIds.map((messageId, i) => (
+              <TetraMessageView
+                key={messageId}
+                isLastMessage={i === messageIds.length - 1}
+                messageId={messageId}
+              />
             ))
           )}
         </ConversationContent>
@@ -42,3 +46,6 @@ export function TetraConversationView({
     </div>
   )
 }
+
+const useSessionMessageIds = (sessionId: string) =>
+  typedTinybase.useSliceRowIds('messagesBySession', sessionId)

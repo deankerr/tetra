@@ -1,5 +1,6 @@
 import { createIdGenerator } from '#db'
 import type { RequestConfig as RequestConfigType, TetraDb } from '#db'
+import type { Store } from '#store'
 
 const nextId = createIdGenerator('req')
 
@@ -46,11 +47,21 @@ export function failRequest(db: TetraDb, requestId: string, error: unknown): voi
   })
 }
 
-export function recoverInterrupted(db: TetraDb, message = 'Request interrupted'): void {
+export function recoverInterrupted(store: Store, message = 'Request interrupted'): void {
+  const { db } = store
+
   for (const requestId of db.tables.requests.getRowIds()) {
     const status = db.tables.requests.getCell(requestId, 'status')
     if (status === 'preparing' || status === 'streaming') {
       failRequest(db, requestId, message)
     }
+  }
+
+  for (const messageId of db.tables.messageGenerations.getRowIds()) {
+    const status = db.tables.messageGenerations.getCell(messageId, 'status')
+    if (status === 'preparing' || status === 'streaming') {
+      store.updateMessageGeneration(messageId, { status: 'error' })
+    }
+    store.commitMessageGeneration(messageId)
   }
 }

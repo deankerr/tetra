@@ -1,3 +1,4 @@
+import type { RequestStatus, StepRecord, UsageSummary } from '@tetra/core'
 import {
   Tool,
   ToolContent,
@@ -11,19 +12,66 @@ import { Button } from '@tetra/ui/components/ui/button'
 import { cn } from '@tetra/ui/lib/utils'
 import type { UIMessage } from 'ai'
 import { CopyIcon, RefreshCwIcon, TrashIcon } from 'lucide-react'
+import { useMemo } from 'react'
 
 import { useTetra } from '@/tetra/provider'
+import { typedTinybase } from '@/tetra/tinybase'
 
-import type { TetraMessage } from './hooks'
-import { useTetraMessage } from './hooks'
+import { useMessage, useRequest } from './hooks'
 
 type UIMessagePart = UIMessage['parts'][number]
 
+interface StepInference {
+  cost: StepRecord['cost']
+  finishReason: string
+  generationId: string
+  model: string
+  provider: string
+  tokens: StepRecord['tokens']
+}
+
+interface TetraStep {
+  inference: StepInference | null
+  parts: UIMessagePart[]
+  stepIndex: number
+}
+
+interface TetraTotals {
+  cacheRead: number
+  cacheWrite: number
+  cost: number | null
+  input: number
+  output: number
+  reasoning: number
+  total: number
+}
+
+interface MessageGenerationOverlay {
+  parts: UIMessagePart[]
+  steps: StepRecord[]
+  usage: UsageSummary
+}
+
+interface TetraMessage {
+  createdAt: number
+  id: string
+  request: {
+    errorMessage: string | null
+    status: RequestStatus
+    totals: TetraTotals | null
+  } | null
+  role: UIMessage['role']
+  sessionId: string
+  steps: TetraStep[]
+  updatedAt: number
+}
+
 export function TetraMessageView({
+  isLastMessage,
   messageId,
   className,
   ...props
-}: { messageId: string } & React.ComponentProps<'div'>) {
+}: { isLastMessage: boolean; messageId: string } & React.ComponentProps<'div'>) {
   const message = useTetraMessage(messageId)
 
   if (!message) {
@@ -165,12 +213,120 @@ export function TetraMessageView({
       )}
 
       <MessageFooter message={message} />
-      {!isStreaming && <MessageActions message={message} />}
+      {!isStreaming && <MessageActions isLastMessage={isLastMessage} message={message} />}
     </div>
   )
 }
 
-function MessageActions({ message }: { message: TetraMessage }) {
+function useTetraMessage(messageId: string): TetraMessage | null {
+  const message = useMessage(messageId)
+  const generation = useMessageGeneration(messageId)
+  const request = useRequestForMessage(messageId)
+
+  return useMemo(() => {
+    if (!message) {
+      return null
+    }
+
+    const parts = generation?.parts ?? message.parts
+    const stepRecords = generation?.steps ?? message.steps
+    const usage = generation?.usage ?? message.usage
+
+    return {
+      createdAt: message.createdAt,
+      id: message.id,
+      request: request
+        ? {
+            errorMessage: request.errorMessage || null,
+            status: request.status,
+            totals: formatUsageSummary(usage),
+          }
+        : null,
+      role: message.role,
+      sessionId: message.sessionId,
+      steps: groupPartsByStep(parts, stepRecords),
+      updatedAt: message.updatedAt,
+    }
+  }, [generation, message, request])
+}
+
+function useRequestForMessage(messageId: string) {
+  const ids = typedTinybase.useSliceRowIds('requestsByAssistantMessage', messageId)
+  return useRequest(ids[0] ?? '')
+}
+
+function useMessageGeneration(messageId: string): MessageGenerationOverlay | null {
+  const generation = typedTinybase.useEntity('messageGenerations', messageId)
+  if (messageId === '' || generation === null) {
+    return null
+  }
+
+  return {
+    parts: generation.parts,
+    steps: generation.steps,
+    usage: generation.usage,
+  }
+}
+
+function formatUsageSummary(usage: UsageSummary): TetraTotals | null {
+  const total = usage.totalTokens ?? 0
+  if (total === 0) {
+    return null
+  }
+
+  return {
+    cacheRead: usage.cacheReadTokens ?? 0,
+    cacheWrite: usage.cacheWriteTokens ?? 0,
+    cost: usage.costTotal ?? null,
+    input: usage.inputTokens ?? 0,
+    output: usage.outputTokens ?? 0,
+    reasoning: usage.reasoningTokens ?? 0,
+    total,
+  }
+}
+
+// Groups a flat parts array into per-step buckets using step-start markers as boundaries.
+function groupPartsByStep(parts: UIMessagePart[], stepRecords: StepRecord[]): TetraStep[] {
+  let current: UIMessagePart[] = []
+  let hasSeenStepStart = false
+  const groups: UIMessagePart[][] = []
+
+  for (const part of parts) {
+    if (part.type === 'step-start') {
+      if (hasSeenStepStart) {
+        groups.push(current)
+      }
+      current = []
+      hasSeenStepStart = true
+    } else {
+      current.push(part)
+    }
+  }
+  groups.push(current)
+
+  return groups.map((stepParts, i) => {
+    const record = stepRecords[i] ?? null
+    const inference: StepInference | null = record
+      ? {
+          cost: record.cost,
+          finishReason: record.finishReason,
+          generationId: record.generationId,
+          model: record.model,
+          provider: record.provider,
+          tokens: record.tokens,
+        }
+      : null
+    return { inference, parts: stepParts, stepIndex: i }
+  })
+}
+
+function MessageActions({
+  isLastMessage,
+  message,
+}: {
+  isLastMessage: boolean
+  message: TetraMessage
+}) {
   const { runs, store } = useTetra()
 
   const messageText = message.steps
@@ -179,8 +335,7 @@ function MessageActions({ message }: { message: TetraMessage }) {
     .map((p) => p.text)
     .join('')
 
-  const lastMessage = store.listMessages(message.sessionId).at(-1)
-  const canRegenerate = lastMessage?.id === message.id
+  const canRegenerate = isLastMessage
 
   return (
     <div className="flex items-center gap-0.5 pt-1">

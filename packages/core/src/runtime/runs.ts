@@ -61,7 +61,7 @@ export class Runs {
   }
 
   recover(): void {
-    recoverInterrupted(this.store.db)
+    recoverInterrupted(this.store)
   }
 
   // Re-run the final conversation turn by reusing an assistant tail or appending one after a user tail.
@@ -78,7 +78,7 @@ export class Runs {
     }
 
     if (message.role === 'assistant') {
-      this.store.updateMessage(message.id, { parts: [] })
+      this.store.clearMessageContent(message.id)
       return this.start({ assistantMessageId: message.id, config: args.config })
     }
 
@@ -105,6 +105,11 @@ export class Runs {
       requestId = createRequest(this.store.db, {
         assistantMessageId: args.assistantMessageId,
         config,
+        sessionId: session.id,
+      })
+      this.store.createMessageGeneration({
+        messageId: args.assistantMessageId,
+        requestId,
         sessionId: session.id,
       })
     })

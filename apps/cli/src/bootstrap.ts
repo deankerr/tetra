@@ -16,18 +16,22 @@ export const TABULAR_CONFIG = {
   tables: {
     load: {
       languageModels: { rowIdColumnName: 'id', tableId: 'languageModels' },
+      messageGenerations: { rowIdColumnName: 'id', tableId: 'messageGenerations' },
       messages: { rowIdColumnName: 'id', tableId: 'messages' },
       prompts: { rowIdColumnName: 'id', tableId: 'prompts' },
       requests: { rowIdColumnName: 'id', tableId: 'requests' },
       sessionConfigs: { rowIdColumnName: 'id', tableId: 'sessionConfigs' },
+      sessionSummaries: { rowIdColumnName: 'id', tableId: 'sessionSummaries' },
       sessions: { rowIdColumnName: 'id', tableId: 'sessions' },
     },
     save: {
       languageModels: { rowIdColumnName: 'id', tableName: 'languageModels' },
+      messageGenerations: { rowIdColumnName: 'id', tableName: 'messageGenerations' },
       messages: { rowIdColumnName: 'id', tableName: 'messages' },
       prompts: { rowIdColumnName: 'id', tableName: 'prompts' },
       requests: { rowIdColumnName: 'id', tableName: 'requests' },
       sessionConfigs: { rowIdColumnName: 'id', tableName: 'sessionConfigs' },
+      sessionSummaries: { rowIdColumnName: 'id', tableName: 'sessionSummaries' },
       sessions: { rowIdColumnName: 'id', tableName: 'sessions' },
     },
   },
