@@ -213,6 +213,30 @@ export const valuesSchema = tetraDbDefinition.tinybaseValuesSchema
 
 export type DbSchemas = [typeof tablesSchema, typeof valuesSchema]
 
+export type SessionConfigRow = OutputRowOf<
+  (typeof tetraDbDefinition.tables.sessionConfigs)['schema']
+>
+
+export function requestConfigToSessionConfigRow(config: RequestConfig): SessionConfigRow {
+  return {
+    maxMessages: config.maxMessages ?? 0,
+    modelId: config.modelId,
+    providerOptions: config.providerOptions ?? {},
+    systemPromptId: config.systemPromptId ?? '',
+    toolIds: config.toolIds ?? [],
+  }
+}
+
+export function sessionConfigRowToRequestConfig(row: SessionConfigRow): RequestConfig {
+  return {
+    modelId: row.modelId,
+    ...(row.maxMessages !== 0 && { maxMessages: row.maxMessages }),
+    ...(row.systemPromptId !== '' && { systemPromptId: row.systemPromptId }),
+    ...(Object.keys(row.providerOptions).length > 0 && { providerOptions: row.providerOptions }),
+    ...(row.toolIds.length > 0 && { toolIds: row.toolIds }),
+  }
+}
+
 // oxlint-disable-next-line typescript/no-namespace -- Namespaces keep contested schema row names grouped at call sites, e.g. Rows.Message.
 export namespace Rows {
   export type LanguageModel = EntityOf<(typeof tetraDbDefinition.tables.languageModels)['schema']>
@@ -226,9 +250,7 @@ export namespace Rows {
   export type SessionSummary = EntityOf<
     (typeof tetraDbDefinition.tables.sessionSummaries)['schema']
   >
-  export type SessionConfig = OutputRowOf<
-    (typeof tetraDbDefinition.tables.sessionConfigs)['schema']
-  > & {
+  export type SessionConfig = SessionConfigRow & {
     id: string
   }
 }

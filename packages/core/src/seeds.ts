@@ -1,5 +1,11 @@
 import type { RequestConfig as RequestConfigType, Rows } from '#db'
-import { DEFAULT_REQUEST_CONFIG, RequestConfig, StepRecord, deriveUsageSummary } from '#db'
+import {
+  DEFAULT_REQUEST_CONFIG,
+  RequestConfig,
+  StepRecord,
+  deriveUsageSummary,
+  requestConfigToSessionConfigRow,
+} from '#db'
 import type { Store } from '#store'
 
 import tailwindV4Cheatsheet from './seeds/tailwind-v4-cheatsheet.json'
@@ -54,13 +60,10 @@ function importSession(
       updatedAt: session.updatedAt,
     })
 
-    store.db.tables.sessionConfigs.setRow(session.id, {
-      maxMessages: sessionConfig.maxMessages ?? 0,
-      modelId: sessionConfig.modelId,
-      providerOptions: sessionConfig.providerOptions ?? {},
-      systemPromptId: sessionConfig.systemPromptId ?? '',
-      toolIds: sessionConfig.toolIds ?? [],
-    })
+    store.db.tables.sessionConfigs.setRow(
+      session.id,
+      requestConfigToSessionConfigRow(sessionConfig),
+    )
 
     store.db.tables.sessionSummaries.setRow(session.id, {
       createdAt: session.createdAt,

@@ -34,6 +34,14 @@ type CellOutput<
   CellId extends keyof z.output<TableSchemaOf<Tables[TableId]>> & string,
 > = z.output<TableSchemaOf<Tables[TableId]>>[CellId]
 
+type ValueInput<Values extends ValueDefinitions, ValueId extends keyof Values & string> = z.input<
+  Values[ValueId]['schema']
+>
+
+type ValueOutput<Values extends ValueDefinitions, ValueId extends keyof Values & string> = z.output<
+  Values[ValueId]['schema']
+>
+
 const tinyHooks = UiReact as unknown as LooseHooks
 
 export function createTypedTinybaseReactHooks<
@@ -150,9 +158,30 @@ export function createTypedTinybaseReactHooks<
 
     useValue<ValueId extends keyof Values & string>(
       valueId: ValueId,
-    ): z.output<Values[ValueId]['schema']> {
+    ): ValueOutput<Values, ValueId> {
       const value = tinyHooks.useValue(valueId)
       return useMemo(() => definition.parseValue(valueId, value), [value, valueId])
+    },
+
+    useValueState<ValueId extends keyof Values & string>(
+      valueId: ValueId,
+    ): [ValueOutput<Values, ValueId>, (value: ValueInput<Values, ValueId>) => void] {
+      const [value, setValue] = tinyHooks.useValueState(valueId)
+      const valueSchema = definition.values[valueId].schema
+
+      const parsedValue = useMemo<ValueOutput<Values, ValueId>>(
+        () => definition.parseValue(valueId, value),
+        [value, valueId],
+      )
+
+      const setParsedValue = useCallback(
+        (nextValue: ValueInput<Values, ValueId>) => {
+          setValue(valueSchema.parse(nextValue) as Parameters<typeof setValue>[0])
+        },
+        [setValue, valueSchema],
+      )
+
+      return [parsedValue, setParsedValue]
     },
   }
 }

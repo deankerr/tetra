@@ -6,7 +6,7 @@ import { useEffect, useReducer, useRef } from 'react'
 import type { Dispatch } from 'react'
 import { z } from 'zod'
 
-import { useSessionConfig, useUpdateSessionConfig } from '@/tetra/hooks/sessions'
+import { typedTinybase } from '@/tetra/tinybase'
 
 // --- Types ---
 
@@ -319,8 +319,11 @@ function ObjectRow({ dispatch, entry }: { dispatch: Dispatch<Action>; entry: Obj
 // Rendered with key={sessionId} by the parent — each session gets a fresh instance,
 // so sessionId never changes within this component's lifetime.
 export function ProviderOptionsEditor({ sessionId }: { sessionId: string }) {
-  const options = useSessionConfig(sessionId).providerOptions ?? EMPTY_PROVIDER_OPTIONS
-  const updateConfig = useUpdateSessionConfig(sessionId)
+  const [options = EMPTY_PROVIDER_OPTIONS, setOptions] = typedTinybase.useCellState(
+    'sessionConfigs',
+    sessionId,
+    'providerOptions',
+  )
   const [entries, dispatch] = useReducer(entriesReducer, options, optionsToEntries)
   const isInitialRender = useRef(true)
 
@@ -329,8 +332,8 @@ export function ProviderOptionsEditor({ sessionId }: { sessionId: string }) {
       isInitialRender.current = false
       return
     }
-    updateConfig({ providerOptions: entriesToOptions(entries) })
-  }, [entries, updateConfig])
+    setOptions(entriesToOptions(entries))
+  }, [entries, setOptions])
 
   return (
     <div className="flex flex-col gap-1.5">

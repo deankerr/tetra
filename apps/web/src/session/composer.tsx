@@ -1,3 +1,4 @@
+import { DEFAULT_REQUEST_CONFIG } from '@tetra/core'
 import {
   Attachment,
   AttachmentInfo,
@@ -22,8 +23,8 @@ import { useState } from 'react'
 
 import { ModelPicker } from '@/session/settings/model-picker'
 import { useSettings } from '@/settings-provider'
-import { useSessionConfig, useUpdateSessionConfig } from '@/tetra/hooks/sessions'
 import { useTetra } from '@/tetra/provider'
+import { typedTinybase } from '@/tetra/tinybase'
 import { useCredential } from '@/use-credential'
 
 import { useRequest, useSessionRequestIds } from './hooks'
@@ -35,8 +36,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
   const settings = useSettings()
   const activeRequest = useActiveRequest(sessionId)
   const isStreaming = activeRequest !== null
-  const config = useSessionConfig(sessionId)
-  const updateConfig = useUpdateSessionConfig(sessionId)
+  const [modelId, setModelId] = typedTinybase.useCellState('sessionConfigs', sessionId, 'modelId')
   const [openrouterApiKey] = useCredential('OPENROUTER_API_KEY')
   const [draft, setDraft] = useState('')
 
@@ -116,10 +116,10 @@ export function Composer({ sessionId }: { sessionId: string }) {
         <PromptInputFooter>
           <PromptInputTools>
             <ModelPicker
-              onValueChange={(modelId) => {
-                updateConfig({ modelId })
+              onValueChange={(nextModelId) => {
+                setModelId(nextModelId)
               }}
-              value={config.modelId}
+              value={modelId ?? DEFAULT_REQUEST_CONFIG.modelId}
             />
             <ImageInputButton disabled={isStreaming} />
           </PromptInputTools>

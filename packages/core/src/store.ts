@@ -1,6 +1,12 @@
 import type { UIMessage } from 'ai'
 
-import { combineUsageSummaries, createIdGenerator, deriveUsageSummary } from '#db'
+import {
+  combineUsageSummaries,
+  createIdGenerator,
+  deriveUsageSummary,
+  requestConfigToSessionConfigRow,
+  sessionConfigRowToRequestConfig,
+} from '#db'
 import type {
   GenerationStatus,
   MessageRole,
@@ -48,13 +54,7 @@ export class Store {
         title: args.title ?? '',
         updatedAt: now,
       })
-      this.db.tables.sessionConfigs.setRow(sessionId, {
-        maxMessages: config.maxMessages ?? 0,
-        modelId: config.modelId,
-        providerOptions: config.providerOptions ?? {},
-        systemPromptId: config.systemPromptId ?? '',
-        toolIds: config.toolIds ?? [],
-      })
+      this.db.tables.sessionConfigs.setRow(sessionId, requestConfigToSessionConfigRow(config))
       this.db.tables.sessionSummaries.setRow(sessionId, {
         createdAt: now,
         updatedAt: now,
@@ -94,14 +94,7 @@ export class Store {
 
   // Reads from the sessionConfigs table and normalises sentinel values back to undefined.
   getSessionConfig(sessionId: string): RequestConfig {
-    const row = this.db.tables.sessionConfigs.requireEntity(sessionId)
-    return {
-      modelId: row.modelId,
-      ...(row.maxMessages !== 0 && { maxMessages: row.maxMessages }),
-      ...(row.systemPromptId !== '' && { systemPromptId: row.systemPromptId }),
-      ...(Object.keys(row.providerOptions).length > 0 && { providerOptions: row.providerOptions }),
-      ...(row.toolIds.length > 0 && { toolIds: row.toolIds }),
-    }
+    return sessionConfigRowToRequestConfig(this.db.tables.sessionConfigs.requireEntity(sessionId))
   }
 
   listSessions(): Rows.Session[] {
@@ -115,13 +108,7 @@ export class Store {
   // Writes config fields to the sessionConfigs table, converting undefined to sentinel values.
   setSessionConfig(sessionId: string, config: RequestConfig): void {
     this.requireSession(sessionId)
-    this.db.tables.sessionConfigs.setRow(sessionId, {
-      maxMessages: config.maxMessages ?? 0,
-      modelId: config.modelId,
-      providerOptions: config.providerOptions ?? {},
-      systemPromptId: config.systemPromptId ?? '',
-      toolIds: config.toolIds ?? [],
-    })
+    this.db.tables.sessionConfigs.setRow(sessionId, requestConfigToSessionConfigRow(config))
   }
 
   updateSessionConfig(sessionId: string, patch: Partial<RequestConfig>): void {

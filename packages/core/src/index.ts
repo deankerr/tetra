@@ -16,6 +16,8 @@ export {
   combineUsageSummaries,
   createTetraDb,
   deriveUsageSummary,
+  requestConfigToSessionConfigRow,
+  sessionConfigRowToRequestConfig,
   tetraDbDefinition,
 } from '#db'
 export type {

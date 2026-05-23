@@ -12,7 +12,6 @@ import { Textarea } from '@tetra/ui/components/ui/textarea'
 import { Trash2Icon, XIcon } from 'lucide-react'
 
 import { usePrompt, usePromptIds } from '@/tetra/hooks/prompts'
-import { useSessionConfig, useUpdateSessionConfig } from '@/tetra/hooks/sessions'
 import { useTetra } from '@/tetra/provider'
 import { typedTinybase } from '@/tetra/tinybase'
 
@@ -117,11 +116,11 @@ export function PromptPreviewButton({
   onOpen: () => void
   sessionId: string
 }) {
-  const config = useSessionConfig(sessionId)
   const promptIds = usePromptIds()
+  const systemPromptId = typedTinybase.useCell('sessionConfigs', sessionId, 'systemPromptId')
   const selectedPromptId =
-    config.systemPromptId !== undefined && promptIds.includes(config.systemPromptId)
-      ? config.systemPromptId
+    systemPromptId !== undefined && systemPromptId !== '' && promptIds.includes(systemPromptId)
+      ? systemPromptId
       : undefined
 
   // Always call — hook handles missing id gracefully
@@ -158,17 +157,16 @@ export function PromptEditorSheet({
   sessionId: string
 }) {
   const { store } = useTetra()
-  const config = useSessionConfig(sessionId)
-  const updateConfig = useUpdateSessionConfig(sessionId)
+  const [systemPromptId, setSystemPromptId] = typedTinybase.useCellState(
+    'sessionConfigs',
+    sessionId,
+    'systemPromptId',
+  )
   const promptIds = usePromptIds()
   const selectedPromptId =
-    config.systemPromptId !== undefined && promptIds.includes(config.systemPromptId)
-      ? config.systemPromptId
+    systemPromptId !== undefined && systemPromptId !== '' && promptIds.includes(systemPromptId)
+      ? systemPromptId
       : undefined
-
-  const updateSystemPromptId = (systemPromptId?: string) => {
-    updateConfig({ systemPromptId })
-  }
 
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
@@ -189,14 +187,14 @@ export function PromptEditorSheet({
           <Select
             onValueChange={(value) => {
               if (value === null) {
-                updateSystemPromptId()
+                setSystemPromptId('')
                 return
               }
               if (value === NEW_PROMPT_VALUE) {
-                updateSystemPromptId(store.createPrompt())
+                setSystemPromptId(store.createPrompt())
                 return
               }
-              updateSystemPromptId(value === NO_PROMPT_VALUE ? undefined : value)
+              setSystemPromptId(value === NO_PROMPT_VALUE ? '' : value)
             }}
             value={selectedPromptId ?? NO_PROMPT_VALUE}
           >

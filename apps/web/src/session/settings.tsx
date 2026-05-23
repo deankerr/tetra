@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@tetra/ui/components/u
 import { Field, FieldGroup, FieldTitle } from '@tetra/ui/components/ui/field'
 import { Input } from '@tetra/ui/components/ui/input'
 
-import { useSessionConfig, useUpdateSessionConfig } from '@/tetra/hooks/sessions'
-import { useTetra } from '@/tetra/provider'
+import { useSessionConfig } from '@/tetra/hooks/sessions'
+import { typedTinybase } from '@/tetra/tinybase'
 
 import { ModelPicker } from './settings/model-picker'
 import { PromptPreviewButton } from './settings/prompt-editor-sheet'
@@ -18,9 +18,15 @@ export function SessionSettings({
   onOpenPromptSheet: () => void
   sessionId: string
 }) {
-  const { store } = useTetra()
   const config = useSessionConfig(sessionId)
-  const updateConfig = useUpdateSessionConfig(sessionId)
+  const [maxMessages, setMaxMessages] = typedTinybase.useCellState(
+    'sessionConfigs',
+    sessionId,
+    'maxMessages',
+  )
+  const [modelId, setModelId] = typedTinybase.useCellState('sessionConfigs', sessionId, 'modelId')
+  const [, setDefaultConfig] = typedTinybase.useValueState('defaultSessionConfig')
+  const [toolIds, setToolIds] = typedTinybase.useCellState('sessionConfigs', sessionId, 'toolIds')
 
   return (
     <FieldGroup>
@@ -28,10 +34,10 @@ export function SessionSettings({
         <FieldTitle>Model</FieldTitle>
         <ModelPicker
           className="w-full"
-          onValueChange={(modelId) => {
-            updateConfig({ modelId })
+          onValueChange={(nextModelId) => {
+            setModelId(nextModelId)
           }}
-          value={config.modelId}
+          value={modelId ?? config.modelId}
         />
       </Field>
 
@@ -41,11 +47,11 @@ export function SessionSettings({
           min={1}
           onChange={(e) => {
             const val = e.currentTarget.value
-            updateConfig({ maxMessages: val === '' ? undefined : Number(val) })
+            setMaxMessages(val === '' ? 0 : Number(val))
           }}
           placeholder="Unlimited"
           type="number"
-          value={config.maxMessages ?? ''}
+          value={maxMessages === undefined || maxMessages === 0 ? '' : maxMessages}
         />
       </Field>
 
@@ -60,10 +66,10 @@ export function SessionSettings({
         </CardHeader>
         <CardContent className="space-y-3">
           <ToolSelector
-            onToolIdsChange={(toolIds) => {
-              updateConfig({ toolIds })
+            onToolIdsChange={(nextToolIds) => {
+              setToolIds(nextToolIds)
             }}
-            toolIds={config.toolIds ?? []}
+            toolIds={toolIds ?? []}
           />
         </CardContent>
       </Card>
@@ -80,7 +86,7 @@ export function SessionSettings({
       <Button
         className="w-full"
         onClick={() => {
-          store.setDefaultConfig(store.getSessionConfig(sessionId))
+          setDefaultConfig(config)
         }}
         variant="outline"
       >

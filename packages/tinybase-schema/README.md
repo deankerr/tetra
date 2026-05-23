@@ -80,6 +80,7 @@ React hooks currently include:
 - `useCell`
 - `useCellState`
 - `useValue`
+- `useValueState`
 - `useSliceRowIds`
 
 ## Intentional Deviations From TinyBase
@@ -124,6 +125,8 @@ Hold off on these until the app needs them:
 
 - Typing index `sliceId` from the indexed cell output.
 - Wrapping `useStore` / `addCellListener`.
+- Wrapping wider state hooks such as `useRowState`, `useTableState`, and
+  `useValuesState`.
 - Entity-returning index helpers such as `getSliceEntities`.
 - Opinionated batch helpers such as `replaceRows`, `deleteRowsWhere`, or
   insert-only APIs.
