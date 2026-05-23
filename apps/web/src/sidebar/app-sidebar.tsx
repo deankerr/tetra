@@ -6,9 +6,7 @@ import { ThemeSwitcher } from '@/sidebar/footer/theme-switcher'
 import { SessionGroup } from '@/sidebar/session-group'
 
 import { DebugMenu } from './footer/debug-menu'
-import { PersistenceStatus } from './footer/persistence-status'
 import { SettingsDialog } from './footer/settings-dialog'
-import { SyncStatus } from './footer/sync-status'
 
 export function AppSidebar() {
   return (
@@ -28,8 +26,6 @@ export function AppSidebar() {
 
       <SidebarFooter>
         <div className="flex items-center justify-center gap-2">
-          <SyncStatus />
-          <PersistenceStatus />
           <DebugMenu />
           <SettingsDialog />
           <ThemeSwitcher />

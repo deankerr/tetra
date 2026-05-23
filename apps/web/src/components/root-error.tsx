@@ -3,8 +3,6 @@ import { useRouter } from '@tanstack/react-router'
 import { Button } from '@tetra/ui/components/ui/button'
 import { AlertCircleIcon, Trash2Icon } from 'lucide-react'
 
-import { clearAllData } from '@/lib/clear-data'
-
 export function RootErrorComponent({ error, reset }: ErrorComponentProps) {
   const router = useRouter()
 
@@ -27,7 +25,7 @@ export function RootErrorComponent({ error, reset }: ErrorComponentProps) {
         >
           Try again
         </Button>
-        <Button onClick={() => void clearAllData()} variant="outline">
+        <Button disabled variant="outline">
           <Trash2Icon />
           Clear data
         </Button>

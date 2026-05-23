@@ -10,7 +10,6 @@ import {
 } from '@tetra/ui/components/ui/dropdown-menu'
 import { BugIcon, DatabaseIcon, Trash2Icon } from 'lucide-react'
 
-import { clearAllData } from '@/lib/clear-data'
 import { useTetra } from '@/provider'
 
 export function DebugMenu() {
@@ -36,7 +35,7 @@ export function DebugMenu() {
             <DatabaseIcon />
             Load seed data
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => void clearAllData()}>
+          <DropdownMenuItem disabled>
             <Trash2Icon />
             Clear all data
           </DropdownMenuItem>
