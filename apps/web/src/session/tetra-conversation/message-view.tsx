@@ -1,3 +1,10 @@
+import {
+  Tool,
+  ToolContent,
+  ToolHeader,
+  ToolInput,
+  ToolOutput,
+} from '@tetra/ui/components/ai-elements/tool'
 import type { ToolPart as ToolPartType } from '@tetra/ui/components/ai-elements/tool'
 import { Badge } from '@tetra/ui/components/ui/badge'
 import { cn } from '@tetra/ui/lib/utils'
@@ -43,7 +50,7 @@ export function TetraMessageView({
         )
 
         return (
-          <Block key={`${id}-step-${stepIndex}`} header={stepHeader}>
+          <StepBlock key={`${id}-step-${stepIndex}`} header={stepHeader}>
             {parts.map((p, partIndex) => {
               const partId = `${id}-${stepIndex}-${partIndex}`
 
@@ -101,7 +108,19 @@ export function TetraMessageView({
                         />
                       </>
                     }
-                  ></Block>
+                  >
+                    <Tool>
+                      {p.type === 'dynamic-tool' ? (
+                        <ToolHeader type={p.type} state={p.state} toolName={p.toolName} />
+                      ) : (
+                        <ToolHeader type={p.type} state={p.state} />
+                      )}
+                      <ToolContent>
+                        <ToolInput input={p.input} />
+                        <ToolOutput output={p.output} errorText={p.errorText} />
+                      </ToolContent>
+                    </Tool>
+                  </Block>
                 )
               }
 
@@ -124,7 +143,7 @@ export function TetraMessageView({
 
               return <Block key={partId} header={p.type}></Block>
             })}
-          </Block>
+          </StepBlock>
         )
       })}
 
@@ -179,6 +198,24 @@ function Block({
         {header}
       </div>
       <div data-slot="block-content" className="space-y-2 p-2 whitespace-pre-wrap">
+        {children ?? <span className="text-muted-foreground opacity-50">[NO CONTENT]</span>}
+      </div>
+    </div>
+  )
+}
+
+function StepBlock({
+  header,
+  children,
+  className,
+  ...props
+}: { header: React.ReactNode } & React.ComponentProps<'div'>) {
+  return (
+    <div className={cn('', className)} {...props}>
+      <div data-slot="block-header" className="text-muted-foreground border-2 p-2 font-mono">
+        {header}
+      </div>
+      <div data-slot="block-content" className="space-y-2 py-2 whitespace-pre-wrap">
         {children ?? <span className="text-muted-foreground opacity-50">[NO CONTENT]</span>}
       </div>
     </div>
