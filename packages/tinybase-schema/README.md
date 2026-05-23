@@ -24,12 +24,12 @@ export const dbDefinition = defineTypedTinybase({
   },
   tables: {
     messages: tinybaseTable({
-      parts: tinybaseCell.array(MessageParts.default([]), { default: [] }),
+      parts: tinybaseCell.array(MessageParts, { default: [] }),
       sessionId: tinybaseCell.string(z.string()),
     }),
   },
   values: {
-    activeSessionId: tinybaseCell.string(z.string().default(''), { default: '' }),
+    activeSessionId: tinybaseCell.string(z.string(), { default: '' }),
   },
 })
 ```
@@ -38,7 +38,7 @@ The definition can create and bind TinyBase objects:
 
 ```ts
 const store = dbDefinition.createTinybaseStore()
-const tables = dbDefinition.bindTinybaseStore(store)
+const db = dbDefinition.bindTinybaseStore(store)
 
 const rawIndexes = dbDefinition.createTinybaseIndexes(store)
 const indexes = dbDefinition.bindTinybaseIndexes(rawIndexes)
@@ -51,11 +51,18 @@ Bound table APIs currently include:
 - `getRowIds`, `hasRow`
 - `getCell`, `setCell`
 
+Bound store APIs currently include:
+
+- `tables`, with named table APIs such as `db.tables.messages`
+- `values`, with named value APIs such as `db.values.activeSessionId`
+- `transaction`
+- `store`, for integration boundaries
+
 Bound value APIs currently include:
 
-- `getValue`
-- `setValue`
-- `deleteValue`
+- `get`
+- `set`
+- `delete`
 
 Bound index APIs currently include:
 
@@ -124,9 +131,8 @@ Hold off on these until the app needs them:
 
 ## Current Design Notes
 
-- `db.tables` in Tetra contains table APIs, value APIs via `getValue`, and
-  `transaction`. The name is a little narrower than the object, but it keeps the
-  call sites compact.
+- `db.tables` in Tetra contains table APIs only. Store-level values live under
+  `db.values`, and `transaction` lives at the DB boundary.
 - `raw` escape hatches should stay rare and explicit.
 - Prefer adding wrappers only when Tetra already has a raw TinyBase call site
   that would benefit from typing.

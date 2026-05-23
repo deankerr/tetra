@@ -104,15 +104,15 @@ export function createValueApi<Schemas extends [TablesSchema, ValuesSchema], Sch
   schema: Schema,
 ): ValueApi<Schema> {
   return {
-    deleteValue() {
+    delete() {
       store.delValue(valueId)
     },
 
-    getValue() {
+    get() {
       return schema.parse(store.getValue(valueId))
     },
 
-    setValue(value) {
+    set(value) {
       const parsed = schema.parse(value)
       store.setValue(valueId, parsed as never)
       return parsed

@@ -1,45 +1,16 @@
 # Core Design Notes
 
-This package is an experimental redesign space for Tetra's core. The structure will change often; keep this document conceptual rather than descriptive of the current files.
+`@tetra/core` owns the local-first domain model: schema, typed TinyBase access, session/request/message mutations, runtime execution, recovery, and shared behavior used by both web and CLI.
 
-## Design Goal
+## Claims
 
-TinyBase is the durable, synchronous substrate. Its synchronous queries and mutations are a major strength: most of core should be ordinary state reads and writes, not async actions.
+- TinyBase is the durable, synchronous state substrate. Prefer ordinary reads and mutations over async state actions.
+- Raw TinyBase access belongs at explicit integration boundaries. Most code should speak through typed table APIs or domain methods.
+- Core should express domain moves, not UI workflows. Web and CLI can decide what messages to create; core should own the durable invariants once they do.
+- Long-running work should have explicit handles for lifecycle, cancellation, completion, and recovery. Avoid fire-and-forget as the durable shape.
+- Async/external work, such as inference, catalog refresh, persistence, network tools, and recovery, should use the same synchronous state APIs as everything else.
+- Add abstractions only when they remove repeated TinyBase friction or concentrate a real invariant. Keep experimental code easy to delete.
 
-The raw TinyBase API is also sharp enough that it should not be the interface most code thinks in. The redesign should make TinyBase access safe, typed enough, and pleasant, so higher-level modules can express domain mutations directly.
+## Notes
 
-## Modules
-
-Modules should model domain moves over state. Most modules are synchronous query/mutation helpers around a domain such as sessions, prompts, or transcripts.
-
-Modules may coordinate across tables when that is the clearest way to preserve a domain invariant. Do not contort code to enforce dependency-direction rules unless a real lifecycle or complexity problem appears.
-
-The important distinction is not "which module may talk to which module"; it is whether raw TinyBase details are leaking into places that should be talking in domain terms.
-
-## Actions
-
-Async work should stay explicit and external where possible. In Convex terms, most of core should be mutations and queries; actions are the smaller set of operations that touch the outside world or long-running work.
-
-Examples of action-like concerns:
-
-- inference
-- remote catalog refresh
-- tool calls that use network APIs
-- persistence activation
-- recovery after external interruption
-
-Keep these adaptable. They should use the synchronous state modules and Accessors rather than bypassing them.
-
-## Runners
-
-Use "Runners" as the working term for long-lived or async execution controllers. A Runner should be able to use the same query/mutation APIs as the rest of core.
-
-Avoid fire-and-forget as the long-term shape. Prefer explicit handles that can expose lifecycle, cancellation, completion, and live state as the design matures.
-
-## What To Optimize For
-
-- Make good code easy to delete.
-- Keep the state layer boring and synchronous.
-- Prefer precise domain mutations over convenience facades.
-- Let the design remain fluid while the package is experimental.
-- Add abstractions only when they remove repeated TinyBase friction or concentrate a real invariant.
+- `Runs` does not create messages - the caller has the ability to direct the output to the `message` it needs to.

@@ -126,83 +126,83 @@ export const tetraDbDefinition = defineTypedTinybase({
   },
   tables: {
     languageModels: tinybaseTable({
-      contextLength: tinybaseCell.number(z.number().default(0), { default: 0 }),
-      createdAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
-      inputModalities: tinybaseCell.array(StringArray.default([]), { default: [] }),
-      name: tinybaseCell.string(z.string().default(''), { default: '' }),
-      outputModalities: tinybaseCell.array(StringArray.default([]), { default: [] }),
-      provider: tinybaseCell.string(z.string().default(''), { default: '' }),
-      providerName: tinybaseCell.string(z.string().default(''), { default: '' }),
-      supportedParameters: tinybaseCell.array(StringArray.default([]), { default: [] }),
+      contextLength: tinybaseCell.number(z.number(), { default: 0 }),
+      createdAt: tinybaseCell.number(z.number(), { default: 0 }),
+      inputModalities: tinybaseCell.array(StringArray, { default: [] }),
+      name: tinybaseCell.string(z.string(), { default: '' }),
+      outputModalities: tinybaseCell.array(StringArray, { default: [] }),
+      provider: tinybaseCell.string(z.string(), { default: '' }),
+      providerName: tinybaseCell.string(z.string(), { default: '' }),
+      supportedParameters: tinybaseCell.array(StringArray, { default: [] }),
     }),
     messageGenerations: tinybaseTable({
-      createdAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
-      parts: tinybaseCell.array(MessageParts.default([]), { default: [] }),
-      requestId: tinybaseCell.string(z.string().default(''), { default: '' }),
-      sessionId: tinybaseCell.string(z.string().default(''), { default: '' }),
-      status: tinybaseCell.string(GenerationStatusSchema.default('preparing'), {
+      createdAt: tinybaseCell.number(z.number(), { default: 0 }),
+      parts: tinybaseCell.array(MessageParts, { default: [] }),
+      requestId: tinybaseCell.string(z.string(), { default: '' }),
+      sessionId: tinybaseCell.string(z.string(), { default: '' }),
+      status: tinybaseCell.string(GenerationStatusSchema, {
         default: 'preparing',
       }),
-      steps: tinybaseCell.array(z.array(StepRecord).default([]), { default: [] }),
-      updatedAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
-      usage: tinybaseCell.object(UsageSummary.default(EMPTY_USAGE), { default: EMPTY_USAGE }),
+      steps: tinybaseCell.array(z.array(StepRecord), { default: [] }),
+      updatedAt: tinybaseCell.number(z.number(), { default: 0 }),
+      usage: tinybaseCell.object(UsageSummary, { default: EMPTY_USAGE }),
     }),
     messages: tinybaseTable({
-      createdAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
-      parts: tinybaseCell.array(MessageParts.default([]), { default: [] }),
-      role: tinybaseCell.string(MessageRoleSchema.default('user'), { default: 'user' }),
-      sessionId: tinybaseCell.string(z.string().default(''), { default: '' }),
-      steps: tinybaseCell.array(z.array(StepRecord).default([]), { default: [] }),
-      updatedAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
-      usage: tinybaseCell.object(UsageSummary.default(EMPTY_USAGE), { default: EMPTY_USAGE }),
+      createdAt: tinybaseCell.number(z.number(), { default: 0 }),
+      parts: tinybaseCell.array(MessageParts, { default: [] }),
+      role: tinybaseCell.string(MessageRoleSchema, { default: 'user' }),
+      sessionId: tinybaseCell.string(z.string(), { default: '' }),
+      steps: tinybaseCell.array(z.array(StepRecord), { default: [] }),
+      updatedAt: tinybaseCell.number(z.number(), { default: 0 }),
+      usage: tinybaseCell.object(UsageSummary, { default: EMPTY_USAGE }),
     }),
     prompts: tinybaseTable({
-      content: tinybaseCell.string(z.string().default(''), { default: '' }),
-      label: tinybaseCell.string(z.string().default(''), { default: '' }),
+      content: tinybaseCell.string(z.string(), { default: '' }),
+      label: tinybaseCell.string(z.string(), { default: '' }),
     }),
     requests: tinybaseTable({
-      assistantMessageId: tinybaseCell.string(z.string().default(''), { default: '' }),
-      config: tinybaseCell.object(RequestConfig.default(DEFAULT_REQUEST_CONFIG), {
+      assistantMessageId: tinybaseCell.string(z.string(), { default: '' }),
+      config: tinybaseCell.object(RequestConfig, {
         default: DEFAULT_REQUEST_CONFIG,
       }),
-      createdAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
-      errorMessage: tinybaseCell.string(z.string().default(''), { default: '' }),
-      sessionId: tinybaseCell.string(z.string().default(''), { default: '' }),
-      status: tinybaseCell.string(RequestStatusSchema.default('preparing'), {
+      createdAt: tinybaseCell.number(z.number(), { default: 0 }),
+      errorMessage: tinybaseCell.string(z.string(), { default: '' }),
+      sessionId: tinybaseCell.string(z.string(), { default: '' }),
+      status: tinybaseCell.string(RequestStatusSchema, {
         default: 'preparing',
       }),
-      terminalAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
+      terminalAt: tinybaseCell.number(z.number(), { default: 0 }),
     }),
     // Execution parameters for a session. Keyed by the same ID as the sessions table (1:1).
     // Stored separately so sidebar reactive reads on sessions are not triggered by config edits.
     sessionConfigs: tinybaseTable({
-      maxMessages: tinybaseCell.number(z.number().default(0), { default: 0 }),
-      modelId: tinybaseCell.string(z.string().default(DEFAULT_REQUEST_CONFIG.modelId), {
+      maxMessages: tinybaseCell.number(z.number(), { default: 0 }),
+      modelId: tinybaseCell.string(z.string(), {
         default: DEFAULT_REQUEST_CONFIG.modelId,
       }),
-      providerOptions: tinybaseCell.object(ProviderOptions.default({}), { default: {} }),
-      systemPromptId: tinybaseCell.string(z.string().default(''), { default: '' }),
-      toolIds: tinybaseCell.array(StringArray.default([]), { default: [] }),
+      providerOptions: tinybaseCell.object(ProviderOptions, { default: {} }),
+      systemPromptId: tinybaseCell.string(z.string(), { default: '' }),
+      toolIds: tinybaseCell.array(StringArray, { default: [] }),
     }),
     // Derived usage for a session. Keyed by the same ID as the sessions table (1:1).
     // Stored separately so sidebar/session identity reads are not invalidated by usage churn.
     sessionSummaries: tinybaseTable({
-      createdAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
-      updatedAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
-      usage: tinybaseCell.object(UsageSummary.default(EMPTY_USAGE), { default: EMPTY_USAGE }),
+      createdAt: tinybaseCell.number(z.number(), { default: 0 }),
+      updatedAt: tinybaseCell.number(z.number(), { default: 0 }),
+      usage: tinybaseCell.object(UsageSummary, { default: EMPTY_USAGE }),
     }),
     sessions: tinybaseTable({
-      createdAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
-      title: tinybaseCell.string(z.string().default(''), { default: '' }),
-      updatedAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
+      createdAt: tinybaseCell.number(z.number(), { default: 0 }),
+      title: tinybaseCell.string(z.string(), { default: '' }),
+      updatedAt: tinybaseCell.number(z.number(), { default: 0 }),
     }),
   },
   values: {
-    catalogLastRefreshed: tinybaseCell.number(z.number().default(0), { default: 0 }),
-    cliActiveSessionId: tinybaseCell.string(z.string().default(''), { default: '' }),
+    catalogLastRefreshed: tinybaseCell.number(z.number(), { default: 0 }),
+    cliActiveSessionId: tinybaseCell.string(z.string(), { default: '' }),
     // Mutable workspace-level default applied when creating a new session. Stored as a blob
     // since it is a cold path (read once at session creation, not on every render).
-    defaultSessionConfig: tinybaseCell.object(RequestConfig.default(DEFAULT_REQUEST_CONFIG), {
+    defaultSessionConfig: tinybaseCell.object(RequestConfig, {
       default: DEFAULT_REQUEST_CONFIG,
     }),
   },
@@ -238,10 +238,16 @@ export function createTetraDb({ mergeable = true }: { mergeable?: boolean } = {}
     ? tetraDbDefinition.createTinybaseMergeableStore()
     : tetraDbDefinition.createTinybaseStore()
   const rawIndexes = tetraDbDefinition.createTinybaseIndexes(store)
+  const bound = tetraDbDefinition.bindTinybaseStore(store)
+
   return {
     indexes: tetraDbDefinition.bindTinybaseIndexes(rawIndexes),
     store,
-    tables: tetraDbDefinition.bindTinybaseStore(store),
+    tables: bound.tables,
+    transaction(fn: () => void) {
+      bound.transaction(fn)
+    },
+    values: bound.values,
   }
 }
 
