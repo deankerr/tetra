@@ -113,6 +113,31 @@ export function registerSessionCommands(
       console.log(sessionId)
     })
 
+  // Delete a full session cascade: messages, requests, config, summaries, and hot generations.
+  program
+    .command('delete-session <id>')
+    .alias('rm-session')
+    .description('Delete a session')
+    .action(async (sessionId: string) => {
+      const ctx = await getContext()
+      ctx.store.deleteSession(sessionId)
+      if (ctx.workspace.getActiveSessionId() === sessionId) {
+        ctx.workspace.clearActiveSessionId()
+      }
+      console.log(sessionId)
+    })
+
+  // Delete one message row and any hot generation row attached to it.
+  program
+    .command('delete-message <id>')
+    .alias('rm-message')
+    .description('Delete a message')
+    .action(async (messageId: string) => {
+      const ctx = await getContext()
+      ctx.store.deleteMessage(messageId)
+      console.log(messageId)
+    })
+
   // Print history for a specific or active session.
   program
     .command('history')

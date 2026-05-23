@@ -91,6 +91,7 @@ export function TetraMessageView({
         <Badge className="rounded-none font-mono uppercase" variant="secondary">
           {role}
         </Badge>
+        <KeyValue keyName="id" value={id} className="text-muted-foreground" />
         <KeyValue keyName="request" value={request?.status} className="text-muted-foreground" />
       </div>
 

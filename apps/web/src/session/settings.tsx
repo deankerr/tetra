@@ -89,6 +89,8 @@ export function SessionSettings({
       >
         Use as default for new sessions
       </Button>
+
+      <div className="text-muted-foreground">sessionId: {sessionId}</div>
     </FieldGroup>
   )
 }

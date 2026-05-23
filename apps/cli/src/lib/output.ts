@@ -17,6 +17,6 @@ export function printMessages(messages: Rows.Message[]): void {
       .filter((part) => part.type === 'text' || part.type === 'reasoning')
       .map((part) => part.text ?? '')
       .join('')
-    console.log(`\n[${msg.role}]\n${text}`)
+    console.log(`\n[${msg.role} ${msg.id}]\n${text}`)
   }
 }
