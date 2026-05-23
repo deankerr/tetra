@@ -9,7 +9,7 @@ import {
 } from '@tetra/ui/components/ui/table'
 import { useMemo } from 'react'
 
-import { typedTinybase } from '@/tetra/tinybase'
+import { typedTinybase } from '@/tinybase'
 
 import { useMessage, useRequest, useSessionRequestIds } from './hooks'
 

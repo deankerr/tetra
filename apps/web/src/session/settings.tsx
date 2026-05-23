@@ -3,9 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@tetra/ui/components/u
 import { Field, FieldGroup, FieldTitle } from '@tetra/ui/components/ui/field'
 import { Input } from '@tetra/ui/components/ui/input'
 
-import { useSessionConfig } from '@/tetra/hooks/sessions'
-import { typedTinybase } from '@/tetra/tinybase'
+import { typedTinybase } from '@/tinybase'
 
+import { useSessionConfig } from './hooks'
 import { ModelPicker } from './settings/model-picker'
 import { PromptPreviewButton } from './settings/prompt-editor-sheet'
 import { ProviderOptionsEditor } from './settings/provider-options-editor'

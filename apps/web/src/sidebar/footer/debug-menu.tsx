@@ -11,7 +11,7 @@ import {
 import { BugIcon, DatabaseIcon, Trash2Icon } from 'lucide-react'
 
 import { clearAllData } from '@/lib/clear-data'
-import { useTetra } from '@/tetra/provider'
+import { useTetra } from '@/provider'
 
 export function DebugMenu() {
   const { store } = useTetra()

@@ -1,3 +1,4 @@
+import type { Rows } from '@tetra/core'
 import { Button } from '@tetra/ui/components/ui/button'
 import { Input } from '@tetra/ui/components/ui/input'
 import {
@@ -10,10 +11,28 @@ import {
 import { Sheet, SheetClose, SheetContent } from '@tetra/ui/components/ui/sheet'
 import { Textarea } from '@tetra/ui/components/ui/textarea'
 import { Trash2Icon, XIcon } from 'lucide-react'
+import { useMemo } from 'react'
 
-import { usePrompt, usePromptIds } from '@/tetra/hooks/prompts'
-import { useTetra } from '@/tetra/provider'
-import { typedTinybase } from '@/tetra/tinybase'
+import { useTetra } from '@/provider'
+import { typedTinybase } from '@/tinybase'
+
+export const usePromptIds = () => {
+  const prompts = typedTinybase.useEntityList('prompts')
+  return useMemo(
+    () =>
+      prompts.toSorted((left, right) => left.id.localeCompare(right.id)).map((prompt) => prompt.id),
+    [prompts],
+  )
+}
+
+export const usePrompt = (id: string): Rows.Prompt | null => {
+  const prompt = typedTinybase.useEntity('prompts', id)
+  if (id === '') {
+    return null
+  }
+
+  return prompt
+}
 
 const NO_PROMPT_VALUE = '__none__'
 const NEW_PROMPT_VALUE = '__new__'

@@ -2,7 +2,7 @@ import { Button } from '@tetra/ui/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@tetra/ui/components/ui/tooltip'
 import { WifiIcon, WifiLowIcon, WifiOffIcon } from 'lucide-react'
 
-import { useTetra } from '@/tetra/provider'
+import { useTetra } from '@/provider'
 
 export function SyncStatus() {
   const { sync } = useTetra()

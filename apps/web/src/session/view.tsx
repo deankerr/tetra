@@ -5,8 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@tetra/ui/components/u
 import { Settings2Icon, TableIcon, TriangleIcon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 
-import { useOpenSessionIds, useSetOpenSessionIds } from '@/tetra/hooks/app-state'
-import { useSession } from '@/tetra/hooks/sessions'
+import { useOpenSessionIds, useSetOpenSessionIds } from '@/app-state'
+import { typedTinybase } from '@/tinybase'
 
 import { TetraConversationView } from './conversation-view'
 import { SessionExportButton } from './export-button'
@@ -49,7 +49,7 @@ function ActiveSession({
   sessionId: string
   showSidebarTrigger: boolean
 }) {
-  const session = useSession(sessionId)
+  const session = typedTinybase.useEntity('sessions', sessionId)
   const [detailOpen, setDetailOpen] = useState(false)
   const [promptSheetOpen, setPromptSheetOpen] = useState(false)
 

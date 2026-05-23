@@ -17,11 +17,24 @@ import {
   SidebarMenuItem,
 } from '@tetra/ui/components/ui/sidebar'
 import { MoreHorizontalIcon, PlusIcon } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 
-import { useOpenSessionIds, useSetOpenSessionIds } from '@/tetra/hooks/app-state'
-import { useSession, useSessionIds } from '@/tetra/hooks/sessions'
-import { useTetra } from '@/tetra/provider'
+import { useOpenSessionIds, useSetOpenSessionIds } from '@/app-state'
+import { useTetra } from '@/provider'
+import { typedTinybase } from '@/tinybase'
+
+// Sessions sorted by updatedAt descending — most recently active first.
+// appendMessage touches updatedAt, so this order naturally tracks conversation activity.
+export const useSessionIds = () => {
+  const sessions = typedTinybase.useEntityList('sessions')
+  return useMemo(
+    () =>
+      sessions
+        .toSorted((left, right) => right.updatedAt - left.updatedAt)
+        .map((session) => session.id),
+    [sessions],
+  )
+}
 
 export function SessionGroup() {
   const { store } = useTetra()
@@ -92,7 +105,7 @@ function SessionListItem({
   onSelect: () => void
   sessionId: string
 }) {
-  const session = useSession(sessionId)
+  const session = typedTinybase.useEntity('sessions', sessionId)
   const [renaming, setRenaming] = useState(false)
   const [draft, setDraft] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)

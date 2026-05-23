@@ -13,10 +13,31 @@ import {
 import { Button } from '@tetra/ui/components/ui/button'
 import { cn } from '@tetra/ui/lib/utils'
 import { CheckIcon, ImageIcon, Music2Icon, RotateCcwIcon } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useMemo } from 'react'
 
-import { useGroupedLanguageModels } from '@/tetra/hooks/catalog'
-import { useTetra } from '@/tetra/provider'
+import { useTetra } from '@/provider'
+import { typedTinybase } from '@/tinybase'
+
+export function useGroupedLanguageModels() {
+  const models = typedTinybase.useEntityList('languageModels')
+
+  return useMemo(() => {
+    const byProvider = Map.groupBy(models, (lm) => {
+      const providerName = lm.providerName.toLowerCase()
+      if (providerName.startsWith('~')) {
+        return providerName.slice(1)
+      }
+      return providerName
+    })
+
+    return [...byProvider.entries()]
+      .map(([providerName, groupedModels]) => ({
+        models: groupedModels.toSorted((a, b) => a.name.localeCompare(b.name)),
+        providerName,
+      }))
+      .toSorted((a, b) => a.providerName.localeCompare(b.providerName))
+  }, [models])
+}
 
 function RefreshButton() {
   const { catalog } = useTetra()
