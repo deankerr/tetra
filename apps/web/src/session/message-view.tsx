@@ -7,8 +7,12 @@ import {
 } from '@tetra/ui/components/ai-elements/tool'
 import type { ToolPart as ToolPartType } from '@tetra/ui/components/ai-elements/tool'
 import { Badge } from '@tetra/ui/components/ui/badge'
+import { Button } from '@tetra/ui/components/ui/button'
 import { cn } from '@tetra/ui/lib/utils'
 import type { UIMessage } from 'ai'
+import { CopyIcon, RefreshCwIcon, TrashIcon } from 'lucide-react'
+
+import { useTetra } from '@/tetra/provider'
 
 import type { TetraMessage } from './hooks'
 import { useTetraMessage } from './hooks'
@@ -27,15 +31,19 @@ export function TetraMessageView({
   }
 
   const { role, id, steps, request } = message
+  const isStreaming = request?.status === 'preparing' || request?.status === 'streaming'
 
   return (
-    <div className={cn('text-xxs space-y-2', className)} {...props}>
+    <div
+      className={cn('text-xxs space-y-2', role === 'assistant' && 'bg-muted/20', className)}
+      {...props}
+    >
       {/* message header */}
       <div className="flex items-center gap-2">
         <Badge className="rounded-none font-mono uppercase" variant="secondary">
           {role}
         </Badge>
-        {request && <span className="text-muted-foreground font-mono">{request.status}</span>}
+        <KeyValue keyName="request" value={request?.status} className="text-muted-foreground" />
       </div>
 
       {steps.map(({ inference, parts, stepIndex }) => {
@@ -157,13 +165,63 @@ export function TetraMessageView({
       )}
 
       <MessageFooter message={message} />
+      {!isStreaming && <MessageActions message={message} />}
+    </div>
+  )
+}
+
+function MessageActions({ message }: { message: TetraMessage }) {
+  const { runs, store } = useTetra()
+
+  const messageText = message.steps
+    .flatMap((s) => s.parts)
+    .filter((p): p is Extract<typeof p, { type: 'text' }> => p.type === 'text')
+    .map((p) => p.text)
+    .join('')
+
+  const lastMessage = store.listMessages(message.sessionId).at(-1)
+  const canRegenerate = lastMessage?.id === message.id
+
+  return (
+    <div className="flex items-center gap-0.5 pt-1">
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        aria-label="Copy"
+        disabled={messageText === ''}
+        onClick={() => void navigator.clipboard.writeText(messageText)}
+      >
+        <CopyIcon />
+      </Button>
+      {canRegenerate && (
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          aria-label="Regenerate"
+          onClick={() => {
+            runs.regenerate({ messageId: message.id })
+          }}
+        >
+          <RefreshCwIcon />
+        </Button>
+      )}
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        aria-label="Delete"
+        onClick={() => {
+          store.deleteMessage(message.id)
+        }}
+      >
+        <TrashIcon />
+      </Button>
     </div>
   )
 }
 
 function MessageFooter({ message }: { message: TetraMessage }) {
   const { updatedAt, request } = message
-  const totals = request?.totals ?? null
+  const totals = request?.totals
   return (
     <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono">
       <span>{new Date(updatedAt).toLocaleString()}</span>
@@ -173,8 +231,8 @@ function MessageFooter({ message }: { message: TetraMessage }) {
           <KeyValue keyName="input" value={totals.input} metric="tokens" />
           <KeyValue keyName="output" value={totals.output} metric="tokens" />
           <KeyValue keyName="reasoning" value={totals.reasoning} metric="tokens" />
-          <KeyValue keyName="cache-read" value={totals.cacheRead} metric="tokens" />
-          <KeyValue keyName="cache-write" value={totals.cacheWrite} metric="tokens" />
+          <KeyValue keyName="cache-read" value={totals.cacheRead || null} metric="tokens" />
+          <KeyValue keyName="cache-write" value={totals.cacheWrite || null} metric="tokens" />
           <KeyValue keyName="cost" value={totals.cost === null ? null : `$${totals.cost}`} />
         </>
       )}
@@ -212,10 +270,10 @@ function StepBlock({
 }: { header: React.ReactNode } & React.ComponentProps<'div'>) {
   return (
     <div className={cn('', className)} {...props}>
-      <div data-slot="block-header" className="text-muted-foreground border-2 p-2 font-mono">
+      <div data-slot="step-block-header" className="text-muted-foreground border-2 p-2 font-mono">
         {header}
       </div>
-      <div data-slot="block-content" className="space-y-2 py-2 whitespace-pre-wrap">
+      <div data-slot="step-block-content" className="space-y-2 py-2 whitespace-pre-wrap">
         {children ?? <span className="text-muted-foreground opacity-50">[NO CONTENT]</span>}
       </div>
     </div>
@@ -226,10 +284,12 @@ function KeyValue({
   keyName,
   value,
   metric,
+  className,
 }: {
   keyName?: string
   value: React.ReactNode
   metric?: string
+  className?: string
 }) {
   if (value === null || value === undefined) {
     return null
@@ -239,7 +299,7 @@ function KeyValue({
   const v = typeof value === 'number' ? value.toLocaleString() : value
   const m = metric === undefined ? null : ` ${metric}`
   return (
-    <span>
+    <span className={className}>
       {' '}
       [{k}
       {v}

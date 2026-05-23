@@ -1,36 +1,18 @@
-import {
-  Conversation,
-  ConversationContent,
-  ConversationEmptyState,
-  ConversationScrollButton,
-} from '@tetra/ui/components/ai-elements/conversation'
 import { Button } from '@tetra/ui/components/ui/button'
 import { Sheet, SheetClose, SheetContent } from '@tetra/ui/components/ui/sheet'
 import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@tetra/ui/components/ui/tabs'
-import {
-  Code2Icon,
-  MessagesSquareIcon,
-  Settings2Icon,
-  TableIcon,
-  TriangleIcon,
-  XIcon,
-} from 'lucide-react'
+import { Settings2Icon, TableIcon, TriangleIcon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 
-import { TetraLogo } from '@/components/tetra-logo'
 import { useOpenSessionIds, useSetOpenSessionIds } from '@/tetra/hooks/app-state'
 import { useSession } from '@/tetra/hooks/sessions'
-import { useSessionMessageIds } from '@/tetra/hooks/transcripts'
 
-import { Composer } from './composer'
+import { TetraConversationView } from './conversation-view'
 import { SessionExportButton } from './export-button'
-import { MessageBubble } from './message-bubble'
-import { MessageInspector } from './message-inspector'
 import { RequestsTable } from './requests-table'
 import { SessionSettings } from './settings'
 import { PromptEditorSheet } from './settings/prompt-editor-sheet'
-import { TetraConversationView } from './tetra-conversation/view'
 import { SessionUsageMeter } from './usage-meter'
 
 export function SessionView() {
@@ -68,7 +50,6 @@ function ActiveSession({
   showSidebarTrigger: boolean
 }) {
   const session = useSession(sessionId)
-  const messageIds = useSessionMessageIds(sessionId)
   const [detailOpen, setDetailOpen] = useState(false)
   const [promptSheetOpen, setPromptSheetOpen] = useState(false)
 
@@ -87,12 +68,6 @@ function ActiveSession({
           </span>
           <SessionUsageMeter sessionId={sessionId} />
           <TabsList className="h-7">
-            <TabsTrigger aria-label="Show chat view" value="chat">
-              <MessagesSquareIcon />
-            </TabsTrigger>
-            <TabsTrigger aria-label="Show inspector view" value="inspector">
-              <Code2Icon />
-            </TabsTrigger>
             <TabsTrigger aria-label="Show Tetra conversation view" value="tetra">
               <TriangleIcon />
             </TabsTrigger>
@@ -115,46 +90,6 @@ function ActiveSession({
             <XIcon />
           </Button>
         </header>
-
-        <TabsContent className="flex min-h-0 flex-1 flex-col" value="chat">
-          <Conversation>
-            <ConversationContent>
-              {messageIds.length === 0 ? (
-                <ConversationEmptyState
-                  description="Send a message to get started."
-                  icon={<TetraLogo className="size-5" />}
-                  title="No messages yet"
-                />
-              ) : (
-                messageIds.map((messageId) => (
-                  <MessageBubble key={messageId} messageId={messageId} />
-                ))
-              )}
-            </ConversationContent>
-            <ConversationScrollButton />
-          </Conversation>
-          <Composer sessionId={sessionId} />
-        </TabsContent>
-
-        <TabsContent className="flex min-h-0 flex-1 flex-col" value="inspector">
-          <Conversation>
-            <ConversationContent>
-              {messageIds.length === 0 ? (
-                <ConversationEmptyState
-                  description="Send a message to get started."
-                  icon={<TetraLogo className="size-5" />}
-                  title="No messages yet"
-                />
-              ) : (
-                messageIds.map((messageId) => (
-                  <MessageInspector key={messageId} messageId={messageId} />
-                ))
-              )}
-            </ConversationContent>
-            <ConversationScrollButton />
-          </Conversation>
-          <Composer sessionId={sessionId} />
-        </TabsContent>
 
         <TabsContent className="flex min-h-0 flex-1 flex-col" value="tetra">
           <TetraConversationView sessionId={sessionId} />

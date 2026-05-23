@@ -9,7 +9,7 @@ import { cn } from '@tetra/ui/lib/utils'
 import { TetraLogo } from '@/components/tetra-logo'
 import { useSessionMessageIds } from '@/tetra/hooks/transcripts'
 
-import { Composer } from '../composer'
+import { Composer } from './composer'
 import { TetraMessageView } from './message-view'
 
 export function TetraConversationView({

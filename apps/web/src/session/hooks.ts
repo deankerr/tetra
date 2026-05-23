@@ -38,6 +38,7 @@ interface TetraTotals {
 export interface TetraMessage {
   createdAt: number
   id: string
+  sessionId: string
   // Null for user messages and assistant messages with no request record.
   request: {
     errorMessage: string | null
@@ -71,6 +72,7 @@ export function useTetraMessage(messageId: string): TetraMessage | null {
           }
         : null,
       role: message.role,
+      sessionId: message.sessionId,
       steps: groupPartsByStep(message.parts, stepRecords),
       updatedAt: message.updatedAt,
     }
