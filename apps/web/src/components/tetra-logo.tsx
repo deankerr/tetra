@@ -27,12 +27,7 @@ type TetraLogoProps = SVGProps<SVGSVGElement> & {
  * Inner edge lines are drawn explicitly so the geometry survives at 20px.
  * Use `palette` for a named preset or `faces` for a custom [shadow, mid, lit] triple.
  */
-export function TetraLogo({
-  detailed = false,
-  palette = 'violet',
-  faces,
-  ...props
-}: TetraLogoProps) {
+export function TetraLogo({ detailed = false, palette = 'teal', faces, ...props }: TetraLogoProps) {
   const [shadow, mid, lit] = faces ?? TETRA_PALETTES[palette]
   const id = useId().replaceAll(':', '')
 

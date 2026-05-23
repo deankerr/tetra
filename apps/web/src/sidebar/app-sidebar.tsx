@@ -15,8 +15,8 @@ export function AppSidebar() {
     <>
       <SidebarHeader className="p-0">
         <Link className="flex h-(--header-height) items-center gap-1.5 border-b px-4" to="/">
-          <TetraLogo className="size-4.5" palette="forge" />
-          <div className="font-orbitron flex h-4 items-center text-sm leading-none font-semibold tracking-wider uppercase">
+          <TetraLogo className="size-4.5" />
+          <div className="font-orbitron flex translate-y-px items-center text-sm leading-none font-semibold tracking-wider uppercase">
             TETRA
           </div>
         </Link>

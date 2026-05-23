@@ -1,4 +1,4 @@
-import type { RequestStatus, StepRecord, UsageSummary } from '@tetra/core'
+import type { RequestStatus, Rows, StepRecord } from '@tetra/core'
 import {
   Tool,
   ToolContent,
@@ -10,218 +10,27 @@ import type { ToolPart as ToolPartType } from '@tetra/ui/components/ai-elements/
 import { Badge } from '@tetra/ui/components/ui/badge'
 import { Button } from '@tetra/ui/components/ui/button'
 import { cn } from '@tetra/ui/lib/utils'
-import type { UIMessage } from 'ai'
-import { CopyIcon, RefreshCwIcon, TrashIcon } from 'lucide-react'
+import {
+  BanIcon,
+  CheckCircle2Icon,
+  CopyIcon,
+  LoaderCircleIcon,
+  RefreshCwIcon,
+  TrashIcon,
+  XCircleIcon,
+} from 'lucide-react'
 import { useMemo } from 'react'
 
 import { useTetra } from '@/tetra/provider'
 import { typedTinybase } from '@/tetra/tinybase'
 
-import { useMessage, useRequest } from './hooks'
+import { useMessage } from './hooks'
 
-type UIMessagePart = UIMessage['parts'][number]
+type UIMessagePart = Rows.Message['parts'][number]
 
-interface StepInference {
-  cost: StepRecord['cost']
-  finishReason: string
-  generationId: string
-  model: string
-  provider: string
-  tokens: StepRecord['tokens']
-}
-
-interface TetraStep {
-  inference: StepInference | null
-  parts: UIMessagePart[]
-  stepIndex: number
-}
-
-interface TetraTotals {
-  cacheRead: number
-  cacheWrite: number
-  cost: number | null
-  input: number
-  output: number
-  reasoning: number
-  total: number
-}
-
-interface MessageGenerationOverlay {
-  parts: UIMessagePart[]
-  steps: StepRecord[]
-  usage: UsageSummary
-}
-
-interface TetraMessage {
-  createdAt: number
-  id: string
-  request: {
-    errorMessage: string | null
-    status: RequestStatus
-    totals: TetraTotals | null
-  } | null
-  role: UIMessage['role']
-  sessionId: string
-  steps: TetraStep[]
-  updatedAt: number
-}
-
-export function TetraMessageView({
-  isLastMessage,
-  messageId,
-  className,
-  ...props
-}: { isLastMessage: boolean; messageId: string } & React.ComponentProps<'div'>) {
-  const message = useTetraMessage(messageId)
-
-  if (!message) {
-    return <div>this should not be possible</div>
-  }
-
-  const { role, id, steps, request } = message
-  const isStreaming = request?.status === 'preparing' || request?.status === 'streaming'
-
-  return (
-    <div
-      className={cn('text-xxs space-y-2', role === 'assistant' && 'bg-muted/20', className)}
-      {...props}
-    >
-      {/* message header */}
-      <div className="flex items-center gap-2">
-        <Badge className="rounded-none font-mono uppercase" variant="secondary">
-          {role}
-        </Badge>
-        <KeyValue keyName="id" value={id} className="text-muted-foreground" />
-        <KeyValue keyName="request" value={request?.status} className="text-muted-foreground" />
-      </div>
-
-      {steps.map(({ inference, parts, stepIndex }) => {
-        const stepHeader = inference ? (
-          <>
-            step {stepIndex} <KeyValue keyName={inference.provider} value={inference.model} />
-            <KeyValue keyName="input" value={inference.tokens.inputTotal} metric="tokens" />
-            <KeyValue value={inference.finishReason} />
-          </>
-        ) : (
-          'step'
-        )
-
-        return (
-          <StepBlock key={`${id}-step-${stepIndex}`} header={stepHeader}>
-            {parts.map((p, partIndex) => {
-              const partId = `${id}-${stepIndex}-${partIndex}`
-
-              if (p.type === 'reasoning') {
-                return (
-                  <Block
-                    key={partId}
-                    header={
-                      <>
-                        reasoning
-                        <KeyValue
-                          keyName="reasoning"
-                          value={inference?.tokens.outputReasoning}
-                          metric="tokens"
-                        />
-                      </>
-                    }
-                  >
-                    {p.text}
-                  </Block>
-                )
-              }
-
-              if (p.type === 'text') {
-                return (
-                  <Block
-                    key={partId}
-                    header={
-                      <>
-                        text{' '}
-                        <KeyValue
-                          keyName="output"
-                          value={inference?.tokens.outputText}
-                          metric="tokens"
-                        />
-                      </>
-                    }
-                  >
-                    {p.text}
-                  </Block>
-                )
-              }
-
-              if (isToolPart(p)) {
-                return (
-                  <Block
-                    key={partId}
-                    header={
-                      <>
-                        {p.type}
-                        <KeyValue
-                          keyName="output"
-                          value={inference?.tokens.outputText}
-                          metric="tokens"
-                        />
-                      </>
-                    }
-                  >
-                    <Tool>
-                      {p.type === 'dynamic-tool' ? (
-                        <ToolHeader type={p.type} state={p.state} toolName={p.toolName} />
-                      ) : (
-                        <ToolHeader type={p.type} state={p.state} />
-                      )}
-                      <ToolContent>
-                        <ToolInput input={p.input} />
-                        <ToolOutput output={p.output} errorText={p.errorText} />
-                      </ToolContent>
-                    </Tool>
-                  </Block>
-                )
-              }
-
-              if (p.type === 'file') {
-                const filename = p.filename ?? null
-                const header = (
-                  <>
-                    file <KeyValue value={p.mediaType} />
-                    <KeyValue keyName="filename" value={filename} />
-                  </>
-                )
-                return (
-                  <Block key={partId} header={header}>
-                    {p.mediaType.startsWith('image/') && (
-                      <img src={p.url} alt={filename ?? 'attachment'} className="max-h-48" />
-                    )}
-                  </Block>
-                )
-              }
-
-              return <Block key={partId} header={p.type}></Block>
-            })}
-          </StepBlock>
-        )
-      })}
-
-      {request?.errorMessage !== null && request?.errorMessage !== undefined && (
-        <Block
-          header="error"
-          className="*:border-destructive/30 border-destructive/30 *:text-destructive text-destructive font-mono"
-        >
-          {request.errorMessage}
-        </Block>
-      )}
-
-      <MessageFooter message={message} />
-      {!isStreaming && <MessageActions isLastMessage={isLastMessage} message={message} />}
-    </div>
-  )
-}
-
-function useTetraMessage(messageId: string): TetraMessage | null {
+function useTetraMessage(messageId: string) {
   const message = useMessage(messageId)
-  const generation = useMessageGeneration(messageId)
+  const generation = typedTinybase.useEntity('messageGenerations', messageId)
   const request = useRequestForMessage(messageId)
 
   return useMemo(() => {
@@ -232,6 +41,7 @@ function useTetraMessage(messageId: string): TetraMessage | null {
     const parts = generation?.parts ?? message.parts
     const stepRecords = generation?.steps ?? message.steps
     const usage = generation?.usage ?? message.usage
+    const totalTokens = usage.totalTokens ?? 0
 
     return {
       createdAt: message.createdAt,
@@ -240,7 +50,13 @@ function useTetraMessage(messageId: string): TetraMessage | null {
         ? {
             errorMessage: request.errorMessage || null,
             status: request.status,
-            totals: formatUsageSummary(usage),
+            totals:
+              totalTokens === 0
+                ? null
+                : {
+                    cost: usage.costTotal ?? null,
+                    total: totalTokens,
+                  },
           }
         : null,
       role: message.role,
@@ -253,41 +69,19 @@ function useTetraMessage(messageId: string): TetraMessage | null {
 
 function useRequestForMessage(messageId: string) {
   const ids = typedTinybase.useSliceRowIds('requestsByAssistantMessage', messageId)
-  return useRequest(ids[0] ?? '')
-}
+  const requests = typedTinybase.useEntityList('requests')
 
-function useMessageGeneration(messageId: string): MessageGenerationOverlay | null {
-  const generation = typedTinybase.useEntity('messageGenerations', messageId)
-  if (messageId === '' || generation === null) {
-    return null
-  }
+  return useMemo(() => {
+    const candidates = requests.filter(
+      (request) => ids.includes(request.id) && request.assistantMessageId === messageId,
+    )
 
-  return {
-    parts: generation.parts,
-    steps: generation.steps,
-    usage: generation.usage,
-  }
-}
-
-function formatUsageSummary(usage: UsageSummary): TetraTotals | null {
-  const total = usage.totalTokens ?? 0
-  if (total === 0) {
-    return null
-  }
-
-  return {
-    cacheRead: usage.cacheReadTokens ?? 0,
-    cacheWrite: usage.cacheWriteTokens ?? 0,
-    cost: usage.costTotal ?? null,
-    input: usage.inputTokens ?? 0,
-    output: usage.outputTokens ?? 0,
-    reasoning: usage.reasoningTokens ?? 0,
-    total,
-  }
+    return candidates.toSorted((a, b) => b.createdAt - a.createdAt)[0] ?? null
+  }, [ids, messageId, requests])
 }
 
 // Groups a flat parts array into per-step buckets using step-start markers as boundaries.
-function groupPartsByStep(parts: UIMessagePart[], stepRecords: StepRecord[]): TetraStep[] {
+function groupPartsByStep(parts: UIMessagePart[], stepRecords: StepRecord[]) {
   let current: UIMessagePart[] = []
   let hasSeenStepStart = false
   const groups: UIMessagePart[][] = []
@@ -307,26 +101,181 @@ function groupPartsByStep(parts: UIMessagePart[], stepRecords: StepRecord[]): Te
 
   return groups.map((stepParts, i) => {
     const record = stepRecords[i] ?? null
-    const inference: StepInference | null = record
-      ? {
-          cost: record.cost,
-          finishReason: record.finishReason,
-          generationId: record.generationId,
-          model: record.model,
-          provider: record.provider,
-          tokens: record.tokens,
-        }
-      : null
-    return { inference, parts: stepParts, stepIndex: i }
+    return { inference: record, parts: stepParts, stepIndex: i }
   })
 }
 
-function MessageActions({
+export function TetraMessageView({
+  isLastMessage,
+  messageId,
+  className,
+  ...props
+}: { isLastMessage: boolean; messageId: string } & React.ComponentProps<'div'>) {
+  const message = useTetraMessage(messageId)
+
+  if (!message) {
+    return <div>this should not be possible</div>
+  }
+
+  const { role, id, steps, request } = message
+  const isStreaming = request?.status === 'preparing' || request?.status === 'streaming'
+
+  return (
+    <div className={cn('text-xxs space-y-2.5 border border-dashed p-2.5', className)} {...props}>
+      {/* message header */}
+      <div className="flex items-center justify-between gap-2 px-0.5">
+        <Badge className="rounded-xs font-mono uppercase" variant="secondary">
+          {role}
+        </Badge>
+        {request && <RequestStatusBadge status={request.status} />}
+      </div>
+
+      {steps.map(({ inference, parts, stepIndex }) => (
+        <div className="space-y-2.5" key={`${id}-step-${stepIndex}`}>
+          {inference && (
+            <StepHeader>
+              <Badge className="rounded-xs" variant="secondary">
+                {inference.model}
+              </Badge>
+              <Badge className="rounded-xs" variant="secondary">
+                {inference.provider}
+              </Badge>
+              <Badge className="ml-auto" variant="secondary">
+                {inference.finishReason}
+              </Badge>
+            </StepHeader>
+          )}
+
+          {parts.map((p, partIndex) => {
+            const partId = `${id}-${stepIndex}-${partIndex}`
+
+            if (p.type === 'reasoning') {
+              return (
+                <Block key={partId}>
+                  <BlockHeader>
+                    <span>reasoning</span>
+                    <OutputTokens tokens={inference?.tokens.outputReasoning} />
+                  </BlockHeader>
+                  <BlockContent className="text-muted-foreground">{p.text}</BlockContent>
+                </Block>
+              )
+            }
+
+            if (p.type === 'text') {
+              return (
+                <Block key={partId}>
+                  <BlockHeader>
+                    <span>text</span>
+                    <OutputTokens tokens={inference?.tokens.outputText} />
+                  </BlockHeader>
+                  <BlockContent>{p.text}</BlockContent>
+                </Block>
+              )
+            }
+
+            if (isToolPart(p)) {
+              return (
+                <Block key={partId}>
+                  <BlockHeader>
+                    <span>{p.type}</span>
+                    <OutputTokens tokens={inference?.tokens.outputText} />
+                  </BlockHeader>
+                  <BlockContent>
+                    <Tool>
+                      {p.type === 'dynamic-tool' ? (
+                        <ToolHeader type={p.type} state={p.state} toolName={p.toolName} />
+                      ) : (
+                        <ToolHeader type={p.type} state={p.state} />
+                      )}
+                      <ToolContent>
+                        <ToolInput input={p.input} />
+                        <ToolOutput output={p.output} errorText={p.errorText} />
+                      </ToolContent>
+                    </Tool>
+                  </BlockContent>
+                </Block>
+              )
+            }
+
+            if (p.type === 'file') {
+              const filename = p.filename ?? null
+              return (
+                <Block key={partId}>
+                  <BlockHeader>
+                    <span>file</span>
+                    <span className="text-muted-foreground ml-auto">
+                      {[p.mediaType, filename].filter(Boolean).join(' · ')}
+                    </span>
+                  </BlockHeader>
+                  <BlockContent>
+                    {p.mediaType.startsWith('image/') && (
+                      <img src={p.url} alt={filename ?? 'attachment'} className="max-h-48" />
+                    )}
+                  </BlockContent>
+                </Block>
+              )
+            }
+
+            return (
+              <Block key={partId}>
+                <BlockHeader>{p.type}</BlockHeader>
+                <BlockContent />
+              </Block>
+            )
+          })}
+        </div>
+      ))}
+
+      {request?.errorMessage !== null && request?.errorMessage !== undefined && (
+        <Block className="*:border-destructive/30 border-destructive/30 *:text-destructive text-destructive font-mono">
+          <BlockHeader>error</BlockHeader>
+          <BlockContent>{request.errorMessage}</BlockContent>
+        </Block>
+      )}
+
+      {!isStreaming && <MessageFooter isLastMessage={isLastMessage} message={message} />}
+    </div>
+  )
+}
+
+function RequestStatusBadge({ status }: { status: RequestStatus }) {
+  if (status === 'completed') {
+    return (
+      <Badge className="text-muted-foreground" variant="secondary">
+        <CheckCircle2Icon />
+      </Badge>
+    )
+  }
+
+  if (status === 'error') {
+    return (
+      <Badge variant="destructive">
+        <XCircleIcon />
+      </Badge>
+    )
+  }
+
+  if (status === 'cancelled') {
+    return (
+      <Badge className="text-muted-foreground" variant="secondary">
+        <BanIcon />
+      </Badge>
+    )
+  }
+
+  return (
+    <Badge className="text-muted-foreground" variant="secondary">
+      <LoaderCircleIcon className="animate-spin" />
+    </Badge>
+  )
+}
+
+function MessageFooter({
   isLastMessage,
   message,
 }: {
   isLastMessage: boolean
-  message: TetraMessage
+  message: NonNullable<ReturnType<typeof useTetraMessage>>
 }) {
   const { runs, store } = useTetra()
 
@@ -338,11 +287,13 @@ function MessageActions({
 
   const canRegenerate = isLastMessage
 
+  const totals = message.request?.totals
+
   return (
-    <div className="flex items-center gap-0.5 pt-1">
+    <div className="flex items-center gap-1 px-1">
       <Button
         variant="ghost"
-        size="icon-xs"
+        size="icon-sm"
         aria-label="Copy"
         disabled={messageText === ''}
         onClick={() => void navigator.clipboard.writeText(messageText)}
@@ -352,7 +303,7 @@ function MessageActions({
       {canRegenerate && (
         <Button
           variant="ghost"
-          size="icon-xs"
+          size="icon-sm"
           aria-label="Regenerate"
           onClick={() => {
             runs.regenerate({ messageId: message.id })
@@ -363,7 +314,7 @@ function MessageActions({
       )}
       <Button
         variant="ghost"
-        size="icon-xs"
+        size="icon-sm"
         aria-label="Delete"
         onClick={() => {
           store.deleteMessage(message.id)
@@ -371,27 +322,21 @@ function MessageActions({
       >
         <TrashIcon />
       </Button>
-    </div>
-  )
-}
 
-function MessageFooter({ message }: { message: TetraMessage }) {
-  const { updatedAt, request } = message
-  const totals = request?.totals
-  return (
-    <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono">
-      <span>{new Date(updatedAt).toLocaleString()}</span>
-      {totals && (
-        <>
-          <KeyValue keyName="total" value={totals.total} metric="tokens" />
-          <KeyValue keyName="input" value={totals.input} metric="tokens" />
-          <KeyValue keyName="output" value={totals.output} metric="tokens" />
-          <KeyValue keyName="reasoning" value={totals.reasoning} metric="tokens" />
-          <KeyValue keyName="cache-read" value={totals.cacheRead || null} metric="tokens" />
-          <KeyValue keyName="cache-write" value={totals.cacheWrite || null} metric="tokens" />
-          <KeyValue keyName="cost" value={totals.cost === null ? null : `$${totals.cost}`} />
-        </>
-      )}
+      <div className="ml-auto flex gap-2.5">
+        {totals && (
+          <>
+            <span className="text-muted-foreground">{formatTokens(totals.total)} tokens</span>
+            <span className="text-muted-foreground">
+              {formatCurrency(totals.cost ?? undefined)}
+            </span>
+          </>
+        )}
+
+        <span className="text-muted-foreground">
+          {new Date(message.updatedAt).toLocaleString()}
+        </span>
+      </div>
     </div>
   )
 }
@@ -400,66 +345,65 @@ function isToolPart(part: UIMessagePart): part is ToolPartType {
   return part.type === 'dynamic-tool' || part.type.startsWith('tool-')
 }
 
-function Block({
-  header,
-  children,
-  className,
-  ...props
-}: { header: React.ReactNode } & React.ComponentProps<'div'>) {
+function StepHeader({ className, ...props }: React.ComponentProps<'div'>) {
   return (
-    <div className={cn('border-2', className)} {...props}>
-      <div data-slot="block-header" className="text-muted-foreground border-b-2 p-2 font-mono">
-        {header}
-      </div>
-      <div data-slot="block-content" className="space-y-2 p-2 whitespace-pre-wrap">
-        {children ?? <span className="text-muted-foreground opacity-50">[NO CONTENT]</span>}
-      </div>
+    <div
+      data-slot="step-block-header"
+      className={cn('text-muted-foreground flex items-center gap-1 border p-2', className)}
+      {...props}
+    />
+  )
+}
+
+function Block({ className, ...props }: React.ComponentProps<'div'>) {
+  return <div className={cn('border', className)} {...props} />
+}
+
+function BlockHeader({ className, ...props }: React.ComponentProps<'div'>) {
+  return (
+    <div
+      data-slot="block-header"
+      className={cn('text-muted-foreground flex items-center gap-2 border-b p-2', className)}
+      {...props}
+    />
+  )
+}
+
+function BlockContent({ children, className, ...props }: React.ComponentProps<'div'>) {
+  return (
+    <div
+      data-slot="block-content"
+      className={cn('space-y-2 p-2 whitespace-pre-wrap', className)}
+      {...props}
+    >
+      {children ?? <span className="text-muted-foreground opacity-50">[NO CONTENT]</span>}
     </div>
   )
 }
 
-function StepBlock({
-  header,
-  children,
-  className,
-  ...props
-}: { header: React.ReactNode } & React.ComponentProps<'div'>) {
-  return (
-    <div className={cn('', className)} {...props}>
-      <div data-slot="step-block-header" className="text-muted-foreground border-2 p-2 font-mono">
-        {header}
-      </div>
-      <div data-slot="step-block-content" className="space-y-2 py-2 whitespace-pre-wrap">
-        {children ?? <span className="text-muted-foreground opacity-50">[NO CONTENT]</span>}
-      </div>
-    </div>
-  )
-}
-
-function KeyValue({
-  keyName,
-  value,
-  metric,
-  className,
-}: {
-  keyName?: string
-  value: React.ReactNode
-  metric?: string
-  className?: string
-}) {
-  if (value === null || value === undefined) {
+function OutputTokens({ tokens }: { tokens: number | undefined }) {
+  if (tokens === undefined) {
     return null
   }
 
-  const k = keyName === undefined ? null : `${keyName}: `
-  const v = typeof value === 'number' ? value.toLocaleString() : value
-  const m = metric === undefined ? null : ` ${metric}`
-  return (
-    <span className={className}>
-      {' '}
-      [{k}
-      {v}
-      {m}]
-    </span>
-  )
+  return <span className="text-muted-foreground ml-auto">{formatTokens(tokens)} tokens</span>
+}
+
+function formatTokens(value: number): string {
+  return new Intl.NumberFormat('en-US', {
+    notation: 'compact',
+  }).format(value)
+}
+
+function formatCurrency(value: number | undefined): string {
+  if (value === undefined) {
+    return '—'
+  }
+
+  return new Intl.NumberFormat('en-US', {
+    currency: 'USD',
+    maximumFractionDigits: 6,
+    minimumFractionDigits: 2,
+    style: 'currency',
+  }).format(value)
 }

@@ -22,7 +22,7 @@ export function TetraConversationView({
   return (
     <div className={cn('flex min-h-0 flex-1 flex-col', className)} {...props}>
       <Conversation>
-        <ConversationContent>
+        <ConversationContent className="p-2">
           {messageIds.length === 0 ? (
             <ConversationEmptyState
               description="Send a message to get started."
