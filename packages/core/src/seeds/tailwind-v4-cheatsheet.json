@@ -1,9 +1,17 @@
 {
-  "exportedAt": "2026-05-19T05:14:43.535Z",
+  "sessionConfig": {
+    "modelId": "anthropic/claude-sonnet-4.5",
+    "providerOptions": {
+      "max_tokens": 10240,
+      "reasoning": {
+        "enabled": true
+      }
+    }
+  },
+  "exportedAt": "2026-05-22T23:50:11.547Z",
   "messages": [
     {
       "createdAt": 1779167608304,
-      "id": "mesg_Osydnrk----wzvFR",
       "parts": [
         {
           "text": "I need a cheatsheet for the new classes/variants/utilities added in Tailwind v4",
@@ -12,11 +20,12 @@
       ],
       "role": "user",
       "sessionId": "sess_OsyJwZv----kQWHS",
-      "updatedAt": 1779167608304
+      "steps": [],
+      "updatedAt": 1779167608304,
+      "id": "mesg_Osydnrk----wzvFR"
     },
     {
       "createdAt": 1779167608306,
-      "id": "mesg_Osydnrm----wzvFR",
       "parts": [
         {
           "type": "step-start"
@@ -143,7 +152,57 @@
       ],
       "role": "assistant",
       "sessionId": "sess_OsyJwZv----kQWHS",
-      "updatedAt": 1779167646752
+      "steps": [
+        {
+          "cost": {
+            "currency": "USD",
+            "inputTotal": 0.002139,
+            "isByok": false,
+            "outputTotal": 0.00201,
+            "total": 0.004149
+          },
+          "createdAt": 1779167613365,
+          "finishReason": "tool-calls",
+          "generationId": "gen-1779167608-sc9TUbu1F8Vs4nhlPsig",
+          "model": "anthropic/claude-4.5-sonnet-20250929",
+          "provider": "Amazon Bedrock",
+          "stepNumber": 0,
+          "tokens": {
+            "inputNoCache": 713,
+            "inputText": 713,
+            "inputTotal": 713,
+            "outputReasoning": 72,
+            "outputText": 62,
+            "outputTotal": 134,
+            "total": 847
+          }
+        },
+        {
+          "cost": {
+            "currency": "USD",
+            "inputTotal": 0.020421,
+            "isByok": false,
+            "outputTotal": 0.03453,
+            "total": 0.054951
+          },
+          "createdAt": 1779167646741,
+          "finishReason": "stop",
+          "generationId": "gen-1779167613-uBkuEs1WQsVG8DRxuIIW",
+          "model": "anthropic/claude-4.5-sonnet-20250929",
+          "provider": "Amazon Bedrock",
+          "stepNumber": 1,
+          "tokens": {
+            "inputNoCache": 6807,
+            "inputText": 6807,
+            "inputTotal": 6807,
+            "outputText": 2302,
+            "outputTotal": 2302,
+            "total": 9109
+          }
+        }
+      ],
+      "updatedAt": 1779167646752,
+      "id": "mesg_Osydnrm----wzvFR"
     }
   ],
   "requests": [
@@ -161,80 +220,16 @@
       },
       "createdAt": 1779167608306,
       "errorMessage": "",
-      "id": "rqst_Osydnrm---0wzvFR",
       "sessionId": "sess_OsyJwZv----kQWHS",
       "status": "completed",
       "terminalAt": 1779167646754,
-      "steps": [
-        {
-          "cost": {
-            "completion": 0.00201,
-            "isByok": false,
-            "prompt": 0.002139,
-            "total": 0.004149
-          },
-          "createdAt": 1779167613365,
-          "finishReason": "tool-calls",
-          "generationId": "gen-1779167608-sc9TUbu1F8Vs4nhlPsig",
-          "model": "anthropic/claude-4.5-sonnet-20250929",
-          "provider": "Amazon Bedrock",
-          "stepNumber": 0,
-          "tokens": {
-            "audioIn": 0,
-            "audioOut": 0,
-            "cacheRead": 0,
-            "cacheWrite": 0,
-            "imageOut": 0,
-            "input": 713,
-            "output": 134,
-            "reasoning": 72,
-            "total": 847,
-            "videoIn": 0
-          }
-        },
-        {
-          "cost": {
-            "completion": 0.03453,
-            "isByok": false,
-            "prompt": 0.020421,
-            "total": 0.054951
-          },
-          "createdAt": 1779167646741,
-          "finishReason": "stop",
-          "generationId": "gen-1779167613-uBkuEs1WQsVG8DRxuIIW",
-          "model": "anthropic/claude-4.5-sonnet-20250929",
-          "provider": "Amazon Bedrock",
-          "stepNumber": 1,
-          "tokens": {
-            "audioIn": 0,
-            "audioOut": 0,
-            "cacheRead": 0,
-            "cacheWrite": 0,
-            "imageOut": 0,
-            "input": 6807,
-            "output": 2302,
-            "reasoning": 0,
-            "total": 9109,
-            "videoIn": 0
-          }
-        }
-      ]
+      "id": "rqst_Osydnrm---0wzvFR"
     }
   ],
   "session": {
-    "config": {
-      "modelId": "anthropic/claude-sonnet-4.5",
-      "providerOptions": {
-        "max_tokens": 10240,
-        "reasoning": {
-          "enabled": true
-        }
-      },
-      "toolIds": ["exaSearchWeb"]
-    },
     "createdAt": 1779162138939,
-    "id": "sess_OsyJwZv----kQWHS",
     "title": "I need a cheatsheet for the new classes/variants/utilities a",
-    "updatedAt": 1779167608306
+    "updatedAt": 1779167608306,
+    "id": "sess_OsyJwZv----kQWHS"
   }
 }

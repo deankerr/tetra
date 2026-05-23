@@ -1,4 +1,3 @@
-import { StepRecord } from '@tetra/core'
 import { CodeBlockContent } from '@tetra/ui/components/ai-elements/code-block'
 import type { ToolPart as ToolPartType } from '@tetra/ui/components/ai-elements/tool'
 import { getStatusBadge } from '@tetra/ui/components/ai-elements/tool'
@@ -361,11 +360,10 @@ export function MessageInspector({
 
   const { parts, role, id, updatedAt } = message
   const isStreaming = request?.status === 'preparing' || request?.status === 'streaming'
-  // Derive total tokens by summing across steps — no separate totalUsage field on request.
-  const requestSteps = request?.steps ?? []
+  // Derive total tokens by summing message-owned inference steps.
   const totalTokens =
-    requestSteps.length > 0
-      ? requestSteps.reduce((sum, s) => sum + (StepRecord.safeParse(s).data?.tokens.total ?? 0), 0)
+    message.steps.length > 0
+      ? message.steps.reduce((sum, step) => sum + step.tokens.total, 0)
       : null
   const roleColor = role === 'user' ? 'border-l-emerald-500' : 'border-l-indigo-500'
   const reasoningColor = 'border-l-violet-500'

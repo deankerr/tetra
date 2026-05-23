@@ -1,11 +1,7 @@
 import { createIdGenerator } from '#db'
-import type { RequestConfig as RequestConfigType, StepRecord, TetraDb } from '#db'
+import type { RequestConfig as RequestConfigType, TetraDb } from '#db'
 
 const nextId = createIdGenerator('req')
-
-function getSteps(db: TetraDb, requestId: string): StepRecord[] {
-  return db.tables.requests.getCell(requestId, 'steps') ?? []
-}
 
 export function createRequest(
   db: TetraDb,
@@ -20,7 +16,6 @@ export function createRequest(
     errorMessage: '',
     sessionId: args.sessionId,
     status: 'preparing',
-    steps: [],
     terminalAt: 0,
   })
 
@@ -49,11 +44,6 @@ export function failRequest(db: TetraDb, requestId: string, error: unknown): voi
     status: 'error',
     terminalAt: Date.now(),
   })
-}
-
-export function appendStep(db: TetraDb, requestId: string, step: StepRecord): void {
-  const steps = getSteps(db, requestId)
-  db.tables.requests.setCell(requestId, 'steps', [...steps, step])
 }
 
 export function recoverInterrupted(db: TetraDb, message = 'Request interrupted'): void {

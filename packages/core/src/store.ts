@@ -1,11 +1,12 @@
 import type { UIMessage } from 'ai'
 
 import { createIdGenerator } from '#db'
-import type { MessageRole, RequestConfig, Rows, TetraDb } from '#db'
+import type { MessageRole, RequestConfig, Rows, StepRecord, TetraDb } from '#db'
 
 export interface MessagePatch {
   parts?: UIMessage['parts']
   role?: MessageRole
+  steps?: StepRecord[]
 }
 
 export class Store {
@@ -131,6 +132,7 @@ export class Store {
       parts: args.parts,
       role: args.role,
       sessionId,
+      steps: [],
       updatedAt: now,
     })
 
@@ -168,8 +170,14 @@ export class Store {
     this.db.tables.messages.updateRow(messageId, {
       ...('parts' in patch && { parts: patch.parts ?? [] }),
       ...('role' in patch && { role: patch.role }),
+      ...('steps' in patch && { steps: patch.steps ?? [] }),
       updatedAt: Date.now(),
     })
+  }
+
+  appendMessageStep(messageId: string, step: StepRecord): void {
+    const message = this.getMessage(messageId)
+    this.updateMessage(messageId, { steps: [...message.steps, step] })
   }
 
   // ——— Requests (reads only — writes are owned by run.ts/requests.ts) ———

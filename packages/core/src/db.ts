@@ -36,31 +36,55 @@ export const DEFAULT_REQUEST_CONFIG: RequestConfig = {
   },
 }
 
+export const TokenMetrics = z.object({
+  inputAudio: z.number().optional(),
+  inputCacheRead: z.number().optional(),
+  inputCacheWrite: z.number().optional(),
+  inputImage: z.number().optional(),
+  inputNoCache: z.number().optional(),
+  inputText: z.number().optional(),
+  inputTotal: z.number(),
+  inputVideo: z.number().optional(),
+  outputAudio: z.number().optional(),
+  outputImage: z.number().optional(),
+  outputReasoning: z.number().optional(),
+  outputText: z.number().optional(),
+  outputTotal: z.number(),
+  outputVideo: z.number().optional(),
+  total: z.number(),
+})
+export type TokenMetrics = z.infer<typeof TokenMetrics>
+
+export const CostMetrics = z.object({
+  currency: z.literal('USD'),
+  inputAudio: z.number().optional(),
+  inputCacheRead: z.number().optional(),
+  inputCacheWrite: z.number().optional(),
+  inputImage: z.number().optional(),
+  inputNoCache: z.number().optional(),
+  inputText: z.number().optional(),
+  inputTotal: z.number().optional(),
+  inputVideo: z.number().optional(),
+  isByok: z.boolean(),
+  outputAudio: z.number().optional(),
+  outputImage: z.number().optional(),
+  outputReasoning: z.number().optional(),
+  outputText: z.number().optional(),
+  outputTotal: z.number().optional(),
+  outputVideo: z.number().optional(),
+  total: z.number().optional(),
+})
+export type CostMetrics = z.infer<typeof CostMetrics>
+
 export const StepRecord = z.object({
-  cost: z.object({
-    completion: z.number().nullable(),
-    isByok: z.boolean(),
-    prompt: z.number().nullable(),
-    total: z.number().nullable(),
-  }),
+  cost: CostMetrics,
   createdAt: z.number(),
   finishReason: z.string(),
   generationId: z.string(),
   model: z.string(),
   provider: z.string(),
   stepNumber: z.number(),
-  tokens: z.object({
-    audioIn: z.number(),
-    audioOut: z.number(),
-    cacheRead: z.number(),
-    cacheWrite: z.number(),
-    imageOut: z.number(),
-    input: z.number(),
-    output: z.number(),
-    reasoning: z.number(),
-    total: z.number(),
-    videoIn: z.number(),
-  }),
+  tokens: TokenMetrics,
 })
 export type StepRecord = z.infer<typeof StepRecord>
 
@@ -95,6 +119,7 @@ export const tetraDbDefinition = defineTypedTinybase({
       parts: tinybaseCell.array(MessageParts.default([]), { default: [] }),
       role: tinybaseCell.string(MessageRoleSchema.default('user'), { default: 'user' }),
       sessionId: tinybaseCell.string(z.string().default(''), { default: '' }),
+      steps: tinybaseCell.array(z.array(StepRecord).default([]), { default: [] }),
       updatedAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
     }),
     prompts: tinybaseTable({
@@ -112,7 +137,6 @@ export const tetraDbDefinition = defineTypedTinybase({
       status: tinybaseCell.string(RequestStatusSchema.default('preparing'), {
         default: 'preparing',
       }),
-      steps: tinybaseCell.array(z.array(StepRecord).default([]), { default: [] }),
       terminalAt: tinybaseCell.number(z.number().default(0), { default: 0 }),
     }),
     // Execution parameters for a session. Keyed by the same ID as the sessions table (1:1).

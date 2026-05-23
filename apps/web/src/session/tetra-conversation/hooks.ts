@@ -58,7 +58,7 @@ export function useTetraMessage(messageId: string): TetraMessage | null {
       return null
     }
 
-    const stepRecords = request?.steps ?? []
+    const stepRecords = message.steps
 
     return {
       createdAt: message.createdAt,
@@ -93,13 +93,13 @@ function deriveTotals(stepRecords: StepRecord[]): TetraTotals | null {
   let total = 0
 
   for (const { tokens, cost } of stepRecords) {
-    cacheRead += tokens.cacheRead
-    cacheWrite += tokens.cacheWrite
-    input += tokens.input
-    output += tokens.output
-    reasoning += tokens.reasoning
+    cacheRead += tokens.inputCacheRead ?? 0
+    cacheWrite += tokens.inputCacheWrite ?? 0
+    input += tokens.inputTotal
+    output += tokens.outputTotal
+    reasoning += tokens.outputReasoning ?? 0
     total += tokens.total
-    if (cost.total !== null) {
+    if (cost.total !== undefined) {
       costTotal += cost.total
       hasCost = true
     }

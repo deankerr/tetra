@@ -32,12 +32,10 @@ export function TetraMessageView({
       </div>
 
       {steps.map(({ inference, parts, stepIndex }) => {
-        // output - reasoning = tokens attributable to text/tool output (step-level, not per-part)
-        const outputTokens = inference ? inference.tokens.output - inference.tokens.reasoning : null
         const stepHeader = inference ? (
           <>
             step {stepIndex} <KeyValue keyName={inference.provider} value={inference.model} />
-            <KeyValue keyName="input" value={inference.tokens.input} metric="tokens" />
+            <KeyValue keyName="input" value={inference.tokens.inputTotal} metric="tokens" />
             <KeyValue value={inference.finishReason} />
           </>
         ) : (
@@ -58,7 +56,7 @@ export function TetraMessageView({
                         reasoning
                         <KeyValue
                           keyName="reasoning"
-                          value={inference?.tokens.reasoning}
+                          value={inference?.tokens.outputReasoning}
                           metric="tokens"
                         />
                       </>
@@ -75,7 +73,12 @@ export function TetraMessageView({
                     key={partId}
                     header={
                       <>
-                        text <KeyValue keyName="output" value={outputTokens} metric="tokens" />
+                        text{' '}
+                        <KeyValue
+                          keyName="output"
+                          value={inference?.tokens.outputText}
+                          metric="tokens"
+                        />
                       </>
                     }
                   >
@@ -91,7 +94,11 @@ export function TetraMessageView({
                     header={
                       <>
                         {p.type}
-                        <KeyValue keyName="output" value={outputTokens} metric="tokens" />
+                        <KeyValue
+                          keyName="output"
+                          value={inference?.tokens.outputText}
+                          metric="tokens"
+                        />
                       </>
                     }
                   ></Block>
@@ -147,12 +154,9 @@ function MessageFooter({ message }: { message: TetraMessage }) {
           <KeyValue keyName="input" value={totals.input} metric="tokens" />
           <KeyValue keyName="output" value={totals.output} metric="tokens" />
           <KeyValue keyName="reasoning" value={totals.reasoning} metric="tokens" />
-
           <KeyValue keyName="cache-read" value={totals.cacheRead} metric="tokens" />
-
           <KeyValue keyName="cache-write" value={totals.cacheWrite} metric="tokens" />
-
-          <KeyValue keyName="cost" value={`$${totals.cost}`} />
+          <KeyValue keyName="cost" value={totals.cost === null ? null : `$${totals.cost}`} />
         </>
       )}
     </div>

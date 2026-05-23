@@ -1,12 +1,22 @@
 import type { Rows } from '@tetra/core'
 import type { UIMessage } from 'ai'
-import { useSyncExternalStore } from 'react'
+import { useMemo, useSyncExternalStore } from 'react'
 
 import { useTetra } from '@/tetra/provider'
 import { typedTinybase } from '@/tetra/tinybase'
 
 export const useSessionMessageIds = (sessionId: string) =>
   typedTinybase.useSliceRowIds('messagesBySession', sessionId)
+
+export const useSessionMessages = (sessionId: string): Rows.Message[] => {
+  const messageIds = useSessionMessageIds(sessionId)
+  const messages = typedTinybase.useEntityList('messages')
+
+  return useMemo(() => {
+    const messagesById = new Map(messages.map((message) => [message.id, message]))
+    return messageIds.flatMap((messageId) => messagesById.get(messageId) ?? [])
+  }, [messageIds, messages])
+}
 
 export const useMessage = (id: string): Rows.Message | null => {
   const stored = useTinyBaseMessage(id)

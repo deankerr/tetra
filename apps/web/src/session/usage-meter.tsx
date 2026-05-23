@@ -1,4 +1,3 @@
-import { StepRecord } from '@tetra/core'
 import {
   Context,
   ContextContent,
@@ -8,16 +7,16 @@ import {
   ContextTrigger,
 } from '@tetra/ui/components/ai-elements/context'
 import type { LanguageModelUsage } from 'ai'
-import { useEffect, useMemo, useReducer } from 'react'
+import { useMemo } from 'react'
 
-import { useSessionRequestIds } from '@/tetra/hooks/requests'
 import { useSessionConfig } from '@/tetra/hooks/sessions'
-import { tinybase, typedTinybase } from '@/tetra/tinybase'
+import { useSessionMessages } from '@/tetra/hooks/transcripts'
+import { typedTinybase } from '@/tetra/tinybase'
 
 interface SessionContextSummary {
   cost: {
-    completion: number | null
-    prompt: number | null
+    input: number | null
+    output: number | null
     total: number | null
   }
   maxTokens: number
@@ -52,14 +51,10 @@ export function SessionUsageMeter({ sessionId }: { sessionId: string }) {
               {summary.providerName} / {summary.modelName}
             </span>
           </div>
-          <UsageRow cost={summary.cost.prompt} label="Input" tokens={summary.usage.inputTokens} />
+          <UsageRow cost={summary.cost.input} label="Input" tokens={summary.usage.inputTokens} />
           <UsageRow label="Cache read" tokens={summary.usage.inputTokenDetails.cacheReadTokens} />
           <UsageRow label="Cache write" tokens={summary.usage.inputTokenDetails.cacheWriteTokens} />
-          <UsageRow
-            cost={summary.cost.completion}
-            label="Output"
-            tokens={summary.usage.outputTokens}
-          />
+          <UsageRow cost={summary.cost.output} label="Output" tokens={summary.usage.outputTokens} />
           <UsageRow
             label="Reasoning"
             note="included in output"
@@ -79,8 +74,8 @@ function useSessionContextSummary(sessionId: string): SessionContextSummary | nu
   const config = useSessionConfig(sessionId)
   const hasLanguageModel = typedTinybase.useHasRow('languageModels', config.modelId)
   const languageModel = typedTinybase.useRow('languageModels', config.modelId)
-  const requestIds = useSessionRequestIds(sessionId)
-  const steps = useSessionStepRecords(requestIds)
+  const messages = useSessionMessages(sessionId)
+  const steps = useMemo(() => messages.flatMap((message) => message.steps), [messages])
 
   return useMemo(() => {
     if (
@@ -106,21 +101,21 @@ function useSessionContextSummary(sessionId: string): SessionContextSummary | nu
     let totalCost = 0
 
     for (const { cost, tokens } of steps) {
-      cacheRead += tokens.cacheRead
-      cacheWrite += tokens.cacheWrite
-      input += tokens.input
-      output += tokens.output
-      reasoning += tokens.reasoning
+      cacheRead += tokens.inputCacheRead ?? 0
+      cacheWrite += tokens.inputCacheWrite ?? 0
+      input += tokens.inputTotal
+      output += tokens.outputTotal
+      reasoning += tokens.outputReasoning ?? 0
       total += tokens.total
-      if (cost.completion !== null) {
-        completionCost += cost.completion
+      if (cost.outputTotal !== undefined) {
+        completionCost += cost.outputTotal
         hasCompletionCost = true
       }
-      if (cost.prompt !== null) {
-        promptCost += cost.prompt
+      if (cost.inputTotal !== undefined) {
+        promptCost += cost.inputTotal
         hasPromptCost = true
       }
-      if (cost.total !== null) {
+      if (cost.total !== undefined) {
         totalCost += cost.total
         hasTotalCost = true
       }
@@ -128,8 +123,8 @@ function useSessionContextSummary(sessionId: string): SessionContextSummary | nu
 
     return {
       cost: {
-        completion: hasCompletionCost ? completionCost : null,
-        prompt: hasPromptCost ? promptCost : null,
+        input: hasPromptCost ? promptCost : null,
+        output: hasCompletionCost ? completionCost : null,
         total: hasTotalCost ? totalCost : null,
       },
       maxTokens: languageModel.contextLength,
@@ -155,38 +150,6 @@ function useSessionContextSummary(sessionId: string): SessionContextSummary | nu
       usedTokens: input,
     }
   }, [config.modelId, hasLanguageModel, languageModel, steps])
-}
-
-function useSessionStepRecords(requestIds: string[]): StepRecord[] {
-  const store = tinybase.useStore()
-  const [version, bumpVersion] = useReducer((value: number) => value + 1, 0)
-
-  useEffect(() => {
-    const listenerIds =
-      store === undefined
-        ? []
-        : requestIds.map((requestId) =>
-            store.addCellListener('requests', requestId, 'steps', bumpVersion),
-          )
-
-    return () => {
-      for (const listenerId of listenerIds) {
-        store?.delListener(listenerId)
-      }
-    }
-  }, [requestIds, store])
-
-  return useMemo(() => {
-    void version
-
-    if (!store) {
-      return []
-    }
-
-    return requestIds.flatMap((requestId) =>
-      StepRecord.array().parse(store.getCell('requests', requestId, 'steps')),
-    )
-  }, [requestIds, store, version])
 }
 
 function UsageRow({

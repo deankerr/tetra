@@ -1,9 +1,17 @@
 {
-  "exportedAt": "2026-05-20T10:25:02.314Z",
+  "sessionConfig": {
+    "modelId": "anthropic/claude-sonnet-4.5",
+    "providerOptions": {
+      "max_tokens": 10240,
+      "reasoning": {
+        "enabled": true
+      }
+    }
+  },
+  "exportedAt": "2026-05-22T23:50:02.046Z",
   "messages": [
     {
       "createdAt": 1779272674481,
-      "id": "mesg_Ot3uaml----SflWn",
       "parts": [
         {
           "text": "what time is it in new york?",
@@ -12,11 +20,12 @@
       ],
       "role": "user",
       "sessionId": "sess_Ot3uXUS----SflWn",
-      "updatedAt": 1779272674481
+      "steps": [],
+      "updatedAt": 1779272674481,
+      "id": "mesg_Ot3uaml----SflWn"
     },
     {
       "createdAt": 1779272674482,
-      "id": "mesg_Ot3uamm----SflWn",
       "parts": [
         {
           "type": "step-start"
@@ -102,13 +111,63 @@
       ],
       "role": "assistant",
       "sessionId": "sess_Ot3uXUS----SflWn",
-      "updatedAt": 1779272681177
+      "steps": [
+        {
+          "cost": {
+            "currency": "USD",
+            "inputTotal": 0.0000336,
+            "isByok": false,
+            "outputTotal": 0.00001232,
+            "total": 0.00004592
+          },
+          "createdAt": 1779272677073,
+          "finishReason": "tool-calls",
+          "generationId": "gen-1779272674-vpbyzLguwiiW6zmUT8z8",
+          "model": "deepseek/deepseek-v4-flash-20260423",
+          "provider": "GMICloud",
+          "stepNumber": 0,
+          "tokens": {
+            "inputNoCache": 300,
+            "inputText": 300,
+            "inputTotal": 300,
+            "outputReasoning": 25,
+            "outputText": 30,
+            "outputTotal": 55,
+            "total": 355
+          }
+        },
+        {
+          "cost": {
+            "currency": "USD",
+            "inputTotal": 0.000046592,
+            "isByok": false,
+            "outputTotal": 0.000044128,
+            "total": 0.00009072
+          },
+          "createdAt": 1779272681166,
+          "finishReason": "stop",
+          "generationId": "gen-1779272677-2hQ3wa3Kjble8wDJGmQR",
+          "model": "deepseek/deepseek-v4-flash-20260423",
+          "provider": "GMICloud",
+          "stepNumber": 1,
+          "tokens": {
+            "inputNoCache": 416,
+            "inputText": 416,
+            "inputTotal": 416,
+            "outputReasoning": 140,
+            "outputText": 57,
+            "outputTotal": 197,
+            "total": 613
+          }
+        }
+      ],
+      "updatedAt": 1779272681177,
+      "id": "mesg_Ot3uamm----SflWn"
     }
   ],
   "requests": [
     {
       "assistantMessageId": "mesg_Ot3uamm----SflWn",
-      "completedAt": 1779272681178,
       "config": {
         "modelId": "deepseek/deepseek-v4-flash",
         "providerOptions": {
@@ -121,79 +180,16 @@
       },
       "createdAt": 1779272674483,
       "errorMessage": "",
-      "id": "rqst_Ot3uamn----SflWn",
       "sessionId": "sess_Ot3uXUS----SflWn",
       "status": "completed",
-      "steps": [
-        {
-          "cost": {
-            "completion": 0.00001232,
-            "isByok": false,
-            "prompt": 0.0000336,
-            "total": 0.00004592
-          },
-          "createdAt": 1779272677073,
-          "finishReason": "tool-calls",
-          "generationId": "gen-1779272674-vpbyzLguwiiW6zmUT8z8",
-          "model": "deepseek/deepseek-v4-flash-20260423",
-          "provider": "GMICloud",
-          "stepNumber": 0,
-          "tokens": {
-            "audioIn": 0,
-            "audioOut": 0,
-            "cacheRead": 0,
-            "cacheWrite": 0,
-            "imageOut": 0,
-            "input": 300,
-            "output": 55,
-            "reasoning": 25,
-            "total": 355,
-            "videoIn": 0
-          }
-        },
-        {
-          "cost": {
-            "completion": 0.000044128,
-            "isByok": false,
-            "prompt": 0.000046592,
-            "total": 0.00009072
-          },
-          "createdAt": 1779272681166,
-          "finishReason": "stop",
-          "generationId": "gen-1779272677-2hQ3wa3Kjble8wDJGmQR",
-          "model": "deepseek/deepseek-v4-flash-20260423",
-          "provider": "GMICloud",
-          "stepNumber": 1,
-          "tokens": {
-            "audioIn": 0,
-            "audioOut": 0,
-            "cacheRead": 0,
-            "cacheWrite": 0,
-            "imageOut": 0,
-            "input": 416,
-            "output": 197,
-            "reasoning": 140,
-            "total": 613,
-            "videoIn": 0
-          }
-        }
-      ]
+      "terminalAt": 0,
+      "id": "rqst_Ot3uamn----SflWn"
     }
   ],
   "session": {
-    "config": {
-      "modelId": "deepseek/deepseek-v4-flash",
-      "providerOptions": {
-        "max_tokens": 10240,
-        "reasoning": {
-          "enabled": true
-        }
-      },
-      "toolIds": ["getCurrentDateTime"]
-    },
     "createdAt": 1779272656861,
-    "id": "sess_Ot3uXUS----SflWn",
     "title": "what time is it in new york?",
-    "updatedAt": 1779272674482
+    "updatedAt": 1779272674482,
+    "id": "sess_Ot3uXUS----SflWn"
   }
 }

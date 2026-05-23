@@ -1,24 +1,29 @@
 import type { RequestConfig as RequestConfigType, Rows } from '#db'
-import { DEFAULT_REQUEST_CONFIG, RequestConfig } from '#db'
+import { DEFAULT_REQUEST_CONFIG, RequestConfig, StepRecord } from '#db'
 import type { Store } from '#store'
 
 import tailwindV4Cheatsheet from './seeds/tailwind-v4-cheatsheet.json'
 import timeInNewYork from './seeds/time-in-new-york.json'
 
 export interface SessionExport {
-  config?: RequestConfigType
+  sessionConfig?: RequestConfigType
   exportedAt: string
   messages: Rows.Message[]
   requests: Rows.Request[]
   session: Rows.Session
 }
 
-const bundledSeeds: SessionExport[] = [
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- JSON structure matches the portable session export shape.
-  tailwindV4Cheatsheet as unknown as SessionExport,
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- JSON structure matches the portable session export shape.
-  timeInNewYork as unknown as SessionExport,
-]
+// JSON imports type all string fields as `string`, not specific string literal unions.
+// This mapped type widens string fields to accept either, preserving structural checking.
+type Loose<T> = T extends string
+  ? string
+  : T extends (infer U)[]
+    ? Loose<U>[]
+    : T extends object
+      ? { [K in keyof T]: Loose<T[K]> }
+      : T
+
+const bundledSeeds: Loose<SessionExport>[] = [tailwindV4Cheatsheet, timeInNewYork]
 
 export function exportSession(store: Store, sessionId: string): SessionExport {
   if (!store.sessionExists(sessionId)) {
@@ -26,19 +31,19 @@ export function exportSession(store: Store, sessionId: string): SessionExport {
   }
 
   return {
-    config: store.getSessionConfig(sessionId),
     exportedAt: new Date().toISOString(),
     messages: store.listMessages(sessionId),
     requests: store.listRequestIds(sessionId).map((id) => store.getRequest(id)),
     session: store.getSession(sessionId),
+    sessionConfig: store.getSessionConfig(sessionId),
   }
 }
 
 function importSession(
   store: Store,
-  { config, messages, requests, session }: SessionExport,
+  { sessionConfig: rawSessionConfig, messages, requests, session }: Loose<SessionExport>,
 ): string {
-  const sessionConfig = RequestConfig.safeParse(config).data ?? DEFAULT_REQUEST_CONFIG
+  const sessionConfig = RequestConfig.safeParse(rawSessionConfig).data ?? DEFAULT_REQUEST_CONFIG
 
   store.transaction(() => {
     store.db.tables.sessions.setRow(session.id, {
@@ -58,9 +63,12 @@ function importSession(
     for (const message of messages) {
       store.db.tables.messages.setRow(message.id, {
         createdAt: message.createdAt,
-        parts: message.parts,
-        role: message.role,
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Loose<T> widens string fields for JSON import compatibility; data is validated by structure.
+        parts: message.parts as unknown as Rows.Message['parts'],
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Loose<T> widens string fields for JSON import compatibility; data is validated by structure.
+        role: message.role as unknown as Rows.Message['role'],
         sessionId: message.sessionId,
+        steps: parsePortableSteps(message.steps),
         updatedAt: message.updatedAt,
       })
     }
@@ -72,14 +80,23 @@ function importSession(
         createdAt: request.createdAt,
         errorMessage: request.errorMessage,
         sessionId: request.sessionId,
-        status: request.status,
-        steps: request.steps,
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Loose<T> widens string fields for JSON import compatibility; data is validated by structure.
+        status: request.status as unknown as Rows.Request['status'],
         terminalAt: request.terminalAt,
       })
     }
   })
 
   return session.id
+}
+
+function parsePortableSteps(value: unknown): Rows.Message['steps'] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+  return value
+    .map((step) => StepRecord.safeParse(step).data)
+    .filter((step): step is Rows.Message['steps'][number] => step !== undefined)
 }
 
 export function loadSeeds(store: Store): void {

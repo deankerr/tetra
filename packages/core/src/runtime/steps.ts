@@ -1,3 +1,4 @@
+import { pickBy } from 'remeda'
 import { z } from 'zod'
 
 import type { StepRecord } from '#db'
@@ -6,24 +7,28 @@ import type { StepRecord } from '#db'
 const ProviderRaw = z.object({
   completion_tokens_details: z
     .object({
-      audio_tokens: z.number().default(0),
-      image_tokens: z.number().default(0),
+      audio_tokens: z.number().optional(),
+      image_tokens: z.number().optional(),
+      reasoning_tokens: z.number().optional(),
     })
-    .default({ audio_tokens: 0, image_tokens: 0 }),
+    .default({}),
   cost: z.number().optional(),
   cost_details: z
     .object({
       upstream_inference_completions_cost: z.number().optional(),
+      upstream_inference_cost: z.number().nullable().optional(),
       upstream_inference_prompt_cost: z.number().optional(),
     })
     .default({}),
   is_byok: z.boolean().default(false),
   prompt_tokens_details: z
     .object({
-      audio_tokens: z.number().default(0),
-      video_tokens: z.number().default(0),
+      audio_tokens: z.number().optional(),
+      cache_write_tokens: z.number().optional(),
+      cached_tokens: z.number().optional(),
+      video_tokens: z.number().optional(),
     })
-    .default({ audio_tokens: 0, video_tokens: 0 }),
+    .default({}),
 })
 
 export const StepEvent = z
@@ -50,12 +55,38 @@ export const StepEvent = z
   })
   .transform((event): StepRecord => {
     const raw = ProviderRaw.parse(event.usage.raw ?? {})
+    const inputAudio = raw.prompt_tokens_details.audio_tokens
+    const inputCacheRead =
+      event.usage.inputTokenDetails.cacheReadTokens || raw.prompt_tokens_details.cached_tokens
+    const inputCacheWrite =
+      event.usage.inputTokenDetails.cacheWriteTokens || raw.prompt_tokens_details.cache_write_tokens
+    const inputVideo = raw.prompt_tokens_details.video_tokens
+    const inputNoCache = Math.max(0, event.usage.inputTokens - (inputCacheRead ?? 0)) || undefined
+    const inputText =
+      Math.max(0, (inputNoCache ?? 0) - (inputAudio ?? 0) - (inputVideo ?? 0)) || undefined
+    const outputAudio = raw.completion_tokens_details.audio_tokens
+    const outputImage = raw.completion_tokens_details.image_tokens
+    const outputReasoning =
+      event.usage.outputTokenDetails.reasoningTokens ||
+      raw.completion_tokens_details.reasoning_tokens
+    const outputText =
+      Math.max(
+        0,
+        event.usage.outputTokens - (outputReasoning ?? 0) - (outputAudio ?? 0) - (outputImage ?? 0),
+      ) || undefined
+
     return {
       cost: {
-        completion: raw.cost_details.upstream_inference_completions_cost ?? null,
+        currency: 'USD',
         isByok: raw.is_byok,
-        prompt: raw.cost_details.upstream_inference_prompt_cost ?? null,
-        total: raw.cost ?? null,
+        ...pickBy(
+          {
+            inputTotal: raw.cost_details.upstream_inference_prompt_cost,
+            outputTotal: raw.cost_details.upstream_inference_completions_cost,
+            total: raw.cost,
+          },
+          (v) => v !== undefined,
+        ),
       },
       createdAt: Date.now(),
       finishReason: event.finishReason,
@@ -64,16 +95,24 @@ export const StepEvent = z
       provider: event.providerMetadata?.openrouter?.provider ?? '',
       stepNumber: event.stepNumber,
       tokens: {
-        audioIn: raw.prompt_tokens_details.audio_tokens,
-        audioOut: raw.completion_tokens_details.audio_tokens,
-        cacheRead: event.usage.inputTokenDetails.cacheReadTokens,
-        cacheWrite: event.usage.inputTokenDetails.cacheWriteTokens,
-        imageOut: raw.completion_tokens_details.image_tokens,
-        input: event.usage.inputTokens,
-        output: event.usage.outputTokens,
-        reasoning: event.usage.outputTokenDetails.reasoningTokens,
+        inputTotal: event.usage.inputTokens,
+        outputTotal: event.usage.outputTokens,
         total: event.usage.totalTokens,
-        videoIn: raw.prompt_tokens_details.video_tokens,
+        ...pickBy(
+          {
+            inputAudio,
+            inputCacheRead,
+            inputCacheWrite,
+            inputNoCache,
+            inputText,
+            inputVideo,
+            outputAudio,
+            outputImage,
+            outputReasoning,
+            outputText,
+          },
+          (v) => v !== undefined && v !== 0,
+        ),
       },
     }
   })

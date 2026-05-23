@@ -1,4 +1,3 @@
-import { StepRecord } from '@tetra/core'
 import type { Rows } from '@tetra/core'
 import {
   Table,
@@ -11,6 +10,7 @@ import {
 import { useMemo } from 'react'
 
 import { useRequest, useSessionRequestIds } from '@/tetra/hooks/requests'
+import { useMessage } from '@/tetra/hooks/transcripts'
 
 type Request = Rows.Request
 
@@ -59,30 +59,24 @@ function statusClass(status: string) {
   return 'text-muted-foreground'
 }
 
-// Aggregates token counts and cost from all steps for a request.
-// Reactive via RequestRow's useRequest subscription — re-renders when request.steps changes.
-function useRequestAccountingSummary(request: Request) {
+// Aggregates token counts and cost from the request's assistant message.
+// The message owns inference metadata, while the request owns lifecycle status.
+function useRequestAccountingSummary(message: Rows.Message | null) {
   return useMemo(() => {
     let cost: number | null = null
     let inputTokens = 0
     let outputTokens = 0
 
-    const steps = request.steps ?? []
-    for (const step of steps) {
-      const parsed = StepRecord.safeParse(step)
-      if (!parsed.success) {
-        continue
-      }
-      const { data } = parsed
-      inputTokens += data.tokens.input
-      outputTokens += data.tokens.output
-      if (data.cost.total !== null) {
-        cost = (cost ?? 0) + data.cost.total
+    for (const { cost: stepCost, tokens } of message?.steps ?? []) {
+      inputTokens += tokens.inputTotal
+      outputTokens += tokens.outputTotal
+      if (stepCost.total !== undefined) {
+        cost = (cost ?? 0) + stepCost.total
       }
     }
 
     return { cost, inputTokens, outputTokens }
-  }, [request.steps])
+  }, [message?.steps])
 }
 
 // Split out so each row subscribes independently to its request row.
@@ -95,7 +89,8 @@ function RequestRowById({ requestId }: { requestId: string }) {
 }
 
 function RequestRow({ request }: { request: Request }) {
-  const summary = useRequestAccountingSummary(request)
+  const message = useMessage(request.assistantMessageId)
+  const summary = useRequestAccountingSummary(message)
 
   return (
     <TableRow>

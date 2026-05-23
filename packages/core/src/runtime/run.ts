@@ -7,13 +7,7 @@ import type { RequestConfig as RequestConfigType, Rows, StepRecord } from '#db'
 import type { Store } from '#store'
 import { resolveTools } from '#tools'
 
-import {
-  appendStep,
-  cancelRequest,
-  completeRequest,
-  failRequest,
-  startStreaming,
-} from './requests.ts'
+import { cancelRequest, completeRequest, failRequest, startStreaming } from './requests.ts'
 import { StepEvent } from './steps.ts'
 
 const DURABLE_SNAPSHOT_INTERVAL_MS = 500
@@ -138,7 +132,7 @@ export class Run extends EventTarget {
 
   private recordStep(step: StepRecord): void {
     this.steps = [...this.steps, step]
-    appendStep(this.store.db, this.requestId, step)
+    this.store.appendMessageStep(this.assistantMessageId, step)
     this.dispatchEvent(new Event('step'))
   }
 

@@ -8,8 +8,10 @@ export type { MessageRole } from '#db'
 export type { RequestStatus } from '#db'
 export {
   DEFAULT_REQUEST_CONFIG,
+  CostMetrics,
   RequestConfig,
   StepRecord,
+  TokenMetrics,
   createTetraDb,
   tetraDbDefinition,
 } from '#db'
