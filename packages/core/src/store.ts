@@ -28,7 +28,7 @@ export class Store {
     const now = Date.now()
 
     // Write session identity and config rows atomically.
-    this.db.tables.transaction(() => {
+    this.db.transaction(() => {
       this.db.tables.sessions.setRow(sessionId, {
         createdAt: now,
         title: args.title ?? '',
@@ -50,7 +50,7 @@ export class Store {
     this.requireSession(sessionId)
 
     // Cascade: remove messages, requests, and config before deleting the session row.
-    this.db.tables.transaction(() => {
+    this.db.transaction(() => {
       for (const messageId of this.db.indexes.getSliceRowIds('messagesBySession', sessionId)) {
         this.db.tables.messages.deleteRow(messageId)
       }
@@ -113,11 +113,11 @@ export class Store {
 
   // Reads the mutable workspace default, falling back to the hardcoded constant.
   getDefaultConfig(): RequestConfig {
-    return this.db.tables.getValue('defaultSessionConfig').getValue()
+    return this.db.values.defaultSessionConfig.get()
   }
 
   setDefaultConfig(config: RequestConfig): void {
-    this.db.tables.getValue('defaultSessionConfig').setValue(config)
+    this.db.values.defaultSessionConfig.set(config)
   }
 
   // ——— Messages ———
@@ -207,7 +207,7 @@ export class Store {
   deletePrompt(promptId: string): void {
     this.requirePrompt(promptId)
 
-    this.db.tables.transaction(() => {
+    this.db.transaction(() => {
       for (const sessionId of this.db.tables.sessions.getRowIds()) {
         if (this.db.tables.sessionConfigs.getCell(sessionId, 'systemPromptId') === promptId) {
           this.db.tables.sessionConfigs.setCell(sessionId, 'systemPromptId', '')
@@ -244,7 +244,7 @@ export class Store {
   // ——— Transactions ———
 
   transaction(fn: () => void): void {
-    this.db.tables.transaction(fn)
+    this.db.transaction(fn)
   }
 
   // ——— Private guards ———

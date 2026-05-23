@@ -54,31 +54,44 @@ export function defineTypedTinybase<
     },
 
     bindTinybaseStore(store) {
-      const base = {
-        getTable<TableId extends keyof Tables & string>(
+      const tablesApi = {
+        get<TableId extends keyof Tables & string>(
           tableId: TableId,
         ): TableApi<TableSchemaOf<Tables[TableId]>> {
           return createTableApi(store, tableId, tables[tableId].schema)
         },
-        getValue<ValueId extends keyof Values & string>(
-          valueId: ValueId,
-        ): ValueApi<Values[ValueId]['schema']> {
-          return createValueApi(store, valueId, typedValues[valueId].schema)
-        },
-        store,
-        transaction(fn: () => void): void {
-          store.transaction(fn)
-        },
       }
 
-      const accessors = Object.fromEntries(
+      const tableAccessors = Object.fromEntries(
         (Object.keys(tables) as (keyof Tables & string)[]).map((tableId) => [
           tableId,
           createTableApi(store, tableId, tables[tableId].schema),
         ]),
       )
 
-      return Object.assign(base, accessors) as BoundTinybase<Tables, Values>
+      const valuesApi = {
+        get<ValueId extends keyof Values & string>(
+          valueId: ValueId,
+        ): ValueApi<Values[ValueId]['schema']> {
+          return createValueApi(store, valueId, typedValues[valueId].schema)
+        },
+      }
+
+      const valueAccessors = Object.fromEntries(
+        (Object.keys(typedValues) as (keyof Values & string)[]).map((valueId) => [
+          valueId,
+          createValueApi(store, valueId, typedValues[valueId].schema),
+        ]),
+      )
+
+      return {
+        store,
+        tables: Object.assign(tablesApi, tableAccessors),
+        transaction(fn: () => void): void {
+          store.transaction(fn)
+        },
+        values: Object.assign(valuesApi, valueAccessors),
+      } as BoundTinybase<Tables, Values>
     },
 
     createTinybaseIndexes(store) {

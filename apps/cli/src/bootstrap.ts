@@ -40,17 +40,17 @@ export async function bootstrap(mode: BootstrapMode) {
   const core = createCoreModules(createTetraDb({ mergeable: mode === 'sync' }))
   const runs = new Runs(core.store, credentialStore)
 
-  const cliActiveSessionId = core.db.tables.getValue('cliActiveSessionId')
+  const { cliActiveSessionId } = core.db.values
   const workspace = {
     clearActiveSessionId(): void {
-      cliActiveSessionId.setValue('')
+      cliActiveSessionId.set('')
     },
     getActiveSessionId(): string | undefined {
-      const sessionId = cliActiveSessionId.getValue()
+      const sessionId = cliActiveSessionId.get()
       return sessionId.trim() === '' ? undefined : sessionId
     },
     setActiveSessionId(sessionId: string): void {
-      cliActiveSessionId.setValue(sessionId)
+      cliActiveSessionId.set(sessionId)
     },
   }
 

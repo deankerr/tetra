@@ -108,9 +108,9 @@ export interface TableApi<Schema extends RowZod> {
 }
 
 export interface ValueApi<Schema extends AnyZod> {
-  deleteValue(): void
-  getValue(): z.output<Schema>
-  setValue(value: z.input<Schema>): z.output<Schema>
+  delete(): void
+  get(): z.output<Schema>
+  set(value: z.input<Schema>): z.output<Schema>
 }
 
 export interface IndexApi {
@@ -127,17 +127,25 @@ export type BoundIndexes<IndexDefs extends Record<string, unknown>> = {
   [IndexId in keyof IndexDefs]: IndexApi
 }
 
-export type BoundTinybase<Tables extends TableDefinitions, Values extends ValueDefinitions> = {
+export interface BoundTinybase<Tables extends TableDefinitions, Values extends ValueDefinitions> {
   store: TinybaseStore<TinybaseSchemasOf<Tables, Values>>
-  getTable<TableId extends keyof Tables & string>(
+  tables: BoundTableApis<Tables>
+  transaction(fn: () => void): void
+  values: BoundValueApis<Values>
+}
+
+export type BoundTableApis<Tables extends TableDefinitions> = {
+  get<TableId extends keyof Tables & string>(
     tableId: TableId,
   ): TableApi<TableSchemaOf<Tables[TableId]>>
-  getValue<ValueId extends keyof Values & string>(
-    valueId: ValueId,
-  ): ValueApi<Values[ValueId]['schema']>
-  transaction(fn: () => void): void
 } & {
   [TableId in keyof Tables]: TableApi<TableSchemaOf<Tables[TableId]>>
+}
+
+export type BoundValueApis<Values extends ValueDefinitions> = {
+  get<ValueId extends keyof Values & string>(valueId: ValueId): ValueApi<Values[ValueId]['schema']>
+} & {
+  [ValueId in keyof Values]: ValueApi<Values[ValueId]['schema']>
 }
 
 export interface TinybaseDefinition<
