@@ -19,12 +19,6 @@ export const credentialRegistry = [
     placeholder: 'sk-or-v1-...',
   },
   {
-    description: 'Used by web search and URL reading tools. Get a key at jina.ai/reader.',
-    id: 'JINA_API_KEY',
-    label: 'Jina API Key',
-    placeholder: 'jina_...',
-  },
-  {
     description: 'Used for neural web search via Exa. Get a key at dashboard.exa.ai/api-keys.',
     id: 'EXA_API_KEY',
     label: 'Exa API Key',
