@@ -26,8 +26,6 @@ import { useTetra } from '@/tetra-context'
 import { typedTinybase } from '@/tinybase'
 import { useCredential } from '@/use-credential'
 
-import { useRequest, useSessionRequestIds } from './hooks'
-
 const activeStatuses = new Set(['preparing', 'streaming'])
 
 export function Composer({ sessionId }: { sessionId: string }) {
@@ -139,8 +137,8 @@ export function Composer({ sessionId }: { sessionId: string }) {
 
 // Returns the current active request for this composer so submit controls stay in sync.
 const useActiveRequest = (sessionId: string) => {
-  const ids = useSessionRequestIds(sessionId)
-  const request = useRequest(ids[0] ?? '')
+  const ids = typedTinybase.useSliceRowIds('requestsBySessionNewestFirst', sessionId)
+  const request = typedTinybase.useEntity('requests', ids[0] ?? '')
   if (request === null || !activeStatuses.has(request.status)) {
     return null
   }

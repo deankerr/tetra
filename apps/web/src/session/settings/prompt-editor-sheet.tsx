@@ -1,4 +1,3 @@
-import type { Rows } from '@tetra/core'
 import { Button } from '@tetra/ui/components/ui/button'
 import { Input } from '@tetra/ui/components/ui/input'
 import {
@@ -25,15 +24,6 @@ export const usePromptIds = () => {
   )
 }
 
-export const usePrompt = (id: string): Rows.Prompt | null => {
-  const prompt = typedTinybase.useEntity('prompts', id)
-  if (id === '') {
-    return null
-  }
-
-  return prompt
-}
-
 const NO_PROMPT_VALUE = '__none__'
 const NEW_PROMPT_VALUE = '__new__'
 
@@ -52,7 +42,7 @@ function PromptDisplayLabel({ prompt }: { prompt: { content: string; label: stri
 }
 
 function PromptOption({ promptId }: { promptId: string }) {
-  const prompt = usePrompt(promptId)
+  const prompt = typedTinybase.useEntity('prompts', promptId)
   if (prompt === null) {
     return null
   }
@@ -119,7 +109,7 @@ function PromptCellFields({ onDelete, promptId }: { onDelete: () => void; prompt
 }
 
 function PromptLabel({ promptId }: { promptId: string }) {
-  const prompt = usePrompt(promptId)
+  const prompt = typedTinybase.useEntity('prompts', promptId)
   return prompt === null ? (
     <span className="text-muted-foreground">None</span>
   ) : (
@@ -142,8 +132,7 @@ export function PromptPreviewButton({
       ? systemPromptId
       : undefined
 
-  // Always call — hook handles missing id gracefully
-  const selectedPrompt = usePrompt(selectedPromptId ?? '')
+  const selectedPrompt = typedTinybase.useEntity('prompts', selectedPromptId ?? '')
   const previewContent = selectedPrompt?.content?.trim() ?? ''
 
   return (

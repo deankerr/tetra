@@ -52,7 +52,10 @@ export class Helpers {
         this.db.tables.messages.deleteRow(messageId)
       }
 
-      for (const requestId of this.db.indexes.getSliceRowIds('requestsBySession', sessionId)) {
+      for (const requestId of this.db.indexes.getSliceRowIds(
+        'requestsBySessionNewestFirst',
+        sessionId,
+      )) {
         this.db.tables.requests.deleteRow(requestId)
       }
 

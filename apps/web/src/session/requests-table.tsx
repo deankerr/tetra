@@ -11,8 +11,6 @@ import { useMemo } from 'react'
 
 import { typedTinybase } from '@/tinybase'
 
-import { useMessage, useRequest, useSessionRequestIds } from './hooks'
-
 type Request = Rows.Request
 
 function formatTime(ts: number) {
@@ -76,7 +74,7 @@ function useRequestAccountingSummary(message: Rows.Message | null) {
 
 // Split out so each row subscribes independently to its request row.
 function RequestRowById({ requestId }: { requestId: string }) {
-  const request = useRequest(requestId)
+  const request = typedTinybase.useEntity('requests', requestId)
   if (!request) {
     return null
   }
@@ -84,7 +82,7 @@ function RequestRowById({ requestId }: { requestId: string }) {
 }
 
 function RequestRow({ request }: { request: Request }) {
-  const message = useMessage(request.assistantMessageId)
+  const message = typedTinybase.useEntity('messages', request.assistantMessageId)
   const summary = useRequestAccountingSummary(message)
 
   return (
@@ -106,7 +104,7 @@ function RequestRow({ request }: { request: Request }) {
 }
 
 export function RequestsTable({ sessionId }: { sessionId: string }) {
-  const requestIds = useSessionRequestIds(sessionId)
+  const requestIds = typedTinybase.useSliceRowIds('requestsBySessionNewestFirst', sessionId)
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">

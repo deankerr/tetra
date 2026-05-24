@@ -182,14 +182,14 @@ test('Pre-Run Invariants — throws before creating request when systemPromptId 
     role: 'user',
   })
   const assistantMessageId = core.helpers.appendMessage(sessionId, { parts: [], role: 'assistant' })
-  const requestsBefore = core.db.indexes.getSliceRowIds('requestsBySession', sessionId)
+  const requestsBefore = core.db.indexes.getSliceRowIds('requestsBySessionNewestFirst', sessionId)
   const sessionBefore = core.db.tables.sessions.requireEntity(sessionId)
 
   expect(() => runs.start({ assistantMessageId })).toThrow(
     'Missing row: prompts/non-existent-prompt',
   )
 
-  const requestsAfter = core.db.indexes.getSliceRowIds('requestsBySession', sessionId)
+  const requestsAfter = core.db.indexes.getSliceRowIds('requestsBySessionNewestFirst', sessionId)
   const sessionAfter = core.db.tables.sessions.requireEntity(sessionId)
 
   expect(requestsAfter).toHaveLength(requestsBefore.length)

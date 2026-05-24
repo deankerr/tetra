@@ -24,12 +24,10 @@ import { useMemo } from 'react'
 import { useTetra } from '@/tetra-context'
 import { typedTinybase } from '@/tinybase'
 
-import { useMessage } from './hooks'
-
 type UIMessagePart = Rows.Message['parts'][number]
 
 function useTetraMessage(messageId: string) {
-  const message = useMessage(messageId)
+  const message = typedTinybase.useEntity('messages', messageId)
   const generation = typedTinybase.useEntity('messageGenerations', messageId)
   const request = useRequestForMessage(messageId)
 
@@ -68,16 +66,8 @@ function useTetraMessage(messageId: string) {
 }
 
 function useRequestForMessage(messageId: string) {
-  const ids = typedTinybase.useSliceRowIds('requestsByAssistantMessage', messageId)
-  const requests = typedTinybase.useEntityList('requests')
-
-  return useMemo(() => {
-    const candidates = requests.filter(
-      (request) => ids.includes(request.id) && request.assistantMessageId === messageId,
-    )
-
-    return candidates.toSorted((a, b) => b.createdAt - a.createdAt)[0] ?? null
-  }, [ids, messageId, requests])
+  const ids = typedTinybase.useSliceRowIds('requestsByAssistantMessageNewestFirst', messageId)
+  return typedTinybase.useEntity('requests', ids[0] ?? '')
 }
 
 // Groups a flat parts array into per-step buckets using step-start markers as boundaries.

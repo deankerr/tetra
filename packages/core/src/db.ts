@@ -5,7 +5,7 @@ import {
   tinybaseIndex,
   tinybaseTable,
 } from '@tetra/tinybase-schema'
-import type { EntityOf, OutputRowOf } from '@tetra/tinybase-schema'
+import type { EntityOf } from '@tetra/tinybase-schema'
 import type { UIMessage } from 'ai'
 import { getHlcFunctions } from 'tinybase/common'
 import { z } from 'zod'
@@ -111,11 +111,11 @@ export const tetraDbDefinition = defineTypedTinybase({
     generationBySession: tinybaseIndex('messageGenerations', 'sessionId'),
     // HLC row IDs are lexicographically sortable, giving creation-time order for free.
     messagesBySession: tinybaseIndex('messages', 'sessionId'),
-    requestsByAssistantMessage: tinybaseIndex('requests', 'assistantMessageId', {
+    requestsByAssistantMessageNewestFirst: tinybaseIndex('requests', 'assistantMessageId', {
       rowIdSorter: (a, b) => Number(b) - Number(a),
       sortBy: 'createdAt',
     }),
-    requestsBySession: tinybaseIndex('requests', 'sessionId', {
+    requestsBySessionNewestFirst: tinybaseIndex('requests', 'sessionId', {
       rowIdSorter: (a, b) => Number(b) - Number(a),
       sortBy: 'createdAt',
     }),
@@ -212,10 +212,6 @@ export const valuesSchema = tetraDbDefinition.tinybaseValuesSchema
 
 export type DbSchemas = [typeof tablesSchema, typeof valuesSchema]
 
-export type SessionConfigRow = OutputRowOf<
-  (typeof tetraDbDefinition.tables.sessionConfigs)['schema']
->
-
 // oxlint-disable-next-line typescript/no-namespace -- Namespaces keep contested schema row names grouped at call sites, e.g. Rows.Message.
 export namespace Rows {
   export type LanguageModel = EntityOf<(typeof tetraDbDefinition.tables.languageModels)['schema']>
@@ -229,9 +225,7 @@ export namespace Rows {
   export type SessionSummary = EntityOf<
     (typeof tetraDbDefinition.tables.sessionSummaries)['schema']
   >
-  export type SessionConfig = SessionConfigRow & {
-    id: string
-  }
+  export type SessionConfig = EntityOf<(typeof tetraDbDefinition.tables.sessionConfigs)['schema']>
 }
 
 export function createTetraStore({ mergeable = true }: { mergeable?: boolean } = {}) {

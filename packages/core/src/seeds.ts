@@ -47,7 +47,7 @@ export function exportSession(helpers: Helpers, sessionId: string): SessionExpor
       .getSliceRowIds('messagesBySession', sessionId)
       .map((id) => helpers.db.tables.messages.requireEntity(id)),
     requests: helpers.db.indexes
-      .getSliceRowIds('requestsBySession', sessionId)
+      .getSliceRowIds('requestsBySessionNewestFirst', sessionId)
       .map((id) => helpers.db.tables.requests.requireEntity(id)),
     session: helpers.db.tables.sessions.requireEntity(sessionId),
     sessionConfig: helpers.db.tables.sessionConfigs.requireEntity(sessionId),
