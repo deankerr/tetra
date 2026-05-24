@@ -21,7 +21,7 @@ import {
 } from 'lucide-react'
 import { useMemo } from 'react'
 
-import { useTetra } from '@/provider'
+import { useTetra } from '@/tetra-context'
 import { typedTinybase } from '@/tinybase'
 
 import { useMessage } from './hooks'

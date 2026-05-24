@@ -20,7 +20,7 @@ import { MoreHorizontalIcon, PlusIcon } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 
 import { useOpenSessionIds, useSetOpenSessionIds } from '@/app-state'
-import { useTetra } from '@/provider'
+import { useTetra } from '@/tetra-context'
 import { typedTinybase } from '@/tinybase'
 
 // Sessions sorted by updatedAt descending — most recently active first.

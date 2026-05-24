@@ -13,8 +13,11 @@ export {
   StepRecord,
   TokenMetrics,
   UsageSummary,
+  bindTetraDb,
   combineUsageSummaries,
+  createTetraIndexes,
   createTetraDb,
+  createTetraStore,
   deriveUsageSummary,
   requestConfigToSessionConfigRow,
   sessionConfigRowToRequestConfig,
@@ -26,6 +29,8 @@ export type {
   RequestConfig as RequestConfigType,
   Rows,
   TetraDb,
+  TetraIndexes,
+  TetraStore,
 } from '#db'
 export { Run, Runs } from '#runtime'
 export { exportSession, loadSeeds } from '#seeds'

@@ -21,9 +21,9 @@ import type { UIMessage } from 'ai'
 import { ArrowUpFromDot, ImageIcon } from 'lucide-react'
 import { useState } from 'react'
 
-import { useTetra } from '@/provider'
 import { ModelPicker } from '@/session/settings/model-picker'
 import { useSettings } from '@/settings-provider'
+import { useTetra } from '@/tetra-context'
 import { typedTinybase } from '@/tinybase'
 import { useCredential } from '@/use-credential'
 

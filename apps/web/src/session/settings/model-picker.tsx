@@ -15,7 +15,7 @@ import { cn } from '@tetra/ui/lib/utils'
 import { CheckIcon, ImageIcon, Music2Icon, RotateCcwIcon } from 'lucide-react'
 import { useCallback, useState, useMemo } from 'react'
 
-import { useTetra } from '@/provider'
+import { useTetra } from '@/tetra-context'
 import { typedTinybase } from '@/tinybase'
 
 export function useGroupedLanguageModels() {

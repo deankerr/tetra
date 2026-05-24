@@ -13,7 +13,7 @@ import { Textarea } from '@tetra/ui/components/ui/textarea'
 import { Trash2Icon, XIcon } from 'lucide-react'
 import { useMemo } from 'react'
 
-import { useTetra } from '@/provider'
+import { useTetra } from '@/tetra-context'
 import { typedTinybase } from '@/tinybase'
 
 export const usePromptIds = () => {

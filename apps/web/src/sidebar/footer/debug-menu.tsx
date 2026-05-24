@@ -10,7 +10,7 @@ import {
 } from '@tetra/ui/components/ui/dropdown-menu'
 import { BugIcon, DatabaseIcon, Trash2Icon } from 'lucide-react'
 
-import { useTetra } from '@/provider'
+import { useTetra } from '@/tetra-context'
 
 export function DebugMenu() {
   const { store } = useTetra()

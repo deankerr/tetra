@@ -255,11 +255,21 @@ export namespace Rows {
   }
 }
 
-export function createTetraDb({ mergeable = true }: { mergeable?: boolean } = {}) {
-  const store = mergeable
+export function createTetraStore({ mergeable = true }: { mergeable?: boolean } = {}) {
+  return mergeable
     ? tetraDbDefinition.createTinybaseMergeableStore()
     : tetraDbDefinition.createTinybaseStore()
-  const rawIndexes = tetraDbDefinition.createTinybaseIndexes(store)
+}
+
+export type TetraStore = ReturnType<typeof createTetraStore>
+
+export function createTetraIndexes(store: TetraStore) {
+  return tetraDbDefinition.createTinybaseIndexes(store)
+}
+
+export type TetraIndexes = ReturnType<typeof createTetraIndexes>
+
+export function bindTetraDb(store: TetraStore, rawIndexes: TetraIndexes) {
   const bound = tetraDbDefinition.bindTinybaseStore(store)
 
   return {
@@ -271,6 +281,12 @@ export function createTetraDb({ mergeable = true }: { mergeable?: boolean } = {}
     },
     values: bound.values,
   }
+}
+
+export function createTetraDb({ mergeable = true }: { mergeable?: boolean } = {}) {
+  const store = createTetraStore({ mergeable })
+  const rawIndexes = createTetraIndexes(store)
+  return bindTetraDb(store, rawIndexes)
 }
 
 export type TetraDb = ReturnType<typeof createTetraDb>

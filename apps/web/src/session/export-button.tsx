@@ -2,7 +2,7 @@ import { exportSession } from '@tetra/core'
 import { Button } from '@tetra/ui/components/ui/button'
 import { DownloadIcon } from 'lucide-react'
 
-import { useTetra } from '@/provider'
+import { useTetra } from '@/tetra-context'
 
 export function SessionExportButton({ sessionId }: { sessionId: string }) {
   const { store } = useTetra()
