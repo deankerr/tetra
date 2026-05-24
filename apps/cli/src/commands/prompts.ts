@@ -14,7 +14,9 @@ export function registerPromptCommands(
     .description('List stored prompts')
     .action(async () => {
       const ctx = await getContext()
-      const prompts = ctx.store.listPrompts()
+      const prompts = ctx.store.db.tables.prompts
+        .listEntities()
+        .toSorted((a, b) => a.id.localeCompare(b.id))
 
       if (prompts.length === 0) {
         console.log('No prompts. Run: tetra prompt create [content]')
@@ -45,7 +47,7 @@ export function registerPromptCommands(
     .description('Show a stored prompt')
     .action(async (promptId: string) => {
       const ctx = await getContext()
-      const row = ctx.store.getPrompt(promptId)
+      const row = ctx.store.db.tables.prompts.requireEntity(promptId)
       console.log(`id:      ${row.id}`)
       console.log(`label:   ${row.label ?? '(none)'}`)
       console.log(`content:\n${row.content}`)
@@ -58,7 +60,7 @@ export function registerPromptCommands(
     .description('Update a stored prompt')
     .action(async (promptId: string, content: string | undefined, opts: { label?: string }) => {
       const ctx = await getContext()
-      ctx.store.updatePrompt(promptId, {
+      ctx.store.db.tables.prompts.updateRow(promptId, {
         ...(content !== undefined && { content }),
         ...(opts.label !== undefined && { label: opts.label }),
       })

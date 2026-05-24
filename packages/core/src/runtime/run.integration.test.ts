@@ -7,6 +7,7 @@ import { z } from 'zod'
 
 import { createCoreModules, Runs } from '../index.ts'
 import { toolsRegistryMap } from '../tools/tools.ts'
+import { createMessageGeneration, writeMessageGenerationSnapshot } from './message-generations.ts'
 import type { CredentialReader, LanguageModelResolver } from './run.ts'
 
 function createTestRuntime() {
@@ -66,16 +67,21 @@ test('start streams through the AI SDK into TinyBase rows', async () => {
   const { core, model, runs } = createTestRuntime()
   const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
 
-  core.store.appendTextMessage(sessionId, { role: 'user', text: 'hello' })
+  core.store.appendMessage(sessionId, {
+    parts: [{ text: 'hello', type: 'text' }],
+    role: 'user',
+  })
   const assistantMessageId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
 
   const run = runs.start({ assistantMessageId })
-  expect(core.store.getRequest(run.requestId).status).toBe('preparing')
+  expect(core.db.tables.requests.requireEntity(run.requestId).status).toBe('preparing')
 
   await run.done
 
-  const messages = core.store.listMessages(sessionId)
-  const request = core.store.getRequest(run.requestId)
+  const messages = core.db.indexes
+    .getSliceRowIds('messagesBySession', sessionId)
+    .map((id) => core.db.tables.messages.requireEntity(id))
+  const request = core.db.tables.requests.requireEntity(run.requestId)
 
   expect(run.status).toBe('completed')
   expect(request.status).toBe('completed')
@@ -133,7 +139,10 @@ test('streaming snapshots persist to messageGenerations before message commit', 
   const runs = new Runs(core.store, credentials, { resolve: () => model })
   const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
 
-  core.store.appendTextMessage(sessionId, { role: 'user', text: 'hello' })
+  core.store.appendMessage(sessionId, {
+    parts: [{ text: 'hello', type: 'text' }],
+    role: 'user',
+  })
   const assistantMessageId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
   const run = runs.start({ assistantMessageId })
   const firstSnapshot = Promise.withResolvers<undefined>()
@@ -148,12 +157,12 @@ test('streaming snapshots persist to messageGenerations before message commit', 
   await firstSnapshot.promise
 
   const generation = core.db.tables.messageGenerations.requireEntity(assistantMessageId)
-  expect(core.store.getMessage(assistantMessageId).parts).toEqual([])
+  expect(core.db.tables.messages.requireEntity(assistantMessageId).parts).toEqual([])
   expect(generation.parts.length).toBeGreaterThan(0)
 
   await run.done
   expect(core.db.tables.messageGenerations.getEntity(assistantMessageId)).toBeNull()
-  expect(core.store.getMessage(assistantMessageId).parts.length).toBeGreaterThan(0)
+  expect(core.db.tables.messages.requireEntity(assistantMessageId).parts.length).toBeGreaterThan(0)
 })
 
 test('Pre-Run Invariants — throws before creating request when systemPromptId is missing', () => {
@@ -162,15 +171,20 @@ test('Pre-Run Invariants — throws before creating request when systemPromptId 
     config: { modelId: 'mock-model', systemPromptId: 'non-existent-prompt' },
   })
 
-  core.store.appendTextMessage(sessionId, { role: 'user', text: 'hello' })
+  core.store.appendMessage(sessionId, {
+    parts: [{ text: 'hello', type: 'text' }],
+    role: 'user',
+  })
   const assistantMessageId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
-  const requestsBefore = core.store.listRequestIds(sessionId)
-  const sessionBefore = core.store.getSession(sessionId)
+  const requestsBefore = core.db.indexes.getSliceRowIds('requestsBySession', sessionId)
+  const sessionBefore = core.db.tables.sessions.requireEntity(sessionId)
 
-  expect(() => runs.start({ assistantMessageId })).toThrow('Prompt not found: non-existent-prompt')
+  expect(() => runs.start({ assistantMessageId })).toThrow(
+    'Missing row: prompts/non-existent-prompt',
+  )
 
-  const requestsAfter = core.store.listRequestIds(sessionId)
-  const sessionAfter = core.store.getSession(sessionId)
+  const requestsAfter = core.db.indexes.getSliceRowIds('requestsBySession', sessionId)
+  const sessionAfter = core.db.tables.sessions.requireEntity(sessionId)
 
   expect(requestsAfter).toHaveLength(requestsBefore.length)
   expect(sessionAfter.updatedAt).toBe(sessionBefore.updatedAt)
@@ -180,9 +194,18 @@ test('History Reconstruction — prior messages appear in prompt, current placeh
   const { core, model, runs } = createTestRuntime()
   const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
 
-  core.store.appendTextMessage(sessionId, { role: 'user', text: 'prior user' })
-  core.store.appendTextMessage(sessionId, { role: 'assistant', text: 'prior assistant' })
-  core.store.appendTextMessage(sessionId, { role: 'user', text: 'new message' })
+  core.store.appendMessage(sessionId, {
+    parts: [{ text: 'prior user', type: 'text' }],
+    role: 'user',
+  })
+  core.store.appendMessage(sessionId, {
+    parts: [{ text: 'prior assistant', type: 'text' }],
+    role: 'assistant',
+  })
+  core.store.appendMessage(sessionId, {
+    parts: [{ text: 'new message', type: 'text' }],
+    role: 'user',
+  })
   const assistantMessageId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
 
   const run = runs.start({ assistantMessageId })
@@ -200,11 +223,26 @@ test('History Reconstruction — maxMessages limits history at the execution bou
   const { core, model, runs } = createTestRuntime()
   const sessionId = core.store.createSession({ config: { maxMessages: 2, modelId: 'mock-model' } })
 
-  core.store.appendTextMessage(sessionId, { role: 'user', text: 'oldest user' })
-  core.store.appendTextMessage(sessionId, { role: 'assistant', text: 'oldest assistant' })
-  core.store.appendTextMessage(sessionId, { role: 'user', text: 'recent user' })
-  core.store.appendTextMessage(sessionId, { role: 'assistant', text: 'recent assistant' })
-  core.store.appendTextMessage(sessionId, { role: 'user', text: 'latest' })
+  core.store.appendMessage(sessionId, {
+    parts: [{ text: 'oldest user', type: 'text' }],
+    role: 'user',
+  })
+  core.store.appendMessage(sessionId, {
+    parts: [{ text: 'oldest assistant', type: 'text' }],
+    role: 'assistant',
+  })
+  core.store.appendMessage(sessionId, {
+    parts: [{ text: 'recent user', type: 'text' }],
+    role: 'user',
+  })
+  core.store.appendMessage(sessionId, {
+    parts: [{ text: 'recent assistant', type: 'text' }],
+    role: 'assistant',
+  })
+  core.store.appendMessage(sessionId, {
+    parts: [{ text: 'latest', type: 'text' }],
+    role: 'user',
+  })
   const assistantMessageId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
 
   const run = runs.start({ assistantMessageId })
@@ -220,21 +258,26 @@ test('Regenerate — assistant tail is cleared and reused', async () => {
   const { core, model, runs } = createTestRuntime()
   const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
 
-  core.store.appendTextMessage(sessionId, { role: 'user', text: 'again' })
-  const assistantMessageId = core.store.appendTextMessage(sessionId, {
+  core.store.appendMessage(sessionId, {
+    parts: [{ text: 'again', type: 'text' }],
+    role: 'user',
+  })
+  const assistantMessageId = core.store.appendMessage(sessionId, {
+    parts: [{ text: 'stale answer', type: 'text' }],
     role: 'assistant',
-    text: 'stale answer',
   })
 
   const run = runs.regenerate({ messageId: assistantMessageId })
   expect(run.assistantMessageId).toBe(assistantMessageId)
-  expect(core.store.getMessage(assistantMessageId).parts).toEqual([])
-  expect(core.store.getMessage(assistantMessageId).steps).toEqual([])
-  expect(core.store.getMessage(assistantMessageId).usage).toEqual({})
+  expect(core.db.tables.messages.requireEntity(assistantMessageId).parts).toEqual([])
+  expect(core.db.tables.messages.requireEntity(assistantMessageId).steps).toEqual([])
+  expect(core.db.tables.messages.requireEntity(assistantMessageId).usage).toEqual({})
 
   await run.done
 
-  const messages = core.store.listMessages(sessionId)
+  const messages = core.db.indexes
+    .getSliceRowIds('messagesBySession', sessionId)
+    .map((id) => core.db.tables.messages.requireEntity(id))
   expect(messages).toHaveLength(2)
   expect(messages[1]?.id).toBe(assistantMessageId)
   expect(model.doStreamCalls[0]?.prompt).toEqual([
@@ -246,12 +289,17 @@ test('Regenerate — user tail appends an assistant message and starts it', asyn
   const { core, model, runs } = createTestRuntime()
   const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
 
-  const userMessageId = core.store.appendTextMessage(sessionId, { role: 'user', text: 'continue' })
+  const userMessageId = core.store.appendMessage(sessionId, {
+    parts: [{ text: 'continue', type: 'text' }],
+    role: 'user',
+  })
 
   const run = runs.regenerate({ messageId: userMessageId })
   await run.done
 
-  const messages = core.store.listMessages(sessionId)
+  const messages = core.db.indexes
+    .getSliceRowIds('messagesBySession', sessionId)
+    .map((id) => core.db.tables.messages.requireEntity(id))
   expect(messages).toHaveLength(2)
   expect(messages[0]?.id).toBe(userMessageId)
   expect(messages[1]?.id).toBe(run.assistantMessageId)
@@ -265,8 +313,14 @@ test('Regenerate — only the last message can be regenerated', () => {
   const { core, runs } = createTestRuntime()
   const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
 
-  const userMessageId = core.store.appendTextMessage(sessionId, { role: 'user', text: 'old' })
-  core.store.appendTextMessage(sessionId, { role: 'assistant', text: 'answer' })
+  const userMessageId = core.store.appendMessage(sessionId, {
+    parts: [{ text: 'old', type: 'text' }],
+    role: 'user',
+  })
+  core.store.appendMessage(sessionId, {
+    parts: [{ text: 'answer', type: 'text' }],
+    role: 'assistant',
+  })
 
   expect(() => runs.regenerate({ messageId: userMessageId })).toThrow(
     'Only the last message in a conversation can be regenerated',
@@ -350,7 +404,10 @@ test('Tool Loop — tool call executes and result appears in final parts', async
   })
 
   try {
-    core.store.appendTextMessage(sessionId, { role: 'user', text: 'what is the weather?' })
+    core.store.appendMessage(sessionId, {
+      parts: [{ text: 'what is the weather?', type: 'text' }],
+      role: 'user',
+    })
     const assistantMessageId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
     const run = runs.start({ assistantMessageId })
     await run.done
@@ -382,7 +439,10 @@ test('Error Path — stream error sets request to error status', async () => {
   const runs = new Runs(core.store, credentials, modelResolver)
   const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
 
-  core.store.appendTextMessage(sessionId, { role: 'user', text: 'hello' })
+  core.store.appendMessage(sessionId, {
+    parts: [{ text: 'hello', type: 'text' }],
+    role: 'user',
+  })
   const assistantMessageId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
   const run = await withoutExpectedConsoleErrors({ messages: ['Provider API error'] }, async () => {
     const startedRun = runs.start({ assistantMessageId })
@@ -390,7 +450,7 @@ test('Error Path — stream error sets request to error status', async () => {
     return startedRun
   })
 
-  const request = core.store.getRequest(run.requestId)
+  const request = core.db.tables.requests.requireEntity(run.requestId)
 
   expect(run.status).toBe('error')
   expect(request.status).toBe('error')
@@ -404,10 +464,13 @@ test('Recovery — interrupted requests commit partial generations and clean hot
   const { core, runs } = createTestRuntime()
   const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
 
-  core.store.appendTextMessage(sessionId, { role: 'user', text: 'hello' })
+  core.store.appendMessage(sessionId, {
+    parts: [{ text: 'hello', type: 'text' }],
+    role: 'user',
+  })
   const assistantMessageId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
   let requestId = ''
-  core.store.transaction(() => {
+  core.db.transaction(() => {
     requestId = core.db.tables.requests.setRow('req_test', {
       assistantMessageId,
       config: { modelId: 'mock-model' },
@@ -417,7 +480,7 @@ test('Recovery — interrupted requests commit partial generations and clean hot
       status: 'streaming',
       terminalAt: 0,
     }).id
-    core.store.createMessageGeneration({
+    createMessageGeneration(core.store, {
       messageId: assistantMessageId,
       requestId,
       sessionId,
@@ -425,12 +488,14 @@ test('Recovery — interrupted requests commit partial generations and clean hot
     })
   })
 
-  core.store.writeMessageGenerationSnapshot(assistantMessageId, [{ text: 'partial', type: 'text' }])
+  writeMessageGenerationSnapshot(core.store, assistantMessageId, [
+    { text: 'partial', type: 'text' },
+  ])
   runs.recover()
 
-  expect(core.store.getRequest(requestId).status).toBe('error')
+  expect(core.db.tables.requests.requireEntity(requestId).status).toBe('error')
   expect(core.db.tables.messageGenerations.getEntity(assistantMessageId)).toBeNull()
-  expect(core.store.getMessage(assistantMessageId).parts).toEqual([
+  expect(core.db.tables.messages.requireEntity(assistantMessageId).parts).toEqual([
     { text: 'partial', type: 'text' },
   ])
 })
@@ -474,7 +539,10 @@ test('Error Path — later requests can still run after an error', async () => {
   const runs = new Runs(core.store, credentials, modelResolver)
   const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
 
-  core.store.appendTextMessage(sessionId, { role: 'user', text: 'fail' })
+  core.store.appendMessage(sessionId, {
+    parts: [{ text: 'fail', type: 'text' }],
+    role: 'user',
+  })
   const failAssistantId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
   const failedRun = await withoutExpectedConsoleErrors(
     { messages: ['First call fails'] },
@@ -486,7 +554,10 @@ test('Error Path — later requests can still run after an error', async () => {
   )
   expect(failedRun.status).toBe('error')
 
-  core.store.appendTextMessage(sessionId, { role: 'user', text: 'retry' })
+  core.store.appendMessage(sessionId, {
+    parts: [{ text: 'retry', type: 'text' }],
+    role: 'user',
+  })
   const retryAssistantId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
   const successRun = runs.start({ assistantMessageId: retryAssistantId })
   await successRun.done

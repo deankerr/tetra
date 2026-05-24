@@ -74,7 +74,7 @@ export function SessionGroup() {
                 }
               }}
               onRename={(title) => {
-                store.renameSession(sessionId, title)
+                store.db.tables.sessions.updateRow(sessionId, { title, updatedAt: Date.now() })
               }}
               onSelect={() => {
                 if (openSessionIds.includes(sessionId)) {

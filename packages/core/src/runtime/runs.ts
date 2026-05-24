@@ -1,7 +1,8 @@
-import { RequestConfig } from '#db'
+import { RequestConfig, sessionConfigRowToRequestConfig } from '#db'
 import type { RequestConfig as RequestConfigType, Rows } from '#db'
 import type { Store } from '#store'
 
+import { clearMessageContent, createMessageGeneration } from './message-generations.ts'
 import { createRequest, recoverInterrupted } from './requests.ts'
 import { Run, openRouterLanguageModelResolver } from './run.ts'
 import type { CredentialReader, LanguageModelResolver, RunStart } from './run.ts'
@@ -66,8 +67,10 @@ export class Runs {
 
   // Re-run the final conversation turn by reusing an assistant tail or appending one after a user tail.
   regenerate(args: RegenerateArgs): Run {
-    const message = this.store.getMessage(args.messageId)
-    const messages = this.store.listMessages(message.sessionId)
+    const message = this.store.db.tables.messages.requireEntity(args.messageId)
+    const messages = this.store.db.indexes
+      .getSliceRowIds('messagesBySession', message.sessionId)
+      .map((id) => this.store.db.tables.messages.requireEntity(id))
     const lastMessage = messages.at(-1)
     if (lastMessage?.id !== message.id) {
       throw new Error('Only the last message in a conversation can be regenerated')
@@ -78,7 +81,7 @@ export class Runs {
     }
 
     if (message.role === 'assistant') {
-      this.store.clearMessageContent(message.id)
+      clearMessageContent(this.store, message.id)
       return this.start({ assistantMessageId: message.id, config: args.config })
     }
 
@@ -92,22 +95,24 @@ export class Runs {
   // Callers are responsible for creating the user and assistant messages before calling start.
   // The assistant message should have empty parts; all messages before it become the transcript.
   start(args: StartArgs): Run {
-    const assistantMessage = this.store.getMessage(args.assistantMessageId)
-    const session = this.store.getSession(assistantMessage.sessionId)
-    const sessionConfig = this.store.getSessionConfig(session.id)
+    const assistantMessage = this.store.db.tables.messages.requireEntity(args.assistantMessageId)
+    const session = this.store.db.tables.sessions.requireEntity(assistantMessage.sessionId)
+    const sessionConfig = sessionConfigRowToRequestConfig(
+      this.store.db.tables.sessionConfigs.requireEntity(session.id),
+    )
     const config = RequestConfig.parse({ ...sessionConfig, ...args.config })
     const system = this.requireSystemPrompt(config)
     const transcriptMessages = this.collectMessagesBefore(args.assistantMessageId, config)
 
     let requestId = ''
-    this.store.transaction(() => {
-      this.store.touchSession(session.id)
+    this.store.db.transaction(() => {
+      this.store.db.tables.sessions.setCell(session.id, 'updatedAt', Date.now())
       requestId = createRequest(this.store.db, {
         assistantMessageId: args.assistantMessageId,
         config,
         sessionId: session.id,
       })
-      this.store.createMessageGeneration({
+      createMessageGeneration(this.store, {
         messageId: args.assistantMessageId,
         requestId,
         sessionId: session.id,
@@ -125,8 +130,10 @@ export class Runs {
   }
 
   private collectMessagesBefore(messageId: string, config: RequestConfigType): Rows.Message[] {
-    const target = this.store.getMessage(messageId)
-    const messages = this.store.listMessages(target.sessionId)
+    const target = this.store.db.tables.messages.requireEntity(messageId)
+    const messages = this.store.db.indexes
+      .getSliceRowIds('messagesBySession', target.sessionId)
+      .map((id) => this.store.db.tables.messages.requireEntity(id))
     const targetIndex = messages.findIndex((message) => message.id === messageId)
     if (targetIndex === -1) {
       throw new Error(`Message not found in session transcript: ${messageId}`)
@@ -165,7 +172,7 @@ export class Runs {
       return undefined
     }
 
-    const prompt = this.store.getPrompt(config.systemPromptId)
+    const prompt = this.store.db.tables.prompts.requireEntity(config.systemPromptId)
     return prompt.content
   }
 }

@@ -5,6 +5,7 @@ import {
   StepRecord,
   deriveUsageSummary,
   requestConfigToSessionConfigRow,
+  sessionConfigRowToRequestConfig,
 } from '#db'
 import type { Store } from '#store'
 
@@ -34,16 +35,22 @@ type Loose<T> = T extends string
 const bundledSeeds: Loose<SessionExport>[] = [tailwindV4Cheatsheet, timeInNewYork]
 
 export function exportSession(store: Store, sessionId: string): SessionExport {
-  if (!store.sessionExists(sessionId)) {
+  if (!store.db.tables.sessions.hasRow(sessionId)) {
     throw new Error(`Session not found: ${sessionId}`)
   }
 
   return {
     exportedAt: new Date().toISOString(),
-    messages: store.listMessages(sessionId),
-    requests: store.listRequestIds(sessionId).map((id) => store.getRequest(id)),
-    session: store.getSession(sessionId),
-    sessionConfig: store.getSessionConfig(sessionId),
+    messages: store.db.indexes
+      .getSliceRowIds('messagesBySession', sessionId)
+      .map((id) => store.db.tables.messages.requireEntity(id)),
+    requests: store.db.indexes
+      .getSliceRowIds('requestsBySession', sessionId)
+      .map((id) => store.db.tables.requests.requireEntity(id)),
+    session: store.db.tables.sessions.requireEntity(sessionId),
+    sessionConfig: sessionConfigRowToRequestConfig(
+      store.db.tables.sessionConfigs.requireEntity(sessionId),
+    ),
   }
 }
 
@@ -53,7 +60,7 @@ function importSession(
 ): string {
   const sessionConfig = RequestConfig.safeParse(rawSessionConfig).data ?? DEFAULT_REQUEST_CONFIG
 
-  store.transaction(() => {
+  store.db.transaction(() => {
     store.db.tables.sessions.setRow(session.id, {
       createdAt: session.createdAt,
       title: session.title,

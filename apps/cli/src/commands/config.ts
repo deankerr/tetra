@@ -1,4 +1,8 @@
-import { RequestConfig } from '@tetra/core'
+import {
+  RequestConfig,
+  requestConfigToSessionConfigRow,
+  sessionConfigRowToRequestConfig,
+} from '@tetra/core'
 import type { RequestConfigType } from '@tetra/core'
 import type { Command } from 'commander'
 
@@ -36,19 +40,28 @@ export function registerConfigCommand(
           ...(typeof opts.prompt === 'string' && { systemPromptId: opts.prompt }),
         }
 
+        const config = sessionConfigRowToRequestConfig(
+          ctx.store.db.tables.sessionConfigs.requireEntity(resolvedSessionId),
+        )
+
         if (Object.keys(overrides).length > 0 || opts.prompt === false) {
-          const next = { ...ctx.store.getSessionConfig(resolvedSessionId), ...overrides }
+          const next = { ...config, ...overrides }
           if (opts.prompt === false) {
             delete next.systemPromptId
           }
-          ctx.store.setSessionConfig(resolvedSessionId, RequestConfig.parse(next))
+          ctx.store.db.tables.sessionConfigs.setRow(
+            resolvedSessionId,
+            requestConfigToSessionConfigRow(RequestConfig.parse(next)),
+          )
         }
 
-        const config = ctx.store.getSessionConfig(resolvedSessionId)
+        const latestConfig = sessionConfigRowToRequestConfig(
+          ctx.store.db.tables.sessionConfigs.requireEntity(resolvedSessionId),
+        )
         console.log(`session:      ${resolvedSessionId}`)
-        console.log(`model:        ${config.modelId}`)
-        console.log(`prompt:       ${config.systemPromptId ?? '(none)'}`)
-        console.log(`maxMessages:  ${config.maxMessages ?? '(none)'}`)
+        console.log(`model:        ${latestConfig.modelId}`)
+        console.log(`prompt:       ${latestConfig.systemPromptId ?? '(none)'}`)
+        console.log(`maxMessages:  ${latestConfig.maxMessages ?? '(none)'}`)
       },
     )
 }

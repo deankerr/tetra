@@ -17,8 +17,8 @@ export function registerModelsCommand(
       const ctx = await getContext()
       await ctx.catalog.refresh({ force: true })
 
-      const rows = ctx.store
-        .listLanguageModels()
+      const rows = ctx.store.db.tables.languageModels
+        .listEntities()
         .filter((row) => row.outputModalities.includes('text'))
         .filter(
           (row) =>

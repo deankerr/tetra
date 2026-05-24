@@ -7,6 +7,12 @@ import type { RequestConfig as RequestConfigType, Rows, StepRecord } from '#db'
 import type { Store } from '#store'
 import { resolveTools } from '#tools'
 
+import {
+  appendMessageGenerationStep,
+  commitMessageGeneration,
+  updateMessageGeneration,
+  writeMessageGenerationSnapshot,
+} from './message-generations.ts'
 import { cancelRequest, completeRequest, failRequest, startStreaming } from './requests.ts'
 import { StepEvent } from './steps.ts'
 
@@ -102,8 +108,8 @@ export class Run extends EventTarget {
   private complete(parts: UIMessage['parts']): void {
     this.parts = [...parts]
     this.finalParts = [...parts]
-    this.store.writeMessageGenerationSnapshot(this.assistantMessageId, parts)
-    this.store.commitMessageGeneration(this.assistantMessageId)
+    writeMessageGenerationSnapshot(this.store, this.assistantMessageId, parts)
+    commitMessageGeneration(this.store, this.assistantMessageId)
     completeRequest(this.store.db, this.requestId)
     this.setStatus('completed')
     this.dispatchEvent(new Event('finish'))
@@ -113,8 +119,8 @@ export class Run extends EventTarget {
   private fail(error: unknown): void {
     this.error = error
     if (this.abortController.signal.aborted) {
-      this.store.updateMessageGeneration(this.assistantMessageId, { status: 'cancelled' })
-      this.store.commitMessageGeneration(this.assistantMessageId)
+      updateMessageGeneration(this.store, this.assistantMessageId, { status: 'cancelled' })
+      commitMessageGeneration(this.store, this.assistantMessageId)
       cancelRequest(this.store.db, this.requestId, 'Request cancelled')
       this.setStatus('cancelled')
       this.dispatchEvent(new Event('cancel'))
@@ -122,8 +128,8 @@ export class Run extends EventTarget {
       return
     }
 
-    this.store.updateMessageGeneration(this.assistantMessageId, { status: 'error' })
-    this.store.commitMessageGeneration(this.assistantMessageId)
+    updateMessageGeneration(this.store, this.assistantMessageId, { status: 'error' })
+    commitMessageGeneration(this.store, this.assistantMessageId)
     failRequest(this.store.db, this.requestId, error)
     this.setStatus('error')
     this.dispatchEvent(new Event('error'))
@@ -137,7 +143,7 @@ export class Run extends EventTarget {
 
   private recordStep(step: StepRecord): void {
     this.steps = [...this.steps, step]
-    this.store.appendMessageGenerationStep(this.assistantMessageId, step)
+    appendMessageGenerationStep(this.store, this.assistantMessageId, step)
     this.dispatchEvent(new Event('step'))
   }
 
@@ -165,7 +171,7 @@ export class Run extends EventTarget {
       this.modelMessages = modelMessages
       this.tools = tools
       startStreaming(this.store.db, this.requestId)
-      this.store.updateMessageGeneration(this.assistantMessageId, { status: 'streaming' })
+      updateMessageGeneration(this.store, this.assistantMessageId, { status: 'streaming' })
       this.setStatus('streaming')
 
       const result = streamText({
@@ -219,7 +225,7 @@ export class Run extends EventTarget {
       return
     }
 
-    this.store.writeMessageGenerationSnapshot(this.assistantMessageId, message.parts)
+    writeMessageGenerationSnapshot(this.store, this.assistantMessageId, message.parts)
     this.lastDurableWriteAt = now
   }
 }

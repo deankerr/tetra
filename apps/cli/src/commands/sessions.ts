@@ -68,7 +68,9 @@ export function registerSessionCommands(
     .description('List sessions')
     .action(async () => {
       const ctx = await getContext()
-      const sessions = ctx.store.listSessions()
+      const sessions = ctx.store.db.tables.sessions
+        .listEntities()
+        .toSorted((a, b) => a.createdAt - b.createdAt)
       const activeSessionId = ctx.workspace.getActiveSessionId()
 
       if (sessions.length === 0) {
@@ -90,7 +92,7 @@ export function registerSessionCommands(
       const ctx = await getContext()
 
       if (sessionId !== undefined) {
-        if (!ctx.store.sessionExists(sessionId)) {
+        if (!ctx.store.db.tables.sessions.hasRow(sessionId)) {
           throw new Error(`Session not found: ${sessionId}`)
         }
         ctx.workspace.setActiveSessionId(sessionId)
@@ -106,7 +108,7 @@ export function registerSessionCommands(
     .description('Set the active session')
     .action(async (sessionId: string) => {
       const ctx = await getContext()
-      if (!ctx.store.sessionExists(sessionId)) {
+      if (!ctx.store.db.tables.sessions.hasRow(sessionId)) {
         throw new Error(`Session not found: ${sessionId}`)
       }
       ctx.workspace.setActiveSessionId(sessionId)
@@ -149,7 +151,9 @@ export function registerSessionCommands(
       if (resolvedSessionId === undefined) {
         throw new Error('No active session. Try: tetra "hello"')
       }
-      const messages = ctx.store.listMessages(resolvedSessionId)
+      const messages = ctx.store.db.indexes
+        .getSliceRowIds('messagesBySession', resolvedSessionId)
+        .map((id) => ctx.store.db.tables.messages.requireEntity(id))
       if (messages.length === 0) {
         console.log('No messages in this session.')
         return
@@ -169,8 +173,8 @@ export function registerSessionCommands(
         throw new Error('No active session. Try: tetra "hello"')
       }
       if (title !== undefined) {
-        ctx.store.renameSession(sessionId, title)
+        ctx.store.db.tables.sessions.updateRow(sessionId, { title, updatedAt: Date.now() })
       }
-      console.log(ctx.store.getSession(sessionId).title ?? '(untitled)')
+      console.log(ctx.store.db.tables.sessions.requireEntity(sessionId).title ?? '(untitled)')
     })
 }

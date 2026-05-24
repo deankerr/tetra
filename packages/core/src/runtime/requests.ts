@@ -2,6 +2,8 @@ import { createIdGenerator } from '#db'
 import type { RequestConfig as RequestConfigType, TetraDb } from '#db'
 import type { Store } from '#store'
 
+import { commitMessageGeneration, updateMessageGeneration } from './message-generations.ts'
+
 const nextId = createIdGenerator('req')
 
 export function createRequest(
@@ -60,8 +62,8 @@ export function recoverInterrupted(store: Store, message = 'Request interrupted'
   for (const messageId of db.tables.messageGenerations.getRowIds()) {
     const status = db.tables.messageGenerations.getCell(messageId, 'status')
     if (status === 'preparing' || status === 'streaming') {
-      store.updateMessageGeneration(messageId, { status: 'error' })
+      updateMessageGeneration(store, messageId, { status: 'error' })
     }
-    store.commitMessageGeneration(messageId)
+    commitMessageGeneration(store, messageId)
   }
 }
