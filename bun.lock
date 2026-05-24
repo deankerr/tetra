@@ -77,10 +77,10 @@
       "name": "@tetra/core",
       "dependencies": {
         "@ai-sdk/provider": "^3.0.8",
-        "@exalabs/ai-sdk": "^2.0.1",
         "@openrouter/ai-sdk-provider": "catalog:",
         "@tetra/credentials": "workspace:*",
         "@tetra/tinybase-schema": "workspace:*",
+        "@tetra/tools-exa": "workspace:*",
         "ai": "catalog:",
         "remeda": "^2.34.1",
         "tinybase": "catalog:",
@@ -120,6 +120,17 @@
       "devDependencies": {
         "@types/bun": "catalog:",
         "@types/react": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
+    "packages/tools-exa": {
+      "name": "@tetra/tools-exa",
+      "dependencies": {
+        "ai": "catalog:",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@types/bun": "catalog:",
         "typescript": "catalog:",
       },
     },
@@ -368,8 +379,6 @@
     "@esbuild/win32-ia32": ["@esbuild/win32-ia32@0.27.4", "", { "os": "win32", "cpu": "ia32" }, "sha512-DAyGLS0Jz5G5iixEbMHi5KdiApqHBWMGzTtMiJ72ZOLhbu/bzxgAe8Ue8CTS3n3HbIUHQz/L51yMdGMeoxXNJw=="],
 
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.27.4", "", { "os": "win32", "cpu": "x64" }, "sha512-+knoa0BDoeXgkNvvV1vvbZX4+hizelrkwmGJBdT17t8FNPwG2lKemmuMZlmaNQ3ws3DKKCxpb4zRZEIp3UxFCg=="],
-
-    "@exalabs/ai-sdk": ["@exalabs/ai-sdk@2.0.1", "", { "dependencies": { "zod": "^3.22.0" }, "peerDependencies": { "ai": "^6.0.0" } }, "sha512-qrZGJbrrk3MwEFYhhzzJgQarWnica3dBkt86Ex8S8vak2rYNC2EI1hSwVEBmQQeNtLd8tx1J8xSKwQ/5mya6cA=="],
 
     "@exodus/bytes": ["@exodus/bytes@1.15.0", "", { "peerDependencies": { "@noble/hashes": "^1.8.0 || ^2.0.0" }, "optionalPeers": ["@noble/hashes"] }, "sha512-UY0nlA+feH81UGSHv92sLEPLCeZFjXOuHhrIo0HQydScuQc8s0A7kL/UdgwgDq8g8ilksmuoF35YVTNphV2aBQ=="],
 
@@ -932,6 +941,8 @@
     "@tetra/sdk-probe": ["@tetra/sdk-probe@workspace:packages/sdk-probe"],
 
     "@tetra/tinybase-schema": ["@tetra/tinybase-schema@workspace:packages/tinybase-schema"],
+
+    "@tetra/tools-exa": ["@tetra/tools-exa@workspace:packages/tools-exa"],
 
     "@tetra/ui": ["@tetra/ui@workspace:packages/ui"],
 
@@ -2370,8 +2381,6 @@
     "@dotenvx/dotenvx/picomatch": ["picomatch@4.0.3", "", {}, "sha512-5gTmgEY/sqK6gFXLIsQNH19lWb4ebPDLA4SdLP7dsWkIXHWlG66oPuVvXSGFPppYZz8ZDZq0dYYrbHfBCVUb1Q=="],
 
     "@dotenvx/dotenvx/which": ["which@4.0.0", "", { "dependencies": { "isexe": "^3.1.1" }, "bin": { "node-which": "bin/which.js" } }, "sha512-GlaYyEb07DPxYCKhKzplCWBJtvxZcZMrL+4UkrTSJHHPyZU4mYYTv3qaOe77H7EODLSSopAUFAc6W8U4yqvscg=="],
-
-    "@exalabs/ai-sdk/zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
 
     "@lonik/themer/tailwindcss": ["tailwindcss@4.2.1", "", {}, "sha512-/tBrSQ36vCleJkAOsy9kbNTgaxvGbyOamC30PRePTQe/o1MFwEKHQk4Cn7BNGaPtjp+PuUrByJehM1hgxfq4sw=="],
 

@@ -1,5 +1,5 @@
-import { webSearch } from '@exalabs/ai-sdk'
 import type { CredentialId } from '@tetra/credentials'
+import { exaToolDescriptors } from '@tetra/tools-exa'
 import { tool } from 'ai'
 import type { ToolSet } from 'ai'
 import { z } from 'zod'
@@ -12,16 +12,19 @@ export interface ToolDefinition {
   label: string
 }
 
-const toolRegistry = {
-  exaSearchWeb: {
+const exaToolDefinitions = exaToolDescriptors.map((descriptor): [string, ToolDefinition] => [
+  descriptor.id,
+  {
     category: 'web',
-    createTool: ({ EXA_API_KEY }) =>
-      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- webSearch compiled against an older ai version missing the onInputAvailable/onInputStart/onInputDelta Pick intersection; structurally compatible at runtime.
-      webSearch({ apiKey: EXA_API_KEY, numResults: 5 }) as unknown as ToolSet[string],
+    createTool: ({ EXA_API_KEY }) => descriptor.createTool({ apiKey: EXA_API_KEY }),
     credentialIds: ['EXA_API_KEY'],
-    description: 'Search the web using Exa neural search and return full content results.',
-    label: 'Exa Web Search',
+    description: descriptor.description,
+    label: descriptor.label,
   },
+])
+
+const toolRegistry: Record<string, ToolDefinition> = {
+  ...Object.fromEntries(exaToolDefinitions),
   getCurrentDateTime: {
     category: 'builtin',
     createTool: () =>
@@ -48,12 +51,10 @@ const toolRegistry = {
     description: 'Expose the local date, time, locale, and time zone to the model.',
     label: 'Current Date/Time',
   },
-} satisfies Record<string, ToolDefinition>
+}
 
 export const toolIds = Object.keys(toolRegistry)
-export const toolsRegistryMap = new Map<string, ToolDefinition>(
-  Object.entries(toolRegistry).map(([toolId, toolDefinition]) => [toolId, toolDefinition]),
-)
+export const toolsRegistryMap = new Map<string, ToolDefinition>(Object.entries(toolRegistry))
 
 export function resolveTools(
   requestedToolIds: string[],

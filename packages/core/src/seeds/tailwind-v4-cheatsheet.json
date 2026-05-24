@@ -49,7 +49,7 @@
           "state": "done"
         },
         {
-          "type": "tool-exaSearchWeb",
+          "type": "tool-exaSearch",
           "toolCallId": "toolu_bdrk_01BDTTs8aTxPj92m6w7Xtn9C",
           "state": "output-available",
           "input": {
@@ -216,7 +216,7 @@
             "enabled": true
           }
         },
-        "toolIds": ["exaSearchWeb"]
+        "toolIds": ["exaSearch"]
       },
       "createdAt": 1779167608306,
       "errorMessage": "",
