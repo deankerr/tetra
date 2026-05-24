@@ -31,7 +31,7 @@ export const DEFAULT_REQUEST_CONFIG: RequestConfig = {
   toolIds: [],
 }
 
-export const TokenMetrics = z.object({
+const TokenMetrics = z.object({
   inputAudio: z.number().optional(),
   inputCacheRead: z.number().optional(),
   inputCacheWrite: z.number().optional(),
@@ -48,9 +48,9 @@ export const TokenMetrics = z.object({
   outputVideo: z.number().optional(),
   total: z.number(),
 })
-export type TokenMetrics = z.infer<typeof TokenMetrics>
+type TokenMetrics = z.infer<typeof TokenMetrics>
 
-export const CostMetrics = z.object({
+const CostMetrics = z.object({
   currency: z.literal('USD'),
   inputAudio: z.number().optional(),
   inputCacheRead: z.number().optional(),
@@ -69,7 +69,7 @@ export const CostMetrics = z.object({
   outputVideo: z.number().optional(),
   total: z.number().optional(),
 })
-export type CostMetrics = z.infer<typeof CostMetrics>
+type CostMetrics = z.infer<typeof CostMetrics>
 
 export const StepRecord = z.object({
   cost: CostMetrics,

@@ -15,7 +15,7 @@ import { useMemo } from 'react'
 import { useTetra } from '@/tetra-context'
 import { typedTinybase } from '@/tinybase'
 
-export const usePromptIds = () => {
+const usePromptIds = () => {
   const prompts = typedTinybase.useEntityList('prompts')
   return useMemo(
     () =>

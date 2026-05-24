@@ -7,11 +7,8 @@ export { Catalog } from '#catalog'
 export type { MessageRole } from '#db'
 export type { RequestStatus } from '#db'
 export {
-  DEFAULT_REQUEST_CONFIG,
-  CostMetrics,
   RequestConfig,
   StepRecord,
-  TokenMetrics,
   UsageSummary,
   bindTetraDb,
   createTetraIndexes,
@@ -32,7 +29,6 @@ export { Run, Runs } from '#runtime'
 export { exportSession, loadSeeds } from '#seeds'
 export { Helpers } from '#helpers'
 export { toolIds, toolsRegistryMap } from '#tools'
-export { combineUsageSummaries, deriveUsageSummary } from '#usage'
 
 export function createCoreModules(db: TetraDb = createTetraDb()) {
   const helpers = new Helpers(db)

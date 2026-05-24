@@ -18,7 +18,7 @@ import { useCallback, useState, useMemo } from 'react'
 import { useTetra } from '@/tetra-context'
 import { typedTinybase } from '@/tinybase'
 
-export function useGroupedLanguageModels() {
+function useGroupedLanguageModels() {
   const models = typedTinybase.useEntityList('languageModels')
 
   return useMemo(() => {

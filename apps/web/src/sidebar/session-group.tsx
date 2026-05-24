@@ -25,7 +25,7 @@ import { typedTinybase } from '@/tinybase'
 
 // Sessions sorted by updatedAt descending — most recently active first.
 // appendMessage touches updatedAt, so this order naturally tracks conversation activity.
-export const useSessionIds = () => {
+const useSessionIds = () => {
   const sessions = typedTinybase.useEntityList('sessions')
   return useMemo(
     () =>
