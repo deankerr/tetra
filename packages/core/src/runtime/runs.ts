@@ -1,4 +1,4 @@
-import { RequestConfig, sessionConfigRowToRequestConfig } from '#db'
+import { RequestConfig } from '#db'
 import type { RequestConfig as RequestConfigType, Rows } from '#db'
 import type { Helpers } from '#helpers'
 
@@ -97,9 +97,7 @@ export class Runs {
   start(args: StartArgs): Run {
     const assistantMessage = this.helpers.db.tables.messages.requireEntity(args.assistantMessageId)
     const session = this.helpers.db.tables.sessions.requireEntity(assistantMessage.sessionId)
-    const sessionConfig = sessionConfigRowToRequestConfig(
-      this.helpers.db.tables.sessionConfigs.requireEntity(session.id),
-    )
+    const sessionConfig = this.helpers.db.tables.sessionConfigs.requireEntity(session.id)
     const config = RequestConfig.parse({ ...sessionConfig, ...args.config })
     const system = this.requireSystemPrompt(config)
     const transcriptMessages = this.collectMessagesBefore(args.assistantMessageId, config)
@@ -140,7 +138,7 @@ export class Runs {
     }
 
     const transcriptMessages = messages.slice(0, targetIndex)
-    if (config.maxMessages === undefined) {
+    if (config.maxMessages === 0) {
       return transcriptMessages
     }
 
@@ -168,7 +166,7 @@ export class Runs {
   }
 
   private requireSystemPrompt(config: RequestConfigType): string | undefined {
-    if (config.systemPromptId === undefined) {
+    if (config.systemPromptId === '') {
       return undefined
     }
 

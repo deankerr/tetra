@@ -6,8 +6,6 @@ import { useMemo } from 'react'
 
 import { typedTinybase } from '@/tinybase'
 
-import { useSessionConfig } from './hooks'
-
 interface SessionContextSummary {
   maxTokens: number
   modelLabel: string
@@ -68,8 +66,8 @@ export function SessionUsageMeter({ sessionId }: { sessionId: string }) {
 }
 
 function useSessionContextSummary(sessionId: string): SessionContextSummary | null {
-  const config = useSessionConfig(sessionId)
-  const languageModel = typedTinybase.useRow('languageModels', config.modelId)
+  const modelId = typedTinybase.useCell('sessionConfigs', sessionId, 'modelId') ?? ''
+  const languageModel = typedTinybase.useRow('languageModels', modelId)
   const sessionSummary = typedTinybase.useRow('sessionSummaries', sessionId)
 
   return useMemo(() => {
@@ -84,14 +82,12 @@ function useSessionContextSummary(sessionId: string): SessionContextSummary | nu
     return {
       maxTokens,
       modelLabel:
-        languageModel === null
-          ? config.modelId
-          : `${languageModel.providerName} / ${languageModel.name}`,
+        languageModel === null ? modelId : `${languageModel.providerName} / ${languageModel.name}`,
       percentUsed: maxTokens > 0 ? input / maxTokens : null,
       usage,
       usedTokens: input,
     }
-  }, [config.modelId, languageModel, sessionSummary])
+  }, [languageModel, modelId, sessionSummary])
 }
 
 function UsageIcon({ percentUsed }: { percentUsed: number | null }) {

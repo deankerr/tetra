@@ -1,19 +1,13 @@
 import type { RequestConfig as RequestConfigType, Rows } from '#db'
-import {
-  DEFAULT_REQUEST_CONFIG,
-  RequestConfig,
-  StepRecord,
-  deriveUsageSummary,
-  requestConfigToSessionConfigRow,
-  sessionConfigRowToRequestConfig,
-} from '#db'
+import { DEFAULT_REQUEST_CONFIG, RequestConfig, StepRecord } from '#db'
 import type { Helpers } from '#helpers'
+import { deriveUsageSummary } from '#usage'
 
 import tailwindV4Cheatsheet from './seeds/tailwind-v4-cheatsheet.json'
 import timeInNewYork from './seeds/time-in-new-york.json'
 
 export interface SessionExport {
-  sessionConfig?: RequestConfigType
+  sessionConfig: RequestConfigType
   exportedAt: string
   messages: PortableMessage[]
   requests: PortableRequest[]
@@ -22,6 +16,9 @@ export interface SessionExport {
 
 type PortableMessage = Omit<Rows.Message, 'usage'> & { usage?: Rows.Message['usage'] }
 type PortableRequest = Omit<Rows.Request, 'updatedAt'> & { updatedAt?: Rows.Request['updatedAt'] }
+type PortableSessionExport = Omit<SessionExport, 'sessionConfig'> & {
+  sessionConfig?: Partial<RequestConfigType>
+}
 
 // JSON imports type all string fields as `string`, not specific string literal unions.
 // This mapped type widens string fields to accept either, preserving structural checking.
@@ -33,7 +30,11 @@ type Loose<T> = T extends string
       ? { [K in keyof T]: Loose<T[K]> }
       : T
 
-const bundledSeeds: Loose<SessionExport>[] = [tailwindV4Cheatsheet, timeInNewYork]
+// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Bundled JSON is normalized and parsed during import; literal JSON inference is narrower than the portable export shape.
+const bundledSeeds = [
+  tailwindV4Cheatsheet,
+  timeInNewYork,
+] as unknown as Loose<PortableSessionExport>[]
 
 export function exportSession(helpers: Helpers, sessionId: string): SessionExport {
   if (!helpers.db.tables.sessions.hasRow(sessionId)) {
@@ -49,17 +50,18 @@ export function exportSession(helpers: Helpers, sessionId: string): SessionExpor
       .getSliceRowIds('requestsBySession', sessionId)
       .map((id) => helpers.db.tables.requests.requireEntity(id)),
     session: helpers.db.tables.sessions.requireEntity(sessionId),
-    sessionConfig: sessionConfigRowToRequestConfig(
-      helpers.db.tables.sessionConfigs.requireEntity(sessionId),
-    ),
+    sessionConfig: helpers.db.tables.sessionConfigs.requireEntity(sessionId),
   }
 }
 
 function importSession(
   helpers: Helpers,
-  { sessionConfig: rawSessionConfig, messages, requests, session }: Loose<SessionExport>,
+  { sessionConfig: rawSessionConfig, messages, requests, session }: Loose<PortableSessionExport>,
 ): string {
-  const sessionConfig = RequestConfig.safeParse(rawSessionConfig).data ?? DEFAULT_REQUEST_CONFIG
+  const sessionConfig = RequestConfig.parse({
+    ...DEFAULT_REQUEST_CONFIG,
+    ...rawSessionConfig,
+  })
 
   helpers.db.transaction(() => {
     helpers.db.tables.sessions.setRow(session.id, {
@@ -68,10 +70,7 @@ function importSession(
       updatedAt: session.updatedAt,
     })
 
-    helpers.db.tables.sessionConfigs.setRow(
-      session.id,
-      requestConfigToSessionConfigRow(sessionConfig),
-    )
+    helpers.db.tables.sessionConfigs.setRow(session.id, sessionConfig)
 
     helpers.db.tables.sessionSummaries.setRow(session.id, {
       createdAt: session.createdAt,

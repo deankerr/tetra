@@ -14,13 +14,9 @@ export {
   TokenMetrics,
   UsageSummary,
   bindTetraDb,
-  combineUsageSummaries,
   createTetraIndexes,
   createTetraDb,
   createTetraStore,
-  deriveUsageSummary,
-  requestConfigToSessionConfigRow,
-  sessionConfigRowToRequestConfig,
   tetraDbDefinition,
 } from '#db'
 export type {
@@ -36,6 +32,7 @@ export { Run, Runs } from '#runtime'
 export { exportSession, loadSeeds } from '#seeds'
 export { Helpers } from '#helpers'
 export { toolIds, toolsRegistryMap } from '#tools'
+export { combineUsageSummaries, deriveUsageSummary } from '#usage'
 
 export function createCoreModules(db: TetraDb = createTetraDb()) {
   const helpers = new Helpers(db)

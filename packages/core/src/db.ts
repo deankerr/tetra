@@ -10,31 +10,25 @@ import type { UIMessage } from 'ai'
 import { getHlcFunctions } from 'tinybase/common'
 import { z } from 'zod'
 
-export type MessageRole = 'assistant' | 'user'
-export type GenerationStatus = 'cancelled' | 'completed' | 'error' | 'preparing' | 'streaming'
-export type RequestStatus = 'cancelled' | 'completed' | 'error' | 'preparing' | 'streaming'
-
 const ProviderOptions = z.custom<JSONObject>(
   (value) => z.record(z.string(), z.json()).safeParse(value).success,
 )
 
 export const RequestConfig = z.object({
-  maxMessages: z.number().int().positive().optional(),
+  maxMessages: z.number().int().nonnegative(),
   modelId: z.string(),
-  providerOptions: ProviderOptions.optional(),
-  systemPromptId: z.string().optional(),
-  toolIds: z.array(z.string()).optional(),
+  providerOptions: ProviderOptions,
+  systemPromptId: z.string(),
+  toolIds: z.array(z.string()),
 })
 export type RequestConfig = z.infer<typeof RequestConfig>
 
 export const DEFAULT_REQUEST_CONFIG: RequestConfig = {
-  modelId: 'anthropic/claude-sonnet-4.5',
-  providerOptions: {
-    max_tokens: 10_240,
-    reasoning: {
-      enabled: true,
-    },
-  },
+  maxMessages: 0,
+  modelId: '',
+  providerOptions: {},
+  systemPromptId: '',
+  toolIds: [],
 }
 
 export const TokenMetrics = z.object({
@@ -105,9 +99,11 @@ export type UsageSummary = z.infer<typeof UsageSummary>
 const EMPTY_USAGE: UsageSummary = {}
 const MessageParts = z.custom<UIMessage['parts']>((value) => Array.isArray(value))
 const GenerationStatusSchema = z.enum(['cancelled', 'completed', 'error', 'preparing', 'streaming'])
+export type GenerationStatus = z.infer<typeof GenerationStatusSchema>
 const MessageRoleSchema = z.enum(['assistant', 'user'])
+export type MessageRole = z.infer<typeof MessageRoleSchema>
 const RequestStatusSchema = z.enum(['cancelled', 'completed', 'error', 'preparing', 'streaming'])
-const StringArray = z.array(z.string())
+export type RequestStatus = z.infer<typeof RequestStatusSchema>
 
 export const tetraDbDefinition = defineTypedTinybase({
   indexes: {
@@ -128,12 +124,12 @@ export const tetraDbDefinition = defineTypedTinybase({
     languageModels: tinybaseTable({
       contextLength: tinybaseCell.number(z.number(), { default: 0 }),
       createdAt: tinybaseCell.number(z.number(), { default: 0 }),
-      inputModalities: tinybaseCell.array(StringArray, { default: [] }),
+      inputModalities: tinybaseCell.array(z.array(z.string()), { default: [] }),
       name: tinybaseCell.string(z.string(), { default: '' }),
-      outputModalities: tinybaseCell.array(StringArray, { default: [] }),
+      outputModalities: tinybaseCell.array(z.array(z.string()), { default: [] }),
       provider: tinybaseCell.string(z.string(), { default: '' }),
       providerName: tinybaseCell.string(z.string(), { default: '' }),
-      supportedParameters: tinybaseCell.array(StringArray, { default: [] }),
+      supportedParameters: tinybaseCell.array(z.array(z.string()), { default: [] }),
       updatedAt: tinybaseCell.number(z.number(), { default: 0 }),
       upstreamCreatedAt: tinybaseCell.number(z.number(), { default: 0 }),
     }),
@@ -182,12 +178,10 @@ export const tetraDbDefinition = defineTypedTinybase({
     // Stored separately so sidebar reactive reads on sessions are not triggered by config edits.
     sessionConfigs: tinybaseTable({
       maxMessages: tinybaseCell.number(z.number(), { default: 0 }),
-      modelId: tinybaseCell.string(z.string(), {
-        default: DEFAULT_REQUEST_CONFIG.modelId,
-      }),
+      modelId: tinybaseCell.string(z.string(), { default: '' }),
       providerOptions: tinybaseCell.object(ProviderOptions, { default: {} }),
       systemPromptId: tinybaseCell.string(z.string(), { default: '' }),
-      toolIds: tinybaseCell.array(StringArray, { default: [] }),
+      toolIds: tinybaseCell.array(z.array(z.string()), { default: [] }),
     }),
     // Derived usage for a session. Keyed by the same ID as the sessions table (1:1).
     // Stored separately so sidebar/session identity reads are not invalidated by usage churn.
@@ -221,26 +215,6 @@ export type DbSchemas = [typeof tablesSchema, typeof valuesSchema]
 export type SessionConfigRow = OutputRowOf<
   (typeof tetraDbDefinition.tables.sessionConfigs)['schema']
 >
-
-export function requestConfigToSessionConfigRow(config: RequestConfig): SessionConfigRow {
-  return {
-    maxMessages: config.maxMessages ?? 0,
-    modelId: config.modelId,
-    providerOptions: config.providerOptions ?? {},
-    systemPromptId: config.systemPromptId ?? '',
-    toolIds: config.toolIds ?? [],
-  }
-}
-
-export function sessionConfigRowToRequestConfig(row: SessionConfigRow): RequestConfig {
-  return {
-    modelId: row.modelId,
-    ...(row.maxMessages !== 0 && { maxMessages: row.maxMessages }),
-    ...(row.systemPromptId !== '' && { systemPromptId: row.systemPromptId }),
-    ...(Object.keys(row.providerOptions).length > 0 && { providerOptions: row.providerOptions }),
-    ...(row.toolIds.length > 0 && { toolIds: row.toolIds }),
-  }
-}
 
 // oxlint-disable-next-line typescript/no-namespace -- Namespaces keep contested schema row names grouped at call sites, e.g. Rows.Message.
 export namespace Rows {
@@ -299,106 +273,4 @@ export type TetraDb = ReturnType<typeof createTetraDb>
 const [getNextHlc] = getHlcFunctions()
 export function createIdGenerator(prefix: string): () => string {
   return () => `${prefix}_${getNextHlc()}`
-}
-
-export function combineUsageSummaries(summaries: UsageSummary[]): UsageSummary {
-  let cacheReadTokens = 0
-  let cacheWriteTokens = 0
-  let costInput = 0
-  let costOutput = 0
-  let costTotal = 0
-  let hasCostInput = false
-  let hasCostOutput = false
-  let hasCostTotal = false
-  let inputTokens = 0
-  let outputTokens = 0
-  let reasoningTokens = 0
-  let totalTokens = 0
-
-  for (const summary of summaries) {
-    cacheReadTokens += summary.cacheReadTokens ?? 0
-    cacheWriteTokens += summary.cacheWriteTokens ?? 0
-    inputTokens += summary.inputTokens ?? 0
-    outputTokens += summary.outputTokens ?? 0
-    reasoningTokens += summary.reasoningTokens ?? 0
-    totalTokens += summary.totalTokens ?? 0
-    if (summary.costInput !== undefined) {
-      costInput += summary.costInput
-      hasCostInput = true
-    }
-    if (summary.costOutput !== undefined) {
-      costOutput += summary.costOutput
-      hasCostOutput = true
-    }
-    if (summary.costTotal !== undefined) {
-      costTotal += summary.costTotal
-      hasCostTotal = true
-    }
-  }
-
-  return compactUsageSummary({
-    cacheReadTokens,
-    cacheWriteTokens,
-    costInput: hasCostInput ? costInput : undefined,
-    costOutput: hasCostOutput ? costOutput : undefined,
-    costTotal: hasCostTotal ? costTotal : undefined,
-    inputTokens,
-    outputTokens,
-    reasoningTokens,
-    totalTokens,
-  })
-}
-
-export function deriveUsageSummary(steps: StepRecord[]): UsageSummary {
-  let cacheReadTokens = 0
-  let cacheWriteTokens = 0
-  let costInput = 0
-  let costOutput = 0
-  let costTotal = 0
-  let hasCostInput = false
-  let hasCostOutput = false
-  let hasCostTotal = false
-  let inputTokens = 0
-  let outputTokens = 0
-  let reasoningTokens = 0
-  let totalTokens = 0
-
-  for (const { cost, tokens } of steps) {
-    cacheReadTokens += tokens.inputCacheRead ?? 0
-    cacheWriteTokens += tokens.inputCacheWrite ?? 0
-    inputTokens += tokens.inputTotal
-    outputTokens += tokens.outputTotal
-    reasoningTokens += tokens.outputReasoning ?? 0
-    totalTokens += tokens.total
-    if (cost.inputTotal !== undefined) {
-      costInput += cost.inputTotal
-      hasCostInput = true
-    }
-    if (cost.outputTotal !== undefined) {
-      costOutput += cost.outputTotal
-      hasCostOutput = true
-    }
-    if (cost.total !== undefined) {
-      costTotal += cost.total
-      hasCostTotal = true
-    }
-  }
-
-  return compactUsageSummary({
-    cacheReadTokens,
-    cacheWriteTokens,
-    costInput: hasCostInput ? costInput : undefined,
-    costOutput: hasCostOutput ? costOutput : undefined,
-    costTotal: hasCostTotal ? costTotal : undefined,
-    inputTokens,
-    outputTokens,
-    reasoningTokens,
-    totalTokens,
-  })
-}
-
-function compactUsageSummary(summary: UsageSummary): UsageSummary {
-  return Object.fromEntries(
-    Object.entries(summary).filter(([, value]) => value !== undefined && value !== 0),
-  ) as UsageSummary
 }

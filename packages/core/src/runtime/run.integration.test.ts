@@ -85,7 +85,13 @@ test('start streams through the AI SDK into TinyBase rows', async () => {
 
   expect(run.status).toBe('completed')
   expect(request.status).toBe('completed')
-  expect(request.config).toEqual({ modelId: 'mock-model' })
+  expect(request.config).toEqual({
+    maxMessages: 0,
+    modelId: 'mock-model',
+    providerOptions: {},
+    systemPromptId: '',
+    toolIds: [],
+  })
   expect(messages).toHaveLength(2)
   expect(messages[0]?.role).toBe('user')
   expect(messages[0]?.parts).toEqual([{ text: 'hello', type: 'text' }])
@@ -479,7 +485,13 @@ test('Recovery — interrupted requests commit partial generations and clean hot
   core.db.transaction(() => {
     requestId = core.db.tables.requests.setRow('req_test', {
       assistantMessageId,
-      config: { modelId: 'mock-model' },
+      config: {
+        maxMessages: 0,
+        modelId: 'mock-model',
+        providerOptions: {},
+        systemPromptId: '',
+        toolIds: [],
+      },
       createdAt: now,
       errorMessage: '',
       sessionId,

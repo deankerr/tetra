@@ -48,7 +48,7 @@ export async function runChatContent(
     ...(typeof opts.prompt === 'string' && { systemPromptId: opts.prompt }),
   }
   if (opts.prompt === false) {
-    config.systemPromptId = undefined
+    config.systemPromptId = ''
   }
 
   // Create the user and assistant messages, then hand off to the run.

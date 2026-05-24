@@ -3,9 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@tetra/ui/components/u
 import { Field, FieldGroup, FieldTitle } from '@tetra/ui/components/ui/field'
 import { Input } from '@tetra/ui/components/ui/input'
 
+import { useTetra } from '@/tetra-context'
 import { typedTinybase } from '@/tinybase'
 
-import { useSessionConfig } from './hooks'
 import { ModelPicker } from './settings/model-picker'
 import { PromptPreviewButton } from './settings/prompt-editor-sheet'
 import { ProviderOptionsEditor } from './settings/provider-options-editor'
@@ -18,14 +18,12 @@ export function SessionSettings({
   onOpenPromptSheet: () => void
   sessionId: string
 }) {
-  const config = useSessionConfig(sessionId)
   const [maxMessages, setMaxMessages] = typedTinybase.useCellState(
     'sessionConfigs',
     sessionId,
     'maxMessages',
   )
   const [modelId, setModelId] = typedTinybase.useCellState('sessionConfigs', sessionId, 'modelId')
-  const [, setDefaultConfig] = typedTinybase.useValueState('defaultSessionConfig')
   const [toolIds, setToolIds] = typedTinybase.useCellState('sessionConfigs', sessionId, 'toolIds')
 
   return (
@@ -37,7 +35,7 @@ export function SessionSettings({
           onValueChange={(nextModelId) => {
             setModelId(nextModelId)
           }}
-          value={modelId ?? config.modelId}
+          value={modelId ?? ''}
         />
       </Field>
 
@@ -83,17 +81,27 @@ export function SessionSettings({
         </CardContent>
       </Card>
 
-      <Button
-        className="w-full"
-        onClick={() => {
-          setDefaultConfig(config)
-        }}
-        variant="outline"
-      >
-        Use as default for new sessions
-      </Button>
+      <UseAsDefaultButton sessionId={sessionId} />
 
       <div className="text-muted-foreground">sessionId: {sessionId}</div>
     </FieldGroup>
+  )
+}
+
+function UseAsDefaultButton({ sessionId }: { sessionId: string }) {
+  const { helpers } = useTetra()
+
+  return (
+    <Button
+      className="w-full"
+      onClick={() => {
+        helpers.db.values.defaultSessionConfig.set(
+          helpers.db.tables.sessionConfigs.requireEntity(sessionId),
+        )
+      }}
+      variant="outline"
+    >
+      Use as default for new sessions
+    </Button>
   )
 }

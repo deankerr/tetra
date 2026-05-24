@@ -1,8 +1,8 @@
 import type { UIMessage } from 'ai'
 
-import { deriveUsageSummary } from '#db'
 import type { GenerationStatus, StepRecord, UsageSummary } from '#db'
 import type { Helpers } from '#helpers'
+import { deriveUsageSummary } from '#usage'
 
 export interface MessageGenerationPatch {
   parts?: UIMessage['parts']

@@ -152,7 +152,7 @@ export class Run extends EventTarget {
   }
 
   private resolveTools(): ToolSet {
-    return resolveTools(this.config.toolIds ?? [], (id) => this.credentials.get(id))
+    return resolveTools(this.config.toolIds, (id) => this.credentials.get(id))
   }
 
   private setStatus(status: RunStatus): void {
@@ -181,7 +181,7 @@ export class Run extends EventTarget {
         onStepFinish: (step) => {
           this.recordStep(StepEvent.parse(step))
         },
-        providerOptions: { openrouter: config.providerOptions ?? {} },
+        providerOptions: { openrouter: config.providerOptions },
         stopWhen: stepCountIs(6),
         system: this.system,
         tools,

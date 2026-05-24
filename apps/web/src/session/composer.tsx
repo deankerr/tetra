@@ -1,4 +1,3 @@
-import { DEFAULT_REQUEST_CONFIG } from '@tetra/core'
 import {
   Attachment,
   AttachmentInfo,
@@ -122,7 +121,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
               onValueChange={(nextModelId) => {
                 setModelId(nextModelId)
               }}
-              value={modelId ?? DEFAULT_REQUEST_CONFIG.modelId}
+              value={modelId ?? ''}
             />
             <ImageInputButton disabled={isStreaming} />
           </PromptInputTools>

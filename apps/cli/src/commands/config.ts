@@ -1,8 +1,4 @@
-import {
-  RequestConfig,
-  requestConfigToSessionConfigRow,
-  sessionConfigRowToRequestConfig,
-} from '@tetra/core'
+import { RequestConfig } from '@tetra/core'
 import type { RequestConfigType } from '@tetra/core'
 import type { Command } from 'commander'
 
@@ -40,28 +36,25 @@ export function registerConfigCommand(
           ...(typeof opts.prompt === 'string' && { systemPromptId: opts.prompt }),
         }
 
-        const config = sessionConfigRowToRequestConfig(
-          ctx.helpers.db.tables.sessionConfigs.requireEntity(resolvedSessionId),
-        )
+        const config = ctx.helpers.db.tables.sessionConfigs.requireEntity(resolvedSessionId)
 
         if (Object.keys(overrides).length > 0 || opts.prompt === false) {
           const next = { ...config, ...overrides }
           if (opts.prompt === false) {
-            delete next.systemPromptId
+            next.systemPromptId = ''
           }
-          ctx.helpers.db.tables.sessionConfigs.setRow(
-            resolvedSessionId,
-            requestConfigToSessionConfigRow(RequestConfig.parse(next)),
-          )
+          ctx.helpers.db.tables.sessionConfigs.setRow(resolvedSessionId, RequestConfig.parse(next))
         }
 
-        const latestConfig = sessionConfigRowToRequestConfig(
-          ctx.helpers.db.tables.sessionConfigs.requireEntity(resolvedSessionId),
-        )
+        const latestConfig = ctx.helpers.db.tables.sessionConfigs.requireEntity(resolvedSessionId)
         console.log(`session:      ${resolvedSessionId}`)
         console.log(`model:        ${latestConfig.modelId}`)
-        console.log(`prompt:       ${latestConfig.systemPromptId ?? '(none)'}`)
-        console.log(`maxMessages:  ${latestConfig.maxMessages ?? '(none)'}`)
+        console.log(
+          `prompt:       ${latestConfig.systemPromptId === '' ? '(none)' : latestConfig.systemPromptId}`,
+        )
+        console.log(
+          `maxMessages:  ${latestConfig.maxMessages === 0 ? '(none)' : latestConfig.maxMessages}`,
+        )
       },
     )
 }

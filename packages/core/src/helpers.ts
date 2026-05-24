@@ -1,7 +1,8 @@
 import type { UIMessage } from 'ai'
 
-import { combineUsageSummaries, createIdGenerator, requestConfigToSessionConfigRow } from '#db'
+import { RequestConfig as RequestConfigSchema, createIdGenerator } from '#db'
 import type { MessageRole, RequestConfig, TetraDb } from '#db'
+import { combineUsageSummaries } from '#usage'
 
 export class Helpers {
   readonly db: TetraDb
@@ -16,9 +17,12 @@ export class Helpers {
 
   // ——— Sessions ———
 
-  createSession(args: { config?: RequestConfig; title?: string } = {}): string {
+  createSession(args: { config?: Partial<RequestConfig>; title?: string } = {}): string {
     const sessionId = this.nextSessionId()
-    const config = args.config ?? this.db.values.defaultSessionConfig.get()
+    const config = RequestConfigSchema.parse({
+      ...this.db.values.defaultSessionConfig.get(),
+      ...args.config,
+    })
     const now = Date.now()
 
     // Write session identity and config rows atomically.
@@ -28,7 +32,7 @@ export class Helpers {
         title: args.title ?? '',
         updatedAt: now,
       })
-      this.db.tables.sessionConfigs.setRow(sessionId, requestConfigToSessionConfigRow(config))
+      this.db.tables.sessionConfigs.setRow(sessionId, config)
       this.db.tables.sessionSummaries.setRow(sessionId, {
         createdAt: now,
         updatedAt: now,

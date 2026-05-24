@@ -1,3 +1,4 @@
+import type { RequestConfigType } from '@tetra/core'
 import type { Command } from 'commander'
 
 import type { bootstrap } from '../bootstrap'
@@ -35,9 +36,17 @@ export function registerSessionCommands(
       ) => {
         const ctx = await getContext()
         const content = await readMessage({ message: opts.message, parts })
+        const config: Partial<RequestConfigType> = {
+          ...(opts.model !== undefined && { modelId: opts.model }),
+          ...(typeof opts.prompt === 'string' && { systemPromptId: opts.prompt }),
+        }
+        if (opts.prompt === false) {
+          config.systemPromptId = ''
+        }
 
         if (content.trim() !== '') {
           const sessionId = ctx.helpers.createSession({
+            config,
             title: opts.title ?? titleFromMessage(content),
           })
           if (opts.active !== false) {
@@ -45,15 +54,16 @@ export function registerSessionCommands(
           }
           await runChatContent(ctx, content, {
             active: opts.active,
-            model: opts.model,
             new: false,
-            prompt: opts.prompt,
             session: sessionId,
           })
           return
         }
 
-        const sessionId = ctx.helpers.createSession({ title: opts.title ?? 'Untitled Session' })
+        const sessionId = ctx.helpers.createSession({
+          config,
+          title: opts.title ?? 'Untitled Session',
+        })
         if (opts.active !== false) {
           ctx.workspace.setActiveSessionId(sessionId)
         }
