@@ -13,7 +13,7 @@ import { BugIcon, DatabaseIcon, Trash2Icon } from 'lucide-react'
 import { useTetra } from '@/tetra-context'
 
 export function DebugMenu() {
-  const { store } = useTetra()
+  const { helpers } = useTetra()
 
   return (
     <DropdownMenu>
@@ -29,7 +29,7 @@ export function DebugMenu() {
           <DropdownMenuLabel>Debug</DropdownMenuLabel>
           <DropdownMenuItem
             onClick={() => {
-              loadSeeds(store)
+              loadSeeds(helpers)
             }}
           >
             <DatabaseIcon />

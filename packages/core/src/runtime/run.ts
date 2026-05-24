@@ -4,7 +4,7 @@ import type { LanguageModel, ModelMessage, ToolSet, UIMessage } from 'ai'
 
 import { RequestConfig } from '#db'
 import type { RequestConfig as RequestConfigType, Rows, StepRecord } from '#db'
-import type { Store } from '#store'
+import type { Helpers } from '#helpers'
 import { resolveTools } from '#tools'
 
 import {
@@ -41,7 +41,7 @@ interface RunInit {
   credentials: CredentialReader
   modelResolver: LanguageModelResolver
   start: RunStart
-  store: Store
+  helpers: Helpers
 }
 
 export const openRouterLanguageModelResolver: LanguageModelResolver = {
@@ -78,7 +78,7 @@ export class Run extends EventTarget {
   tools: ToolSet = {}
 
   private readonly credentials: CredentialReader
-  private readonly store: Store
+  private readonly helpers: Helpers
   private readonly doneController = Promise.withResolvers<undefined>()
   private readonly modelResolver: LanguageModelResolver
 
@@ -89,7 +89,7 @@ export class Run extends EventTarget {
     this.credentials = init.credentials
     this.done = this.doneController.promise
     this.modelResolver = init.modelResolver
-    this.store = init.store
+    this.helpers = init.helpers
     this.requestId = init.start.requestId
     this.session = init.start.session
     this.sessionId = init.start.session.id
@@ -108,9 +108,9 @@ export class Run extends EventTarget {
   private complete(parts: UIMessage['parts']): void {
     this.parts = [...parts]
     this.finalParts = [...parts]
-    writeMessageGenerationSnapshot(this.store, this.assistantMessageId, parts)
-    commitMessageGeneration(this.store, this.assistantMessageId)
-    completeRequest(this.store.db, this.requestId)
+    writeMessageGenerationSnapshot(this.helpers, this.assistantMessageId, parts)
+    commitMessageGeneration(this.helpers, this.assistantMessageId)
+    completeRequest(this.helpers.db, this.requestId)
     this.setStatus('completed')
     this.dispatchEvent(new Event('finish'))
     this.doneController.resolve()
@@ -119,18 +119,18 @@ export class Run extends EventTarget {
   private fail(error: unknown): void {
     this.error = error
     if (this.abortController.signal.aborted) {
-      updateMessageGeneration(this.store, this.assistantMessageId, { status: 'cancelled' })
-      commitMessageGeneration(this.store, this.assistantMessageId)
-      cancelRequest(this.store.db, this.requestId, 'Request cancelled')
+      updateMessageGeneration(this.helpers, this.assistantMessageId, { status: 'cancelled' })
+      commitMessageGeneration(this.helpers, this.assistantMessageId)
+      cancelRequest(this.helpers.db, this.requestId, 'Request cancelled')
       this.setStatus('cancelled')
       this.dispatchEvent(new Event('cancel'))
       this.doneController.resolve()
       return
     }
 
-    updateMessageGeneration(this.store, this.assistantMessageId, { status: 'error' })
-    commitMessageGeneration(this.store, this.assistantMessageId)
-    failRequest(this.store.db, this.requestId, error)
+    updateMessageGeneration(this.helpers, this.assistantMessageId, { status: 'error' })
+    commitMessageGeneration(this.helpers, this.assistantMessageId)
+    failRequest(this.helpers.db, this.requestId, error)
     this.setStatus('error')
     this.dispatchEvent(new Event('error'))
     this.doneController.resolve()
@@ -143,7 +143,7 @@ export class Run extends EventTarget {
 
   private recordStep(step: StepRecord): void {
     this.steps = [...this.steps, step]
-    appendMessageGenerationStep(this.store, this.assistantMessageId, step)
+    appendMessageGenerationStep(this.helpers, this.assistantMessageId, step)
     this.dispatchEvent(new Event('step'))
   }
 
@@ -170,8 +170,8 @@ export class Run extends EventTarget {
       this.model = model
       this.modelMessages = modelMessages
       this.tools = tools
-      startStreaming(this.store.db, this.requestId)
-      updateMessageGeneration(this.store, this.assistantMessageId, { status: 'streaming' })
+      startStreaming(this.helpers.db, this.requestId)
+      updateMessageGeneration(this.helpers, this.assistantMessageId, { status: 'streaming' })
       this.setStatus('streaming')
 
       const result = streamText({
@@ -225,7 +225,7 @@ export class Run extends EventTarget {
       return
     }
 
-    writeMessageGenerationSnapshot(this.store, this.assistantMessageId, message.parts)
+    writeMessageGenerationSnapshot(this.helpers, this.assistantMessageId, message.parts)
     this.lastDurableWriteAt = now
   }
 }

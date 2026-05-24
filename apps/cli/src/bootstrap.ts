@@ -42,7 +42,7 @@ export type BootstrapMode = 'local' | 'sync'
 
 export async function bootstrap(mode: BootstrapMode) {
   const core = createCoreModules(createTetraDb({ mergeable: mode === 'sync' }))
-  const runs = new Runs(core.store, credentialStore)
+  const runs = new Runs(core.helpers, credentialStore)
 
   const { cliActiveSessionId } = core.db.values
   const workspace = {
@@ -71,8 +71,8 @@ export async function bootstrap(mode: BootstrapMode) {
         await persister.destroy()
         sqlite.close()
       },
+      helpers: core.helpers,
       runs,
-      store: core.store,
       workspace,
     }
   }
@@ -98,8 +98,8 @@ export async function bootstrap(mode: BootstrapMode) {
       await synchronizer.destroy()
       sqlite.close()
     },
+    helpers: core.helpers,
     runs,
-    store: core.store,
     workspace,
   }
 }

@@ -17,7 +17,7 @@ export function registerModelsCommand(
       const ctx = await getContext()
       await ctx.catalog.refresh({ force: true })
 
-      const rows = ctx.store.db.tables.languageModels
+      const rows = ctx.helpers.db.tables.languageModels
         .listEntities()
         .filter((row) => row.outputModalities.includes('text'))
         .filter(
@@ -26,7 +26,7 @@ export function registerModelsCommand(
             row.providerName.toLowerCase().includes(opts.provider.toLowerCase()) ||
             row.provider.toLowerCase().includes(opts.provider.toLowerCase()),
         )
-        .toSorted((a, b) => b.createdAt - a.createdAt)
+        .toSorted((a, b) => b.upstreamCreatedAt - a.upstreamCreatedAt)
 
       if (rows.length === 0) {
         console.log('No models found.')

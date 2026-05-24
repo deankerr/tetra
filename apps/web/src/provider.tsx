@@ -1,4 +1,4 @@
-import type { Catalog, Store, TetraDb } from '@tetra/core'
+import type { Catalog, Helpers, TetraDb } from '@tetra/core'
 import {
   Runs,
   bindTetraDb,
@@ -29,8 +29,8 @@ const WORKER_URL = import.meta.env.VITE_WORKER_URL ?? 'ws://localhost:8787'
 interface TetraApp {
   catalog: Catalog
   db: TetraDb
+  helpers: Helpers
   runs: Runs
-  store: Store
 }
 
 function getDataMode(): DataMode {
@@ -67,8 +67,8 @@ export function TetraProvider({ children }: { children: React.ReactNode }) {
   const tetra = useMemo<TetraApp>(() => {
     const db = bindTetraDb(rawStore, rawIndexes)
     const core = createCoreModules(db)
-    const runs = new Runs(core.store, credentialStore)
-    return { catalog: core.catalog, db, runs, store: core.store }
+    const runs = new Runs(core.helpers, credentialStore)
+    return { catalog: core.catalog, db, helpers: core.helpers, runs }
   }, [rawIndexes, rawStore])
 
   // Local mode persists the plain Store to IndexedDB without blocking initial render.
@@ -114,8 +114,8 @@ export function TetraProvider({ children }: { children: React.ReactNode }) {
       value={{
         catalog: tetra.catalog,
         dataMode,
+        helpers: tetra.helpers,
         runs: tetra.runs,
-        store: tetra.store,
       }}
     >
       <Provider

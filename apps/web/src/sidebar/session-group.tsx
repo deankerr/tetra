@@ -37,7 +37,7 @@ export const useSessionIds = () => {
 }
 
 export function SessionGroup() {
-  const { store } = useTetra()
+  const { helpers } = useTetra()
   const sessionIds = useSessionIds()
   const openSessionIds = useOpenSessionIds()
   const setOpenSessionIds = useSetOpenSessionIds()
@@ -48,7 +48,7 @@ export function SessionGroup() {
       <SidebarGroupAction
         className="top-2.5"
         onClick={() => {
-          const newId = store.createSession()
+          const newId = helpers.createSession()
           setOpenSessionIds([...openSessionIds, newId])
         }}
       >
@@ -62,7 +62,7 @@ export function SessionGroup() {
               active={openSessionIds.includes(sessionId)}
               key={sessionId}
               onDelete={() => {
-                store.deleteSession(sessionId)
+                helpers.deleteSession(sessionId)
 
                 // Remove from open list; if that empties it, open the next available session
                 const remaining = openSessionIds.filter((id) => id !== sessionId)
@@ -70,11 +70,11 @@ export function SessionGroup() {
                   setOpenSessionIds(remaining)
                 } else {
                   const nextId = sessionIds.find((id) => id !== sessionId)
-                  setOpenSessionIds(nextId === undefined ? [store.createSession()] : [nextId])
+                  setOpenSessionIds(nextId === undefined ? [helpers.createSession()] : [nextId])
                 }
               }}
               onRename={(title) => {
-                store.db.tables.sessions.updateRow(sessionId, { title, updatedAt: Date.now() })
+                helpers.db.tables.sessions.updateRow(sessionId, { title, updatedAt: Date.now() })
               }}
               onSelect={() => {
                 if (openSessionIds.includes(sessionId)) {

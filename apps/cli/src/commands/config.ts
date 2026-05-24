@@ -41,7 +41,7 @@ export function registerConfigCommand(
         }
 
         const config = sessionConfigRowToRequestConfig(
-          ctx.store.db.tables.sessionConfigs.requireEntity(resolvedSessionId),
+          ctx.helpers.db.tables.sessionConfigs.requireEntity(resolvedSessionId),
         )
 
         if (Object.keys(overrides).length > 0 || opts.prompt === false) {
@@ -49,14 +49,14 @@ export function registerConfigCommand(
           if (opts.prompt === false) {
             delete next.systemPromptId
           }
-          ctx.store.db.tables.sessionConfigs.setRow(
+          ctx.helpers.db.tables.sessionConfigs.setRow(
             resolvedSessionId,
             requestConfigToSessionConfigRow(RequestConfig.parse(next)),
           )
         }
 
         const latestConfig = sessionConfigRowToRequestConfig(
-          ctx.store.db.tables.sessionConfigs.requireEntity(resolvedSessionId),
+          ctx.helpers.db.tables.sessionConfigs.requireEntity(resolvedSessionId),
         )
         console.log(`session:      ${resolvedSessionId}`)
         console.log(`model:        ${latestConfig.modelId}`)

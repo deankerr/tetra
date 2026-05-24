@@ -59,7 +59,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
     const isAdd = submitter instanceof HTMLElement && submitter.dataset.action === 'add'
 
     if (isAdd) {
-      tetra.store.appendMessage(sessionId, { parts, role: 'user' })
+      tetra.helpers.appendMessage(sessionId, { parts, role: 'user' })
       setDraft('')
       return
     }
@@ -73,21 +73,21 @@ export function Composer({ sessionId }: { sessionId: string }) {
       throw new Error('OpenRouter API key required')
     }
 
-    const shouldSetTitle = tetra.store.db.tables.sessions.requireEntity(sessionId).title === ''
+    const shouldSetTitle = tetra.helpers.db.tables.sessions.requireEntity(sessionId).title === ''
 
     // Clear draft before execute so any TinyBase-triggered re-render sees the empty value
     setDraft('')
 
     try {
       // Create user and assistant messages, then hand off to the run.
-      tetra.store.appendMessage(sessionId, { parts, role: 'user' })
-      const assistantMessageId = tetra.store.appendMessage(sessionId, {
+      tetra.helpers.appendMessage(sessionId, { parts, role: 'user' })
+      const assistantMessageId = tetra.helpers.appendMessage(sessionId, {
         parts: [],
         role: 'assistant',
       })
       tetra.runs.start({ assistantMessageId })
       if (shouldSetTitle) {
-        tetra.store.db.tables.sessions.updateRow(sessionId, {
+        tetra.helpers.db.tables.sessions.updateRow(sessionId, {
           title: text === '' ? 'Image' : text.slice(0, 60),
           updatedAt: Date.now(),
         })

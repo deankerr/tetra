@@ -134,6 +134,8 @@ export const tetraDbDefinition = defineTypedTinybase({
       provider: tinybaseCell.string(z.string(), { default: '' }),
       providerName: tinybaseCell.string(z.string(), { default: '' }),
       supportedParameters: tinybaseCell.array(StringArray, { default: [] }),
+      updatedAt: tinybaseCell.number(z.number(), { default: 0 }),
+      upstreamCreatedAt: tinybaseCell.number(z.number(), { default: 0 }),
     }),
     messageGenerations: tinybaseTable({
       createdAt: tinybaseCell.number(z.number(), { default: 0 }),
@@ -158,7 +160,9 @@ export const tetraDbDefinition = defineTypedTinybase({
     }),
     prompts: tinybaseTable({
       content: tinybaseCell.string(z.string(), { default: '' }),
+      createdAt: tinybaseCell.number(z.number(), { default: 0 }),
       label: tinybaseCell.string(z.string(), { default: '' }),
+      updatedAt: tinybaseCell.number(z.number(), { default: 0 }),
     }),
     requests: tinybaseTable({
       assistantMessageId: tinybaseCell.string(z.string(), { default: '' }),
@@ -172,6 +176,7 @@ export const tetraDbDefinition = defineTypedTinybase({
         default: 'preparing',
       }),
       terminalAt: tinybaseCell.number(z.number(), { default: 0 }),
+      updatedAt: tinybaseCell.number(z.number(), { default: 0 }),
     }),
     // Execution parameters for a session. Keyed by the same ID as the sessions table (1:1).
     // Stored separately so sidebar reactive reads on sessions are not triggered by config edits.

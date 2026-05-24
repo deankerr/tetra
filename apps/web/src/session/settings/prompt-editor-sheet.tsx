@@ -175,7 +175,7 @@ export function PromptEditorSheet({
   open: boolean
   sessionId: string
 }) {
-  const { store } = useTetra()
+  const { helpers } = useTetra()
   const [systemPromptId, setSystemPromptId] = typedTinybase.useCellState(
     'sessionConfigs',
     sessionId,
@@ -210,7 +210,7 @@ export function PromptEditorSheet({
                 return
               }
               if (value === NEW_PROMPT_VALUE) {
-                setSystemPromptId(store.createPrompt())
+                setSystemPromptId(helpers.createPrompt())
                 return
               }
               setSystemPromptId(value === NO_PROMPT_VALUE ? '' : value)
@@ -243,7 +243,7 @@ export function PromptEditorSheet({
           <SelectedPromptFields
             onDelete={() => {
               if (selectedPromptId !== undefined) {
-                store.deletePrompt(selectedPromptId)
+                helpers.deletePrompt(selectedPromptId)
               }
             }}
             promptId={selectedPromptId}

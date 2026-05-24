@@ -43,6 +43,7 @@ export class Catalog {
     }
 
     const { data } = OpenRouterModelsResponse.parse(await response.json())
+    const now = Date.now()
     const models: Rows.LanguageModel[] = data.map((model) => {
       const [provider = ''] = model.id.split('/')
       const colonIndex = model.name.indexOf(':')
@@ -51,7 +52,7 @@ export class Catalog {
 
       return {
         contextLength: model.context_length,
-        createdAt: model.created,
+        createdAt: now,
         id: model.id,
         inputModalities: model.architecture.input_modalities,
         name,
@@ -59,6 +60,8 @@ export class Catalog {
         provider,
         providerName: rawProviderName || provider,
         supportedParameters: model.supported_parameters,
+        updatedAt: now,
+        upstreamCreatedAt: model.created,
       }
     })
 
@@ -71,10 +74,14 @@ export class Catalog {
         }
       }
       for (const { id, ...record } of models) {
-        this.db.tables.languageModels.setRow(id, record)
+        const existing = this.db.tables.languageModels.getEntity(id)
+        this.db.tables.languageModels.setRow(id, {
+          ...record,
+          createdAt: existing?.createdAt ?? record.createdAt,
+        })
       }
     })
 
-    catalogLastRefreshed.set(Date.now())
+    catalogLastRefreshed.set(now)
   }
 }

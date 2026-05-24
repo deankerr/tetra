@@ -2,7 +2,7 @@ import type { UIMessage } from 'ai'
 
 import { deriveUsageSummary } from '#db'
 import type { GenerationStatus, StepRecord, UsageSummary } from '#db'
-import type { Store } from '#store'
+import type { Helpers } from '#helpers'
 
 export interface MessageGenerationPatch {
   parts?: UIMessage['parts']
@@ -12,35 +12,35 @@ export interface MessageGenerationPatch {
 }
 
 export function appendMessageGenerationStep(
-  store: Store,
+  helpers: Helpers,
   messageId: string,
   step: StepRecord,
 ): void {
-  const generation = store.db.tables.messageGenerations.requireEntity(messageId)
+  const generation = helpers.db.tables.messageGenerations.requireEntity(messageId)
   const steps = [...generation.steps, step]
-  updateMessageGeneration(store, messageId, { steps, usage: deriveUsageSummary(steps) })
-  store.rebuildSessionUsage(generation.sessionId)
+  updateMessageGeneration(helpers, messageId, { steps, usage: deriveUsageSummary(steps) })
+  helpers.rebuildSessionUsage(generation.sessionId)
 }
 
-export function clearMessageContent(store: Store, messageId: string): void {
-  const message = store.db.tables.messages.requireEntity(messageId)
-  setMessageGenerationResult(store, messageId, { parts: [], steps: [] })
-  store.db.tables.messageGenerations.deleteRow(messageId)
-  store.rebuildSessionUsage(message.sessionId)
+export function clearMessageContent(helpers: Helpers, messageId: string): void {
+  const message = helpers.db.tables.messages.requireEntity(messageId)
+  setMessageGenerationResult(helpers, messageId, { parts: [], steps: [] })
+  helpers.db.tables.messageGenerations.deleteRow(messageId)
+  helpers.rebuildSessionUsage(message.sessionId)
 }
 
-export function commitMessageGeneration(store: Store, messageId: string): void {
-  const generation = store.db.tables.messageGenerations.requireEntity(messageId)
-  setMessageGenerationResult(store, messageId, {
+export function commitMessageGeneration(helpers: Helpers, messageId: string): void {
+  const generation = helpers.db.tables.messageGenerations.requireEntity(messageId)
+  setMessageGenerationResult(helpers, messageId, {
     parts: generation.parts,
     steps: generation.steps,
   })
-  store.db.tables.messageGenerations.deleteRow(messageId)
-  store.rebuildSessionUsage(generation.sessionId)
+  helpers.db.tables.messageGenerations.deleteRow(messageId)
+  helpers.rebuildSessionUsage(generation.sessionId)
 }
 
 export function createMessageGeneration(
-  store: Store,
+  helpers: Helpers,
   args: {
     messageId: string
     requestId: string
@@ -49,7 +49,7 @@ export function createMessageGeneration(
   },
 ): void {
   const now = Date.now()
-  store.db.tables.messageGenerations.setRow(args.messageId, {
+  helpers.db.tables.messageGenerations.setRow(args.messageId, {
     createdAt: now,
     parts: [],
     requestId: args.requestId,
@@ -59,15 +59,15 @@ export function createMessageGeneration(
     updatedAt: now,
     usage: {},
   })
-  store.rebuildSessionUsage(args.sessionId)
+  helpers.rebuildSessionUsage(args.sessionId)
 }
 
 export function updateMessageGeneration(
-  store: Store,
+  helpers: Helpers,
   messageId: string,
   patch: MessageGenerationPatch,
 ): void {
-  store.db.tables.messageGenerations.updateRow(messageId, {
+  helpers.db.tables.messageGenerations.updateRow(messageId, {
     ...('parts' in patch && { parts: patch.parts ?? [] }),
     ...('status' in patch && { status: patch.status }),
     ...('steps' in patch && { steps: patch.steps ?? [] }),
@@ -77,19 +77,19 @@ export function updateMessageGeneration(
 }
 
 export function writeMessageGenerationSnapshot(
-  store: Store,
+  helpers: Helpers,
   messageId: string,
   parts: UIMessage['parts'],
 ): void {
-  updateMessageGeneration(store, messageId, { parts })
+  updateMessageGeneration(helpers, messageId, { parts })
 }
 
 function setMessageGenerationResult(
-  store: Store,
+  helpers: Helpers,
   messageId: string,
   args: { parts: UIMessage['parts']; steps: StepRecord[] },
 ): void {
-  store.db.tables.messages.updateRow(messageId, {
+  helpers.db.tables.messages.updateRow(messageId, {
     parts: args.parts,
     steps: args.steps,
     updatedAt: Date.now(),

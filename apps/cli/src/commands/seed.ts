@@ -12,7 +12,7 @@ export function registerSeedCommand(program: Command, getContext: () => Promise<
     .description('Load bundled seed sessions into the local database')
     .action(async () => {
       const ctx = await getContext()
-      loadSeeds(ctx.store)
+      loadSeeds(ctx.helpers)
       console.log('seeded')
     })
 }

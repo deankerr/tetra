@@ -5,9 +5,9 @@
   "imports": {
     "#catalog": "./src/catalog.ts",
     "#db": "./src/db.ts",
+    "#helpers": "./src/helpers.ts",
     "#runtime": "./src/runtime/index.ts",
     "#seeds": "./src/seeds.ts",
-    "#store": "./src/store.ts",
     "#tools": "./src/tools/tools.ts"
   },
   "exports": {

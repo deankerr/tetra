@@ -38,7 +38,7 @@ function createTestRuntime() {
     },
   })
   const modelResolver: LanguageModelResolver = { resolve: () => model }
-  const runs = new Runs(core.store, credentials, modelResolver)
+  const runs = new Runs(core.helpers, credentials, modelResolver)
 
   return { core, model, runs }
 }
@@ -65,13 +65,13 @@ async function withoutExpectedConsoleErrors<T>(
 
 test('start streams through the AI SDK into TinyBase rows', async () => {
   const { core, model, runs } = createTestRuntime()
-  const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
+  const sessionId = core.helpers.createSession({ config: { modelId: 'mock-model' } })
 
-  core.store.appendMessage(sessionId, {
+  core.helpers.appendMessage(sessionId, {
     parts: [{ text: 'hello', type: 'text' }],
     role: 'user',
   })
-  const assistantMessageId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
+  const assistantMessageId = core.helpers.appendMessage(sessionId, { parts: [], role: 'assistant' })
 
   const run = runs.start({ assistantMessageId })
   expect(core.db.tables.requests.requireEntity(run.requestId).status).toBe('preparing')
@@ -136,14 +136,14 @@ test('streaming snapshots persist to messageGenerations before message commit', 
       }),
     },
   })
-  const runs = new Runs(core.store, credentials, { resolve: () => model })
-  const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
+  const runs = new Runs(core.helpers, credentials, { resolve: () => model })
+  const sessionId = core.helpers.createSession({ config: { modelId: 'mock-model' } })
 
-  core.store.appendMessage(sessionId, {
+  core.helpers.appendMessage(sessionId, {
     parts: [{ text: 'hello', type: 'text' }],
     role: 'user',
   })
-  const assistantMessageId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
+  const assistantMessageId = core.helpers.appendMessage(sessionId, { parts: [], role: 'assistant' })
   const run = runs.start({ assistantMessageId })
   const firstSnapshot = Promise.withResolvers<undefined>()
   run.addEventListener(
@@ -167,15 +167,15 @@ test('streaming snapshots persist to messageGenerations before message commit', 
 
 test('Pre-Run Invariants — throws before creating request when systemPromptId is missing', () => {
   const { core, runs } = createTestRuntime()
-  const sessionId = core.store.createSession({
+  const sessionId = core.helpers.createSession({
     config: { modelId: 'mock-model', systemPromptId: 'non-existent-prompt' },
   })
 
-  core.store.appendMessage(sessionId, {
+  core.helpers.appendMessage(sessionId, {
     parts: [{ text: 'hello', type: 'text' }],
     role: 'user',
   })
-  const assistantMessageId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
+  const assistantMessageId = core.helpers.appendMessage(sessionId, { parts: [], role: 'assistant' })
   const requestsBefore = core.db.indexes.getSliceRowIds('requestsBySession', sessionId)
   const sessionBefore = core.db.tables.sessions.requireEntity(sessionId)
 
@@ -192,21 +192,21 @@ test('Pre-Run Invariants — throws before creating request when systemPromptId 
 
 test('History Reconstruction — prior messages appear in prompt, current placeholder excluded', async () => {
   const { core, model, runs } = createTestRuntime()
-  const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
+  const sessionId = core.helpers.createSession({ config: { modelId: 'mock-model' } })
 
-  core.store.appendMessage(sessionId, {
+  core.helpers.appendMessage(sessionId, {
     parts: [{ text: 'prior user', type: 'text' }],
     role: 'user',
   })
-  core.store.appendMessage(sessionId, {
+  core.helpers.appendMessage(sessionId, {
     parts: [{ text: 'prior assistant', type: 'text' }],
     role: 'assistant',
   })
-  core.store.appendMessage(sessionId, {
+  core.helpers.appendMessage(sessionId, {
     parts: [{ text: 'new message', type: 'text' }],
     role: 'user',
   })
-  const assistantMessageId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
+  const assistantMessageId = core.helpers.appendMessage(sessionId, { parts: [], role: 'assistant' })
 
   const run = runs.start({ assistantMessageId })
   await run.done
@@ -221,29 +221,31 @@ test('History Reconstruction — prior messages appear in prompt, current placeh
 
 test('History Reconstruction — maxMessages limits history at the execution boundary', async () => {
   const { core, model, runs } = createTestRuntime()
-  const sessionId = core.store.createSession({ config: { maxMessages: 2, modelId: 'mock-model' } })
+  const sessionId = core.helpers.createSession({
+    config: { maxMessages: 2, modelId: 'mock-model' },
+  })
 
-  core.store.appendMessage(sessionId, {
+  core.helpers.appendMessage(sessionId, {
     parts: [{ text: 'oldest user', type: 'text' }],
     role: 'user',
   })
-  core.store.appendMessage(sessionId, {
+  core.helpers.appendMessage(sessionId, {
     parts: [{ text: 'oldest assistant', type: 'text' }],
     role: 'assistant',
   })
-  core.store.appendMessage(sessionId, {
+  core.helpers.appendMessage(sessionId, {
     parts: [{ text: 'recent user', type: 'text' }],
     role: 'user',
   })
-  core.store.appendMessage(sessionId, {
+  core.helpers.appendMessage(sessionId, {
     parts: [{ text: 'recent assistant', type: 'text' }],
     role: 'assistant',
   })
-  core.store.appendMessage(sessionId, {
+  core.helpers.appendMessage(sessionId, {
     parts: [{ text: 'latest', type: 'text' }],
     role: 'user',
   })
-  const assistantMessageId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
+  const assistantMessageId = core.helpers.appendMessage(sessionId, { parts: [], role: 'assistant' })
 
   const run = runs.start({ assistantMessageId })
   await run.done
@@ -256,13 +258,13 @@ test('History Reconstruction — maxMessages limits history at the execution bou
 
 test('Regenerate — assistant tail is cleared and reused', async () => {
   const { core, model, runs } = createTestRuntime()
-  const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
+  const sessionId = core.helpers.createSession({ config: { modelId: 'mock-model' } })
 
-  core.store.appendMessage(sessionId, {
+  core.helpers.appendMessage(sessionId, {
     parts: [{ text: 'again', type: 'text' }],
     role: 'user',
   })
-  const assistantMessageId = core.store.appendMessage(sessionId, {
+  const assistantMessageId = core.helpers.appendMessage(sessionId, {
     parts: [{ text: 'stale answer', type: 'text' }],
     role: 'assistant',
   })
@@ -287,9 +289,9 @@ test('Regenerate — assistant tail is cleared and reused', async () => {
 
 test('Regenerate — user tail appends an assistant message and starts it', async () => {
   const { core, model, runs } = createTestRuntime()
-  const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
+  const sessionId = core.helpers.createSession({ config: { modelId: 'mock-model' } })
 
-  const userMessageId = core.store.appendMessage(sessionId, {
+  const userMessageId = core.helpers.appendMessage(sessionId, {
     parts: [{ text: 'continue', type: 'text' }],
     role: 'user',
   })
@@ -311,13 +313,13 @@ test('Regenerate — user tail appends an assistant message and starts it', asyn
 
 test('Regenerate — only the last message can be regenerated', () => {
   const { core, runs } = createTestRuntime()
-  const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
+  const sessionId = core.helpers.createSession({ config: { modelId: 'mock-model' } })
 
-  const userMessageId = core.store.appendMessage(sessionId, {
+  const userMessageId = core.helpers.appendMessage(sessionId, {
     parts: [{ text: 'old', type: 'text' }],
     role: 'user',
   })
-  core.store.appendMessage(sessionId, {
+  core.helpers.appendMessage(sessionId, {
     parts: [{ text: 'answer', type: 'text' }],
     role: 'assistant',
   })
@@ -384,8 +386,8 @@ test('Tool Loop — tool call executes and result appears in final parts', async
   })
 
   const modelResolver: LanguageModelResolver = { resolve: () => model }
-  const runs = new Runs(core.store, credentials, modelResolver)
-  const sessionId = core.store.createSession({
+  const runs = new Runs(core.helpers, credentials, modelResolver)
+  const sessionId = core.helpers.createSession({
     config: { modelId: 'mock-model', toolIds: ['getWeather'] },
   })
 
@@ -404,11 +406,14 @@ test('Tool Loop — tool call executes and result appears in final parts', async
   })
 
   try {
-    core.store.appendMessage(sessionId, {
+    core.helpers.appendMessage(sessionId, {
       parts: [{ text: 'what is the weather?', type: 'text' }],
       role: 'user',
     })
-    const assistantMessageId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
+    const assistantMessageId = core.helpers.appendMessage(sessionId, {
+      parts: [],
+      role: 'assistant',
+    })
     const run = runs.start({ assistantMessageId })
     await run.done
 
@@ -436,14 +441,14 @@ test('Error Path — stream error sets request to error status', async () => {
   })
 
   const modelResolver: LanguageModelResolver = { resolve: () => model }
-  const runs = new Runs(core.store, credentials, modelResolver)
-  const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
+  const runs = new Runs(core.helpers, credentials, modelResolver)
+  const sessionId = core.helpers.createSession({ config: { modelId: 'mock-model' } })
 
-  core.store.appendMessage(sessionId, {
+  core.helpers.appendMessage(sessionId, {
     parts: [{ text: 'hello', type: 'text' }],
     role: 'user',
   })
-  const assistantMessageId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
+  const assistantMessageId = core.helpers.appendMessage(sessionId, { parts: [], role: 'assistant' })
   const run = await withoutExpectedConsoleErrors({ messages: ['Provider API error'] }, async () => {
     const startedRun = runs.start({ assistantMessageId })
     await startedRun.done
@@ -462,25 +467,27 @@ test('Error Path — stream error sets request to error status', async () => {
 
 test('Recovery — interrupted requests commit partial generations and clean hot rows', () => {
   const { core, runs } = createTestRuntime()
-  const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
+  const sessionId = core.helpers.createSession({ config: { modelId: 'mock-model' } })
 
-  core.store.appendMessage(sessionId, {
+  core.helpers.appendMessage(sessionId, {
     parts: [{ text: 'hello', type: 'text' }],
     role: 'user',
   })
-  const assistantMessageId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
+  const assistantMessageId = core.helpers.appendMessage(sessionId, { parts: [], role: 'assistant' })
   let requestId = ''
+  const now = Date.now()
   core.db.transaction(() => {
     requestId = core.db.tables.requests.setRow('req_test', {
       assistantMessageId,
       config: { modelId: 'mock-model' },
-      createdAt: Date.now(),
+      createdAt: now,
       errorMessage: '',
       sessionId,
       status: 'streaming',
       terminalAt: 0,
+      updatedAt: now,
     }).id
-    createMessageGeneration(core.store, {
+    createMessageGeneration(core.helpers, {
       messageId: assistantMessageId,
       requestId,
       sessionId,
@@ -488,7 +495,7 @@ test('Recovery — interrupted requests commit partial generations and clean hot
     })
   })
 
-  writeMessageGenerationSnapshot(core.store, assistantMessageId, [
+  writeMessageGenerationSnapshot(core.helpers, assistantMessageId, [
     { text: 'partial', type: 'text' },
   ])
   runs.recover()
@@ -536,14 +543,14 @@ test('Error Path — later requests can still run after an error', async () => {
   })
 
   const modelResolver: LanguageModelResolver = { resolve: () => model }
-  const runs = new Runs(core.store, credentials, modelResolver)
-  const sessionId = core.store.createSession({ config: { modelId: 'mock-model' } })
+  const runs = new Runs(core.helpers, credentials, modelResolver)
+  const sessionId = core.helpers.createSession({ config: { modelId: 'mock-model' } })
 
-  core.store.appendMessage(sessionId, {
+  core.helpers.appendMessage(sessionId, {
     parts: [{ text: 'fail', type: 'text' }],
     role: 'user',
   })
-  const failAssistantId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
+  const failAssistantId = core.helpers.appendMessage(sessionId, { parts: [], role: 'assistant' })
   const failedRun = await withoutExpectedConsoleErrors(
     { messages: ['First call fails'] },
     async () => {
@@ -554,11 +561,11 @@ test('Error Path — later requests can still run after an error', async () => {
   )
   expect(failedRun.status).toBe('error')
 
-  core.store.appendMessage(sessionId, {
+  core.helpers.appendMessage(sessionId, {
     parts: [{ text: 'retry', type: 'text' }],
     role: 'user',
   })
-  const retryAssistantId = core.store.appendMessage(sessionId, { parts: [], role: 'assistant' })
+  const retryAssistantId = core.helpers.appendMessage(sessionId, { parts: [], role: 'assistant' })
   const successRun = runs.start({ assistantMessageId: retryAssistantId })
   await successRun.done
   expect(successRun.status).toBe('completed')

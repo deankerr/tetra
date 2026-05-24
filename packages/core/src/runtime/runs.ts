@@ -1,6 +1,6 @@
 import { RequestConfig, sessionConfigRowToRequestConfig } from '#db'
 import type { RequestConfig as RequestConfigType, Rows } from '#db'
-import type { Store } from '#store'
+import type { Helpers } from '#helpers'
 
 import { clearMessageContent, createMessageGeneration } from './message-generations.ts'
 import { createRequest, recoverInterrupted } from './requests.ts'
@@ -21,16 +21,16 @@ export class Runs {
   private readonly active = new Map<string, Run>()
   private readonly credentials: CredentialReader
   private readonly modelResolver: LanguageModelResolver
-  private readonly store: Store
+  private readonly helpers: Helpers
 
   constructor(
-    store: Store,
+    helpers: Helpers,
     credentials: CredentialReader,
     modelResolver: LanguageModelResolver = openRouterLanguageModelResolver,
   ) {
     this.credentials = credentials
     this.modelResolver = modelResolver
-    this.store = store
+    this.helpers = helpers
   }
 
   cancel(requestId: string): void {
@@ -62,15 +62,15 @@ export class Runs {
   }
 
   recover(): void {
-    recoverInterrupted(this.store)
+    recoverInterrupted(this.helpers)
   }
 
   // Re-run the final conversation turn by reusing an assistant tail or appending one after a user tail.
   regenerate(args: RegenerateArgs): Run {
-    const message = this.store.db.tables.messages.requireEntity(args.messageId)
-    const messages = this.store.db.indexes
+    const message = this.helpers.db.tables.messages.requireEntity(args.messageId)
+    const messages = this.helpers.db.indexes
       .getSliceRowIds('messagesBySession', message.sessionId)
-      .map((id) => this.store.db.tables.messages.requireEntity(id))
+      .map((id) => this.helpers.db.tables.messages.requireEntity(id))
     const lastMessage = messages.at(-1)
     if (lastMessage?.id !== message.id) {
       throw new Error('Only the last message in a conversation can be regenerated')
@@ -81,11 +81,11 @@ export class Runs {
     }
 
     if (message.role === 'assistant') {
-      clearMessageContent(this.store, message.id)
+      clearMessageContent(this.helpers, message.id)
       return this.start({ assistantMessageId: message.id, config: args.config })
     }
 
-    const assistantMessageId = this.store.appendMessage(message.sessionId, {
+    const assistantMessageId = this.helpers.appendMessage(message.sessionId, {
       parts: [],
       role: 'assistant',
     })
@@ -95,24 +95,24 @@ export class Runs {
   // Callers are responsible for creating the user and assistant messages before calling start.
   // The assistant message should have empty parts; all messages before it become the transcript.
   start(args: StartArgs): Run {
-    const assistantMessage = this.store.db.tables.messages.requireEntity(args.assistantMessageId)
-    const session = this.store.db.tables.sessions.requireEntity(assistantMessage.sessionId)
+    const assistantMessage = this.helpers.db.tables.messages.requireEntity(args.assistantMessageId)
+    const session = this.helpers.db.tables.sessions.requireEntity(assistantMessage.sessionId)
     const sessionConfig = sessionConfigRowToRequestConfig(
-      this.store.db.tables.sessionConfigs.requireEntity(session.id),
+      this.helpers.db.tables.sessionConfigs.requireEntity(session.id),
     )
     const config = RequestConfig.parse({ ...sessionConfig, ...args.config })
     const system = this.requireSystemPrompt(config)
     const transcriptMessages = this.collectMessagesBefore(args.assistantMessageId, config)
 
     let requestId = ''
-    this.store.db.transaction(() => {
-      this.store.db.tables.sessions.setCell(session.id, 'updatedAt', Date.now())
-      requestId = createRequest(this.store.db, {
+    this.helpers.db.transaction(() => {
+      this.helpers.db.tables.sessions.setCell(session.id, 'updatedAt', Date.now())
+      requestId = createRequest(this.helpers.db, {
         assistantMessageId: args.assistantMessageId,
         config,
         sessionId: session.id,
       })
-      createMessageGeneration(this.store, {
+      createMessageGeneration(this.helpers, {
         messageId: args.assistantMessageId,
         requestId,
         sessionId: session.id,
@@ -130,10 +130,10 @@ export class Runs {
   }
 
   private collectMessagesBefore(messageId: string, config: RequestConfigType): Rows.Message[] {
-    const target = this.store.db.tables.messages.requireEntity(messageId)
-    const messages = this.store.db.indexes
+    const target = this.helpers.db.tables.messages.requireEntity(messageId)
+    const messages = this.helpers.db.indexes
       .getSliceRowIds('messagesBySession', target.sessionId)
-      .map((id) => this.store.db.tables.messages.requireEntity(id))
+      .map((id) => this.helpers.db.tables.messages.requireEntity(id))
     const targetIndex = messages.findIndex((message) => message.id === messageId)
     if (targetIndex === -1) {
       throw new Error(`Message not found in session transcript: ${messageId}`)
@@ -150,9 +150,9 @@ export class Runs {
   private launchRun(runStart: RunStart): Run {
     const run = new Run({
       credentials: this.credentials,
+      helpers: this.helpers,
       modelResolver: this.modelResolver,
       start: runStart,
-      store: this.store,
     })
 
     this.active.set(run.requestId, run)
@@ -172,7 +172,7 @@ export class Runs {
       return undefined
     }
 
-    const prompt = this.store.db.tables.prompts.requireEntity(config.systemPromptId)
+    const prompt = this.helpers.db.tables.prompts.requireEntity(config.systemPromptId)
     return prompt.content
   }
 }

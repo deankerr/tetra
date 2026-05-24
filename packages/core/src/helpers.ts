@@ -3,7 +3,7 @@ import type { UIMessage } from 'ai'
 import { combineUsageSummaries, createIdGenerator, requestConfigToSessionConfigRow } from '#db'
 import type { MessageRole, RequestConfig, TetraDb } from '#db'
 
-export class Store {
+export class Helpers {
   readonly db: TetraDb
 
   private readonly nextMessageId = createIdGenerator('mesg')
@@ -97,10 +97,13 @@ export class Store {
 
   createPrompt(args: { content?: string; label?: string } = {}): string {
     const promptId = this.nextPromptId()
+    const now = Date.now()
 
     this.db.tables.prompts.setRow(promptId, {
       content: args.content ?? '',
+      createdAt: now,
       label: args.label ?? '',
+      updatedAt: now,
     })
 
     return promptId

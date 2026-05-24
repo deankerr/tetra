@@ -277,7 +277,7 @@ function MessageFooter({
   isLastMessage: boolean
   message: NonNullable<ReturnType<typeof useTetraMessage>>
 }) {
-  const { runs, store } = useTetra()
+  const { helpers, runs } = useTetra()
 
   const messageText = message.steps
     .flatMap((s) => s.parts)
@@ -317,7 +317,7 @@ function MessageFooter({
         size="icon-sm"
         aria-label="Delete"
         onClick={() => {
-          store.deleteMessage(message.id)
+          helpers.deleteMessage(message.id)
         }}
       >
         <TrashIcon />
