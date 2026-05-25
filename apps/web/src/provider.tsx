@@ -18,12 +18,12 @@ import { createWsSynchronizer } from 'tinybase/synchronizers/synchronizer-ws-cli
 import { Provider, useCreateSynchronizer } from 'tinybase/ui-react'
 import { Inspector } from 'tinybase/ui-react-inspector'
 
+import { TETRA_INDEXED_DB_NAME } from '@/lib/hard-reset'
 import { TetraContext } from '@/tetra-context'
 import type { DataMode } from '@/tetra-context'
 import { tinybase } from '@/tinybase'
 
 const DATA_MODE = import.meta.env.VITE_TETRA_DATA_MODE ?? 'memory'
-const INDEXED_DB_NAME = 'tetra-local'
 const WORKER_URL = import.meta.env.VITE_WORKER_URL ?? 'ws://localhost:8787'
 
 interface TetraApp {
@@ -75,7 +75,7 @@ export function TetraProvider({ children }: { children: React.ReactNode }) {
   const persister = tinybase.useCreatePersister(
     dataMode === 'local' ? rawStore : undefined,
     async (store) => {
-      const indexedDbPersister = createIndexedDbPersister(store, INDEXED_DB_NAME)
+      const indexedDbPersister = createIndexedDbPersister(store, TETRA_INDEXED_DB_NAME)
       await indexedDbPersister.startAutoLoad()
       await indexedDbPersister.startAutoSave()
       return indexedDbPersister

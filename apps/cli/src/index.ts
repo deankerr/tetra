@@ -7,6 +7,7 @@ import { registerConfigCommand } from './commands/config'
 import { registerDumpCommand } from './commands/dump'
 import { registerModelsCommand } from './commands/models'
 import { registerPromptCommands } from './commands/prompts'
+import { registerResetCommand } from './commands/reset'
 import { registerSeedCommand } from './commands/seed'
 import { registerSessionCommands } from './commands/sessions'
 
@@ -56,6 +57,7 @@ registerModelsCommand(program, getContext)
 registerPromptCommands(program, getContext)
 registerSeedCommand(program, getContext)
 registerDumpCommand(program)
+registerResetCommand(program)
 
 let exitCode = 0
 try {
