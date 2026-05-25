@@ -22,7 +22,7 @@ import {
 import { useMemo } from 'react'
 
 import { useTetra } from '@/tetra-context'
-import { typedTinybase } from '@/tinybase'
+import { typedTinybase } from '@/tetra-tinybase-react'
 
 type UIMessagePart = Rows.Message['parts'][number]
 

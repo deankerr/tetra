@@ -63,7 +63,7 @@ function importSession(
     ...rawSessionConfig,
   })
 
-  helpers.db.transaction(() => {
+  helpers.db.store.transaction(() => {
     helpers.db.tables.sessions.setRow(session.id, {
       createdAt: session.createdAt,
       title: session.title,

@@ -1,8 +1,18 @@
 import { expect, test } from 'bun:test'
 
+import { createIndexes } from 'tinybase/indexes/with-schemas'
+import { createStore } from 'tinybase/store/with-schemas'
 import { z } from 'zod'
 
-import { defineTypedTinybase, tinybaseCell, tinybaseIndex, tinybaseTable } from './index.ts'
+import {
+  bindTinybaseIndexes,
+  bindTinybaseStore,
+  defineTypedTinybase,
+  setTinybaseIndexDefinitions,
+  tinybaseCell,
+  tinybaseIndex,
+  tinybaseTable,
+} from './index.ts'
 
 const ModelConfig = z.object({
   maxMessages: z.number().int().positive().optional(),
@@ -50,6 +60,19 @@ const createTestDefinition = () =>
     },
   })
 
+function createTestStore(definition: ReturnType<typeof createTestDefinition>) {
+  // TinyBase runtime objects are owned by the caller; the definition only supplies schemas.
+  const tablesSchema = structuredClone(definition.tinybaseTablesSchema)
+  const valuesSchema = structuredClone(definition.tinybaseValuesSchema)
+
+  return createStore().setSchema(tablesSchema, valuesSchema)
+}
+
+function bindTestStore(definition: ReturnType<typeof createTestDefinition>) {
+  // Bind zod-backed helpers around an externally created TinyBase Store.
+  return bindTinybaseStore(createTestStore(definition), definition.tables, definition.values)
+}
+
 test('generates TinyBase schemas from explicit table and cell definitions', () => {
   const definition = createTestDefinition()
 
@@ -67,7 +90,7 @@ test('generates TinyBase schemas from explicit table and cell definitions', () =
 
 test('binds a TinyBase store with explicit typed row CRUD methods', () => {
   const definition = createTestDefinition()
-  const db = definition.bindTinybaseStore(definition.createTinybaseStore())
+  const db = bindTestStore(definition)
 
   db.tables.sessions.setRow('sess_1', {
     config: { modelId: 'openai/gpt-5.1', providerOptions: { effort: 'low' }, toolIds: [] },
@@ -114,9 +137,10 @@ test('binds a TinyBase store with explicit typed row CRUD methods', () => {
 
 test('keeps table query methods precise around missing rows and raw TinyBase defaults', () => {
   const definition = createTestDefinition()
-  const db = definition.bindTinybaseStore(definition.createTinybaseStore())
+  const store = createTestStore(definition)
+  const db = bindTinybaseStore(store, definition.tables, definition.values)
 
-  db.store.setPartialRow('sessions', 'sess_1', { title: 'TinyBase default fill' })
+  store.setPartialRow('sessions', 'sess_1', { title: 'TinyBase default fill' })
 
   expect(db.tables.sessions.getRow('missing_session')).toBeNull()
   expect(db.tables.sessions.getEntity('missing_session')).toBeNull()
@@ -135,7 +159,7 @@ test('keeps table query methods precise around missing rows and raw TinyBase def
 
 test('parses table mutation inputs before writing to TinyBase', () => {
   const definition = createTestDefinition()
-  const db = definition.bindTinybaseStore(definition.createTinybaseStore())
+  const db = bindTestStore(definition)
   const invalidSessionRow = {
     config: {
       modelId: 'anthropic/claude-sonnet-4.5',
@@ -177,11 +201,12 @@ test('parses table mutation inputs before writing to TinyBase', () => {
   })
 })
 
-test('runs multiple typed mutations inside a TinyBase transaction', () => {
+test('runs multiple typed mutations inside a caller-owned TinyBase transaction', () => {
   const definition = createTestDefinition()
-  const db = definition.bindTinybaseStore(definition.createTinybaseStore())
+  const store = createTestStore(definition)
+  const db = bindTinybaseStore(store, definition.tables, definition.values)
 
-  db.transaction(() => {
+  store.transaction(() => {
     db.tables.sessions.setRow('sess_1', {
       config: {
         modelId: 'anthropic/claude-sonnet-4.5',
@@ -201,7 +226,7 @@ test('runs multiple typed mutations inside a TinyBase transaction', () => {
 
 test('binds typed value methods separately from table row methods', () => {
   const definition = createTestDefinition()
-  const db = definition.bindTinybaseStore(definition.createTinybaseStore())
+  const db = bindTestStore(definition)
 
   expect(db.values.activeSessionId.get()).toBe('')
   expect(db.values.get('activeSessionId').get()).toBe('')
@@ -215,7 +240,7 @@ test('binds typed value methods separately from table row methods', () => {
 
 test('parses value mutation inputs before writing to TinyBase', () => {
   const definition = createTestDefinition()
-  const db = definition.bindTinybaseStore(definition.createTinybaseStore())
+  const db = bindTestStore(definition)
 
   // @ts-expect-error - Runtime validation should reject invalid value inputs that bypass types.
   expect(() => db.values.activeSessionId.set(42)).toThrow()
@@ -227,9 +252,11 @@ test('parses value mutation inputs before writing to TinyBase', () => {
 
 test('creates and binds typed TinyBase indexes', () => {
   const definition = createTestDefinition()
-  const store = definition.createTinybaseStore()
-  const db = definition.bindTinybaseStore(store)
-  const indexes = definition.bindTinybaseIndexes(definition.createTinybaseIndexes(store))
+  const store = createTestStore(definition)
+  const db = bindTinybaseStore(store, definition.tables, definition.values)
+  const rawIndexes = createIndexes(store)
+  setTinybaseIndexDefinitions(rawIndexes, definition.indexes)
+  const indexes = bindTinybaseIndexes(rawIndexes, definition.indexes)
 
   db.tables.sessions.setRow('sess_1', {
     config: {
@@ -306,7 +333,7 @@ test('parses raw rows, entities, values, and individual cell schemas through zod
 
 test('throws loudly when required entities or invalid rows cross the boundary', () => {
   const definition = createTestDefinition()
-  const db = definition.bindTinybaseStore(definition.createTinybaseStore())
+  const db = bindTestStore(definition)
 
   expect(() => db.tables.sessions.requireEntity('missing_session')).toThrow(
     'Missing row: sessions/missing_session',

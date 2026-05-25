@@ -1,5 +1,6 @@
 import { createIdGenerator } from '#db'
-import type { RequestConfig as RequestConfigType, TetraDb } from '#db'
+import type { RequestConfig as RequestConfigType } from '#db'
+import type { TetraDb } from '#db-binding'
 import type { Helpers } from '#helpers'
 
 import { commitMessageGeneration, updateMessageGeneration } from './message-generations.ts'

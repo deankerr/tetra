@@ -4,7 +4,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from '@tetra/ui/compone
 import { Progress } from '@tetra/ui/components/ui/progress'
 import { useMemo } from 'react'
 
-import { typedTinybase } from '@/tinybase'
+import { typedTinybase } from '@/tetra-tinybase-react'
 
 interface SessionContextSummary {
   maxTokens: number

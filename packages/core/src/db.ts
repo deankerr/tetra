@@ -198,11 +198,6 @@ export const tetraDbDefinition = defineTypedTinybase({
   },
 })
 
-export const tablesSchema = tetraDbDefinition.tinybaseTablesSchema
-export const valuesSchema = tetraDbDefinition.tinybaseValuesSchema
-
-export type DbSchemas = [typeof tablesSchema, typeof valuesSchema]
-
 // oxlint-disable-next-line typescript/no-namespace -- Namespaces keep contested schema row names grouped at call sites, e.g. Rows.Message.
 export namespace Rows {
   export type LanguageModel = EntityOf<(typeof tetraDbDefinition.tables.languageModels)['schema']>
@@ -218,42 +213,6 @@ export namespace Rows {
   >
   export type SessionConfig = EntityOf<(typeof tetraDbDefinition.tables.sessionConfigs)['schema']>
 }
-
-export function createTetraStore({ mergeable = true }: { mergeable?: boolean } = {}) {
-  return mergeable
-    ? tetraDbDefinition.createTinybaseMergeableStore()
-    : tetraDbDefinition.createTinybaseStore()
-}
-
-export type TetraStore = ReturnType<typeof createTetraStore>
-
-export function createTetraIndexes(store: TetraStore) {
-  return tetraDbDefinition.createTinybaseIndexes(store)
-}
-
-export type TetraIndexes = ReturnType<typeof createTetraIndexes>
-
-export function bindTetraDb(store: TetraStore, rawIndexes: TetraIndexes) {
-  const bound = tetraDbDefinition.bindTinybaseStore(store)
-
-  return {
-    indexes: tetraDbDefinition.bindTinybaseIndexes(rawIndexes),
-    store,
-    tables: bound.tables,
-    transaction(fn: () => void) {
-      bound.transaction(fn)
-    },
-    values: bound.values,
-  }
-}
-
-export function createTetraDb({ mergeable = true }: { mergeable?: boolean } = {}) {
-  const store = createTetraStore({ mergeable })
-  const rawIndexes = createTetraIndexes(store)
-  return bindTetraDb(store, rawIndexes)
-}
-
-export type TetraDb = ReturnType<typeof createTetraDb>
 
 const [getNextHlc] = getHlcFunctions()
 export function createIdGenerator(prefix: string): () => string {

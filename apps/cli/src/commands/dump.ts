@@ -1,11 +1,13 @@
 import { Database } from 'bun:sqlite'
 
-import { createTetraDb } from '@tetra/core'
+import { bindTetraDb, tetraDbDefinition } from '@tetra/core'
+import { setTinybaseIndexDefinitions } from '@tetra/tinybase-schema'
 import type { Command } from 'commander'
-import type { Store } from 'tinybase'
-import type { MergeableStore } from 'tinybase/mergeable-store'
+import { createIndexes } from 'tinybase/indexes/with-schemas'
+import { createMergeableStore } from 'tinybase/mergeable-store/with-schemas'
 import { createSqliteBunPersister } from 'tinybase/persisters/persister-sqlite-bun/with-schemas'
-import { createWsSynchronizer } from 'tinybase/synchronizers/synchronizer-ws-client'
+import { createStore } from 'tinybase/store/with-schemas'
+import { createWsSynchronizer } from 'tinybase/synchronizers/synchronizer-ws-client/with-schemas'
 
 import { TABULAR_CONFIG, WORKER_URL } from '../bootstrap'
 
@@ -23,9 +25,10 @@ export function registerDumpCommand(program: Command): void {
       const settleMs = Number.parseInt(opts.settle, 10)
 
       // Open a MergeableStore and sync from the DO.
-      const syncTetraDb = createTetraDb({ mergeable: true })
-      // oxlint-disable-next-line no-unsafe-type-assertion -- MergeableStore at runtime
-      const mergeableStore = syncTetraDb.store as unknown as MergeableStore
+      const mergeableStore = createMergeableStore().setSchema(
+        structuredClone(tetraDbDefinition.tinybaseTablesSchema),
+        structuredClone(tetraDbDefinition.tinybaseValuesSchema),
+      )
       const ws = new WebSocket(`${WORKER_URL}/tetra`)
       const synchronizer = await createWsSynchronizer(mergeableStore, ws)
       await synchronizer.startSync()
@@ -35,16 +38,19 @@ export function registerDumpCommand(program: Command): void {
       console.log(' done')
 
       // Open a plain Store and copy the data across using the untyped store API.
-      const localTetraDb = createTetraDb({ mergeable: false })
-      // oxlint-disable-next-line no-unsafe-type-assertion -- raw Store API for schema-agnostic copy
-      const rawLocalStore = localTetraDb.store as unknown as Store
-      rawLocalStore.setTables(mergeableStore.getTables())
-      rawLocalStore.setValues(mergeableStore.getValues())
+      const localStore = createStore().setSchema(
+        structuredClone(tetraDbDefinition.tinybaseTablesSchema),
+        structuredClone(tetraDbDefinition.tinybaseValuesSchema),
+      )
+      localStore.setTables(mergeableStore.getTables())
+      localStore.setValues(mergeableStore.getValues())
+      const localIndexes = createIndexes(localStore)
+      setTinybaseIndexDefinitions(localIndexes, tetraDbDefinition.indexes)
+      const localTetraDb = bindTetraDb(localStore, localIndexes)
 
       // Save to tabular SQLite.
       const sqlite = new Database(opts.db)
-      // oxlint-disable-next-line no-unsafe-type-assertion -- tabular persister requires untyped Store
-      const persister = createSqliteBunPersister(rawLocalStore as never, sqlite, TABULAR_CONFIG)
+      const persister = createSqliteBunPersister(localStore, sqlite, TABULAR_CONFIG)
       await persister.save()
 
       const sessionCount = localTetraDb.tables.sessions.getRowIds().length

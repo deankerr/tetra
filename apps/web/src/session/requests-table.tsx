@@ -9,7 +9,7 @@ import {
 } from '@tetra/ui/components/ui/table'
 import { useMemo } from 'react'
 
-import { typedTinybase } from '@/tinybase'
+import { typedTinybase } from '@/tetra-tinybase-react'
 
 type Request = Rows.Request
 

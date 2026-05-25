@@ -7,7 +7,7 @@ import {
 import { cn } from '@tetra/ui/lib/utils'
 
 import { TetraLogo } from '@/components/tetra-logo'
-import { typedTinybase } from '@/tinybase'
+import { typedTinybase } from '@/tetra-tinybase-react'
 
 import { Composer } from './composer'
 import { TetraMessageView } from './message-view'

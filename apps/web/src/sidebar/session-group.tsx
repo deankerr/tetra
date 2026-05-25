@@ -21,7 +21,7 @@ import { useMemo, useRef, useState } from 'react'
 
 import { useOpenSessionIds, useSetOpenSessionIds } from '@/app-state'
 import { useTetra } from '@/tetra-context'
-import { typedTinybase } from '@/tinybase'
+import { typedTinybase } from '@/tetra-tinybase-react'
 
 // Sessions sorted by updatedAt descending — most recently active first.
 // appendMessage touches updatedAt, so this order naturally tracks conversation activity.

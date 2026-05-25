@@ -34,15 +34,28 @@ export const dbDefinition = defineTypedTinybase({
 })
 ```
 
-The definition can create and bind TinyBase objects:
+The definition emits TinyBase schemas. Store and Indexes binding are separate so
+callers keep ownership of TinyBase runtime objects:
 
 ```ts
-const store = dbDefinition.createTinybaseStore()
-const db = dbDefinition.bindTinybaseStore(store)
+const store = createStore().setSchema(
+  dbDefinition.tinybaseTablesSchema,
+  dbDefinition.tinybaseValuesSchema,
+)
+const db = bindTinybaseStore(store, dbDefinition.tables, dbDefinition.values)
 
-const rawIndexes = dbDefinition.createTinybaseIndexes(store)
-const indexes = dbDefinition.bindTinybaseIndexes(rawIndexes)
+const rawIndexes = createIndexes(store)
+setTinybaseIndexDefinitions(rawIndexes, dbDefinition.indexes)
+const indexes = bindTinybaseIndexes(rawIndexes, dbDefinition.indexes)
 ```
+
+Source files mirror the TinyBase concepts they wrap:
+
+- `cell.ts`, `table.ts`, and `schema.ts` define zod-backed schemas and emit
+  TinyBase-compatible schema objects.
+- `store.ts` binds table/value helpers around a caller-owned `Store`.
+- `indexes.ts` defines, applies, and binds a caller-owned `Indexes` object.
+- `definition.ts` composes the schema definition object and stateless parsers.
 
 Bound table APIs currently include:
 
@@ -55,8 +68,6 @@ Bound store APIs currently include:
 
 - `tables`, with named table APIs such as `db.tables.messages`
 - `values`, with named value APIs such as `db.values.activeSessionId`
-- `transaction`
-- `store`, for integration boundaries
 
 Bound value APIs currently include:
 
@@ -69,7 +80,6 @@ Bound index APIs currently include:
 - `getSliceIds`
 - `getSliceRowIds`
 - per-index accessors such as `indexes.messagesBySession.getSliceRowIds(sliceId)`
-- `raw`, for passing the underlying TinyBase `Indexes` object to TinyBase APIs
 
 React hooks currently include:
 
@@ -105,10 +115,10 @@ Some TinyBase integrations still need raw objects:
 
 - Persistence receives the raw `store`.
 - React `Provider` receives the raw `store` and `indexes`.
-- `indexes.raw` exposes the raw TinyBase `Indexes` object for that purpose.
 
-This is the preferred escape hatch style: expose the raw TinyBase object only at
-integration boundaries that require it.
+Those objects should be owned by the app or package runtime layer, then passed
+to this package only for typed helper binding. `@tetra/tinybase-schema` should
+not create stores, create indexes, or know whether a store is mergeable.
 
 ## Boundary Casts
 
@@ -138,7 +148,13 @@ Hold off on these until the app needs them:
 ## Current Design Notes
 
 - `db.tables` in Tetra contains table APIs only. Store-level values live under
-  `db.values`, and `transaction` lives at the DB boundary.
+  `db.values`, and transactions should use the caller-owned TinyBase Store
+  directly.
+- Store binding and index binding are separate functions because TinyBase keeps
+  `Store` and `Indexes` as separate objects. Index definitions depend on table
+  zod schemas only for type-checking indexed cell ids.
 - `raw` escape hatches should stay rare and explicit.
 - Prefer adding wrappers only when Tetra already has a raw TinyBase call site
   that would benefit from typing.
+- TinyBase `Store`, `MergeableStore`, `Indexes`, persisters, synchronizers, and
+  React `Provider` wiring are runtime concerns owned outside this package.

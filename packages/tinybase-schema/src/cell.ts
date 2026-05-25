@@ -19,6 +19,7 @@ function fieldOf<
   type: Kind,
   options?: Options,
 ): FieldDefinition<Schema, TinySchemaOf<Kind, Schema, Options>> {
+  // TinyBase gets its coarse cell shape; zod keeps the precise runtime schema.
   const tinySchema: TinyCellSchema = { type }
 
   if (options?.default !== undefined) {

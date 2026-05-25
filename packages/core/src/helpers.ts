@@ -5,7 +5,8 @@ import {
   RequestConfig as RequestConfigSchema,
   createIdGenerator,
 } from '#db'
-import type { MessageRole, RequestConfig, TetraDb } from '#db'
+import type { MessageRole, RequestConfig } from '#db'
+import type { TetraDb } from '#db-binding'
 import { combineUsageSummaries } from '#usage'
 
 export class Helpers {
@@ -33,7 +34,7 @@ export class Helpers {
     const now = Date.now()
 
     // Write session identity and config rows atomically.
-    this.db.transaction(() => {
+    this.db.store.transaction(() => {
       this.db.tables.sessions.setRow(sessionId, {
         createdAt: now,
         title: args.title ?? '',
@@ -54,7 +55,7 @@ export class Helpers {
     this.db.tables.sessions.requireEntity(sessionId)
 
     // Cascade: remove messages, requests, and config before deleting the session row.
-    this.db.transaction(() => {
+    this.db.store.transaction(() => {
       for (const messageId of this.db.indexes.getSliceRowIds('messagesBySession', sessionId)) {
         this.db.tables.messages.deleteRow(messageId)
       }
@@ -127,7 +128,7 @@ export class Helpers {
   deletePrompt(promptId: string): void {
     this.db.tables.prompts.requireEntity(promptId)
 
-    this.db.transaction(() => {
+    this.db.store.transaction(() => {
       for (const sessionId of this.db.tables.sessions.getRowIds()) {
         if (this.db.tables.sessionConfigs.getCell(sessionId, 'systemPromptId') === promptId) {
           this.db.tables.sessionConfigs.setCell(sessionId, 'systemPromptId', '')

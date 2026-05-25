@@ -1,17 +1,32 @@
 import { expect, test } from 'bun:test'
 
 import type { LanguageModelV3StreamPart } from '@ai-sdk/provider'
+import { setTinybaseIndexDefinitions } from '@tetra/tinybase-schema'
 import { simulateReadableStream, tool } from 'ai'
 import { MockLanguageModelV3 } from 'ai/test'
+import { createIndexes } from 'tinybase/indexes/with-schemas'
+import { createStore } from 'tinybase/store/with-schemas'
 import { z } from 'zod'
 
-import { Helpers, Runs, createTetraDb } from '../index.ts'
+import { Helpers, Runs, bindTetraDb, tetraDbDefinition } from '../index.ts'
 import { toolsRegistryMap } from '../tools/tools.ts'
 import { createMessageGeneration, writeMessageGenerationSnapshot } from './message-generations.ts'
 import type { CredentialReader, LanguageModelResolver } from './run.ts'
 
+function createTestDb() {
+  // Tests own the TinyBase Store and Indexes objects, matching app runtime setup.
+  const store = createStore().setSchema(
+    structuredClone(tetraDbDefinition.tinybaseTablesSchema),
+    structuredClone(tetraDbDefinition.tinybaseValuesSchema),
+  )
+  const indexes = createIndexes(store)
+  setTinybaseIndexDefinitions(indexes, tetraDbDefinition.indexes)
+
+  return bindTetraDb(store, indexes)
+}
+
 function createTestRuntime() {
-  const db = createTetraDb()
+  const db = createTestDb()
   const helpers = new Helpers(db)
   const core = { db, helpers }
   const credentials: CredentialReader = { get: () => '' }
@@ -119,7 +134,7 @@ test('start streams through the AI SDK into TinyBase rows', async () => {
 })
 
 test('streaming snapshots persist to messageGenerations before message commit', async () => {
-  const db = createTetraDb()
+  const db = createTestDb()
   const helpers = new Helpers(db)
   const core = { db, helpers }
   const credentials: CredentialReader = { get: () => '' }
@@ -340,7 +355,7 @@ test('Regenerate — only the last message can be regenerated', () => {
 })
 
 test('Tool Loop — tool call executes and result appears in final parts', async () => {
-  const db = createTetraDb()
+  const db = createTestDb()
   const helpers = new Helpers(db)
   const core = { db, helpers }
   const credentials: CredentialReader = { get: () => '' }
@@ -443,7 +458,7 @@ test('Tool Loop — tool call executes and result appears in final parts', async
 })
 
 test('Error Path — stream error sets request to error status', async () => {
-  const db = createTetraDb()
+  const db = createTestDb()
   const helpers = new Helpers(db)
   const core = { db, helpers }
   const credentials: CredentialReader = { get: () => '' }
@@ -490,7 +505,7 @@ test('Recovery — interrupted requests commit partial generations and clean hot
   const assistantMessageId = core.helpers.appendMessage(sessionId, { parts: [], role: 'assistant' })
   let requestId = ''
   const now = Date.now()
-  core.db.transaction(() => {
+  core.db.store.transaction(() => {
     requestId = core.db.tables.requests.setRow('req_test', {
       assistantMessageId,
       config: {
@@ -528,7 +543,7 @@ test('Recovery — interrupted requests commit partial generations and clean hot
 })
 
 test('Error Path — later requests can still run after an error', async () => {
-  const db = createTetraDb()
+  const db = createTestDb()
   const helpers = new Helpers(db)
   const core = { db, helpers }
   const credentials: CredentialReader = { get: () => '' }

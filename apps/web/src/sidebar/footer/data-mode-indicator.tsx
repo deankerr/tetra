@@ -2,7 +2,7 @@ import { Button } from '@tetra/ui/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@tetra/ui/components/ui/tooltip'
 import { CloudIcon, DatabaseIcon } from 'lucide-react'
 
-import { tinybase } from '@/tinybase'
+import { tinybase } from '@/tetra-tinybase-react'
 
 export function DataModeIndicator() {
   const persister = tinybase.usePersister()

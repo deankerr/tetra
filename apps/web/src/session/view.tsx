@@ -6,7 +6,7 @@ import { Settings2Icon, TableIcon, TriangleIcon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 
 import { useOpenSessionIds, useSetOpenSessionIds } from '@/app-state'
-import { typedTinybase } from '@/tinybase'
+import { typedTinybase } from '@/tetra-tinybase-react'
 
 import { TetraConversationView } from './conversation-view'
 import { SessionExportButton } from './export-button'

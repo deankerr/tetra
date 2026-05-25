@@ -103,7 +103,7 @@ export class Runs {
     const transcriptMessages = this.collectMessagesBefore(args.assistantMessageId, config)
 
     let requestId = ''
-    this.helpers.db.transaction(() => {
+    this.helpers.db.store.transaction(() => {
       this.helpers.db.tables.sessions.setCell(session.id, 'updatedAt', Date.now())
       requestId = createRequest(this.helpers.db, {
         assistantMessageId: args.assistantMessageId,

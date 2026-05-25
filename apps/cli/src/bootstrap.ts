@@ -1,10 +1,13 @@
 import { Database } from 'bun:sqlite'
 
-import { Catalog, Helpers, Runs, createTetraDb } from '@tetra/core'
+import { Catalog, Helpers, Runs, bindTetraDb, tetraDbDefinition } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
-import type { MergeableStore } from 'tinybase/mergeable-store'
+import { setTinybaseIndexDefinitions } from '@tetra/tinybase-schema'
+import { createIndexes } from 'tinybase/indexes/with-schemas'
+import { createMergeableStore } from 'tinybase/mergeable-store/with-schemas'
 import { createSqliteBunPersister } from 'tinybase/persisters/persister-sqlite-bun/with-schemas'
-import { createWsSynchronizer } from 'tinybase/synchronizers/synchronizer-ws-client'
+import { createStore } from 'tinybase/store/with-schemas'
+import { createWsSynchronizer } from 'tinybase/synchronizers/synchronizer-ws-client/with-schemas'
 
 // oxlint-disable-next-line dot-notation -- env var name has underscores, bracket notation is clearer
 export const WORKER_URL = process.env['TETRA_WORKER_URL'] ?? 'ws://localhost:8787'
@@ -41,28 +44,35 @@ export const TABULAR_CONFIG = {
 export type BootstrapMode = 'local' | 'sync'
 
 export async function bootstrap(mode: BootstrapMode) {
-  const db = createTetraDb({ mergeable: mode === 'sync' })
-  const helpers = new Helpers(db)
-  const catalog = new Catalog(db)
-  const runs = new Runs(helpers, credentialStore)
-
-  const { cliActiveSessionId } = db.values
-  const workspace = {
-    clearActiveSessionId(): void {
-      cliActiveSessionId.set('')
-    },
-    getActiveSessionId(): string | undefined {
-      const sessionId = db.store.hasValue('cliActiveSessionId') ? cliActiveSessionId.get() : ''
-      return sessionId.trim() === '' ? undefined : sessionId
-    },
-    setActiveSessionId(sessionId: string): void {
-      cliActiveSessionId.set(sessionId)
-    },
-  }
-
   if (mode === 'local') {
+    // Local mode owns a plain Store and applies Tetra's schema directly.
+    const store = createStore().setSchema(
+      structuredClone(tetraDbDefinition.tinybaseTablesSchema),
+      structuredClone(tetraDbDefinition.tinybaseValuesSchema),
+    )
+    const indexes = createIndexes(store)
+    setTinybaseIndexDefinitions(indexes, tetraDbDefinition.indexes)
+    const db = bindTetraDb(store, indexes)
+    const helpers = new Helpers(db)
+    const catalog = new Catalog(db)
+    const runs = new Runs(helpers, credentialStore)
+
+    const { cliActiveSessionId } = db.values
+    const workspace = {
+      clearActiveSessionId(): void {
+        cliActiveSessionId.set('')
+      },
+      getActiveSessionId(): string | undefined {
+        const sessionId = db.store.hasValue('cliActiveSessionId') ? cliActiveSessionId.get() : ''
+        return sessionId.trim() === '' ? undefined : sessionId
+      },
+      setActiveSessionId(sessionId: string): void {
+        cliActiveSessionId.set(sessionId)
+      },
+    }
+
     const sqlite = new Database('./tetra-redesign.db')
-    const persister = createSqliteBunPersister(db.store, sqlite, TABULAR_CONFIG)
+    const persister = createSqliteBunPersister(store, sqlite, TABULAR_CONFIG)
     await persister.load()
     runs.recover()
 
@@ -79,14 +89,34 @@ export async function bootstrap(mode: BootstrapMode) {
     }
   }
 
-  // sync mode: MergeableStore connected to the DO, with a local JSON SQLite cache for offline
-  // resilience. The cache file is intentionally separate from the tabular db.
+  // Sync mode owns a MergeableStore and connects it to the DO plus a local JSON SQLite cache.
+  const store = createMergeableStore().setSchema(
+    structuredClone(tetraDbDefinition.tinybaseTablesSchema),
+    structuredClone(tetraDbDefinition.tinybaseValuesSchema),
+  )
+  const indexes = createIndexes(store)
+  setTinybaseIndexDefinitions(indexes, tetraDbDefinition.indexes)
+  const db = bindTetraDb(store, indexes)
+  const helpers = new Helpers(db)
+  const catalog = new Catalog(db)
+  const runs = new Runs(helpers, credentialStore)
+  const { cliActiveSessionId } = db.values
+  const workspace = {
+    clearActiveSessionId(): void {
+      cliActiveSessionId.set('')
+    },
+    getActiveSessionId(): string | undefined {
+      const sessionId = db.store.hasValue('cliActiveSessionId') ? cliActiveSessionId.get() : ''
+      return sessionId.trim() === '' ? undefined : sessionId
+    },
+    setActiveSessionId(sessionId: string): void {
+      cliActiveSessionId.set(sessionId)
+    },
+  }
   const sqlite = new Database('./tetra-sync-cache.db')
-  const persister = createSqliteBunPersister(db.store, sqlite)
-  // oxlint-disable-next-line no-unsafe-type-assertion -- store is a MergeableStore at runtime
-  const mergeableStore = db.store as unknown as MergeableStore
+  const persister = createSqliteBunPersister(store, sqlite)
   const ws = new WebSocket(`${WORKER_URL}/tetra`)
-  const synchronizer = await createWsSynchronizer(mergeableStore, ws)
+  const synchronizer = await createWsSynchronizer(store, ws)
 
   await persister.load()
   await synchronizer.startSync()

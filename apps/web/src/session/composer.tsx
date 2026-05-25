@@ -23,7 +23,7 @@ import { useState } from 'react'
 import { ModelPicker } from '@/session/settings/model-picker'
 import { useSettings } from '@/settings-provider'
 import { useTetra } from '@/tetra-context'
-import { typedTinybase } from '@/tinybase'
+import { typedTinybase } from '@/tetra-tinybase-react'
 import { useCredential } from '@/use-credential'
 
 const activeStatuses = new Set(['preparing', 'streaming'])

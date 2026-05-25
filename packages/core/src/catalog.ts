@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
-import type { Rows, TetraDb } from '#db'
+import type { Rows } from '#db'
+import type { TetraDb } from '#db-binding'
 
 const STALE_MS = 60 * 60 * 1000
 const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models'
@@ -69,7 +70,7 @@ export class Catalog {
 
     // Replace the full catalog in one transaction: remove stale entries, upsert incoming.
     const incomingIds = new Set(models.map((m) => m.id))
-    this.db.transaction(() => {
+    this.db.store.transaction(() => {
       for (const existingId of this.db.tables.languageModels.getRowIds()) {
         if (!incomingIds.has(existingId)) {
           this.db.tables.languageModels.deleteRow(existingId)
