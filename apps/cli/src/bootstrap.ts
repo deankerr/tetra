@@ -1,6 +1,6 @@
 import { Database } from 'bun:sqlite'
 
-import { Runs, createCoreModules, createTetraDb } from '@tetra/core'
+import { Catalog, Helpers, Runs, createTetraDb } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
 import type { MergeableStore } from 'tinybase/mergeable-store'
 import { createSqliteBunPersister } from 'tinybase/persisters/persister-sqlite-bun/with-schemas'
@@ -41,16 +41,18 @@ export const TABULAR_CONFIG = {
 export type BootstrapMode = 'local' | 'sync'
 
 export async function bootstrap(mode: BootstrapMode) {
-  const core = createCoreModules(createTetraDb({ mergeable: mode === 'sync' }))
-  const runs = new Runs(core.helpers, credentialStore)
+  const db = createTetraDb({ mergeable: mode === 'sync' })
+  const helpers = new Helpers(db)
+  const catalog = new Catalog(db)
+  const runs = new Runs(helpers, credentialStore)
 
-  const { cliActiveSessionId } = core.db.values
+  const { cliActiveSessionId } = db.values
   const workspace = {
     clearActiveSessionId(): void {
       cliActiveSessionId.set('')
     },
     getActiveSessionId(): string | undefined {
-      const sessionId = core.db.store.hasValue('cliActiveSessionId') ? cliActiveSessionId.get() : ''
+      const sessionId = db.store.hasValue('cliActiveSessionId') ? cliActiveSessionId.get() : ''
       return sessionId.trim() === '' ? undefined : sessionId
     },
     setActiveSessionId(sessionId: string): void {
@@ -60,18 +62,18 @@ export async function bootstrap(mode: BootstrapMode) {
 
   if (mode === 'local') {
     const sqlite = new Database('./tetra-redesign.db')
-    const persister = createSqliteBunPersister(core.db.store, sqlite, TABULAR_CONFIG)
+    const persister = createSqliteBunPersister(db.store, sqlite, TABULAR_CONFIG)
     await persister.load()
     runs.recover()
 
     return {
-      catalog: core.catalog,
+      catalog,
       close: async () => {
         await persister.save()
         await persister.destroy()
         sqlite.close()
       },
-      helpers: core.helpers,
+      helpers,
       runs,
       workspace,
     }
@@ -80,9 +82,9 @@ export async function bootstrap(mode: BootstrapMode) {
   // sync mode: MergeableStore connected to the DO, with a local JSON SQLite cache for offline
   // resilience. The cache file is intentionally separate from the tabular db.
   const sqlite = new Database('./tetra-sync-cache.db')
-  const persister = createSqliteBunPersister(core.db.store, sqlite)
+  const persister = createSqliteBunPersister(db.store, sqlite)
   // oxlint-disable-next-line no-unsafe-type-assertion -- store is a MergeableStore at runtime
-  const mergeableStore = core.db.store as unknown as MergeableStore
+  const mergeableStore = db.store as unknown as MergeableStore
   const ws = new WebSocket(`${WORKER_URL}/tetra`)
   const synchronizer = await createWsSynchronizer(mergeableStore, ws)
 
@@ -91,14 +93,14 @@ export async function bootstrap(mode: BootstrapMode) {
   runs.recover()
 
   return {
-    catalog: core.catalog,
+    catalog,
     close: async () => {
       await persister.save()
       await persister.destroy()
       await synchronizer.destroy()
       sqlite.close()
     },
-    helpers: core.helpers,
+    helpers,
     runs,
     workspace,
   }

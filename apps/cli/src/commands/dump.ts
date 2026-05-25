@@ -1,6 +1,6 @@
 import { Database } from 'bun:sqlite'
 
-import { createCoreModules, createTetraDb } from '@tetra/core'
+import { createTetraDb } from '@tetra/core'
 import type { Command } from 'commander'
 import type { Store } from 'tinybase'
 import type { MergeableStore } from 'tinybase/mergeable-store'
@@ -36,7 +36,6 @@ export function registerDumpCommand(program: Command): void {
 
       // Open a plain Store and copy the data across using the untyped store API.
       const localTetraDb = createTetraDb({ mergeable: false })
-      const localCore = createCoreModules(localTetraDb)
       // oxlint-disable-next-line no-unsafe-type-assertion -- raw Store API for schema-agnostic copy
       const rawLocalStore = localTetraDb.store as unknown as Store
       rawLocalStore.setTables(mergeableStore.getTables())
@@ -48,8 +47,8 @@ export function registerDumpCommand(program: Command): void {
       const persister = createSqliteBunPersister(rawLocalStore as never, sqlite, TABULAR_CONFIG)
       await persister.save()
 
-      const sessionCount = localCore.db.tables.sessions.getRowIds().length
-      const messageCount = localCore.db.tables.messages.getRowIds().length
+      const sessionCount = localTetraDb.tables.sessions.getRowIds().length
+      const messageCount = localTetraDb.tables.messages.getRowIds().length
       console.log(`Dumped ${sessionCount} sessions, ${messageCount} messages → ${opts.db}`)
 
       await synchronizer.destroy()

@@ -5,13 +5,15 @@ import { simulateReadableStream, tool } from 'ai'
 import { MockLanguageModelV3 } from 'ai/test'
 import { z } from 'zod'
 
-import { createCoreModules, Runs } from '../index.ts'
+import { Helpers, Runs, createTetraDb } from '../index.ts'
 import { toolsRegistryMap } from '../tools/tools.ts'
 import { createMessageGeneration, writeMessageGenerationSnapshot } from './message-generations.ts'
 import type { CredentialReader, LanguageModelResolver } from './run.ts'
 
 function createTestRuntime() {
-  const core = createCoreModules()
+  const db = createTetraDb()
+  const helpers = new Helpers(db)
+  const core = { db, helpers }
   const credentials: CredentialReader = { get: () => '' }
   const streamChunks: LanguageModelV3StreamPart[] = [
     { type: 'stream-start', warnings: [] },
@@ -117,7 +119,9 @@ test('start streams through the AI SDK into TinyBase rows', async () => {
 })
 
 test('streaming snapshots persist to messageGenerations before message commit', async () => {
-  const core = createCoreModules()
+  const db = createTetraDb()
+  const helpers = new Helpers(db)
+  const core = { db, helpers }
   const credentials: CredentialReader = { get: () => '' }
   const model = new MockLanguageModelV3({
     doStream: {
@@ -336,7 +340,9 @@ test('Regenerate — only the last message can be regenerated', () => {
 })
 
 test('Tool Loop — tool call executes and result appears in final parts', async () => {
-  const core = createCoreModules()
+  const db = createTetraDb()
+  const helpers = new Helpers(db)
+  const core = { db, helpers }
   const credentials: CredentialReader = { get: () => '' }
 
   const toolCallChunks: LanguageModelV3StreamPart[] = [
@@ -437,7 +443,9 @@ test('Tool Loop — tool call executes and result appears in final parts', async
 })
 
 test('Error Path — stream error sets request to error status', async () => {
-  const core = createCoreModules()
+  const db = createTetraDb()
+  const helpers = new Helpers(db)
+  const core = { db, helpers }
   const credentials: CredentialReader = { get: () => '' }
 
   const model = new MockLanguageModelV3({
@@ -520,7 +528,9 @@ test('Recovery — interrupted requests commit partial generations and clean hot
 })
 
 test('Error Path — later requests can still run after an error', async () => {
-  const core = createCoreModules()
+  const db = createTetraDb()
+  const helpers = new Helpers(db)
+  const core = { db, helpers }
   const credentials: CredentialReader = { get: () => '' }
 
   let callCount = 0

@@ -11,9 +11,9 @@ The redesigned core puts us in a good position: tests can use the same `Accessor
 Use the real pieces:
 
 - `createTetraDb`
-- `createCoreModules`
 - `Accessors`
 - `Sessions`, `Prompts`, `Transcripts`, and `Catalog` where relevant
+- `Helpers` and `Catalog` instantiated around the test database
 - `Runs` and live `Run` instances
 - TinyBase rows, values, and indexes
 - AI SDK `streamText`
@@ -36,7 +36,7 @@ After the model resolver seam exists, add a small test helper in `packages/core-
 It should create:
 
 - an in-memory `createTetraDb`
-- `createCoreModules(db)`
+- `Helpers` and `Catalog` created directly from that database
 - a `MockLanguageModelV3`
 - a `Runs` instance wired to the mock model resolver
 - a memory `CredentialReader`
