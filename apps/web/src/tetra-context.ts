@@ -1,11 +1,8 @@
 import type { Catalog, Helpers, Runs } from '@tetra/core'
 import { createContext, useContext } from 'react'
 
-export type DataMode = 'local' | 'memory' | 'sync'
-
 export interface TetraAppContext {
   catalog: Catalog
-  dataMode: DataMode
   helpers: Helpers
   runs: Runs
 }

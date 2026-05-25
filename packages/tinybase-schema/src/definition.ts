@@ -1,10 +1,10 @@
 import type { z } from 'zod'
 
-import type { IndexDefinitions } from './indexes.ts'
+import type { BoundIndexes, IndexDefinitions } from './indexes.ts'
 import { toTinybaseTablesSchema, toTinybaseValuesSchema } from './schema.ts'
-import type { TinybaseTablesSchemaOf, TinybaseValuesSchemaOf } from './schema.ts'
+import type { TinybaseSchemasOf, TinybaseTablesSchemaOf, TinybaseValuesSchemaOf } from './schema.ts'
 import { parseEntity, parseRow, parseValue } from './store.ts'
-import type { EntityOf, OutputRowOf, ValueDefinitions } from './store.ts'
+import type { BoundTinybase, EntityOf, OutputRowOf, ValueDefinitions } from './store.ts'
 import type { TableDefinitions, TableSchemaOf } from './table.ts'
 import type { AnyZod } from './types.ts'
 
@@ -36,6 +36,47 @@ export interface TinybaseDefinition<
   tinybaseValuesSchema: TinybaseValuesSchemaOf<Values>
   values: Values
 }
+
+export type TinybaseSchemasFor<
+  Definition extends TinybaseDefinition<
+    TableDefinitions,
+    ValueDefinitions,
+    IndexDefinitions<TableDefinitions>
+  >,
+> =
+  Definition extends TinybaseDefinition<
+    infer Tables,
+    infer Values,
+    IndexDefinitions<TableDefinitions>
+  >
+    ? TinybaseSchemasOf<Tables, Values>
+    : never
+
+export type TinybaseTypedStore<
+  Definition extends TinybaseDefinition<
+    TableDefinitions,
+    ValueDefinitions,
+    IndexDefinitions<TableDefinitions>
+  >,
+> =
+  Definition extends TinybaseDefinition<
+    infer Tables,
+    infer Values,
+    IndexDefinitions<TableDefinitions>
+  >
+    ? BoundTinybase<Tables, Values>
+    : never
+
+export type TinybaseTypedIndexes<
+  Definition extends TinybaseDefinition<
+    TableDefinitions,
+    ValueDefinitions,
+    IndexDefinitions<TableDefinitions>
+  >,
+> =
+  Definition extends TinybaseDefinition<TableDefinitions, ValueDefinitions, infer IndexDefs>
+    ? BoundIndexes<IndexDefs>
+    : never
 
 // oxlint-disable no-unsafe-type-assertion -- This is the library boundary that binds typed definitions to TinyBase's schema-aware Store.
 

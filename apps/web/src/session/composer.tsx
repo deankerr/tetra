@@ -70,7 +70,8 @@ export function Composer({ sessionId }: { sessionId: string }) {
       throw new Error('OpenRouter API key required')
     }
 
-    const shouldSetTitle = tetra.helpers.db.tables.sessions.requireEntity(sessionId).title === ''
+    const shouldSetTitle =
+      tetra.helpers.typedStore.tables.sessions.requireEntity(sessionId).title === ''
 
     // Clear draft before execute so any TinyBase-triggered re-render sees the empty value
     setDraft('')
@@ -84,7 +85,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
       })
       tetra.runs.start({ assistantMessageId })
       if (shouldSetTitle) {
-        tetra.helpers.db.tables.sessions.updateRow(sessionId, {
+        tetra.helpers.typedStore.tables.sessions.updateRow(sessionId, {
           title: text === '' ? 'Image' : text.slice(0, 60),
           updatedAt: Date.now(),
         })

@@ -22,7 +22,7 @@ export function resolveSession(
 ): string {
   // Explicit session IDs always win, and also become active by default.
   if (sessionId !== undefined) {
-    if (!helpers.db.tables.sessions.hasRow(sessionId)) {
+    if (!helpers.typedStore.tables.sessions.hasRow(sessionId)) {
       throw new Error(`Session not found: ${sessionId}`)
     }
     if (setActive) {
@@ -42,7 +42,7 @@ export function resolveSession(
 
   // Reuse the active session when it still points at a real session.
   const activeSessionId = workspace.getActiveSessionId()
-  if (activeSessionId !== undefined && helpers.db.tables.sessions.hasRow(activeSessionId)) {
+  if (activeSessionId !== undefined && helpers.typedStore.tables.sessions.hasRow(activeSessionId)) {
     return activeSessionId
   }
 

@@ -49,6 +49,14 @@ setTinybaseIndexDefinitions(rawIndexes, dbDefinition.indexes)
 const indexes = bindTinybaseIndexes(rawIndexes, dbDefinition.indexes)
 ```
 
+Use TinyBase's own schema-aware types for raw runtime objects, parameterized by
+`TinybaseSchemasFor<typeof definition>`. The definition-derived helper surfaces
+are:
+
+- `TinybaseTypedStore<typeof definition>` for the bound `{ tables, values }`
+  helper API.
+- `TinybaseTypedIndexes<typeof definition>` for the bound index helper API.
+
 Source files mirror the TinyBase concepts they wrap:
 
 - `cell.ts`, `table.ts`, and `schema.ts` define zod-backed schemas and emit
@@ -56,6 +64,11 @@ Source files mirror the TinyBase concepts they wrap:
 - `store.ts` binds table/value helpers around a caller-owned `Store`.
 - `indexes.ts` defines, applies, and binds a caller-owned `Indexes` object.
 - `definition.ts` composes the schema definition object and stateless parsers.
+
+The bind functions intentionally accept a structural Store/Indexes API rather
+than TinyBase's raw or `with-schemas` interfaces. TinyBase's schema-aware types
+are useful at creation and React boundaries, but the binders only need the
+runtime methods they call.
 
 Bound table APIs currently include:
 
@@ -153,6 +166,10 @@ Hold off on these until the app needs them:
 - Store binding and index binding are separate functions because TinyBase keeps
   `Store` and `Indexes` as separate objects. Index definitions depend on table
   zod schemas only for type-checking indexed cell ids.
+- `TinybaseTypedStore<typeof definition>` and
+  `TinybaseTypedIndexes<typeof definition>` are helper types, not TinyBase raw
+  object types. Composition roots should import raw `Store`, `MergeableStore`,
+  and `Indexes` types from TinyBase directly when they need them.
 - `raw` escape hatches should stay rare and explicit.
 - Prefer adding wrappers only when Tetra already has a raw TinyBase call site
   that would benefit from typing.

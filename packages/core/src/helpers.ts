@@ -1,31 +1,48 @@
+import type {
+  TinybaseSchemasFor,
+  TinybaseTypedIndexes,
+  TinybaseTypedStore,
+} from '@tetra/tinybase-schema'
 import type { UIMessage } from 'ai'
+import type { Store } from 'tinybase/store/with-schemas'
 
 import {
   DEFAULT_REQUEST_CONFIG,
   RequestConfig as RequestConfigSchema,
   createIdGenerator,
 } from '#db'
-import type { MessageRole, RequestConfig } from '#db'
-import type { TetraDb } from '#db-binding'
+import type { MessageRole, RequestConfig, tetraDbDefinition } from '#db'
 import { combineUsageSummaries } from '#usage'
 
 export class Helpers {
-  readonly db: TetraDb
+  readonly rawStore: Store<TinybaseSchemasFor<typeof tetraDbDefinition>>
+  readonly typedIndexes: TinybaseTypedIndexes<typeof tetraDbDefinition>
+  readonly typedStore: TinybaseTypedStore<typeof tetraDbDefinition>
 
   private readonly nextMessageId = createIdGenerator('mesg')
   private readonly nextPromptId = createIdGenerator('prpt')
   private readonly nextSessionId = createIdGenerator('sess')
 
-  constructor(db: TetraDb) {
-    this.db = db
+  constructor({
+    rawStore,
+    typedIndexes,
+    typedStore,
+  }: {
+    rawStore: Store<TinybaseSchemasFor<typeof tetraDbDefinition>>
+    typedIndexes: TinybaseTypedIndexes<typeof tetraDbDefinition>
+    typedStore: TinybaseTypedStore<typeof tetraDbDefinition>
+  }) {
+    this.rawStore = rawStore
+    this.typedIndexes = typedIndexes
+    this.typedStore = typedStore
   }
 
   // ——— Sessions ———
 
   createSession(args: { config?: Partial<RequestConfig>; title?: string } = {}): string {
     const sessionId = this.nextSessionId()
-    const storedDefaultConfig = this.db.store.hasValue('defaultSessionConfig')
-      ? this.db.values.defaultSessionConfig.get()
+    const storedDefaultConfig = this.rawStore.hasValue('defaultSessionConfig')
+      ? this.typedStore.values.defaultSessionConfig.get()
       : DEFAULT_REQUEST_CONFIG
     const config = RequestConfigSchema.parse({
       ...storedDefaultConfig,
@@ -33,15 +50,15 @@ export class Helpers {
     })
     const now = Date.now()
 
-    // Write session identity and config rows atomically.
-    this.db.store.transaction(() => {
-      this.db.tables.sessions.setRow(sessionId, {
+    // Publish a complete session shape as one TinyBase listener/sync event.
+    this.rawStore.transaction(() => {
+      this.typedStore.tables.sessions.setRow(sessionId, {
         createdAt: now,
         title: args.title ?? '',
         updatedAt: now,
       })
-      this.db.tables.sessionConfigs.setRow(sessionId, config)
-      this.db.tables.sessionSummaries.setRow(sessionId, {
+      this.typedStore.tables.sessionConfigs.setRow(sessionId, config)
+      this.typedStore.tables.sessionSummaries.setRow(sessionId, {
         createdAt: now,
         updatedAt: now,
         usage: {},
@@ -52,39 +69,39 @@ export class Helpers {
   }
 
   deleteSession(sessionId: string): void {
-    this.db.tables.sessions.requireEntity(sessionId)
+    this.typedStore.tables.sessions.requireEntity(sessionId)
 
     // Cascade: remove messages, requests, and config before deleting the session row.
-    this.db.store.transaction(() => {
-      for (const messageId of this.db.indexes.getSliceRowIds('messagesBySession', sessionId)) {
-        this.db.tables.messages.deleteRow(messageId)
+    this.rawStore.transaction(() => {
+      for (const messageId of this.typedIndexes.getSliceRowIds('messagesBySession', sessionId)) {
+        this.typedStore.tables.messages.deleteRow(messageId)
       }
 
-      for (const requestId of this.db.indexes.getSliceRowIds(
+      for (const requestId of this.typedIndexes.getSliceRowIds(
         'requestsBySessionNewestFirst',
         sessionId,
       )) {
-        this.db.tables.requests.deleteRow(requestId)
+        this.typedStore.tables.requests.deleteRow(requestId)
       }
 
-      for (const messageId of this.db.indexes.getSliceRowIds('generationBySession', sessionId)) {
-        this.db.tables.messageGenerations.deleteRow(messageId)
+      for (const messageId of this.typedIndexes.getSliceRowIds('generationBySession', sessionId)) {
+        this.typedStore.tables.messageGenerations.deleteRow(messageId)
       }
 
-      this.db.tables.sessionSummaries.deleteRow(sessionId)
-      this.db.tables.sessionConfigs.deleteRow(sessionId)
-      this.db.tables.sessions.deleteRow(sessionId)
+      this.typedStore.tables.sessionSummaries.deleteRow(sessionId)
+      this.typedStore.tables.sessionConfigs.deleteRow(sessionId)
+      this.typedStore.tables.sessions.deleteRow(sessionId)
     })
   }
 
   // ——— Messages ———
 
   appendMessage(sessionId: string, args: { parts: UIMessage['parts']; role: MessageRole }): string {
-    this.db.tables.sessions.requireEntity(sessionId)
+    this.typedStore.tables.sessions.requireEntity(sessionId)
     const messageId = this.nextMessageId()
     const now = Date.now()
 
-    this.db.tables.messages.setRow(messageId, {
+    this.typedStore.tables.messages.setRow(messageId, {
       createdAt: now,
       parts: args.parts,
       role: args.role,
@@ -95,16 +112,16 @@ export class Helpers {
     })
 
     // Touch session to update its updatedAt whenever a message is appended.
-    this.db.tables.sessions.setCell(sessionId, 'updatedAt', now)
+    this.typedStore.tables.sessions.setCell(sessionId, 'updatedAt', now)
 
     return messageId
   }
 
   deleteMessage(messageId: string): void {
-    const message = this.db.tables.messages.requireEntity(messageId)
-    this.db.tables.messageGenerations.deleteRow(messageId)
-    this.db.tables.messages.deleteRow(messageId)
-    this.db.tables.sessions.setCell(message.sessionId, 'updatedAt', Date.now())
+    const message = this.typedStore.tables.messages.requireEntity(messageId)
+    this.typedStore.tables.messageGenerations.deleteRow(messageId)
+    this.typedStore.tables.messages.deleteRow(messageId)
+    this.typedStore.tables.sessions.setCell(message.sessionId, 'updatedAt', Date.now())
     this.rebuildSessionUsage(message.sessionId)
   }
 
@@ -114,7 +131,7 @@ export class Helpers {
     const promptId = this.nextPromptId()
     const now = Date.now()
 
-    this.db.tables.prompts.setRow(promptId, {
+    this.typedStore.tables.prompts.setRow(promptId, {
       content: args.content ?? '',
       createdAt: now,
       label: args.label ?? '',
@@ -126,30 +143,34 @@ export class Helpers {
 
   // Removes the prompt and unlinks it from any sessions that reference it.
   deletePrompt(promptId: string): void {
-    this.db.tables.prompts.requireEntity(promptId)
+    this.typedStore.tables.prompts.requireEntity(promptId)
 
-    this.db.store.transaction(() => {
-      for (const sessionId of this.db.tables.sessions.getRowIds()) {
-        if (this.db.tables.sessionConfigs.getCell(sessionId, 'systemPromptId') === promptId) {
-          this.db.tables.sessionConfigs.setCell(sessionId, 'systemPromptId', '')
+    this.rawStore.transaction(() => {
+      for (const sessionId of this.typedStore.tables.sessions.getRowIds()) {
+        if (
+          this.typedStore.tables.sessionConfigs.getCell(sessionId, 'systemPromptId') === promptId
+        ) {
+          this.typedStore.tables.sessionConfigs.setCell(sessionId, 'systemPromptId', '')
         }
       }
 
-      this.db.tables.prompts.deleteRow(promptId)
+      this.typedStore.tables.prompts.deleteRow(promptId)
     })
   }
 
   rebuildSessionUsage(sessionId: string): void {
-    this.db.tables.sessions.requireEntity(sessionId)
+    this.typedStore.tables.sessions.requireEntity(sessionId)
 
-    const messageUsages = this.db.indexes
+    const messageUsages = this.typedIndexes
       .getSliceRowIds('messagesBySession', sessionId)
-      .map((messageId) => this.db.tables.messages.getCell(messageId, 'usage') ?? {})
-    const generationUsages = this.db.indexes
+      .map((messageId) => this.typedStore.tables.messages.getCell(messageId, 'usage') ?? {})
+    const generationUsages = this.typedIndexes
       .getSliceRowIds('generationBySession', sessionId)
-      .map((messageId) => this.db.tables.messageGenerations.getCell(messageId, 'usage') ?? {})
+      .map(
+        (messageId) => this.typedStore.tables.messageGenerations.getCell(messageId, 'usage') ?? {},
+      )
 
-    this.db.tables.sessionSummaries.updateRow(sessionId, {
+    this.typedStore.tables.sessionSummaries.updateRow(sessionId, {
       updatedAt: Date.now(),
       usage: combineUsageSummaries([...messageUsages, ...generationUsages]),
     })

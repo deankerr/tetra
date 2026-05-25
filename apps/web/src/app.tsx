@@ -1,4 +1,5 @@
 import { Sidebar, SidebarInset, SidebarProvider } from '@tetra/ui/components/ui/sidebar'
+import { Toaster } from '@tetra/ui/components/ui/sonner'
 
 import { SessionView } from '@/session/view'
 import { SettingsProvider } from '@/settings-provider'
@@ -21,6 +22,7 @@ export function App() {
           </SidebarInset>
         </SidebarProvider>
       </SettingsProvider>
+      <Toaster richColors />
     </TetraProvider>
   )
 }

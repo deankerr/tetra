@@ -1,8 +1,12 @@
 import { Database } from 'bun:sqlite'
 
-import { Catalog, Helpers, Runs, bindTetraDb, tetraDbDefinition } from '@tetra/core'
+import { Catalog, Helpers, Runs, tetraDbDefinition } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
-import { setTinybaseIndexDefinitions } from '@tetra/tinybase-schema'
+import {
+  bindTinybaseIndexes,
+  bindTinybaseStore,
+  setTinybaseIndexDefinitions,
+} from '@tetra/tinybase-schema'
 import { createIndexes } from 'tinybase/indexes/with-schemas'
 import { createMergeableStore } from 'tinybase/mergeable-store/with-schemas'
 import { createSqliteBunPersister } from 'tinybase/persisters/persister-sqlite-bun/with-schemas'
@@ -52,18 +56,25 @@ export async function bootstrap(mode: BootstrapMode) {
     )
     const indexes = createIndexes(store)
     setTinybaseIndexDefinitions(indexes, tetraDbDefinition.indexes)
-    const db = bindTetraDb(store, indexes)
-    const helpers = new Helpers(db)
-    const catalog = new Catalog(db)
+    const typedStore = bindTinybaseStore(store, tetraDbDefinition.tables, tetraDbDefinition.values)
+    const typedIndexes = bindTinybaseIndexes(indexes, tetraDbDefinition.indexes)
+    const context = {
+      rawIndexes: indexes,
+      rawStore: store,
+      typedIndexes,
+      typedStore,
+    }
+    const helpers = new Helpers(context)
+    const catalog = new Catalog(context)
     const runs = new Runs(helpers, credentialStore)
 
-    const { cliActiveSessionId } = db.values
+    const { cliActiveSessionId } = typedStore.values
     const workspace = {
       clearActiveSessionId(): void {
         cliActiveSessionId.set('')
       },
       getActiveSessionId(): string | undefined {
-        const sessionId = db.store.hasValue('cliActiveSessionId') ? cliActiveSessionId.get() : ''
+        const sessionId = store.hasValue('cliActiveSessionId') ? cliActiveSessionId.get() : ''
         return sessionId.trim() === '' ? undefined : sessionId
       },
       setActiveSessionId(sessionId: string): void {
@@ -96,17 +107,24 @@ export async function bootstrap(mode: BootstrapMode) {
   )
   const indexes = createIndexes(store)
   setTinybaseIndexDefinitions(indexes, tetraDbDefinition.indexes)
-  const db = bindTetraDb(store, indexes)
-  const helpers = new Helpers(db)
-  const catalog = new Catalog(db)
+  const typedStore = bindTinybaseStore(store, tetraDbDefinition.tables, tetraDbDefinition.values)
+  const typedIndexes = bindTinybaseIndexes(indexes, tetraDbDefinition.indexes)
+  const context = {
+    rawIndexes: indexes,
+    rawStore: store,
+    typedIndexes,
+    typedStore,
+  }
+  const helpers = new Helpers(context)
+  const catalog = new Catalog(context)
   const runs = new Runs(helpers, credentialStore)
-  const { cliActiveSessionId } = db.values
+  const { cliActiveSessionId } = typedStore.values
   const workspace = {
     clearActiveSessionId(): void {
       cliActiveSessionId.set('')
     },
     getActiveSessionId(): string | undefined {
-      const sessionId = db.store.hasValue('cliActiveSessionId') ? cliActiveSessionId.get() : ''
+      const sessionId = store.hasValue('cliActiveSessionId') ? cliActiveSessionId.get() : ''
       return sessionId.trim() === '' ? undefined : sessionId
     },
     setActiveSessionId(sessionId: string): void {

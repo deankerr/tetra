@@ -6,7 +6,6 @@
     "#catalog": "./src/catalog.ts",
     "#db": "./src/db.ts",
     "#helpers": "./src/helpers.ts",
-    "#db-binding": "./src/db-binding.ts",
     "#runtime": "./src/runtime/index.ts",
     "#seeds": "./src/seeds.ts",
     "#tools": "./src/tools/tools.ts",

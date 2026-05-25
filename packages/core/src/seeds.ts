@@ -37,20 +37,20 @@ const bundledSeeds = [
 ] as unknown as Loose<PortableSessionExport>[]
 
 export function exportSession(helpers: Helpers, sessionId: string): SessionExport {
-  if (!helpers.db.tables.sessions.hasRow(sessionId)) {
+  if (!helpers.typedStore.tables.sessions.hasRow(sessionId)) {
     throw new Error(`Session not found: ${sessionId}`)
   }
 
   return {
     exportedAt: new Date().toISOString(),
-    messages: helpers.db.indexes
+    messages: helpers.typedIndexes
       .getSliceRowIds('messagesBySession', sessionId)
-      .map((id) => helpers.db.tables.messages.requireEntity(id)),
-    requests: helpers.db.indexes
+      .map((id) => helpers.typedStore.tables.messages.requireEntity(id)),
+    requests: helpers.typedIndexes
       .getSliceRowIds('requestsBySessionNewestFirst', sessionId)
-      .map((id) => helpers.db.tables.requests.requireEntity(id)),
-    session: helpers.db.tables.sessions.requireEntity(sessionId),
-    sessionConfig: helpers.db.tables.sessionConfigs.requireEntity(sessionId),
+      .map((id) => helpers.typedStore.tables.requests.requireEntity(id)),
+    session: helpers.typedStore.tables.sessions.requireEntity(sessionId),
+    sessionConfig: helpers.typedStore.tables.sessionConfigs.requireEntity(sessionId),
   }
 }
 
@@ -63,16 +63,16 @@ function importSession(
     ...rawSessionConfig,
   })
 
-  helpers.db.store.transaction(() => {
-    helpers.db.tables.sessions.setRow(session.id, {
+  helpers.rawStore.transaction(() => {
+    helpers.typedStore.tables.sessions.setRow(session.id, {
       createdAt: session.createdAt,
       title: session.title,
       updatedAt: session.updatedAt,
     })
 
-    helpers.db.tables.sessionConfigs.setRow(session.id, sessionConfig)
+    helpers.typedStore.tables.sessionConfigs.setRow(session.id, sessionConfig)
 
-    helpers.db.tables.sessionSummaries.setRow(session.id, {
+    helpers.typedStore.tables.sessionSummaries.setRow(session.id, {
       createdAt: session.createdAt,
       updatedAt: session.updatedAt,
       usage: {},
@@ -80,7 +80,7 @@ function importSession(
 
     for (const message of messages) {
       const steps = parsePortableSteps(message.steps)
-      helpers.db.tables.messages.setRow(message.id, {
+      helpers.typedStore.tables.messages.setRow(message.id, {
         createdAt: message.createdAt,
         // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Loose<T> widens string fields for JSON import compatibility; data is validated by structure.
         parts: message.parts as unknown as Rows.Message['parts'],
@@ -94,7 +94,7 @@ function importSession(
     }
 
     for (const request of requests) {
-      helpers.db.tables.requests.setRow(request.id, {
+      helpers.typedStore.tables.requests.setRow(request.id, {
         assistantMessageId: request.assistantMessageId,
         config: request.config,
         createdAt: request.createdAt,

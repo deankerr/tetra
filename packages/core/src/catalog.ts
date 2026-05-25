@@ -1,7 +1,8 @@
+import type { TinybaseSchemasFor, TinybaseTypedStore } from '@tetra/tinybase-schema'
+import type { Store } from 'tinybase/store/with-schemas'
 import { z } from 'zod'
 
-import type { Rows } from '#db'
-import type { TetraDb } from '#db-binding'
+import type { Rows, tetraDbDefinition } from '#db'
 
 const STALE_MS = 60 * 60 * 1000
 const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models'
@@ -23,15 +24,23 @@ const OpenRouterModelsResponse = z.object({
 })
 
 export class Catalog {
-  private readonly db: TetraDb
+  private readonly rawStore: Store<TinybaseSchemasFor<typeof tetraDbDefinition>>
+  private readonly typedStore: TinybaseTypedStore<typeof tetraDbDefinition>
 
-  constructor(db: TetraDb) {
-    this.db = db
+  constructor({
+    rawStore,
+    typedStore,
+  }: {
+    rawStore: Store<TinybaseSchemasFor<typeof tetraDbDefinition>>
+    typedStore: TinybaseTypedStore<typeof tetraDbDefinition>
+  }) {
+    this.rawStore = rawStore
+    this.typedStore = typedStore
   }
 
   async refresh(args: { force?: boolean } = {}): Promise<void> {
-    const { catalogLastRefreshed } = this.db.values
-    const lastRefreshed = this.db.store.hasValue('catalogLastRefreshed')
+    const { catalogLastRefreshed } = this.typedStore.values
+    const lastRefreshed = this.rawStore.hasValue('catalogLastRefreshed')
       ? catalogLastRefreshed.get()
       : 0
     const isStale = lastRefreshed === 0 || Date.now() - lastRefreshed > STALE_MS
@@ -68,23 +77,22 @@ export class Catalog {
       }
     })
 
-    // Replace the full catalog in one transaction: remove stale entries, upsert incoming.
+    // Publish the catalog replacement and refresh timestamp as one TinyBase event.
     const incomingIds = new Set(models.map((m) => m.id))
-    this.db.store.transaction(() => {
-      for (const existingId of this.db.tables.languageModels.getRowIds()) {
+    this.rawStore.transaction(() => {
+      for (const existingId of this.typedStore.tables.languageModels.getRowIds()) {
         if (!incomingIds.has(existingId)) {
-          this.db.tables.languageModels.deleteRow(existingId)
+          this.typedStore.tables.languageModels.deleteRow(existingId)
         }
       }
       for (const { id, ...record } of models) {
-        const existing = this.db.tables.languageModels.getEntity(id)
-        this.db.tables.languageModels.setRow(id, {
+        const existing = this.typedStore.tables.languageModels.getEntity(id)
+        this.typedStore.tables.languageModels.setRow(id, {
           ...record,
           createdAt: existing?.createdAt ?? record.createdAt,
         })
       }
+      catalogLastRefreshed.set(now)
     })
-
-    catalogLastRefreshed.set(now)
   }
 }

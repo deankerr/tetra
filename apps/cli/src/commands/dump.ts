@@ -1,9 +1,8 @@
 import { Database } from 'bun:sqlite'
 
-import { bindTetraDb, tetraDbDefinition } from '@tetra/core'
-import { setTinybaseIndexDefinitions } from '@tetra/tinybase-schema'
+import { tetraDbDefinition } from '@tetra/core'
+import { bindTinybaseStore } from '@tetra/tinybase-schema'
 import type { Command } from 'commander'
-import { createIndexes } from 'tinybase/indexes/with-schemas'
 import { createMergeableStore } from 'tinybase/mergeable-store/with-schemas'
 import { createSqliteBunPersister } from 'tinybase/persisters/persister-sqlite-bun/with-schemas'
 import { createStore } from 'tinybase/store/with-schemas'
@@ -44,17 +43,19 @@ export function registerDumpCommand(program: Command): void {
       )
       localStore.setTables(mergeableStore.getTables())
       localStore.setValues(mergeableStore.getValues())
-      const localIndexes = createIndexes(localStore)
-      setTinybaseIndexDefinitions(localIndexes, tetraDbDefinition.indexes)
-      const localTetraDb = bindTetraDb(localStore, localIndexes)
+      const localTypedStore = bindTinybaseStore(
+        localStore,
+        tetraDbDefinition.tables,
+        tetraDbDefinition.values,
+      )
 
       // Save to tabular SQLite.
       const sqlite = new Database(opts.db)
       const persister = createSqliteBunPersister(localStore, sqlite, TABULAR_CONFIG)
       await persister.save()
 
-      const sessionCount = localTetraDb.tables.sessions.getRowIds().length
-      const messageCount = localTetraDb.tables.messages.getRowIds().length
+      const sessionCount = localTypedStore.tables.sessions.getRowIds().length
+      const messageCount = localTypedStore.tables.messages.getRowIds().length
       console.log(`Dumped ${sessionCount} sessions, ${messageCount} messages → ${opts.db}`)
 
       await synchronizer.destroy()

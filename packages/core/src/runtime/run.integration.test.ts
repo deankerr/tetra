@@ -1,14 +1,18 @@
 import { expect, test } from 'bun:test'
 
 import type { LanguageModelV3StreamPart } from '@ai-sdk/provider'
-import { setTinybaseIndexDefinitions } from '@tetra/tinybase-schema'
+import {
+  bindTinybaseIndexes,
+  bindTinybaseStore,
+  setTinybaseIndexDefinitions,
+} from '@tetra/tinybase-schema'
 import { simulateReadableStream, tool } from 'ai'
 import { MockLanguageModelV3 } from 'ai/test'
 import { createIndexes } from 'tinybase/indexes/with-schemas'
 import { createStore } from 'tinybase/store/with-schemas'
 import { z } from 'zod'
 
-import { Helpers, Runs, bindTetraDb, tetraDbDefinition } from '../index.ts'
+import { Helpers, Runs, tetraDbDefinition } from '../index.ts'
 import { toolsRegistryMap } from '../tools/tools.ts'
 import { createMessageGeneration, writeMessageGenerationSnapshot } from './message-generations.ts'
 import type { CredentialReader, LanguageModelResolver } from './run.ts'
@@ -22,13 +26,21 @@ function createTestDb() {
   const indexes = createIndexes(store)
   setTinybaseIndexDefinitions(indexes, tetraDbDefinition.indexes)
 
-  return bindTetraDb(store, indexes)
+  const typedStore = bindTinybaseStore(store, tetraDbDefinition.tables, tetraDbDefinition.values)
+  const typedIndexes = bindTinybaseIndexes(indexes, tetraDbDefinition.indexes)
+  return {
+    rawIndexes: indexes,
+    rawStore: store,
+    typedIndexes,
+    typedStore,
+  }
 }
 
 function createTestRuntime() {
-  const db = createTestDb()
-  const helpers = new Helpers(db)
-  const core = { db, helpers }
+  const context = createTestDb()
+  const helpers = new Helpers(context)
+  const { rawStore, typedIndexes, typedStore } = context
+  const core = { helpers, rawStore, typedIndexes, typedStore }
   const credentials: CredentialReader = { get: () => '' }
   const streamChunks: LanguageModelV3StreamPart[] = [
     { type: 'stream-start', warnings: [] },
@@ -91,14 +103,14 @@ test('start streams through the AI SDK into TinyBase rows', async () => {
   const assistantMessageId = core.helpers.appendMessage(sessionId, { parts: [], role: 'assistant' })
 
   const run = runs.start({ assistantMessageId })
-  expect(core.db.tables.requests.requireEntity(run.requestId).status).toBe('preparing')
+  expect(core.typedStore.tables.requests.requireEntity(run.requestId).status).toBe('preparing')
 
   await run.done
 
-  const messages = core.db.indexes
+  const messages = core.typedIndexes
     .getSliceRowIds('messagesBySession', sessionId)
-    .map((id) => core.db.tables.messages.requireEntity(id))
-  const request = core.db.tables.requests.requireEntity(run.requestId)
+    .map((id) => core.typedStore.tables.messages.requireEntity(id))
+  const request = core.typedStore.tables.requests.requireEntity(run.requestId)
 
   expect(run.status).toBe('completed')
   expect(request.status).toBe('completed')
@@ -121,8 +133,8 @@ test('start streams through the AI SDK into TinyBase rows', async () => {
   })
   expect(run.finalParts).toEqual(messages[1]?.parts)
   expect(messages[1]?.usage).toEqual({ inputTokens: 1, outputTokens: 2, totalTokens: 3 })
-  expect(core.db.tables.messageGenerations.getEntity(assistantMessageId)).toBeNull()
-  expect(core.db.tables.sessionSummaries.requireEntity(sessionId).usage).toEqual({
+  expect(core.typedStore.tables.messageGenerations.getEntity(assistantMessageId)).toBeNull()
+  expect(core.typedStore.tables.sessionSummaries.requireEntity(sessionId).usage).toEqual({
     inputTokens: 1,
     outputTokens: 2,
     totalTokens: 3,
@@ -134,9 +146,10 @@ test('start streams through the AI SDK into TinyBase rows', async () => {
 })
 
 test('streaming snapshots persist to messageGenerations before message commit', async () => {
-  const db = createTestDb()
-  const helpers = new Helpers(db)
-  const core = { db, helpers }
+  const context = createTestDb()
+  const helpers = new Helpers(context)
+  const { typedIndexes, typedStore } = helpers
+  const core = { helpers, typedIndexes, typedStore }
   const credentials: CredentialReader = { get: () => '' }
   const model = new MockLanguageModelV3({
     doStream: {
@@ -181,13 +194,15 @@ test('streaming snapshots persist to messageGenerations before message commit', 
 
   await firstSnapshot.promise
 
-  const generation = core.db.tables.messageGenerations.requireEntity(assistantMessageId)
-  expect(core.db.tables.messages.requireEntity(assistantMessageId).parts).toEqual([])
+  const generation = core.typedStore.tables.messageGenerations.requireEntity(assistantMessageId)
+  expect(core.typedStore.tables.messages.requireEntity(assistantMessageId).parts).toEqual([])
   expect(generation.parts.length).toBeGreaterThan(0)
 
   await run.done
-  expect(core.db.tables.messageGenerations.getEntity(assistantMessageId)).toBeNull()
-  expect(core.db.tables.messages.requireEntity(assistantMessageId).parts.length).toBeGreaterThan(0)
+  expect(core.typedStore.tables.messageGenerations.getEntity(assistantMessageId)).toBeNull()
+  expect(
+    core.typedStore.tables.messages.requireEntity(assistantMessageId).parts.length,
+  ).toBeGreaterThan(0)
 })
 
 test('Pre-Run Invariants — throws before creating request when systemPromptId is missing', () => {
@@ -201,15 +216,15 @@ test('Pre-Run Invariants — throws before creating request when systemPromptId 
     role: 'user',
   })
   const assistantMessageId = core.helpers.appendMessage(sessionId, { parts: [], role: 'assistant' })
-  const requestsBefore = core.db.indexes.getSliceRowIds('requestsBySessionNewestFirst', sessionId)
-  const sessionBefore = core.db.tables.sessions.requireEntity(sessionId)
+  const requestsBefore = core.typedIndexes.getSliceRowIds('requestsBySessionNewestFirst', sessionId)
+  const sessionBefore = core.typedStore.tables.sessions.requireEntity(sessionId)
 
   expect(() => runs.start({ assistantMessageId })).toThrow(
     'Missing row: prompts/non-existent-prompt',
   )
 
-  const requestsAfter = core.db.indexes.getSliceRowIds('requestsBySessionNewestFirst', sessionId)
-  const sessionAfter = core.db.tables.sessions.requireEntity(sessionId)
+  const requestsAfter = core.typedIndexes.getSliceRowIds('requestsBySessionNewestFirst', sessionId)
+  const sessionAfter = core.typedStore.tables.sessions.requireEntity(sessionId)
 
   expect(requestsAfter).toHaveLength(requestsBefore.length)
   expect(sessionAfter.updatedAt).toBe(sessionBefore.updatedAt)
@@ -296,15 +311,15 @@ test('Regenerate — assistant tail is cleared and reused', async () => {
 
   const run = runs.regenerate({ messageId: assistantMessageId })
   expect(run.assistantMessageId).toBe(assistantMessageId)
-  expect(core.db.tables.messages.requireEntity(assistantMessageId).parts).toEqual([])
-  expect(core.db.tables.messages.requireEntity(assistantMessageId).steps).toEqual([])
-  expect(core.db.tables.messages.requireEntity(assistantMessageId).usage).toEqual({})
+  expect(core.typedStore.tables.messages.requireEntity(assistantMessageId).parts).toEqual([])
+  expect(core.typedStore.tables.messages.requireEntity(assistantMessageId).steps).toEqual([])
+  expect(core.typedStore.tables.messages.requireEntity(assistantMessageId).usage).toEqual({})
 
   await run.done
 
-  const messages = core.db.indexes
+  const messages = core.typedIndexes
     .getSliceRowIds('messagesBySession', sessionId)
-    .map((id) => core.db.tables.messages.requireEntity(id))
+    .map((id) => core.typedStore.tables.messages.requireEntity(id))
   expect(messages).toHaveLength(2)
   expect(messages[1]?.id).toBe(assistantMessageId)
   expect(model.doStreamCalls[0]?.prompt).toEqual([
@@ -324,9 +339,9 @@ test('Regenerate — user tail appends an assistant message and starts it', asyn
   const run = runs.regenerate({ messageId: userMessageId })
   await run.done
 
-  const messages = core.db.indexes
+  const messages = core.typedIndexes
     .getSliceRowIds('messagesBySession', sessionId)
-    .map((id) => core.db.tables.messages.requireEntity(id))
+    .map((id) => core.typedStore.tables.messages.requireEntity(id))
   expect(messages).toHaveLength(2)
   expect(messages[0]?.id).toBe(userMessageId)
   expect(messages[1]?.id).toBe(run.assistantMessageId)
@@ -355,9 +370,10 @@ test('Regenerate — only the last message can be regenerated', () => {
 })
 
 test('Tool Loop — tool call executes and result appears in final parts', async () => {
-  const db = createTestDb()
-  const helpers = new Helpers(db)
-  const core = { db, helpers }
+  const context = createTestDb()
+  const helpers = new Helpers(context)
+  const { typedIndexes, typedStore } = helpers
+  const core = { helpers, typedIndexes, typedStore }
   const credentials: CredentialReader = { get: () => '' }
 
   const toolCallChunks: LanguageModelV3StreamPart[] = [
@@ -458,9 +474,10 @@ test('Tool Loop — tool call executes and result appears in final parts', async
 })
 
 test('Error Path — stream error sets request to error status', async () => {
-  const db = createTestDb()
-  const helpers = new Helpers(db)
-  const core = { db, helpers }
+  const context = createTestDb()
+  const helpers = new Helpers(context)
+  const { typedIndexes, typedStore } = helpers
+  const core = { helpers, typedIndexes, typedStore }
   const credentials: CredentialReader = { get: () => '' }
 
   const model = new MockLanguageModelV3({
@@ -484,12 +501,12 @@ test('Error Path — stream error sets request to error status', async () => {
     return startedRun
   })
 
-  const request = core.db.tables.requests.requireEntity(run.requestId)
+  const request = core.typedStore.tables.requests.requireEntity(run.requestId)
 
   expect(run.status).toBe('error')
   expect(request.status).toBe('error')
   expect(request.errorMessage).toContain('Provider API error')
-  expect(core.db.tables.messageGenerations.getEntity(assistantMessageId)).toBeNull()
+  expect(core.typedStore.tables.messageGenerations.getEntity(assistantMessageId)).toBeNull()
   expect(run.error).toBeDefined()
   expect(String(run.error)).toContain('Provider API error')
 })
@@ -505,8 +522,8 @@ test('Recovery — interrupted requests commit partial generations and clean hot
   const assistantMessageId = core.helpers.appendMessage(sessionId, { parts: [], role: 'assistant' })
   let requestId = ''
   const now = Date.now()
-  core.db.store.transaction(() => {
-    requestId = core.db.tables.requests.setRow('req_test', {
+  core.rawStore.transaction(() => {
+    requestId = core.typedStore.tables.requests.setRow('req_test', {
       assistantMessageId,
       config: {
         maxMessages: 0,
@@ -535,17 +552,18 @@ test('Recovery — interrupted requests commit partial generations and clean hot
   ])
   runs.recover()
 
-  expect(core.db.tables.requests.requireEntity(requestId).status).toBe('error')
-  expect(core.db.tables.messageGenerations.getEntity(assistantMessageId)).toBeNull()
-  expect(core.db.tables.messages.requireEntity(assistantMessageId).parts).toEqual([
+  expect(core.typedStore.tables.requests.requireEntity(requestId).status).toBe('error')
+  expect(core.typedStore.tables.messageGenerations.getEntity(assistantMessageId)).toBeNull()
+  expect(core.typedStore.tables.messages.requireEntity(assistantMessageId).parts).toEqual([
     { text: 'partial', type: 'text' },
   ])
 })
 
 test('Error Path — later requests can still run after an error', async () => {
-  const db = createTestDb()
-  const helpers = new Helpers(db)
-  const core = { db, helpers }
+  const context = createTestDb()
+  const helpers = new Helpers(context)
+  const { typedIndexes, typedStore } = helpers
+  const core = { helpers, typedIndexes, typedStore }
   const credentials: CredentialReader = { get: () => '' }
 
   let callCount = 0

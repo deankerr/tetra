@@ -1,13 +1,20 @@
 import type { Ids, SortKey } from 'tinybase/common/with-schemas'
-import type { Indexes as TinyIndexes } from 'tinybase/indexes/with-schemas'
-import type { TablesSchema, ValuesSchema } from 'tinybase/store/with-schemas'
 import type { z } from 'zod'
 
 import type { TableDefinitions, TableSchemaOf } from './table.ts'
 
-export type TinybaseIndexes<
-  Schemas extends [TablesSchema, ValuesSchema] = [TablesSchema, ValuesSchema],
-> = TinyIndexes<Schemas>
+interface IndexesApi {
+  getSliceIds(indexId: string): Ids
+  getSliceRowIds(indexId: string, sliceId: string): Ids
+  setIndexDefinition(
+    indexId: string,
+    tableId: string,
+    sliceBy?: unknown,
+    sortBy?: unknown,
+    sliceIdSorter?: unknown,
+    rowIdSorter?: unknown,
+  ): unknown
+}
 
 export type IndexCellId<
   Tables extends TableDefinitions,
@@ -59,10 +66,10 @@ export function tinybaseIndex<const TableId extends string>(
   }
 }
 
-export function bindTinybaseIndexes<
-  Schemas extends [TablesSchema, ValuesSchema],
-  IndexDefs extends Record<string, unknown>,
->(indexes: TinybaseIndexes<Schemas>, definitions: IndexDefs): BoundIndexes<IndexDefs> {
+export function bindTinybaseIndexes<IndexDefs extends Record<string, unknown>>(
+  indexes: IndexesApi,
+  definitions: IndexDefs,
+): BoundIndexes<IndexDefs> {
   // Index APIs are intentionally row-id oriented like TinyBase's native Indexes API.
   const base = {
     getIndex(indexId: keyof IndexDefs & string): IndexApi {
@@ -97,8 +104,8 @@ export function bindTinybaseIndexes<
   return Object.assign(base, accessors) as unknown as BoundIndexes<IndexDefs>
 }
 
-export function setTinybaseIndexDefinitions<Schemas extends [TablesSchema, ValuesSchema]>(
-  indexes: TinybaseIndexes<Schemas>,
+export function setTinybaseIndexDefinitions(
+  indexes: IndexesApi,
   definitions: IndexDefinitions<TableDefinitions>,
 ): void {
   // Apply declared index definitions onto an externally owned TinyBase Indexes object.

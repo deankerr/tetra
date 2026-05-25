@@ -10,6 +10,7 @@ Dev data is wiped and regenerated as needed. This app is not public. There are h
 
 - NO backwards compatibility shims
 - NO migrations - break schemas without hesitation
+- NO premature convenience helpers - start with the pure and verbose form before assuming the correct abstraction
 - NO accessibility or mobile UI support
 - NO premature optimization of code or bundle size
 - NO purist git hygiene - all parts of the app are in flux
@@ -39,6 +40,9 @@ Dev data is wiped and regenerated as needed. This app is not public. There are h
 
 - Cleaned TinyBase docs: `reference/tinybase-docs` - this is .gitignored, use your bash tool to navigate.
 - Inspect the library directly in `node_modules` when a deeper understand of beavhiour is necessary.
+- TinyBase `store.transaction` batches listener notifications and exposes a transaction log; it is not a persistence or exception-safety boundary.
+- `store.transaction` is synchronous and does not use `try/finally`: validate or parse before entering it, and do not put `await` inside it.
+- Use transactions around multi-row writes when TinyBase listeners, persisters, synchronizers, or React bindings should observe one coherent net change.
 
 ### TinyBase Schema
 

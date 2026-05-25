@@ -67,10 +67,10 @@ export class Runs {
 
   // Re-run the final conversation turn by reusing an assistant tail or appending one after a user tail.
   regenerate(args: RegenerateArgs): Run {
-    const message = this.helpers.db.tables.messages.requireEntity(args.messageId)
-    const messages = this.helpers.db.indexes
+    const message = this.helpers.typedStore.tables.messages.requireEntity(args.messageId)
+    const messages = this.helpers.typedIndexes
       .getSliceRowIds('messagesBySession', message.sessionId)
-      .map((id) => this.helpers.db.tables.messages.requireEntity(id))
+      .map((id) => this.helpers.typedStore.tables.messages.requireEntity(id))
     const lastMessage = messages.at(-1)
     if (lastMessage?.id !== message.id) {
       throw new Error('Only the last message in a conversation can be regenerated')
@@ -95,17 +95,21 @@ export class Runs {
   // Callers are responsible for creating the user and assistant messages before calling start.
   // The assistant message should have empty parts; all messages before it become the transcript.
   start(args: StartArgs): Run {
-    const assistantMessage = this.helpers.db.tables.messages.requireEntity(args.assistantMessageId)
-    const session = this.helpers.db.tables.sessions.requireEntity(assistantMessage.sessionId)
-    const sessionConfig = this.helpers.db.tables.sessionConfigs.requireEntity(session.id)
+    const assistantMessage = this.helpers.typedStore.tables.messages.requireEntity(
+      args.assistantMessageId,
+    )
+    const session = this.helpers.typedStore.tables.sessions.requireEntity(
+      assistantMessage.sessionId,
+    )
+    const sessionConfig = this.helpers.typedStore.tables.sessionConfigs.requireEntity(session.id)
     const config = RequestConfig.parse({ ...sessionConfig, ...args.config })
     const system = this.requireSystemPrompt(config)
     const transcriptMessages = this.collectMessagesBefore(args.assistantMessageId, config)
 
     let requestId = ''
-    this.helpers.db.store.transaction(() => {
-      this.helpers.db.tables.sessions.setCell(session.id, 'updatedAt', Date.now())
-      requestId = createRequest(this.helpers.db, {
+    this.helpers.rawStore.transaction(() => {
+      this.helpers.typedStore.tables.sessions.setCell(session.id, 'updatedAt', Date.now())
+      requestId = createRequest(this.helpers.typedStore, {
         assistantMessageId: args.assistantMessageId,
         config,
         sessionId: session.id,
@@ -128,10 +132,10 @@ export class Runs {
   }
 
   private collectMessagesBefore(messageId: string, config: RequestConfigType): Rows.Message[] {
-    const target = this.helpers.db.tables.messages.requireEntity(messageId)
-    const messages = this.helpers.db.indexes
+    const target = this.helpers.typedStore.tables.messages.requireEntity(messageId)
+    const messages = this.helpers.typedIndexes
       .getSliceRowIds('messagesBySession', target.sessionId)
-      .map((id) => this.helpers.db.tables.messages.requireEntity(id))
+      .map((id) => this.helpers.typedStore.tables.messages.requireEntity(id))
     const targetIndex = messages.findIndex((message) => message.id === messageId)
     if (targetIndex === -1) {
       throw new Error(`Message not found in session transcript: ${messageId}`)
@@ -170,7 +174,7 @@ export class Runs {
       return undefined
     }
 
-    const prompt = this.helpers.db.tables.prompts.requireEntity(config.systemPromptId)
+    const prompt = this.helpers.typedStore.tables.prompts.requireEntity(config.systemPromptId)
     return prompt.content
   }
 }

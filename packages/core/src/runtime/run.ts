@@ -110,7 +110,7 @@ export class Run extends EventTarget {
     this.finalParts = [...parts]
     writeMessageGenerationSnapshot(this.helpers, this.assistantMessageId, parts)
     commitMessageGeneration(this.helpers, this.assistantMessageId)
-    completeRequest(this.helpers.db, this.requestId)
+    completeRequest(this.helpers.typedStore, this.requestId)
     this.setStatus('completed')
     this.dispatchEvent(new Event('finish'))
     this.doneController.resolve()
@@ -121,7 +121,7 @@ export class Run extends EventTarget {
     if (this.abortController.signal.aborted) {
       updateMessageGeneration(this.helpers, this.assistantMessageId, { status: 'cancelled' })
       commitMessageGeneration(this.helpers, this.assistantMessageId)
-      cancelRequest(this.helpers.db, this.requestId, 'Request cancelled')
+      cancelRequest(this.helpers.typedStore, this.requestId, 'Request cancelled')
       this.setStatus('cancelled')
       this.dispatchEvent(new Event('cancel'))
       this.doneController.resolve()
@@ -130,7 +130,7 @@ export class Run extends EventTarget {
 
     updateMessageGeneration(this.helpers, this.assistantMessageId, { status: 'error' })
     commitMessageGeneration(this.helpers, this.assistantMessageId)
-    failRequest(this.helpers.db, this.requestId, error)
+    failRequest(this.helpers.typedStore, this.requestId, error)
     this.setStatus('error')
     this.dispatchEvent(new Event('error'))
     this.doneController.resolve()
@@ -170,7 +170,7 @@ export class Run extends EventTarget {
       this.model = model
       this.modelMessages = modelMessages
       this.tools = tools
-      startStreaming(this.helpers.db, this.requestId)
+      startStreaming(this.helpers.typedStore, this.requestId)
       updateMessageGeneration(this.helpers, this.assistantMessageId, { status: 'streaming' })
       this.setStatus('streaming')
 

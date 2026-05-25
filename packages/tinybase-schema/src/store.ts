@@ -1,12 +1,23 @@
-import type { Store, TablesSchema, ValuesSchema } from 'tinybase/store/with-schemas'
 import type { z } from 'zod'
 
 import type { TableDefinitions, TableSchemaOf } from './table.ts'
 import type { AnyZod, FieldDefinition, RowZod } from './types.ts'
 
-export type TinybaseStore<
-  Schemas extends [TablesSchema, ValuesSchema] = [TablesSchema, ValuesSchema],
-> = Store<Schemas>
+interface StoreApi {
+  delRow(tableId: string, rowId: string): unknown
+  delValue(valueId: string): unknown
+  getCell(tableId: string, rowId: string, cellId: string): unknown
+  getRow(tableId: string, rowId: string): unknown
+  getRowIds(tableId: string): string[]
+  getValue(valueId: string): unknown
+  hasCell(tableId: string, rowId: string, cellId: string): boolean
+  hasRow(tableId: string, rowId: string): boolean
+  hasValue(valueId: string): boolean
+  setCell(tableId: string, rowId: string, cellId: string, cell: never): unknown
+  setRow(tableId: string, rowId: string, row: never): unknown
+  setValue(valueId: string, value: never): unknown
+  transaction(fn: () => void): unknown
+}
 
 export type ValueDefinitions = Record<string, FieldDefinition<AnyZod>>
 export type EntityOf<Schema extends RowZod> = z.output<Schema> & { id: string }
@@ -74,8 +85,7 @@ export type BoundValueApis<Values extends ValueDefinitions> = {
 export function bindTinybaseStore<
   const Tables extends TableDefinitions,
   const Values extends ValueDefinitions,
-  Schemas extends [TablesSchema, ValuesSchema],
->(store: Store<Schemas>, tables: Tables, values: Values): BoundTinybase<Tables, Values> {
+>(store: StoreApi, tables: Tables, values: Values): BoundTinybase<Tables, Values> {
   // Table APIs are addressable both by `get(tableId)` and by named properties.
   const tablesApi = {
     get<TableId extends keyof Tables & string>(
@@ -114,8 +124,8 @@ export function bindTinybaseStore<
   } as BoundTinybase<Tables, Values>
 }
 
-export function createTableApi<Schemas extends [TablesSchema, ValuesSchema], Schema extends RowZod>(
-  store: Store<Schemas>,
+export function createTableApi<Schema extends RowZod>(
+  store: StoreApi,
   tableId: string,
   schema: Schema,
 ): TableApi<Schema> {
@@ -199,8 +209,8 @@ export function createTableApi<Schemas extends [TablesSchema, ValuesSchema], Sch
   }
 }
 
-export function createValueApi<Schemas extends [TablesSchema, ValuesSchema], Schema extends AnyZod>(
-  store: Store<Schemas>,
+export function createValueApi<Schema extends AnyZod>(
+  store: StoreApi,
   valueId: string,
   schema: Schema,
 ): ValueApi<Schema> {

@@ -36,17 +36,21 @@ export function registerConfigCommand(
           ...(typeof opts.prompt === 'string' && { systemPromptId: opts.prompt }),
         }
 
-        const config = ctx.helpers.db.tables.sessionConfigs.requireEntity(resolvedSessionId)
+        const config = ctx.helpers.typedStore.tables.sessionConfigs.requireEntity(resolvedSessionId)
 
         if (Object.keys(overrides).length > 0 || opts.prompt === false) {
           const next = { ...config, ...overrides }
           if (opts.prompt === false) {
             next.systemPromptId = ''
           }
-          ctx.helpers.db.tables.sessionConfigs.setRow(resolvedSessionId, RequestConfig.parse(next))
+          ctx.helpers.typedStore.tables.sessionConfigs.setRow(
+            resolvedSessionId,
+            RequestConfig.parse(next),
+          )
         }
 
-        const latestConfig = ctx.helpers.db.tables.sessionConfigs.requireEntity(resolvedSessionId)
+        const latestConfig =
+          ctx.helpers.typedStore.tables.sessionConfigs.requireEntity(resolvedSessionId)
         console.log(`session:      ${resolvedSessionId}`)
         console.log(`model:        ${latestConfig.modelId}`)
         console.log(

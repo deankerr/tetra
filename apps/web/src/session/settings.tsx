@@ -95,8 +95,8 @@ function UseAsDefaultButton({ sessionId }: { sessionId: string }) {
     <Button
       className="w-full"
       onClick={() => {
-        helpers.db.values.defaultSessionConfig.set(
-          helpers.db.tables.sessionConfigs.requireEntity(sessionId),
+        helpers.typedStore.values.defaultSessionConfig.set(
+          helpers.typedStore.tables.sessionConfigs.requireEntity(sessionId),
         )
       }}
       variant="outline"

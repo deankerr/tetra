@@ -78,7 +78,7 @@ export function registerSessionCommands(
     .description('List sessions')
     .action(async () => {
       const ctx = await getContext()
-      const sessions = ctx.helpers.db.tables.sessions
+      const sessions = ctx.helpers.typedStore.tables.sessions
         .listEntities()
         .toSorted((a, b) => a.createdAt - b.createdAt)
       const activeSessionId = ctx.workspace.getActiveSessionId()
@@ -102,7 +102,7 @@ export function registerSessionCommands(
       const ctx = await getContext()
 
       if (sessionId !== undefined) {
-        if (!ctx.helpers.db.tables.sessions.hasRow(sessionId)) {
+        if (!ctx.helpers.typedStore.tables.sessions.hasRow(sessionId)) {
           throw new Error(`Session not found: ${sessionId}`)
         }
         ctx.workspace.setActiveSessionId(sessionId)
@@ -118,7 +118,7 @@ export function registerSessionCommands(
     .description('Set the active session')
     .action(async (sessionId: string) => {
       const ctx = await getContext()
-      if (!ctx.helpers.db.tables.sessions.hasRow(sessionId)) {
+      if (!ctx.helpers.typedStore.tables.sessions.hasRow(sessionId)) {
         throw new Error(`Session not found: ${sessionId}`)
       }
       ctx.workspace.setActiveSessionId(sessionId)
@@ -161,9 +161,9 @@ export function registerSessionCommands(
       if (resolvedSessionId === undefined) {
         throw new Error('No active session. Try: tetra "hello"')
       }
-      const messages = ctx.helpers.db.indexes
+      const messages = ctx.helpers.typedIndexes
         .getSliceRowIds('messagesBySession', resolvedSessionId)
-        .map((id) => ctx.helpers.db.tables.messages.requireEntity(id))
+        .map((id) => ctx.helpers.typedStore.tables.messages.requireEntity(id))
       if (messages.length === 0) {
         console.log('No messages in this session.')
         return
@@ -183,8 +183,13 @@ export function registerSessionCommands(
         throw new Error('No active session. Try: tetra "hello"')
       }
       if (title !== undefined) {
-        ctx.helpers.db.tables.sessions.updateRow(sessionId, { title, updatedAt: Date.now() })
+        ctx.helpers.typedStore.tables.sessions.updateRow(sessionId, {
+          title,
+          updatedAt: Date.now(),
+        })
       }
-      console.log(ctx.helpers.db.tables.sessions.requireEntity(sessionId).title ?? '(untitled)')
+      console.log(
+        ctx.helpers.typedStore.tables.sessions.requireEntity(sessionId).title ?? '(untitled)',
+      )
     })
 }
