@@ -2,7 +2,7 @@ import { beforeEach, expect, mock, test } from 'bun:test'
 
 import { z } from 'zod'
 
-import { defineTypedTinybase, tinybaseCell, tinybaseIndex, tinybaseTable } from './index.ts'
+import { defineTypedTinybase, tinybaseIndex } from './index.ts'
 
 interface HookState {
   cell: unknown
@@ -50,13 +50,13 @@ const createHooks = () => {
       sessionsByTitle: tinybaseIndex('sessions', 'title'),
     },
     tables: {
-      sessions: tinybaseTable({
-        messageCount: tinybaseCell.number(z.coerce.number(), { default: 0 }),
-        title: tinybaseCell.string(z.string().trim()),
+      sessions: z.object({
+        messageCount: z.coerce.number().default(0),
+        title: z.string().trim(),
       }),
     },
     values: {
-      activeSessionId: tinybaseCell.string(z.string().trim(), { default: '' }),
+      activeSessionId: z.string().trim().default(''),
     },
   })
 

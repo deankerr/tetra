@@ -29,7 +29,7 @@ export interface TinybaseDefinition<
   parseValue<ValueId extends keyof Values & string>(
     valueId: ValueId,
     value: unknown,
-  ): z.output<Values[ValueId]['schema']>
+  ): z.output<Values[ValueId]>
   tables: Tables
   indexes: IndexDefs
   tinybaseTablesSchema: TinybaseTablesSchemaOf<Tables>
@@ -103,7 +103,7 @@ export function defineTypedTinybase<
 
   return {
     getCellSchema(tableId, cellId) {
-      return tables[tableId].fields[cellId].schema
+      return tables[tableId].shape[cellId]
     },
 
     indexes: typedIndexes,
@@ -114,17 +114,15 @@ export function defineTypedTinybase<
       rowId: string,
       row: unknown,
     ) {
-      return parseEntity(tables[tableId].schema, rowId, row) as EntityOf<
-        TableSchemaOf<Tables[TableId]>
-      >
+      return parseEntity(tables[tableId], rowId, row) as EntityOf<TableSchemaOf<Tables[TableId]>>
     },
 
     parseRow<TableId extends keyof Tables & string>(tableId: TableId, row: unknown) {
-      return parseRow(tables[tableId].schema, row) as OutputRowOf<TableSchemaOf<Tables[TableId]>>
+      return parseRow(tables[tableId], row) as OutputRowOf<TableSchemaOf<Tables[TableId]>>
     },
 
     parseValue<ValueId extends keyof Values & string>(valueId: ValueId, value: unknown) {
-      return parseValue(typedValues[valueId].schema, value) as z.output<Values[ValueId]['schema']>
+      return parseValue(typedValues[valueId], value) as z.output<Values[ValueId]>
     },
 
     tables,

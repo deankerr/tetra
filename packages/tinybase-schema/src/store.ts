@@ -1,7 +1,7 @@
 import type { z } from 'zod'
 
 import type { TableDefinitions, TableSchemaOf } from './table.ts'
-import type { AnyZod, FieldDefinition, RowZod } from './types.ts'
+import type { AnyZod, RowZod } from './types.ts'
 
 interface StoreApi {
   delRow(tableId: string, rowId: string): unknown
@@ -19,7 +19,7 @@ interface StoreApi {
   transaction(fn: () => void): unknown
 }
 
-export type ValueDefinitions = Record<string, FieldDefinition<AnyZod>>
+export type ValueDefinitions = Record<string, AnyZod>
 export type EntityOf<Schema extends RowZod> = z.output<Schema> & { id: string }
 export type InputRowOf<Schema extends RowZod> = z.input<Schema>
 export type OutputRowOf<Schema extends RowZod> = z.output<Schema>
@@ -75,9 +75,9 @@ export type BoundTableApis<Tables extends TableDefinitions> = {
 }
 
 export type BoundValueApis<Values extends ValueDefinitions> = {
-  get<ValueId extends keyof Values & string>(valueId: ValueId): ValueApi<Values[ValueId]['schema']>
+  get<ValueId extends keyof Values & string>(valueId: ValueId): ValueApi<Values[ValueId]>
 } & {
-  [ValueId in keyof Values]: ValueApi<Values[ValueId]['schema']>
+  [ValueId in keyof Values]: ValueApi<Values[ValueId]>
 }
 
 // oxlint-disable no-unsafe-argument, no-unsafe-return, no-unsafe-type-assertion -- TinyBase stores coarse cells; zod owns the precise boundary parse.
@@ -91,30 +91,28 @@ export function bindTinybaseStore<
     get<TableId extends keyof Tables & string>(
       tableId: TableId,
     ): TableApi<TableSchemaOf<Tables[TableId]>> {
-      return createTableApi(store, tableId, tables[tableId].schema)
+      return createTableApi(store, tableId, tables[tableId])
     },
   }
 
   const tableAccessors = Object.fromEntries(
     (Object.keys(tables) as (keyof Tables & string)[]).map((tableId) => [
       tableId,
-      createTableApi(store, tableId, tables[tableId].schema),
+      createTableApi(store, tableId, tables[tableId]),
     ]),
   )
 
   // Value APIs mirror table APIs, but TinyBase values live outside tables.
   const valuesApi = {
-    get<ValueId extends keyof Values & string>(
-      valueId: ValueId,
-    ): ValueApi<Values[ValueId]['schema']> {
-      return createValueApi(store, valueId, values[valueId].schema)
+    get<ValueId extends keyof Values & string>(valueId: ValueId): ValueApi<Values[ValueId]> {
+      return createValueApi(store, valueId, values[valueId])
     },
   }
 
   const valueAccessors = Object.fromEntries(
     (Object.keys(values) as (keyof Values & string)[]).map((valueId) => [
       valueId,
-      createValueApi(store, valueId, values[valueId].schema),
+      createValueApi(store, valueId, values[valueId]),
     ]),
   )
 

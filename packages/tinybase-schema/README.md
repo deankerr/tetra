@@ -8,7 +8,7 @@ moving runtime parsing, row/entity typing, and repeated casts to one boundary.
 ## Goals
 
 - Define table, value, and index metadata once.
-- Generate TinyBase `tablesSchema` and `valuesSchema`.
+- Generate TinyBase `tablesSchema` and `valuesSchema` from zod schemas.
 - Derive row, entity, cell, and value types from zod schemas.
 - Parse TinyBase reads through zod at the boundary.
 - Keep the public API shaped like TinyBase where possible.
@@ -23,19 +23,23 @@ export const dbDefinition = defineTypedTinybase({
     messagesBySession: tinybaseIndex('messages', 'sessionId'),
   },
   tables: {
-    messages: tinybaseTable({
-      parts: tinybaseCell.array(MessageParts, { default: [] }),
-      sessionId: tinybaseCell.string(z.string()),
+    messages: z.object({
+      parts: z.array(MessagePart).default([]),
+      sessionId: z.string(),
     }),
   },
   values: {
-    activeSessionId: tinybaseCell.string(z.string(), { default: '' }),
+    activeSessionId: z.string().default(''),
   },
 })
 ```
 
-The definition emits TinyBase schemas. Store and Indexes binding are separate so
-callers keep ownership of TinyBase runtime objects:
+The definition emits TinyBase schemas by reading zod's Standard JSON Schema
+output and keeping only the small shape TinyBase can express: `string`,
+`number`, `boolean`, `array`, `object`, `default`, and nullable `allowNull`.
+Unsupported cell schemas throw during definition creation rather than silently
+becoming loose storage. Store and Indexes binding are separate so callers keep
+ownership of TinyBase runtime objects:
 
 ```ts
 const store = createStore().setSchema(
@@ -59,7 +63,7 @@ are:
 
 Source files mirror the TinyBase concepts they wrap:
 
-- `cell.ts`, `table.ts`, and `schema.ts` define zod-backed schemas and emit
+- `table.ts` and `schema.ts` define zod-backed schemas and emit
   TinyBase-compatible schema objects.
 - `store.ts` binds table/value helpers around a caller-owned `Store`.
 - `indexes.ts` defines, applies, and binds a caller-owned `Indexes` object.
@@ -118,9 +122,9 @@ These are deliberate project-shaped choices, not accidental API drift:
 - `getEntity` / `requireEntity` add the row id to parsed rows.
 - Index ids are typed from the definition object. Slice ids are still plain
   strings.
-- TinyBase native `default` values are supported by the wrapper but are not a
-  substitute for app-level defaults. Tetra core avoids them in its real schema
-  so missing values fail loudly unless the read site has an explicit fallback.
+- TinyBase native `default` values are derived from zod defaults. Tetra core
+  still generally avoids schema defaults in its real schema so missing values
+  fail loudly unless the read site has an explicit fallback.
 
 ## Escape Hatches
 
@@ -137,10 +141,11 @@ not create stores, create indexes, or know whether a store is mergeable.
 
 Some external shapes are intentionally trusted after a small runtime check:
 
-- `UIMessage['parts']` is stored as an array cell and checked with
-  `Array.isArray`.
-- AI SDK / provider JSON-like objects can be validated as JSON-compatible and
-  then typed as the external library's JSON shape.
+- `UIMessage['parts']` is stored as an array cell by declaring it as
+  `z.array(MessagePart)`, where each part is checked just enough for the app's
+  storage boundary.
+- AI SDK / provider JSON-like objects are stored as `z.record(z.string(),
+z.json())`.
 
 The aim is one cast at the schema boundary, not repeated casts throughout app
 code.

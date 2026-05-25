@@ -1,8 +1,6 @@
-export { tinybaseCell } from './cell.ts'
 export { defineTypedTinybase } from './definition.ts'
 export { bindTinybaseIndexes, setTinybaseIndexDefinitions, tinybaseIndex } from './indexes.ts'
 export { bindTinybaseStore } from './store.ts'
-export { tinybaseTable } from './table.ts'
 export type {
   TinybaseDefinition,
   TinybaseSchemasFor,
@@ -28,5 +26,5 @@ export type {
   ValueApi,
   ValueDefinitions,
 } from './store.ts'
-export type { FieldShape, TableDefinition, TableDefinitions, TableSchemaOf } from './table.ts'
-export type { FieldDefinition, FieldKind, FieldOptions } from './types.ts'
+export type { TableDefinitions, TableSchemaOf } from './table.ts'
+export type { FieldKind } from './types.ts'

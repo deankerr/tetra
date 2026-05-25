@@ -1,9 +1,4 @@
-import {
-  defineTypedTinybase,
-  tinybaseCell,
-  tinybaseIndex,
-  tinybaseTable,
-} from '@tetra/tinybase-schema'
+import { defineTypedTinybase, tinybaseIndex } from '@tetra/tinybase-schema'
 import type { EntityOf } from '@tetra/tinybase-schema'
 import type { UIMessage } from 'ai'
 import { getHlcFunctions } from 'tinybase/common'
@@ -119,98 +114,94 @@ export const tetraDbDefinition = defineTypedTinybase({
     }),
   },
   tables: {
-    languageModels: tinybaseTable({
-      contextLength: tinybaseCell.number(z.number()),
-      createdAt: tinybaseCell.number(z.number()),
-      inputModalities: tinybaseCell.array(z.array(z.string())),
-      name: tinybaseCell.string(z.string()),
-      outputModalities: tinybaseCell.array(z.array(z.string())),
-      provider: tinybaseCell.string(z.string()),
-      providerName: tinybaseCell.string(z.string()),
-      supportedParameters: tinybaseCell.array(z.array(z.string())),
-      updatedAt: tinybaseCell.number(z.number()),
-      upstreamCreatedAt: tinybaseCell.number(z.number()),
+    languageModels: z.object({
+      contextLength: z.number(),
+      createdAt: z.number(),
+      inputModalities: z.array(z.string()),
+      name: z.string(),
+      outputModalities: z.array(z.string()),
+      provider: z.string(),
+      providerName: z.string(),
+      supportedParameters: z.array(z.string()),
+      updatedAt: z.number(),
+      upstreamCreatedAt: z.number(),
     }),
-    messageGenerations: tinybaseTable({
-      createdAt: tinybaseCell.number(z.number()),
-      parts: tinybaseCell.array(MessagePart.array()),
-      requestId: tinybaseCell.string(z.string()),
-      sessionId: tinybaseCell.string(z.string()),
-      status: tinybaseCell.string(GenerationStatusSchema),
-      steps: tinybaseCell.array(z.array(StepRecord)),
-      updatedAt: tinybaseCell.number(z.number()),
-      usage: tinybaseCell.object(UsageSummary),
+    messageGenerations: z.object({
+      createdAt: z.number(),
+      parts: MessagePart.array(),
+      requestId: z.string(),
+      sessionId: z.string(),
+      status: GenerationStatusSchema,
+      steps: z.array(StepRecord),
+      updatedAt: z.number(),
+      usage: UsageSummary,
     }),
-    messages: tinybaseTable({
-      createdAt: tinybaseCell.number(z.number()),
-      parts: tinybaseCell.array(MessagePart.array()),
-      role: tinybaseCell.string(MessageRoleSchema),
-      sessionId: tinybaseCell.string(z.string()),
-      steps: tinybaseCell.array(z.array(StepRecord)),
-      updatedAt: tinybaseCell.number(z.number()),
-      usage: tinybaseCell.object(UsageSummary),
+    messages: z.object({
+      createdAt: z.number(),
+      parts: MessagePart.array(),
+      role: MessageRoleSchema,
+      sessionId: z.string(),
+      steps: z.array(StepRecord),
+      updatedAt: z.number(),
+      usage: UsageSummary,
     }),
-    prompts: tinybaseTable({
-      content: tinybaseCell.string(z.string()),
-      createdAt: tinybaseCell.number(z.number()),
-      label: tinybaseCell.string(z.string()),
-      updatedAt: tinybaseCell.number(z.number()),
+    prompts: z.object({
+      content: z.string(),
+      createdAt: z.number(),
+      label: z.string(),
+      updatedAt: z.number(),
     }),
-    requests: tinybaseTable({
-      assistantMessageId: tinybaseCell.string(z.string()),
-      config: tinybaseCell.object(RequestConfig),
-      createdAt: tinybaseCell.number(z.number()),
-      errorMessage: tinybaseCell.string(z.string()),
-      sessionId: tinybaseCell.string(z.string()),
-      status: tinybaseCell.string(RequestStatusSchema),
-      terminalAt: tinybaseCell.number(z.number()),
-      updatedAt: tinybaseCell.number(z.number()),
+    requests: z.object({
+      assistantMessageId: z.string(),
+      config: RequestConfig,
+      createdAt: z.number(),
+      errorMessage: z.string(),
+      sessionId: z.string(),
+      status: RequestStatusSchema,
+      terminalAt: z.number(),
+      updatedAt: z.number(),
     }),
     // Execution parameters for a session. Keyed by the same ID as the sessions table (1:1).
     // Stored separately so sidebar reactive reads on sessions are not triggered by config edits.
-    sessionConfigs: tinybaseTable({
-      maxMessages: tinybaseCell.number(z.number()),
-      modelId: tinybaseCell.string(z.string()),
-      providerOptions: tinybaseCell.object(ProviderOptions),
-      systemPromptId: tinybaseCell.string(z.string()),
-      toolIds: tinybaseCell.array(z.array(z.string())),
+    sessionConfigs: z.object({
+      maxMessages: z.number(),
+      modelId: z.string(),
+      providerOptions: ProviderOptions,
+      systemPromptId: z.string(),
+      toolIds: z.array(z.string()),
     }),
     // Derived usage for a session. Keyed by the same ID as the sessions table (1:1).
     // Stored separately so sidebar/session identity reads are not invalidated by usage churn.
-    sessionSummaries: tinybaseTable({
-      createdAt: tinybaseCell.number(z.number()),
-      updatedAt: tinybaseCell.number(z.number()),
-      usage: tinybaseCell.object(UsageSummary),
+    sessionSummaries: z.object({
+      createdAt: z.number(),
+      updatedAt: z.number(),
+      usage: UsageSummary,
     }),
-    sessions: tinybaseTable({
-      createdAt: tinybaseCell.number(z.number()),
-      title: tinybaseCell.string(z.string()),
-      updatedAt: tinybaseCell.number(z.number()),
+    sessions: z.object({
+      createdAt: z.number(),
+      title: z.string(),
+      updatedAt: z.number(),
     }),
   },
   values: {
-    catalogLastRefreshed: tinybaseCell.number(z.number()),
-    cliActiveSessionId: tinybaseCell.string(z.string()),
+    catalogLastRefreshed: z.number(),
+    cliActiveSessionId: z.string(),
     // Mutable workspace-level default applied when creating a new session. Stored as a blob
     // since it is a cold path (read once at session creation, not on every render).
-    defaultSessionConfig: tinybaseCell.object(RequestConfig),
+    defaultSessionConfig: RequestConfig,
   },
 })
 
 // oxlint-disable-next-line typescript/no-namespace -- Namespaces keep contested schema row names grouped at call sites, e.g. Rows.Message.
 export namespace Rows {
-  export type LanguageModel = EntityOf<(typeof tetraDbDefinition.tables.languageModels)['schema']>
-  export type MessageGeneration = EntityOf<
-    (typeof tetraDbDefinition.tables.messageGenerations)['schema']
-  >
-  export type Message = EntityOf<(typeof tetraDbDefinition.tables.messages)['schema']>
-  export type Prompt = EntityOf<(typeof tetraDbDefinition.tables.prompts)['schema']>
-  export type Request = EntityOf<(typeof tetraDbDefinition.tables.requests)['schema']>
-  export type Session = EntityOf<(typeof tetraDbDefinition.tables.sessions)['schema']>
-  export type SessionSummary = EntityOf<
-    (typeof tetraDbDefinition.tables.sessionSummaries)['schema']
-  >
-  export type SessionConfig = EntityOf<(typeof tetraDbDefinition.tables.sessionConfigs)['schema']>
+  export type LanguageModel = EntityOf<(typeof tetraDbDefinition.tables)['languageModels']>
+  export type MessageGeneration = EntityOf<(typeof tetraDbDefinition.tables)['messageGenerations']>
+  export type Message = EntityOf<(typeof tetraDbDefinition.tables)['messages']>
+  export type Prompt = EntityOf<(typeof tetraDbDefinition.tables)['prompts']>
+  export type Request = EntityOf<(typeof tetraDbDefinition.tables)['requests']>
+  export type Session = EntityOf<(typeof tetraDbDefinition.tables)['sessions']>
+  export type SessionSummary = EntityOf<(typeof tetraDbDefinition.tables)['sessionSummaries']>
+  export type SessionConfig = EntityOf<(typeof tetraDbDefinition.tables)['sessionConfigs']>
 }
 
 const [getNextHlc] = getHlcFunctions()

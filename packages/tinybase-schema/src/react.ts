@@ -5,11 +5,10 @@ import type { z } from 'zod'
 import type {
   CellOutputOf,
   EntityOf,
-  FieldDefinition,
   IndexDefinitions,
   OutputRowOf,
-  TableDefinition,
   TableDefinitions,
+  TableSchemaOf,
   TinybaseDefinition,
   ValueDefinitions,
 } from './index.ts'
@@ -19,8 +18,6 @@ import type {
 type LooseHooks = UiReact.WithSchemas<
   [Record<string, Record<string, { type: 'any' }>>, Record<string, { type: 'any' }>]
 >
-type TableSchemaOf<Table extends TableDefinition<Record<string, FieldDefinition<z.ZodType>>>> =
-  Table['schema']
 
 type CellInput<
   Tables extends TableDefinitions,
@@ -35,11 +32,11 @@ type CellOutput<
 > = z.output<TableSchemaOf<Tables[TableId]>>[CellId]
 
 type ValueInput<Values extends ValueDefinitions, ValueId extends keyof Values & string> = z.input<
-  Values[ValueId]['schema']
+  Values[ValueId]
 >
 
 type ValueOutput<Values extends ValueDefinitions, ValueId extends keyof Values & string> = z.output<
-  Values[ValueId]['schema']
+  Values[ValueId]
 >
 
 const tinyHooks = UiReact as unknown as LooseHooks
@@ -167,7 +164,7 @@ export function createTypedTinybaseReactHooks<
       valueId: ValueId,
     ): [ValueOutput<Values, ValueId>, (value: ValueInput<Values, ValueId>) => void] {
       const [value, setValue] = tinyHooks.useValueState(valueId)
-      const valueSchema = definition.values[valueId].schema
+      const valueSchema = definition.values[valueId]
 
       const parsedValue = useMemo<ValueOutput<Values, ValueId>>(
         () => definition.parseValue(valueId, value),

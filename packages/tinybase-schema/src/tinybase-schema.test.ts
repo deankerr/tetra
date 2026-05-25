@@ -9,9 +9,7 @@ import {
   bindTinybaseStore,
   defineTypedTinybase,
   setTinybaseIndexDefinitions,
-  tinybaseCell,
   tinybaseIndex,
-  tinybaseTable,
 } from './index.ts'
 
 const ModelConfig = z.object({
@@ -33,30 +31,26 @@ const createTestDefinition = () =>
       messagesBySession: tinybaseIndex('messages', 'sessionId'),
     },
     tables: {
-      messages: tinybaseTable({
-        createdAt: tinybaseCell.number(z.number(), { default: 0 }),
-        parts: tinybaseCell.array(z.array(MessagePart), { default: [] }),
-        role: tinybaseCell.string(z.enum(['assistant', 'user']), {
-          default: 'user',
-        }),
-        sessionId: tinybaseCell.string(z.string()),
-        updatedAt: tinybaseCell.number(z.number(), { default: 0 }),
+      messages: z.object({
+        createdAt: z.number().default(0),
+        parts: z.array(MessagePart).default([]),
+        role: z.enum(['assistant', 'user']).default('user'),
+        sessionId: z.string(),
+        updatedAt: z.number().default(0),
       }),
-      sessions: tinybaseTable({
-        config: tinybaseCell.object(ModelConfig, {
-          default: {
-            modelId: 'anthropic/claude-sonnet-4.5',
-            providerOptions: {},
-            toolIds: [],
-          },
+      sessions: z.object({
+        config: ModelConfig.default({
+          modelId: 'anthropic/claude-sonnet-4.5',
+          providerOptions: {},
+          toolIds: [],
         }),
-        createdAt: tinybaseCell.number(z.number(), { default: 0 }),
-        title: tinybaseCell.string(z.string(), { default: '' }),
-        updatedAt: tinybaseCell.number(z.number(), { default: 0 }),
+        createdAt: z.number().default(0),
+        title: z.string().default(''),
+        updatedAt: z.number().default(0),
       }),
     },
     values: {
-      activeSessionId: tinybaseCell.string(z.string(), { default: '' }),
+      activeSessionId: z.string().default(''),
     },
   })
 
@@ -73,7 +67,7 @@ function bindTestStore(definition: ReturnType<typeof createTestDefinition>) {
   return bindTinybaseStore(createTestStore(definition), definition.tables, definition.values)
 }
 
-test('generates TinyBase schemas from explicit table and cell definitions', () => {
+test('generates TinyBase schemas from zod table and value definitions', () => {
   const definition = createTestDefinition()
 
   expect(definition.tinybaseTablesSchema.messages).toEqual({
@@ -86,6 +80,42 @@ test('generates TinyBase schemas from explicit table and cell definitions', () =
   expect(definition.tinybaseValuesSchema).toEqual({
     activeSessionId: { default: '', type: 'string' },
   })
+})
+
+test('derives nullable, record, array, enum, and default cell schemas from zod', () => {
+  const definition = defineTypedTinybase({
+    tables: {
+      examples: z.object({
+        count: z.number().default(1),
+        enabled: z.boolean(),
+        metadata: z.record(z.string(), z.json()),
+        mode: z.enum(['draft', 'final']),
+        name: z.string().nullable(),
+        tags: z.array(z.string()),
+      }),
+    },
+  })
+
+  expect(definition.tinybaseTablesSchema.examples).toEqual({
+    count: { default: 1, type: 'number' },
+    enabled: { type: 'boolean' },
+    metadata: { type: 'object' },
+    mode: { type: 'string' },
+    name: { allowNull: true, type: 'string' },
+    tags: { type: 'array' },
+  })
+})
+
+test('throws when a zod schema cannot be represented as a TinyBase cell', () => {
+  expect(() =>
+    defineTypedTinybase({
+      tables: {
+        examples: z.object({
+          opaque: z.custom(() => true),
+        }),
+      },
+    }),
+  ).toThrow('Cannot convert examples.opaque to a TinyBase cell schema')
 })
 
 test('binds a TinyBase store with explicit typed row CRUD methods', () => {
@@ -341,7 +371,7 @@ test('throws loudly when required entities or invalid rows cross the boundary', 
   expect(() => db.tables.sessions.updateRow('missing_session', { title: 'Nope' })).toThrow(
     'Missing row: sessions/missing_session',
   )
-  expect(() => definition.parseRow('sessions', { title: 'No implicit defaults' })).toThrow()
+  expect(() => definition.parseRow('messages', { role: 'user' })).toThrow()
 
   const invalidMessageRow: unknown = {
     parts: [],
