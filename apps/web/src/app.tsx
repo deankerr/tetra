@@ -4,25 +4,28 @@ import { Toaster } from '@tetra/ui/components/ui/sonner'
 import { SessionView } from '@/session/view'
 import { SettingsProvider } from '@/settings-provider'
 import { AppSidebar } from '@/sidebar/app-sidebar'
-import { TetraProvider } from '@/tetra-data-provider'
+import { TetraProvider } from '@/tetra-provider'
+import { TinyBaseProvider } from '@/tinybase-provider'
 
 export function App() {
   return (
-    <TetraProvider>
-      <SettingsProvider>
-        <SidebarProvider>
-          <Sidebar>
-            <AppSidebar />
-          </Sidebar>
+    <TinyBaseProvider>
+      <TetraProvider>
+        <SettingsProvider>
+          <SidebarProvider>
+            <Sidebar>
+              <AppSidebar />
+            </Sidebar>
 
-          <SidebarInset className="h-svh min-w-0 overflow-hidden">
-            <div className="flex h-full overflow-x-auto">
-              <SessionView />
-            </div>
-          </SidebarInset>
-        </SidebarProvider>
-      </SettingsProvider>
-      <Toaster richColors />
-    </TetraProvider>
+            <SidebarInset className="h-svh min-w-0 overflow-hidden">
+              <div className="flex h-full overflow-x-auto">
+                <SessionView />
+              </div>
+            </SidebarInset>
+          </SidebarProvider>
+        </SettingsProvider>
+        <Toaster richColors />
+      </TetraProvider>
+    </TinyBaseProvider>
   )
 }

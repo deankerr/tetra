@@ -20,7 +20,7 @@ async function deleteDatabase(name: string): Promise<void> {
   await promise
 }
 
-export async function hardEraseIndexedDb(): Promise<void> {
+async function hardEraseIndexedDb(): Promise<void> {
   if (!('indexedDB' in window)) {
     return
   }

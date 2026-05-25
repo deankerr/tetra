@@ -1,11 +1,6 @@
-import { Catalog, Helpers, Runs, tetraDbDefinition } from '@tetra/core'
-import { credentialStore } from '@tetra/credentials'
+import { tetraDbDefinition } from '@tetra/core'
 import type { TinybaseSchemasFor } from '@tetra/tinybase-schema'
-import {
-  bindTinybaseIndexes,
-  bindTinybaseStore,
-  setTinybaseIndexDefinitions,
-} from '@tetra/tinybase-schema'
+import { setTinybaseIndexDefinitions } from '@tetra/tinybase-schema'
 import { useMemo } from 'react'
 import ReconnectingWebSocket from 'reconnecting-websocket'
 import type { Indexes as RawIndexes } from 'tinybase/indexes/with-schemas'
@@ -19,21 +14,13 @@ import { createWsSynchronizer } from 'tinybase/synchronizers/synchronizer-ws-cli
 import { Inspector } from 'tinybase/ui-react-inspector'
 
 import { TETRA_INDEXED_DB_NAME } from '@/lib/hard-reset'
-import { TetraContext } from '@/tetra-context'
 import { tinybase } from '@/tetra-tinybase-react'
 
-const DATA_MODE = import.meta.env.VITE_TETRA_DATA_MODE ?? 'memory'
-const WORKER_URL = import.meta.env.VITE_WORKER_URL ?? 'ws://localhost:8787'
-
-function getDataMode() {
-  if (DATA_MODE === 'memory' || DATA_MODE === 'local' || DATA_MODE === 'sync') {
-    return DATA_MODE
-  }
-
-  throw new Error(`Unknown VITE_TETRA_DATA_MODE: ${DATA_MODE}`)
-}
+const DATA_MODE = import.meta.env.VITE_TETRA_DATA_MODE ?? 'persist'
+const WORKER_URL = getSyncUrl(import.meta.env.VITE_WORKER_URL ?? 'ws://localhost:8787')
 
 function getSyncUrl(workerUrl: string): string {
+  // Convert the configured Worker origin into the Durable Object websocket URL.
   const url = new URL('/tetra', workerUrl)
   if (url.protocol === 'http:') {
     url.protocol = 'ws:'
@@ -42,21 +29,6 @@ function getSyncUrl(workerUrl: string): string {
     url.protocol = 'wss:'
   }
   return url.toString()
-}
-
-function createTetraApp(
-  rawStore: RawStore<TinybaseSchemasFor<typeof tetraDbDefinition>>,
-  rawIndexes: RawIndexes<TinybaseSchemasFor<typeof tetraDbDefinition>>,
-) {
-  const typedStore = bindTinybaseStore(rawStore, tetraDbDefinition.tables, tetraDbDefinition.values)
-  const typedIndexes = bindTinybaseIndexes(rawIndexes, tetraDbDefinition.indexes)
-  const context = { rawIndexes, rawStore, typedIndexes, typedStore }
-
-  const helpers = new Helpers(context)
-  const catalog = new Catalog(context)
-  const runs = new Runs(helpers, credentialStore)
-
-  return { catalog, helpers, runs }
 }
 
 function useCreateTetraStore(): {
@@ -93,73 +65,43 @@ function useCreateTetraMergeableStore(): {
   }, [])
 }
 
-export function TetraProvider({ children }: { children: React.ReactNode }) {
-  const dataMode = getDataMode()
-
-  if (dataMode === 'sync') {
-    return <TetraSyncProvider>{children}</TetraSyncProvider>
-  }
-
-  return <TetraPlainProvider persister={dataMode === 'local'}>{children}</TetraPlainProvider>
-}
-
-function TetraPlainProvider({
-  children,
-  persister: shouldCreatePersister,
-}: {
-  children: React.ReactNode
-  persister: boolean
-}) {
-  // Plain web modes create their Store and Indexes synchronously before binding core modules.
+function TinyBasePersisterProvider({ children }: { children: React.ReactNode }) {
+  // Plain web modes create their Store and Indexes synchronously.
   const { rawIndexes, rawStore } = useCreateTetraStore()
-
-  // Bind Tetra's typed APIs and core modules around the React-owned Store.
-  const tetra = useMemo(() => createTetraApp(rawStore, rawIndexes), [rawIndexes, rawStore])
 
   // Local mode persists the plain Store to IndexedDB without blocking initial render.
   const persister = tinybase.useCreatePersister(
-    shouldCreatePersister ? rawStore : undefined,
+    rawStore,
     async (store) => {
       const indexedDbPersister = createIndexedDbPersister(store, TETRA_INDEXED_DB_NAME)
       await indexedDbPersister.startAutoLoad()
       await indexedDbPersister.startAutoSave()
       return indexedDbPersister
     },
-    [shouldCreatePersister],
+    [],
   )
 
   return (
-    <TetraContext
-      value={{
-        catalog: tetra.catalog,
-        helpers: tetra.helpers,
-        runs: tetra.runs,
-      }}
+    <tinybase.Provider
+      indexes={rawIndexes}
+      store={rawStore}
+      {...(persister === undefined ? {} : { persister })}
     >
-      <tinybase.Provider
-        indexes={rawIndexes}
-        store={rawStore}
-        {...(persister === undefined ? {} : { persister })}
-      >
-        {children}
-      </tinybase.Provider>
-    </TetraContext>
+      {children}
+    </tinybase.Provider>
   )
 }
 
-function TetraSyncProvider({ children }: { children: React.ReactNode }) {
-  // Sync mode creates its MergeableStore and Indexes synchronously before binding core modules.
+function TinyBaseSyncProvider({ children }: { children: React.ReactNode }) {
+  // Sync mode creates its MergeableStore and Indexes synchronously.
   const { rawIndexes, rawStore } = useCreateTetraMergeableStore()
-
-  // Bind Tetra's typed APIs and core modules around the React-owned Store.
-  const tetra = useMemo(() => createTetraApp(rawStore, rawIndexes), [rawIndexes, rawStore])
 
   const synchronizer = tinybase.useCreateSynchronizer(
     rawStore,
     async (store) => {
       // TinyBase accepts WebSocket-compatible clients but its type only names native WebSocket.
       // oxlint-disable-next-line no-unsafe-type-assertion
-      const webSocket = new ReconnectingWebSocket(getSyncUrl(WORKER_URL)) as unknown as WebSocket
+      const webSocket = new ReconnectingWebSocket(WORKER_URL) as unknown as WebSocket
       const wsSynchronizer = await createWsSynchronizer(store, webSocket)
       await wsSynchronizer.startSync()
       return wsSynchronizer
@@ -168,21 +110,21 @@ function TetraSyncProvider({ children }: { children: React.ReactNode }) {
   )
 
   return (
-    <TetraContext
-      value={{
-        catalog: tetra.catalog,
-        helpers: tetra.helpers,
-        runs: tetra.runs,
-      }}
+    <tinybase.Provider
+      indexes={rawIndexes}
+      store={rawStore}
+      {...(synchronizer === undefined ? {} : { synchronizer })}
     >
-      <tinybase.Provider
-        indexes={rawIndexes}
-        store={rawStore}
-        {...(synchronizer === undefined ? {} : { synchronizer })}
-      >
-        {children}
-        <Inspector />
-      </tinybase.Provider>
-    </TetraContext>
+      {children}
+      <Inspector />
+    </tinybase.Provider>
   )
+}
+
+export function TinyBaseProvider({ children }: { children: React.ReactNode }) {
+  if (DATA_MODE === 'sync') {
+    return <TinyBaseSyncProvider>{children}</TinyBaseSyncProvider>
+  }
+
+  return <TinyBasePersisterProvider>{children}</TinyBasePersisterProvider>
 }

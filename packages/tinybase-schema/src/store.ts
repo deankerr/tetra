@@ -124,7 +124,7 @@ export function bindTinybaseStore<
   } as BoundTinybase<Tables, Values>
 }
 
-export function createTableApi<Schema extends RowZod>(
+function createTableApi<Schema extends RowZod>(
   store: StoreApi,
   tableId: string,
   schema: Schema,
@@ -209,7 +209,7 @@ export function createTableApi<Schema extends RowZod>(
   }
 }
 
-export function createValueApi<Schema extends AnyZod>(
+function createValueApi<Schema extends AnyZod>(
   store: StoreApi,
   valueId: string,
   schema: Schema,
