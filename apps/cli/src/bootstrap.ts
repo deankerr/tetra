@@ -1,12 +1,9 @@
 import { Database } from 'bun:sqlite'
 
-import { Catalog, Helpers, Runs, tetraDbDefinition } from '@tetra/core'
+import { Catalog, Helpers, Runs } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
-import {
-  bindTinybaseIndexes,
-  bindTinybaseStore,
-  setTinybaseIndexDefinitions,
-} from '@tetra/tinybase-schema'
+import { setTetraIndexDefinitions, tetraStoreSchema, tetraIndexIds } from '@tetra/store-schema'
+import { bindIndexes, bindStore } from '@tetra/tinybase-schema'
 import { createIndexes } from 'tinybase/indexes/with-schemas'
 import { createMergeableStore } from 'tinybase/mergeable-store/with-schemas'
 import { createSqliteBunPersister } from 'tinybase/persisters/persister-sqlite-bun/with-schemas'
@@ -51,13 +48,13 @@ export async function bootstrap(mode: BootstrapMode) {
   if (mode === 'local') {
     // Local mode owns a plain Store and applies Tetra's schema directly.
     const store = createStore().setSchema(
-      structuredClone(tetraDbDefinition.tinybaseTablesSchema),
-      structuredClone(tetraDbDefinition.tinybaseValuesSchema),
+      structuredClone(tetraStoreSchema.tablesSchema),
+      structuredClone(tetraStoreSchema.valuesSchema),
     )
     const indexes = createIndexes(store)
-    setTinybaseIndexDefinitions(indexes, tetraDbDefinition.indexes)
-    const typedStore = bindTinybaseStore(store, tetraDbDefinition.tables, tetraDbDefinition.values)
-    const typedIndexes = bindTinybaseIndexes(indexes, tetraDbDefinition.indexes)
+    setTetraIndexDefinitions(indexes)
+    const typedStore = bindStore(store, tetraStoreSchema.tables, tetraStoreSchema.values)
+    const typedIndexes = bindIndexes(indexes, tetraIndexIds)
     const context = {
       rawIndexes: indexes,
       rawStore: store,
@@ -102,13 +99,13 @@ export async function bootstrap(mode: BootstrapMode) {
 
   // Sync mode owns a MergeableStore and connects it to the DO plus a local JSON SQLite cache.
   const store = createMergeableStore().setSchema(
-    structuredClone(tetraDbDefinition.tinybaseTablesSchema),
-    structuredClone(tetraDbDefinition.tinybaseValuesSchema),
+    structuredClone(tetraStoreSchema.tablesSchema),
+    structuredClone(tetraStoreSchema.valuesSchema),
   )
   const indexes = createIndexes(store)
-  setTinybaseIndexDefinitions(indexes, tetraDbDefinition.indexes)
-  const typedStore = bindTinybaseStore(store, tetraDbDefinition.tables, tetraDbDefinition.values)
-  const typedIndexes = bindTinybaseIndexes(indexes, tetraDbDefinition.indexes)
+  setTetraIndexDefinitions(indexes)
+  const typedStore = bindStore(store, tetraStoreSchema.tables, tetraStoreSchema.values)
+  const typedIndexes = bindIndexes(indexes, tetraIndexIds)
   const context = {
     rawIndexes: indexes,
     rawStore: store,

@@ -61,9 +61,13 @@ export interface ValueApi<Schema extends AnyZod> {
   set(value: z.input<Schema>): z.output<Schema>
 }
 
-export interface BoundTinybase<Tables extends TableDefinitions, Values extends ValueDefinitions> {
+export interface BoundStore<Tables extends TableDefinitions, Values extends ValueDefinitions> {
   tables: BoundTableApis<Tables>
   values: BoundValueApis<Values>
+}
+
+export type EntityRowsOf<Tables extends TableDefinitions> = {
+  [TableId in keyof Tables]: EntityOf<TableSchemaOf<Tables[TableId]>>
 }
 
 export type BoundTableApis<Tables extends TableDefinitions> = {
@@ -82,10 +86,10 @@ export type BoundValueApis<Values extends ValueDefinitions> = {
 
 // oxlint-disable no-unsafe-argument, no-unsafe-return, no-unsafe-type-assertion -- TinyBase stores coarse cells; zod owns the precise boundary parse.
 
-export function bindTinybaseStore<
+export function bindStore<
   const Tables extends TableDefinitions,
   const Values extends ValueDefinitions,
->(store: StoreApi, tables: Tables, values: Values): BoundTinybase<Tables, Values> {
+>(store: StoreApi, tables: Tables, values: Values): BoundStore<Tables, Values> {
   // Table APIs are addressable both by `get(tableId)` and by named properties.
   const tablesApi = {
     get<TableId extends keyof Tables & string>(
@@ -119,7 +123,7 @@ export function bindTinybaseStore<
   return {
     tables: Object.assign(tablesApi, tableAccessors),
     values: Object.assign(valuesApi, valueAccessors),
-  } as BoundTinybase<Tables, Values>
+  } as BoundStore<Tables, Values>
 }
 
 function createTableApi<Schema extends RowZod>(

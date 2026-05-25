@@ -1,24 +1,20 @@
-export { defineTypedTinybase } from './definition.ts'
-export { bindTinybaseIndexes, setTinybaseIndexDefinitions, tinybaseIndex } from './indexes.ts'
-export { bindTinybaseStore } from './store.ts'
+export { defineTypedStore } from './store-schema.ts'
+export { bindIndexes } from './indexes.ts'
+export { bindStore } from './store.ts'
 export type {
-  TinybaseDefinition,
-  TinybaseSchemasFor,
-  TinybaseTypedIndexes,
-  TinybaseTypedStore,
-} from './definition.ts'
+  StoreApiFor,
+  StoreRowFor,
+  StoreRowsFor,
+  StoreSchemasFor,
+  TypedStoreSchema,
+} from './store-schema.ts'
+export type { BoundIndexes, IndexApi, IndexIds } from './indexes.ts'
+export type { NativeStoreSchemasOf, NativeTablesSchemaOf, NativeValuesSchemaOf } from './schema.ts'
 export type {
-  BoundIndexes,
-  IndexApi,
-  IndexCellId,
-  IndexDefinition,
-  IndexDefinitions,
-} from './indexes.ts'
-export type { TinybaseSchemasOf, TinybaseTablesSchemaOf, TinybaseValuesSchemaOf } from './schema.ts'
-export type {
-  BoundTinybase,
+  BoundStore,
   CellInputOf,
   CellOutputOf,
+  EntityRowsOf,
   EntityOf,
   InputRowOf,
   OutputRowOf,

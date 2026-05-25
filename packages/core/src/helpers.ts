@@ -1,23 +1,20 @@
+import { DEFAULT_REQUEST_CONFIG, RequestConfig as RequestConfigSchema } from '@tetra/store-schema'
 import type {
-  TinybaseSchemasFor,
-  TinybaseTypedIndexes,
-  TinybaseTypedStore,
-} from '@tetra/tinybase-schema'
+  TetraTypedIndexes,
+  TetraRawStore,
+  TetraTypedStore,
+  MessageRole,
+  RequestConfig,
+} from '@tetra/store-schema'
 import type { UIMessage } from 'ai'
-import type { Store } from 'tinybase/store/with-schemas'
 
-import {
-  DEFAULT_REQUEST_CONFIG,
-  RequestConfig as RequestConfigSchema,
-  createIdGenerator,
-} from '#db'
-import type { MessageRole, RequestConfig, tetraDbDefinition } from '#db'
+import { createIdGenerator } from '#ids'
 import { combineUsageSummaries } from '#usage'
 
 export class Helpers {
-  readonly rawStore: Store<TinybaseSchemasFor<typeof tetraDbDefinition>>
-  readonly typedIndexes: TinybaseTypedIndexes<typeof tetraDbDefinition>
-  readonly typedStore: TinybaseTypedStore<typeof tetraDbDefinition>
+  readonly rawStore: TetraRawStore
+  readonly typedIndexes: TetraTypedIndexes
+  readonly typedStore: TetraTypedStore
 
   private readonly nextMessageId = createIdGenerator('mesg')
   private readonly nextPromptId = createIdGenerator('prpt')
@@ -28,9 +25,9 @@ export class Helpers {
     typedIndexes,
     typedStore,
   }: {
-    rawStore: Store<TinybaseSchemasFor<typeof tetraDbDefinition>>
-    typedIndexes: TinybaseTypedIndexes<typeof tetraDbDefinition>
-    typedStore: TinybaseTypedStore<typeof tetraDbDefinition>
+    rawStore: TetraRawStore
+    typedIndexes: TetraTypedIndexes
+    typedStore: TetraTypedStore
   }) {
     this.rawStore = rawStore
     this.typedIndexes = typedIndexes

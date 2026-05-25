@@ -1,9 +1,9 @@
-import type { RequestConfigType } from '@tetra/core'
+import type { ProviderOptions } from '@tetra/store-schema'
 import { Button } from '@tetra/ui/components/ui/button'
 import { Input } from '@tetra/ui/components/ui/input'
 import { BracesIcon, PlusIcon, XIcon } from 'lucide-react'
-import { useEffect, useReducer, useRef } from 'react'
 import type { Dispatch } from 'react'
+import { useEffect, useReducer, useRef } from 'react'
 import { z } from 'zod'
 
 import { typedTinybase } from '@/tetra-tinybase-react'
@@ -25,7 +25,7 @@ interface ObjectEntry {
 }
 
 type Entry = ObjectEntry | ScalarEntry
-type ProviderOptions = NonNullable<RequestConfigType['providerOptions']>
+
 type ProviderOption = ProviderOptions[string]
 
 const EMPTY_PROVIDER_OPTIONS: ProviderOptions = {}

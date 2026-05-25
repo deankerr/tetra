@@ -1,7 +1,7 @@
 import { Database } from 'bun:sqlite'
 
-import { tetraDbDefinition } from '@tetra/core'
-import { bindTinybaseStore } from '@tetra/tinybase-schema'
+import { tetraStoreSchema } from '@tetra/store-schema'
+import { bindStore } from '@tetra/tinybase-schema'
 import type { Command } from 'commander'
 import { createMergeableStore } from 'tinybase/mergeable-store/with-schemas'
 import { createSqliteBunPersister } from 'tinybase/persisters/persister-sqlite-bun/with-schemas'
@@ -25,8 +25,8 @@ export function registerDumpCommand(program: Command): void {
 
       // Open a MergeableStore and sync from the DO.
       const mergeableStore = createMergeableStore().setSchema(
-        structuredClone(tetraDbDefinition.tinybaseTablesSchema),
-        structuredClone(tetraDbDefinition.tinybaseValuesSchema),
+        structuredClone(tetraStoreSchema.tablesSchema),
+        structuredClone(tetraStoreSchema.valuesSchema),
       )
       const ws = new WebSocket(`${WORKER_URL}/tetra`)
       const synchronizer = await createWsSynchronizer(mergeableStore, ws)
@@ -38,15 +38,15 @@ export function registerDumpCommand(program: Command): void {
 
       // Open a plain Store and copy the data across using the untyped store API.
       const localStore = createStore().setSchema(
-        structuredClone(tetraDbDefinition.tinybaseTablesSchema),
-        structuredClone(tetraDbDefinition.tinybaseValuesSchema),
+        structuredClone(tetraStoreSchema.tablesSchema),
+        structuredClone(tetraStoreSchema.valuesSchema),
       )
       localStore.setTables(mergeableStore.getTables())
       localStore.setValues(mergeableStore.getValues())
-      const localTypedStore = bindTinybaseStore(
+      const localTypedStore = bindStore(
         localStore,
-        tetraDbDefinition.tables,
-        tetraDbDefinition.values,
+        tetraStoreSchema.tables,
+        tetraStoreSchema.values,
       )
 
       // Save to tabular SQLite.

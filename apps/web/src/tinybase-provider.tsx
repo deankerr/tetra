@@ -1,14 +1,9 @@
-import { tetraDbDefinition } from '@tetra/core'
-import type { TinybaseSchemasFor } from '@tetra/tinybase-schema'
-import { setTinybaseIndexDefinitions } from '@tetra/tinybase-schema'
+import { setTetraIndexDefinitions, tetraStoreSchema } from '@tetra/store-schema'
 import { useMemo } from 'react'
 import ReconnectingWebSocket from 'reconnecting-websocket'
-import type { Indexes as RawIndexes } from 'tinybase/indexes/with-schemas'
 import { createIndexes } from 'tinybase/indexes/with-schemas'
-import type { MergeableStore as RawMergeableStore } from 'tinybase/mergeable-store/with-schemas'
 import { createMergeableStore } from 'tinybase/mergeable-store/with-schemas'
 import { createIndexedDbPersister } from 'tinybase/persisters/persister-indexed-db/with-schemas'
-import type { Store as RawStore } from 'tinybase/store/with-schemas'
 import { createStore } from 'tinybase/store/with-schemas'
 import { createWsSynchronizer } from 'tinybase/synchronizers/synchronizer-ws-client/with-schemas'
 import { Inspector } from 'tinybase/ui-react-inspector'
@@ -31,35 +26,29 @@ function getSyncUrl(workerUrl: string): string {
   return url.toString()
 }
 
-function useCreateTetraStore(): {
-  rawIndexes: RawIndexes<TinybaseSchemasFor<typeof tetraDbDefinition>>
-  rawStore: RawStore<TinybaseSchemasFor<typeof tetraDbDefinition>>
-} {
+function useCreateTetraStore() {
   return useMemo(() => {
     // Plain web modes own Store and Indexes creation as one React-owned unit.
     const rawStore = createStore().setSchema(
-      structuredClone(tetraDbDefinition.tinybaseTablesSchema),
-      structuredClone(tetraDbDefinition.tinybaseValuesSchema),
+      structuredClone(tetraStoreSchema.tablesSchema),
+      structuredClone(tetraStoreSchema.valuesSchema),
     )
     const rawIndexes = createIndexes(rawStore)
-    setTinybaseIndexDefinitions(rawIndexes, tetraDbDefinition.indexes)
+    setTetraIndexDefinitions(rawIndexes)
 
     return { rawIndexes, rawStore }
   }, [])
 }
 
-function useCreateTetraMergeableStore(): {
-  rawIndexes: RawIndexes<TinybaseSchemasFor<typeof tetraDbDefinition>>
-  rawStore: RawMergeableStore<TinybaseSchemasFor<typeof tetraDbDefinition>>
-} {
+function useCreateTetraMergeableStore() {
   return useMemo(() => {
     // Sync mode owns MergeableStore and Indexes creation as one React-owned unit.
     const rawStore = createMergeableStore().setSchema(
-      structuredClone(tetraDbDefinition.tinybaseTablesSchema),
-      structuredClone(tetraDbDefinition.tinybaseValuesSchema),
+      structuredClone(tetraStoreSchema.tablesSchema),
+      structuredClone(tetraStoreSchema.valuesSchema),
     )
     const rawIndexes = createIndexes(rawStore)
-    setTinybaseIndexDefinitions(rawIndexes, tetraDbDefinition.indexes)
+    setTetraIndexDefinitions(rawIndexes)
 
     return { rawIndexes, rawStore }
   }, [])

@@ -1,21 +1,17 @@
-import { Catalog, Helpers, Runs, tetraDbDefinition } from '@tetra/core'
+import { Catalog, Helpers, Runs } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
-import type { TinybaseSchemasFor } from '@tetra/tinybase-schema'
-import { bindTinybaseIndexes, bindTinybaseStore } from '@tetra/tinybase-schema'
+import { tetraStoreSchema, tetraIndexIds } from '@tetra/store-schema'
+import type { TetraRawIndexes, TetraRawStore } from '@tetra/store-schema'
+import { bindIndexes, bindStore } from '@tetra/tinybase-schema'
 import { useMemo } from 'react'
-import type { Indexes as RawIndexes } from 'tinybase/indexes/with-schemas'
-import type { Store as RawStore } from 'tinybase/store/with-schemas'
 
 import { TetraContext } from '@/tetra-context'
 import { tinybase } from '@/tetra-tinybase-react'
 
-function createTetraApp(
-  rawStore: RawStore<TinybaseSchemasFor<typeof tetraDbDefinition>>,
-  rawIndexes: RawIndexes<TinybaseSchemasFor<typeof tetraDbDefinition>>,
-) {
+function createTetraApp(rawStore: TetraRawStore, rawIndexes: TetraRawIndexes) {
   // Bind the raw TinyBase objects to Tetra's typed APIs at the app boundary.
-  const typedStore = bindTinybaseStore(rawStore, tetraDbDefinition.tables, tetraDbDefinition.values)
-  const typedIndexes = bindTinybaseIndexes(rawIndexes, tetraDbDefinition.indexes)
+  const typedStore = bindStore(rawStore, tetraStoreSchema.tables, tetraStoreSchema.values)
+  const typedIndexes = bindIndexes(rawIndexes, tetraIndexIds)
   const context = { rawIndexes, rawStore, typedIndexes, typedStore }
 
   // Core modules share one typed TinyBase context.

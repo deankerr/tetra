@@ -22,6 +22,7 @@
       "dependencies": {
         "@tetra/core": "workspace:*",
         "@tetra/credentials": "workspace:*",
+        "@tetra/store-schema": "workspace:*",
         "@tetra/tinybase-schema": "workspace:*",
         "commander": "^14.0.3",
         "tinybase": "catalog:",
@@ -42,6 +43,7 @@
         "@tanstack/react-start": "^1.167.65",
         "@tetra/core": "workspace:*",
         "@tetra/credentials": "workspace:*",
+        "@tetra/store-schema": "workspace:*",
         "@tetra/tinybase-schema": "workspace:*",
         "@tetra/ui": "workspace:*",
         "ai": "catalog:",
@@ -82,6 +84,7 @@
         "@exalabs/ai-sdk": "^2.0.1",
         "@openrouter/ai-sdk-provider": "catalog:",
         "@tetra/credentials": "workspace:*",
+        "@tetra/store-schema": "workspace:*",
         "@tetra/tinybase-schema": "workspace:*",
         "ai": "catalog:",
         "remeda": "^2.34.1",
@@ -109,6 +112,19 @@
       "devDependencies": {
         "@types/bun": "catalog:",
         "@types/node": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
+    "packages/store-schema": {
+      "name": "@tetra/store-schema",
+      "dependencies": {
+        "@tetra/tinybase-schema": "workspace:*",
+        "ai": "catalog:",
+        "tinybase": "catalog:",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@types/bun": "catalog:",
         "typescript": "catalog:",
       },
     },
@@ -932,6 +948,8 @@
     "@tetra/credentials": ["@tetra/credentials@workspace:packages/credentials"],
 
     "@tetra/sdk-probe": ["@tetra/sdk-probe@workspace:packages/sdk-probe"],
+
+    "@tetra/store-schema": ["@tetra/store-schema@workspace:packages/store-schema"],
 
     "@tetra/tinybase-schema": ["@tetra/tinybase-schema@workspace:packages/tinybase-schema"],
 

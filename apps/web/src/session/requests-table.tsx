@@ -1,4 +1,4 @@
-import type { Rows } from '@tetra/core'
+import type { Rows } from '@tetra/store-schema'
 import {
   Table,
   TableBody,
@@ -11,7 +11,7 @@ import { useMemo } from 'react'
 
 import { typedTinybase } from '@/tetra-tinybase-react'
 
-type Request = Rows.Request
+type Request = Rows['requests']
 
 function formatTime(ts: number) {
   return new Date(ts).toLocaleTimeString([], {
@@ -58,7 +58,7 @@ function statusClass(status: string) {
   return 'text-muted-foreground'
 }
 
-function useRequestAccountingSummary(message: Rows.Message | null) {
+function useRequestAccountingSummary(message: Rows['messages'] | null) {
   const generation = typedTinybase.useEntity('messageGenerations', message?.id ?? '')
   const usage = generation?.usage ?? message?.usage
 

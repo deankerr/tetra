@@ -1,8 +1,5 @@
-import type { TinybaseSchemasFor, TinybaseTypedStore } from '@tetra/tinybase-schema'
-import type { Store } from 'tinybase/store/with-schemas'
+import type { Rows, TetraRawStore, TetraTypedStore } from '@tetra/store-schema'
 import { z } from 'zod'
-
-import type { Rows, tetraDbDefinition } from '#db'
 
 const STALE_MS = 60 * 60 * 1000
 const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models'
@@ -24,16 +21,10 @@ const OpenRouterModelsResponse = z.object({
 })
 
 export class Catalog {
-  private readonly rawStore: Store<TinybaseSchemasFor<typeof tetraDbDefinition>>
-  private readonly typedStore: TinybaseTypedStore<typeof tetraDbDefinition>
+  private readonly rawStore: TetraRawStore
+  private readonly typedStore: TetraTypedStore
 
-  constructor({
-    rawStore,
-    typedStore,
-  }: {
-    rawStore: Store<TinybaseSchemasFor<typeof tetraDbDefinition>>
-    typedStore: TinybaseTypedStore<typeof tetraDbDefinition>
-  }) {
+  constructor({ rawStore, typedStore }: { rawStore: TetraRawStore; typedStore: TetraTypedStore }) {
     this.rawStore = rawStore
     this.typedStore = typedStore
   }
@@ -56,7 +47,7 @@ export class Catalog {
 
     const { data } = OpenRouterModelsResponse.parse(await response.json())
     const now = Date.now()
-    const models: Rows.LanguageModel[] = data.map((model) => {
+    const models: Rows['languageModels'][] = data.map((model) => {
       const [provider = ''] = model.id.split('/')
       const colonIndex = model.name.indexOf(':')
       const rawProviderName = colonIndex > 0 ? model.name.slice(0, colonIndex).trim() : ''

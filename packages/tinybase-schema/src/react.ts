@@ -5,11 +5,11 @@ import type { z } from 'zod'
 import type {
   CellOutputOf,
   EntityOf,
-  IndexDefinitions,
+  IndexIds,
   OutputRowOf,
   TableDefinitions,
   TableSchemaOf,
-  TinybaseDefinition,
+  TypedStoreSchema,
   ValueDefinitions,
 } from './index.ts'
 
@@ -41,11 +41,13 @@ type ValueOutput<Values extends ValueDefinitions, ValueId extends keyof Values &
 
 const tinyHooks = UiReact as unknown as LooseHooks
 
-export function createTypedTinybaseReactHooks<
+export function createStoreHooks<
   const Tables extends TableDefinitions,
   const Values extends ValueDefinitions,
-  const Indexes extends IndexDefinitions<Tables>,
->(definition: TinybaseDefinition<Tables, Values, Indexes>) {
+  const IndexIdList extends IndexIds,
+>(storeSchema: TypedStoreSchema<Tables, Values>, indexIds: IndexIdList) {
+  void indexIds
+
   return {
     useCell<
       TableId extends keyof Tables & string,
@@ -56,7 +58,7 @@ export function createTypedTinybaseReactHooks<
       cellId: CellId,
     ): CellOutputOf<TableSchemaOf<Tables[TableId]>, CellId> | undefined {
       const cell = tinyHooks.useCell(tableId, rowId, cellId)
-      const cellSchema = definition.getCellSchema(tableId, cellId)
+      const cellSchema = storeSchema.getCellSchema(tableId, cellId)
 
       return useMemo(
         () =>
@@ -81,7 +83,7 @@ export function createTypedTinybaseReactHooks<
       (value: CellInput<Tables, TableId, CellId>) => void,
     ] {
       const [cell, setCell] = tinyHooks.useCellState(tableId, rowId, cellId)
-      const cellSchema = definition.getCellSchema(tableId, cellId)
+      const cellSchema = storeSchema.getCellSchema(tableId, cellId)
 
       const parsedCell = useMemo<CellOutput<Tables, TableId, CellId> | undefined>(
         () =>
@@ -113,7 +115,7 @@ export function createTypedTinybaseReactHooks<
           return null
         }
 
-        return definition.parseEntity(tableId, rowId, row)
+        return storeSchema.parseEntity(tableId, rowId, row)
       }, [hasRow, row, rowId, tableId])
     },
 
@@ -124,7 +126,7 @@ export function createTypedTinybaseReactHooks<
 
       return useMemo(
         () =>
-          Object.entries(table).map(([rowId, row]) => definition.parseEntity(tableId, rowId, row)),
+          Object.entries(table).map(([rowId, row]) => storeSchema.parseEntity(tableId, rowId, row)),
         [table, tableId],
       )
     },
@@ -145,11 +147,11 @@ export function createTypedTinybaseReactHooks<
           return null
         }
 
-        return definition.parseRow(tableId, row)
+        return storeSchema.parseRow(tableId, row)
       }, [hasRow, row, tableId])
     },
 
-    useSliceRowIds(indexId: keyof Indexes & string, sliceId: string): string[] {
+    useSliceRowIds(indexId: IndexIdList[number], sliceId: string): string[] {
       return tinyHooks.useSliceRowIds(indexId, sliceId)
     },
 
@@ -157,17 +159,17 @@ export function createTypedTinybaseReactHooks<
       valueId: ValueId,
     ): ValueOutput<Values, ValueId> {
       const value = tinyHooks.useValue(valueId)
-      return useMemo(() => definition.parseValue(valueId, value), [value, valueId])
+      return useMemo(() => storeSchema.parseValue(valueId, value), [value, valueId])
     },
 
     useValueState<ValueId extends keyof Values & string>(
       valueId: ValueId,
     ): [ValueOutput<Values, ValueId>, (value: ValueInput<Values, ValueId>) => void] {
       const [value, setValue] = tinyHooks.useValueState(valueId)
-      const valueSchema = definition.values[valueId]
+      const valueSchema = storeSchema.values[valueId]
 
       const parsedValue = useMemo<ValueOutput<Values, ValueId>>(
-        () => definition.parseValue(valueId, value),
+        () => storeSchema.parseValue(valueId, value),
         [value, valueId],
       )
 

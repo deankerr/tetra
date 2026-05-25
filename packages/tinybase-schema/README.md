@@ -7,7 +7,7 @@ moving runtime parsing, row/entity typing, and repeated casts to one boundary.
 
 ## Goals
 
-- Define table, value, and index metadata once.
+- Define table and value metadata once.
 - Generate TinyBase `tablesSchema` and `valuesSchema` from zod schemas.
 - Derive row, entity, cell, and value types from zod schemas.
 - Parse TinyBase reads through zod at the boundary.
@@ -15,13 +15,10 @@ moving runtime parsing, row/entity typing, and repeated casts to one boundary.
 
 ## Current Shape
 
-Definitions use `defineTypedTinybase`:
+Store schemas use `defineTypedStore`:
 
 ```ts
-export const dbDefinition = defineTypedTinybase({
-  indexes: {
-    messagesBySession: tinybaseIndex('messages', 'sessionId'),
-  },
+export const storeSchema = defineTypedStore({
   tables: {
     messages: z.object({
       parts: z.array(MessagePart).default([]),
@@ -34,40 +31,38 @@ export const dbDefinition = defineTypedTinybase({
 })
 ```
 
-The definition emits TinyBase schemas by reading zod's Standard JSON Schema
+The store schema emits TinyBase schemas by reading zod's Standard JSON Schema
 output and keeping only the small shape TinyBase can express: `string`,
 `number`, `boolean`, `array`, `object`, `default`, and nullable `allowNull`.
-Unsupported cell schemas throw during definition creation rather than silently
+Unsupported cell schemas throw during schema creation rather than silently
 becoming loose storage. Store and Indexes binding are separate so callers keep
 ownership of TinyBase runtime objects:
 
 ```ts
-const store = createStore().setSchema(
-  dbDefinition.tinybaseTablesSchema,
-  dbDefinition.tinybaseValuesSchema,
-)
-const db = bindTinybaseStore(store, dbDefinition.tables, dbDefinition.values)
+const store = createStore().setSchema(storeSchema.tablesSchema, storeSchema.valuesSchema)
+const db = bindStore(store, storeSchema.tables, storeSchema.values)
 
 const rawIndexes = createIndexes(store)
-setTinybaseIndexDefinitions(rawIndexes, dbDefinition.indexes)
-const indexes = bindTinybaseIndexes(rawIndexes, dbDefinition.indexes)
+rawIndexes.setIndexDefinition('messagesBySession', 'messages', 'sessionId')
+const indexes = bindIndexes(rawIndexes, ['messagesBySession'] as const)
 ```
 
 Use TinyBase's own schema-aware types for raw runtime objects, parameterized by
-`TinybaseSchemasFor<typeof definition>`. The definition-derived helper surfaces
-are:
+`StoreSchemasFor<typeof storeSchema>`. The helper surfaces are:
 
-- `TinybaseTypedStore<typeof definition>` for the bound `{ tables, values }`
+- `StoreApiFor<typeof storeSchema>` for the bound `{ tables, values }`
   helper API.
-- `TinybaseTypedIndexes<typeof definition>` for the bound index helper API.
+- `BoundIndexes<typeof indexIds>` for the bound index helper API.
+- `StoreRowsFor<typeof storeSchema>` for table-id keyed entity row types, such
+  as `Rows['messages']`.
 
 Source files mirror the TinyBase concepts they wrap:
 
 - `table.ts` and `schema.ts` define zod-backed schemas and emit
   TinyBase-compatible schema objects.
 - `store.ts` binds table/value helpers around a caller-owned `Store`.
-- `indexes.ts` defines, applies, and binds a caller-owned `Indexes` object.
-- `definition.ts` composes the schema definition object and stateless parsers.
+- `indexes.ts` binds a caller-owned, already-configured `Indexes` object.
+- `store-schema.ts` composes the store schema object and stateless parsers.
 
 The bind functions intentionally accept a structural Store/Indexes API rather
 than TinyBase's raw or `with-schemas` interfaces. TinyBase's schema-aware types
@@ -120,8 +115,8 @@ These are deliberate project-shaped choices, not accidental API drift:
 - Reads are parsed through zod and can throw if persisted data does not match
   the schema. This is preferred for Tetra's prototype mode.
 - `getEntity` / `requireEntity` add the row id to parsed rows.
-- Index ids are typed from the definition object. Slice ids are still plain
-  strings.
+- Index ids are typed from the caller-provided index id tuple. Slice ids are
+  still plain strings.
 - TinyBase native `default` values are derived from zod defaults. Tetra core
   still generally avoids schema defaults in its real schema so missing values
   fail loudly unless the read site has an explicit fallback.
@@ -169,12 +164,12 @@ Hold off on these until the app needs them:
   `db.values`, and transactions should use the caller-owned TinyBase Store
   directly.
 - Store binding and index binding are separate functions because TinyBase keeps
-  `Store` and `Indexes` as separate objects. Index definitions depend on table
-  zod schemas only for type-checking indexed cell ids.
-- `TinybaseTypedStore<typeof definition>` and
-  `TinybaseTypedIndexes<typeof definition>` are helper types, not TinyBase raw
-  object types. Composition roots should import raw `Store`, `MergeableStore`,
-  and `Indexes` types from TinyBase directly when they need them.
+  `Store` and `Indexes` as separate objects. Index definitions use TinyBase's
+  native `setIndexDefinition` builder API at the composition root.
+- `StoreApiFor<typeof storeSchema>` and `BoundIndexes<typeof indexIds>`
+  are helper types, not TinyBase raw object types. Composition roots should
+  import raw `Store`, `MergeableStore`, and `Indexes` types from TinyBase
+  directly when they need them.
 - `raw` escape hatches should stay rare and explicit.
 - Prefer adding wrappers only when Tetra already has a raw TinyBase call site
   that would benefit from typing.

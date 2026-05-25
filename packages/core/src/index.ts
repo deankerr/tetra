@@ -1,8 +1,4 @@
 export { Catalog } from '#catalog'
-export type { MessageRole } from '#db'
-export type { RequestStatus } from '#db'
-export { RequestConfig, StepRecord, UsageSummary, tetraDbDefinition } from '#db'
-export type { GenerationStatus, RequestConfig as RequestConfigType, Rows } from '#db'
 export { Run, Runs } from '#runtime'
 export { exportSession, loadSeeds } from '#seeds'
 export { Helpers } from '#helpers'

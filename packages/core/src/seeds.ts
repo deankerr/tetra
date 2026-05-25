@@ -1,5 +1,6 @@
-import type { RequestConfig as RequestConfigType, Rows } from '#db'
-import { DEFAULT_REQUEST_CONFIG, RequestConfig, StepRecord } from '#db'
+import type { RequestConfig as RequestConfigType, Rows } from '@tetra/store-schema'
+import { DEFAULT_REQUEST_CONFIG, RequestConfig, StepRecord } from '@tetra/store-schema'
+
 import type { Helpers } from '#helpers'
 import { deriveUsageSummary } from '#usage'
 
@@ -11,11 +12,13 @@ export interface SessionExport {
   exportedAt: string
   messages: PortableMessage[]
   requests: PortableRequest[]
-  session: Rows.Session
+  session: Rows['sessions']
 }
 
-type PortableMessage = Omit<Rows.Message, 'usage'> & { usage?: Rows.Message['usage'] }
-type PortableRequest = Omit<Rows.Request, 'updatedAt'> & { updatedAt?: Rows.Request['updatedAt'] }
+type PortableMessage = Omit<Rows['messages'], 'usage'> & { usage?: Rows['messages']['usage'] }
+type PortableRequest = Omit<Rows['requests'], 'updatedAt'> & {
+  updatedAt?: Rows['requests']['updatedAt']
+}
 type PortableSessionExport = Omit<SessionExport, 'sessionConfig'> & {
   sessionConfig?: Partial<RequestConfigType>
 }
@@ -83,9 +86,9 @@ function importSession(
       helpers.typedStore.tables.messages.setRow(message.id, {
         createdAt: message.createdAt,
         // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Loose<T> widens string fields for JSON import compatibility; data is validated by structure.
-        parts: message.parts as unknown as Rows.Message['parts'],
+        parts: message.parts as unknown as Rows['messages']['parts'],
         // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Loose<T> widens string fields for JSON import compatibility; data is validated by structure.
-        role: message.role as unknown as Rows.Message['role'],
+        role: message.role as unknown as Rows['messages']['role'],
         sessionId: message.sessionId,
         steps,
         updatedAt: message.updatedAt,
@@ -101,7 +104,7 @@ function importSession(
         errorMessage: request.errorMessage,
         sessionId: request.sessionId,
         // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Loose<T> widens string fields for JSON import compatibility; data is validated by structure.
-        status: request.status as unknown as Rows.Request['status'],
+        status: request.status as unknown as Rows['requests']['status'],
         terminalAt: request.terminalAt,
         updatedAt: request.updatedAt ?? request.terminalAt ?? request.createdAt,
       })
@@ -113,13 +116,13 @@ function importSession(
   return session.id
 }
 
-function parsePortableSteps(value: unknown): Rows.Message['steps'] {
+function parsePortableSteps(value: unknown): Rows['messages']['steps'] {
   if (!Array.isArray(value)) {
     return []
   }
   return value
     .map((step) => StepRecord.safeParse(step).data)
-    .filter((step): step is Rows.Message['steps'][number] => step !== undefined)
+    .filter((step): step is Rows['messages']['steps'][number] => step !== undefined)
 }
 
 export function loadSeeds(helpers: Helpers): void {

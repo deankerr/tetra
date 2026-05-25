@@ -1,4 +1,4 @@
-import type { StepRecord, UsageSummary } from '#db'
+import type { StepRecord, UsageSummary } from '@tetra/store-schema'
 
 export function combineUsageSummaries(summaries: UsageSummary[]): UsageSummary {
   let cacheReadTokens = 0

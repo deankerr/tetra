@@ -1,9 +1,9 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
+import { RequestConfig } from '@tetra/store-schema'
+import type { RequestConfig as RequestConfigType, Rows, StepRecord } from '@tetra/store-schema'
 import { convertToModelMessages, readUIMessageStream, stepCountIs, streamText } from 'ai'
 import type { LanguageModel, ModelMessage, ToolSet, UIMessage } from 'ai'
 
-import { RequestConfig } from '#db'
-import type { RequestConfig as RequestConfigType, Rows, StepRecord } from '#db'
 import type { Helpers } from '#helpers'
 import { resolveTools } from '#tools'
 
@@ -30,9 +30,9 @@ export interface RunStart {
   assistantMessageId: string
   config: RequestConfigType
   requestId: string
-  session: Rows.Session
+  session: Rows['sessions']
   system?: string
-  transcriptMessages: Rows.Message[]
+  transcriptMessages: Rows['messages'][]
 }
 
 export type RunStatus = 'cancelled' | 'completed' | 'error' | 'preparing' | 'streaming'
@@ -61,10 +61,10 @@ export class Run extends EventTarget {
   readonly config: RequestConfigType
   readonly done: Promise<void>
   readonly requestId: string
-  readonly session: Rows.Session
+  readonly session: Rows['sessions']
   readonly sessionId: string
   readonly system: string | undefined
-  readonly transcriptMessages: Rows.Message[]
+  readonly transcriptMessages: Rows['messages'][]
 
   error: unknown = null
   finalParts: UIMessage['parts'] | null = null
@@ -206,7 +206,7 @@ export class Run extends EventTarget {
   }
 
   private static async toModelMessages(
-    messages: Rows.Message[],
+    messages: Rows['messages'][],
     tools: ToolSet,
   ): Promise<ModelMessage[]> {
     return await convertToModelMessages(

@@ -1,10 +1,17 @@
-import { defineTypedTinybase, tinybaseIndex } from '@tetra/tinybase-schema'
-import type { EntityOf } from '@tetra/tinybase-schema'
+import type {
+  BoundIndexes,
+  StoreApiFor,
+  StoreRowsFor,
+  StoreSchemasFor,
+} from '@tetra/tinybase-schema'
+import { defineTypedStore } from '@tetra/tinybase-schema'
 import type { UIMessage } from 'ai'
-import { getHlcFunctions } from 'tinybase/common'
+import type { Indexes as RawIndexes } from 'tinybase/indexes/with-schemas'
+import type { Store as RawStore } from 'tinybase/store/with-schemas'
 import { z } from 'zod'
 
 const ProviderOptions = z.record(z.string(), z.json())
+export type ProviderOptions = z.infer<typeof ProviderOptions>
 
 export const RequestConfig = z.object({
   maxMessages: z.number().int().nonnegative(),
@@ -98,21 +105,15 @@ export type MessageRole = z.infer<typeof MessageRoleSchema>
 const RequestStatusSchema = z.enum(['cancelled', 'completed', 'error', 'preparing', 'streaming'])
 export type RequestStatus = z.infer<typeof RequestStatusSchema>
 
-export const tetraDbDefinition = defineTypedTinybase({
-  indexes: {
-    generationByRequest: tinybaseIndex('messageGenerations', 'requestId'),
-    generationBySession: tinybaseIndex('messageGenerations', 'sessionId'),
-    // HLC row IDs are lexicographically sortable, giving creation-time order for free.
-    messagesBySession: tinybaseIndex('messages', 'sessionId'),
-    requestsByAssistantMessageNewestFirst: tinybaseIndex('requests', 'assistantMessageId', {
-      rowIdSorter: (a, b) => Number(b) - Number(a),
-      sortBy: 'createdAt',
-    }),
-    requestsBySessionNewestFirst: tinybaseIndex('requests', 'sessionId', {
-      rowIdSorter: (a, b) => Number(b) - Number(a),
-      sortBy: 'createdAt',
-    }),
-  },
+export const tetraIndexIds = [
+  'generationByRequest',
+  'generationBySession',
+  'messagesBySession',
+  'requestsByAssistantMessageNewestFirst',
+  'requestsBySessionNewestFirst',
+] as const
+
+export const tetraStoreSchema = defineTypedStore({
   tables: {
     languageModels: z.object({
       contextLength: z.number(),
@@ -128,7 +129,7 @@ export const tetraDbDefinition = defineTypedTinybase({
     }),
     messageGenerations: z.object({
       createdAt: z.number(),
-      parts: MessagePart.array(),
+      parts: z.array(MessagePart),
       requestId: z.string(),
       sessionId: z.string(),
       status: GenerationStatusSchema,
@@ -192,19 +193,34 @@ export const tetraDbDefinition = defineTypedTinybase({
   },
 })
 
-// oxlint-disable-next-line typescript/no-namespace -- Namespaces keep contested schema row names grouped at call sites, e.g. Rows.Message.
-export namespace Rows {
-  export type LanguageModel = EntityOf<(typeof tetraDbDefinition.tables)['languageModels']>
-  export type MessageGeneration = EntityOf<(typeof tetraDbDefinition.tables)['messageGenerations']>
-  export type Message = EntityOf<(typeof tetraDbDefinition.tables)['messages']>
-  export type Prompt = EntityOf<(typeof tetraDbDefinition.tables)['prompts']>
-  export type Request = EntityOf<(typeof tetraDbDefinition.tables)['requests']>
-  export type Session = EntityOf<(typeof tetraDbDefinition.tables)['sessions']>
-  export type SessionSummary = EntityOf<(typeof tetraDbDefinition.tables)['sessionSummaries']>
-  export type SessionConfig = EntityOf<(typeof tetraDbDefinition.tables)['sessionConfigs']>
-}
+export type TetraRawIndexes = RawIndexes<StoreSchemasFor<typeof tetraStoreSchema>>
+export type TetraRawStore = RawStore<StoreSchemasFor<typeof tetraStoreSchema>>
+export type TetraTypedIndexes = BoundIndexes<typeof tetraIndexIds>
+export type TetraTypedStore = StoreApiFor<typeof tetraStoreSchema>
 
-const [getNextHlc] = getHlcFunctions()
-export function createIdGenerator(prefix: string): () => string {
-  return () => `${prefix}_${getNextHlc()}`
+export type Rows = StoreRowsFor<typeof tetraStoreSchema>
+
+export function setTetraIndexDefinitions(indexes: TetraRawIndexes): void {
+  // Apply native TinyBase indexes from the store model definition.
+  indexes
+    .setIndexDefinition('generationByRequest', 'messageGenerations', 'requestId')
+    .setIndexDefinition('generationBySession', 'messageGenerations', 'sessionId')
+    // HLC row IDs are lexicographically sortable, giving creation-time order for free.
+    .setIndexDefinition('messagesBySession', 'messages', 'sessionId')
+    .setIndexDefinition(
+      'requestsByAssistantMessageNewestFirst',
+      'requests',
+      'assistantMessageId',
+      'createdAt',
+      undefined,
+      (a, b) => Number(b) - Number(a),
+    )
+    .setIndexDefinition(
+      'requestsBySessionNewestFirst',
+      'requests',
+      'sessionId',
+      'createdAt',
+      undefined,
+      (a, b) => Number(b) - Number(a),
+    )
 }

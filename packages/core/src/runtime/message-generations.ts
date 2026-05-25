@@ -1,6 +1,6 @@
+import type { GenerationStatus, StepRecord, UsageSummary } from '@tetra/store-schema'
 import type { UIMessage } from 'ai'
 
-import type { GenerationStatus, StepRecord, UsageSummary } from '#db'
 import type { Helpers } from '#helpers'
 import { deriveUsageSummary } from '#usage'
 

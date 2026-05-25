@@ -1,15 +1,14 @@
-import type { TinybaseTypedStore } from '@tetra/tinybase-schema'
+import type { RequestConfig as RequestConfigType, TetraTypedStore } from '@tetra/store-schema'
 
-import { createIdGenerator } from '#db'
-import type { RequestConfig as RequestConfigType, tetraDbDefinition } from '#db'
 import type { Helpers } from '#helpers'
+import { createIdGenerator } from '#ids'
 
 import { commitMessageGeneration, updateMessageGeneration } from './message-generations.ts'
 
 const nextId = createIdGenerator('req')
 
 export function createRequest(
-  typedStore: TinybaseTypedStore<typeof tetraDbDefinition>,
+  typedStore: TetraTypedStore,
   args: { assistantMessageId: string; config: RequestConfigType; sessionId: string },
 ): string {
   const requestId = nextId()
@@ -29,10 +28,7 @@ export function createRequest(
   return requestId
 }
 
-export function startStreaming(
-  typedStore: TinybaseTypedStore<typeof tetraDbDefinition>,
-  requestId: string,
-): void {
+export function startStreaming(typedStore: TetraTypedStore, requestId: string): void {
   typedStore.tables.requests.updateRow(requestId, {
     errorMessage: '',
     status: 'streaming',
@@ -40,10 +36,7 @@ export function startStreaming(
   })
 }
 
-export function completeRequest(
-  typedStore: TinybaseTypedStore<typeof tetraDbDefinition>,
-  requestId: string,
-): void {
+export function completeRequest(typedStore: TetraTypedStore, requestId: string): void {
   const now = Date.now()
   typedStore.tables.requests.updateRow(requestId, {
     status: 'completed',
@@ -52,11 +45,7 @@ export function completeRequest(
   })
 }
 
-export function cancelRequest(
-  typedStore: TinybaseTypedStore<typeof tetraDbDefinition>,
-  requestId: string,
-  message = '',
-): void {
+export function cancelRequest(typedStore: TetraTypedStore, requestId: string, message = ''): void {
   const now = Date.now()
   typedStore.tables.requests.updateRow(requestId, {
     errorMessage: message,
@@ -66,11 +55,7 @@ export function cancelRequest(
   })
 }
 
-export function failRequest(
-  typedStore: TinybaseTypedStore<typeof tetraDbDefinition>,
-  requestId: string,
-  error: unknown,
-): void {
+export function failRequest(typedStore: TetraTypedStore, requestId: string, error: unknown): void {
   const now = Date.now()
   typedStore.tables.requests.updateRow(requestId, {
     errorMessage: String(error),

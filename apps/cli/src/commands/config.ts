@@ -1,5 +1,5 @@
-import { RequestConfig } from '@tetra/core'
-import type { RequestConfigType } from '@tetra/core'
+import { RequestConfig } from '@tetra/store-schema'
+import type { RequestConfigType } from '@tetra/store-schema'
 import type { Command } from 'commander'
 
 import type { bootstrap } from '../bootstrap'

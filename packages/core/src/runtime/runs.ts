@@ -1,5 +1,6 @@
-import { RequestConfig } from '#db'
-import type { RequestConfig as RequestConfigType, Rows } from '#db'
+import { RequestConfig } from '@tetra/store-schema'
+import type { RequestConfig as RequestConfigType, Rows } from '@tetra/store-schema'
+
 import type { Helpers } from '#helpers'
 
 import { clearMessageContent, createMessageGeneration } from './message-generations.ts'
@@ -131,7 +132,7 @@ export class Runs {
     })
   }
 
-  private collectMessagesBefore(messageId: string, config: RequestConfigType): Rows.Message[] {
+  private collectMessagesBefore(messageId: string, config: RequestConfigType): Rows['messages'][] {
     const target = this.helpers.typedStore.tables.messages.requireEntity(messageId)
     const messages = this.helpers.typedIndexes
       .getSliceRowIds('messagesBySession', target.sessionId)

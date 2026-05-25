@@ -1,7 +1,6 @@
+import type { StepRecord } from '@tetra/store-schema'
 import { pickBy } from 'remeda'
 import { z } from 'zod'
-
-import type { StepRecord } from '#db'
 
 // Parses OpenRouter-specific cost and token details from the raw provider metadata.
 const ProviderRaw = z.object({

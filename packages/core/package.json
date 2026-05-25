@@ -4,8 +4,8 @@
   "type": "module",
   "imports": {
     "#catalog": "./src/catalog.ts",
-    "#db": "./src/db.ts",
     "#helpers": "./src/helpers.ts",
+    "#ids": "./src/ids.ts",
     "#runtime": "./src/runtime/index.ts",
     "#seeds": "./src/seeds.ts",
     "#tools": "./src/tools/tools.ts",
@@ -19,6 +19,7 @@
     "@exalabs/ai-sdk": "^2.0.1",
     "@openrouter/ai-sdk-provider": "catalog:",
     "@tetra/credentials": "workspace:*",
+    "@tetra/store-schema": "workspace:*",
     "@tetra/tinybase-schema": "workspace:*",
     "ai": "catalog:",
     "remeda": "^2.34.1",

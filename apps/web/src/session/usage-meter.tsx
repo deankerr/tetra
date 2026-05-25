@@ -1,4 +1,4 @@
-import type { UsageSummary } from '@tetra/core'
+import type { UsageSummary } from '@tetra/store-schema'
 import { Button } from '@tetra/ui/components/ui/button'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@tetra/ui/components/ui/hover-card'
 import { Progress } from '@tetra/ui/components/ui/progress'

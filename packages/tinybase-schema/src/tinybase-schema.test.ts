@@ -4,13 +4,7 @@ import { createIndexes } from 'tinybase/indexes/with-schemas'
 import { createStore } from 'tinybase/store/with-schemas'
 import { z } from 'zod'
 
-import {
-  bindTinybaseIndexes,
-  bindTinybaseStore,
-  defineTypedTinybase,
-  setTinybaseIndexDefinitions,
-  tinybaseIndex,
-} from './index.ts'
+import { bindIndexes, bindStore, defineTypedStore } from './index.ts'
 
 const ModelConfig = z.object({
   maxMessages: z.number().int().positive().optional(),
@@ -26,10 +20,7 @@ const MessagePart = z.discriminatedUnion('type', [
 ])
 
 const createTestDefinition = () =>
-  defineTypedTinybase({
-    indexes: {
-      messagesBySession: tinybaseIndex('messages', 'sessionId'),
-    },
+  defineTypedStore({
     tables: {
       messages: z.object({
         createdAt: z.number().default(0),
@@ -54,36 +45,38 @@ const createTestDefinition = () =>
     },
   })
 
+const testIndexIds = ['messagesBySession'] as const
+
 function createTestStore(definition: ReturnType<typeof createTestDefinition>) {
   // TinyBase runtime objects are owned by the caller; the definition only supplies schemas.
-  const tablesSchema = structuredClone(definition.tinybaseTablesSchema)
-  const valuesSchema = structuredClone(definition.tinybaseValuesSchema)
+  const tablesSchema = structuredClone(definition.tablesSchema)
+  const valuesSchema = structuredClone(definition.valuesSchema)
 
   return createStore().setSchema(tablesSchema, valuesSchema)
 }
 
 function bindTestStore(definition: ReturnType<typeof createTestDefinition>) {
   // Bind zod-backed helpers around an externally created TinyBase Store.
-  return bindTinybaseStore(createTestStore(definition), definition.tables, definition.values)
+  return bindStore(createTestStore(definition), definition.tables, definition.values)
 }
 
 test('generates TinyBase schemas from zod table and value definitions', () => {
   const definition = createTestDefinition()
 
-  expect(definition.tinybaseTablesSchema.messages).toEqual({
+  expect(definition.tablesSchema.messages).toEqual({
     createdAt: { default: 0, type: 'number' },
     parts: { default: [], type: 'array' },
     role: { default: 'user', type: 'string' },
     sessionId: { type: 'string' },
     updatedAt: { default: 0, type: 'number' },
   })
-  expect(definition.tinybaseValuesSchema).toEqual({
+  expect(definition.valuesSchema).toEqual({
     activeSessionId: { default: '', type: 'string' },
   })
 })
 
 test('derives nullable, record, array, enum, and default cell schemas from zod', () => {
-  const definition = defineTypedTinybase({
+  const definition = defineTypedStore({
     tables: {
       examples: z.object({
         count: z.number().default(1),
@@ -96,7 +89,7 @@ test('derives nullable, record, array, enum, and default cell schemas from zod',
     },
   })
 
-  expect(definition.tinybaseTablesSchema.examples).toEqual({
+  expect(definition.tablesSchema.examples).toEqual({
     count: { default: 1, type: 'number' },
     enabled: { type: 'boolean' },
     metadata: { type: 'object' },
@@ -108,7 +101,7 @@ test('derives nullable, record, array, enum, and default cell schemas from zod',
 
 test('throws when a zod schema cannot be represented as a TinyBase cell', () => {
   expect(() =>
-    defineTypedTinybase({
+    defineTypedStore({
       tables: {
         examples: z.object({
           opaque: z.custom(() => true),
@@ -168,7 +161,7 @@ test('binds a TinyBase store with explicit typed row CRUD methods', () => {
 test('keeps table query methods precise around missing rows and raw TinyBase defaults', () => {
   const definition = createTestDefinition()
   const store = createTestStore(definition)
-  const db = bindTinybaseStore(store, definition.tables, definition.values)
+  const db = bindStore(store, definition.tables, definition.values)
 
   store.setPartialRow('sessions', 'sess_1', { title: 'TinyBase default fill' })
 
@@ -234,7 +227,7 @@ test('parses table mutation inputs before writing to TinyBase', () => {
 test('runs multiple typed mutations inside a caller-owned TinyBase transaction', () => {
   const definition = createTestDefinition()
   const store = createTestStore(definition)
-  const db = bindTinybaseStore(store, definition.tables, definition.values)
+  const db = bindStore(store, definition.tables, definition.values)
 
   store.transaction(() => {
     db.tables.sessions.setRow('sess_1', {
@@ -283,10 +276,10 @@ test('parses value mutation inputs before writing to TinyBase', () => {
 test('creates and binds typed TinyBase indexes', () => {
   const definition = createTestDefinition()
   const store = createTestStore(definition)
-  const db = bindTinybaseStore(store, definition.tables, definition.values)
+  const db = bindStore(store, definition.tables, definition.values)
   const rawIndexes = createIndexes(store)
-  setTinybaseIndexDefinitions(rawIndexes, definition.indexes)
-  const indexes = bindTinybaseIndexes(rawIndexes, definition.indexes)
+  rawIndexes.setIndexDefinition('messagesBySession', 'messages', 'sessionId')
+  const indexes = bindIndexes(rawIndexes, testIndexIds)
 
   db.tables.sessions.setRow('sess_1', {
     config: {

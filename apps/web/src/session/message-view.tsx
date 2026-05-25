@@ -1,4 +1,4 @@
-import type { RequestStatus, Rows, StepRecord } from '@tetra/core'
+import type { RequestStatus, Rows, StepRecord } from '@tetra/store-schema'
 import {
   Tool,
   ToolContent,
@@ -24,7 +24,7 @@ import { useMemo } from 'react'
 import { useTetra } from '@/tetra-context'
 import { typedTinybase } from '@/tetra-tinybase-react'
 
-type UIMessagePart = Rows.Message['parts'][number]
+type UIMessagePart = Rows['messages']['parts'][number]
 
 function useTetraMessage(messageId: string) {
   const message = typedTinybase.useEntity('messages', messageId)
@@ -46,7 +46,7 @@ function useTetraMessage(messageId: string) {
       id: message.id,
       request: request
         ? {
-            errorMessage: request.errorMessage || null,
+            errorMessage: request.errorMessage ?? null,
             status: request.status,
             totals:
               totalTokens === 0

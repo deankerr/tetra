@@ -1,78 +1,30 @@
-import type { Ids, SortKey } from 'tinybase/common/with-schemas'
-import type { z } from 'zod'
-
-import type { TableDefinitions, TableSchemaOf } from './table.ts'
+import type { Ids } from 'tinybase/common/with-schemas'
 
 interface IndexesApi {
   getSliceIds(indexId: string): Ids
   getSliceRowIds(indexId: string, sliceId: string): Ids
-  setIndexDefinition(
-    indexId: string,
-    tableId: string,
-    sliceBy?: unknown,
-    sortBy?: unknown,
-    sliceIdSorter?: unknown,
-    rowIdSorter?: unknown,
-  ): unknown
 }
 
-export type IndexCellId<
-  Tables extends TableDefinitions,
-  TableId extends keyof Tables & string,
-> = keyof z.output<TableSchemaOf<Tables[TableId]>> & string
-
-export interface IndexDefinition<
-  Tables extends TableDefinitions,
-  TableId extends keyof Tables & string,
-> {
-  rowIdSorter?: (sortKey1: SortKey, sortKey2: SortKey, sliceId: string) => number
-  sliceBy?: IndexCellId<Tables, TableId>
-  sliceIdSorter?: (sliceId1: string, sliceId2: string) => number
-  sortBy?: IndexCellId<Tables, TableId>
-  tableId: TableId
-}
-
-export type IndexDefinitions<Tables extends TableDefinitions> = Record<
-  string,
-  IndexDefinition<Tables, keyof Tables & string>
->
+export type IndexIds = readonly string[]
 
 export interface IndexApi {
   getSliceIds(): Ids
   getSliceRowIds(sliceId: string): Ids
 }
 
-export type BoundIndexes<IndexDefs extends Record<string, unknown>> = {
-  getIndex(indexId: keyof IndexDefs & string): IndexApi
-  getSliceIds(indexId: keyof IndexDefs & string): Ids
-  getSliceRowIds(indexId: keyof IndexDefs & string, sliceId: string): Ids
-} & {
-  [IndexId in keyof IndexDefs]: IndexApi
-}
+export type BoundIndexes<IndexIdList extends IndexIds> = {
+  getIndex(indexId: IndexIdList[number]): IndexApi
+  getSliceIds(indexId: IndexIdList[number]): Ids
+  getSliceRowIds(indexId: IndexIdList[number], sliceId: string): Ids
+} & Record<IndexIdList[number], IndexApi>
 
-export function tinybaseIndex<const TableId extends string>(
-  tableId: TableId,
-  sliceBy?: string,
-  options: {
-    rowIdSorter?: (sortKey1: unknown, sortKey2: unknown, sliceId: string) => number
-    sliceIdSorter?: (sliceId1: string, sliceId2: string) => number
-    sortBy?: string
-  } = {},
-): IndexDefinition<TableDefinitions, TableId> {
-  return {
-    ...options,
-    ...(sliceBy !== undefined && { sliceBy }),
-    tableId,
-  }
-}
-
-export function bindTinybaseIndexes<IndexDefs extends Record<string, unknown>>(
+export function bindIndexes<const IndexIdList extends IndexIds>(
   indexes: IndexesApi,
-  definitions: IndexDefs,
-): BoundIndexes<IndexDefs> {
+  indexIds: IndexIdList,
+): BoundIndexes<IndexIdList> {
   // Index APIs are intentionally row-id oriented like TinyBase's native Indexes API.
   const base = {
-    getIndex(indexId: keyof IndexDefs & string): IndexApi {
+    getIndex(indexId: IndexIdList[number]): IndexApi {
       return {
         getSliceIds() {
           return indexes.getSliceIds(indexId)
@@ -84,39 +36,17 @@ export function bindTinybaseIndexes<IndexDefs extends Record<string, unknown>>(
       }
     },
 
-    getSliceIds(indexId: keyof IndexDefs & string): Ids {
+    getSliceIds(indexId: IndexIdList[number]): Ids {
       return indexes.getSliceIds(indexId)
     },
 
-    getSliceRowIds(indexId: keyof IndexDefs & string, sliceId: string): Ids {
+    getSliceRowIds(indexId: IndexIdList[number], sliceId: string): Ids {
       return indexes.getSliceRowIds(indexId, sliceId)
     },
   }
 
-  const accessors = Object.fromEntries(
-    (Object.keys(definitions) as (keyof IndexDefs & string)[]).map((indexId) => [
-      indexId,
-      base.getIndex(indexId),
-    ]),
-  )
+  const accessors = Object.fromEntries(indexIds.map((indexId) => [indexId, base.getIndex(indexId)]))
 
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Object.assign preserves runtime accessors; the mapped type records their names.
-  return Object.assign(base, accessors) as unknown as BoundIndexes<IndexDefs>
-}
-
-export function setTinybaseIndexDefinitions(
-  indexes: IndexesApi,
-  definitions: IndexDefinitions<TableDefinitions>,
-): void {
-  // Apply declared index definitions onto an externally owned TinyBase Indexes object.
-  for (const [indexId, definition] of Object.entries(definitions)) {
-    indexes.setIndexDefinition(
-      indexId,
-      definition.tableId,
-      definition.sliceBy,
-      definition.sortBy,
-      definition.sliceIdSorter,
-      definition.rowIdSorter,
-    )
-  }
+  // oxlint-disable-next-line no-unsafe-type-assertion -- Object.assign preserves runtime accessors; the mapped type records their names.
+  return Object.assign(base, accessors) as unknown as BoundIndexes<IndexIdList>
 }

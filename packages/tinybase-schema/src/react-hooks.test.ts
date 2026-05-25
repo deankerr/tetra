@@ -2,7 +2,7 @@ import { beforeEach, expect, mock, test } from 'bun:test'
 
 import { z } from 'zod'
 
-import { defineTypedTinybase, tinybaseIndex } from './index.ts'
+import { defineTypedStore } from './index.ts'
 
 interface HookState {
   cell: unknown
@@ -42,13 +42,10 @@ await mock.module('tinybase/ui-react/with-schemas', () => ({
   useValueState: mock(() => [hookState.value, hookState.setValue]),
 }))
 
-const { createTypedTinybaseReactHooks } = await import('./react.ts')
+const { createStoreHooks } = await import('./react.ts')
 
 const createHooks = () => {
-  const definition = defineTypedTinybase({
-    indexes: {
-      sessionsByTitle: tinybaseIndex('sessions', 'title'),
-    },
+  const definition = defineTypedStore({
     tables: {
       sessions: z.object({
         messageCount: z.coerce.number().default(0),
@@ -60,7 +57,7 @@ const createHooks = () => {
     },
   })
 
-  return createTypedTinybaseReactHooks(definition)
+  return createStoreHooks(definition, ['sessionsByTitle'] as const)
 }
 
 beforeEach(() => {

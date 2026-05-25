@@ -1,18 +1,15 @@
 import { expect, test } from 'bun:test'
 
 import type { LanguageModelV3StreamPart } from '@ai-sdk/provider'
-import {
-  bindTinybaseIndexes,
-  bindTinybaseStore,
-  setTinybaseIndexDefinitions,
-} from '@tetra/tinybase-schema'
+import { setTetraIndexDefinitions, tetraStoreSchema, tetraIndexIds } from '@tetra/store-schema'
+import { bindIndexes, bindStore } from '@tetra/tinybase-schema'
 import { simulateReadableStream, tool } from 'ai'
 import { MockLanguageModelV3 } from 'ai/test'
 import { createIndexes } from 'tinybase/indexes/with-schemas'
 import { createStore } from 'tinybase/store/with-schemas'
 import { z } from 'zod'
 
-import { Helpers, Runs, tetraDbDefinition } from '../index.ts'
+import { Helpers, Runs } from '../index.ts'
 import { toolsRegistryMap } from '../tools/tools.ts'
 import { createMessageGeneration, writeMessageGenerationSnapshot } from './message-generations.ts'
 import type { CredentialReader, LanguageModelResolver } from './run.ts'
@@ -20,14 +17,14 @@ import type { CredentialReader, LanguageModelResolver } from './run.ts'
 function createTestDb() {
   // Tests own the TinyBase Store and Indexes objects, matching app runtime setup.
   const store = createStore().setSchema(
-    structuredClone(tetraDbDefinition.tinybaseTablesSchema),
-    structuredClone(tetraDbDefinition.tinybaseValuesSchema),
+    structuredClone(tetraStoreSchema.tablesSchema),
+    structuredClone(tetraStoreSchema.valuesSchema),
   )
   const indexes = createIndexes(store)
-  setTinybaseIndexDefinitions(indexes, tetraDbDefinition.indexes)
+  setTetraIndexDefinitions(indexes)
 
-  const typedStore = bindTinybaseStore(store, tetraDbDefinition.tables, tetraDbDefinition.values)
-  const typedIndexes = bindTinybaseIndexes(indexes, tetraDbDefinition.indexes)
+  const typedStore = bindStore(store, tetraStoreSchema.tables, tetraStoreSchema.values)
+  const typedIndexes = bindIndexes(indexes, tetraIndexIds)
   return {
     rawIndexes: indexes,
     rawStore: store,
