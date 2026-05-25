@@ -112,6 +112,93 @@ test('binds a TinyBase store with explicit typed row CRUD methods', () => {
   expect(db.tables.messages.getEntity('msg_1')).toBeNull()
 })
 
+test('keeps table query methods precise around missing rows and raw TinyBase defaults', () => {
+  const definition = createTestDefinition()
+  const db = definition.bindTinybaseStore(definition.createTinybaseStore())
+
+  db.store.setPartialRow('sessions', 'sess_1', { title: 'TinyBase default fill' })
+
+  expect(db.tables.sessions.getRow('missing_session')).toBeNull()
+  expect(db.tables.sessions.getEntity('missing_session')).toBeNull()
+  expect(db.tables.sessions.getCell('missing_session', 'title')).toBeUndefined()
+  expect(db.tables.sessions.getRow('sess_1')).toEqual({
+    config: {
+      modelId: 'anthropic/claude-sonnet-4.5',
+      providerOptions: {},
+      toolIds: [],
+    },
+    createdAt: 0,
+    title: 'TinyBase default fill',
+    updatedAt: 0,
+  })
+})
+
+test('parses table mutation inputs before writing to TinyBase', () => {
+  const definition = createTestDefinition()
+  const db = definition.bindTinybaseStore(definition.createTinybaseStore())
+  const invalidSessionRow = {
+    config: {
+      modelId: 'anthropic/claude-sonnet-4.5',
+      providerOptions: {},
+      toolIds: [],
+    },
+    createdAt: 0,
+    title: 42,
+    updatedAt: 0,
+  }
+
+  // @ts-expect-error - Runtime validation should reject invalid rows that bypass types.
+  expect(() => db.tables.sessions.setRow('sess_1', invalidSessionRow)).toThrow()
+  expect(db.tables.sessions.hasRow('sess_1')).toBe(false)
+
+  db.tables.sessions.setRow('sess_1', {
+    config: {
+      modelId: 'anthropic/claude-sonnet-4.5',
+      providerOptions: {},
+      toolIds: [],
+    },
+    createdAt: 0,
+    title: 'Valid',
+    updatedAt: 0,
+  })
+
+  // @ts-expect-error - Runtime validation should reject invalid cell values that bypass types.
+  expect(() => db.tables.sessions.setCell('sess_1', 'title', 42)).toThrow()
+  expect(db.tables.sessions.getCell('sess_1', 'title')).toBe('Valid')
+  expect(() =>
+    db.tables.sessions.updateRow('sess_1', {
+      config: { maxMessages: 0, modelId: 'invalid config', providerOptions: {}, toolIds: ['ok'] },
+    }),
+  ).toThrow()
+  expect(db.tables.sessions.requireEntity('sess_1').config).toEqual({
+    modelId: 'anthropic/claude-sonnet-4.5',
+    providerOptions: {},
+    toolIds: [],
+  })
+})
+
+test('runs multiple typed mutations inside a TinyBase transaction', () => {
+  const definition = createTestDefinition()
+  const db = definition.bindTinybaseStore(definition.createTinybaseStore())
+
+  db.transaction(() => {
+    db.tables.sessions.setRow('sess_1', {
+      config: {
+        modelId: 'anthropic/claude-sonnet-4.5',
+        providerOptions: {},
+        toolIds: [],
+      },
+      createdAt: 1,
+      title: 'Transaction',
+      updatedAt: 1,
+    })
+    db.values.activeSessionId.set('sess_1')
+  })
+
+  expect(db.tables.sessions.requireEntity('sess_1').title).toBe('Transaction')
+  expect(db.values.activeSessionId.get()).toBe('sess_1')
+})
+
 test('binds typed value methods separately from table row methods', () => {
   const definition = createTestDefinition()
   const db = definition.bindTinybaseStore(definition.createTinybaseStore())
@@ -124,6 +211,18 @@ test('binds typed value methods separately from table row methods', () => {
 
   db.values.activeSessionId.delete()
   expect(db.values.activeSessionId.get()).toBe('')
+})
+
+test('parses value mutation inputs before writing to TinyBase', () => {
+  const definition = createTestDefinition()
+  const db = definition.bindTinybaseStore(definition.createTinybaseStore())
+
+  // @ts-expect-error - Runtime validation should reject invalid value inputs that bypass types.
+  expect(() => db.values.activeSessionId.set(42)).toThrow()
+  expect(db.values.activeSessionId.get()).toBe('')
+
+  db.values.get('activeSessionId').set('sess_1')
+  expect(db.values.activeSessionId.get()).toBe('sess_1')
 })
 
 test('creates and binds typed TinyBase indexes', () => {
