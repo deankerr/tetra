@@ -96,7 +96,6 @@ export const UsageSummary = z.object({
 })
 export type UsageSummary = z.infer<typeof UsageSummary>
 
-const EMPTY_USAGE: UsageSummary = {}
 const MessageParts = z.custom<UIMessage['parts']>((value) => Array.isArray(value))
 const GenerationStatusSchema = z.enum(['cancelled', 'completed', 'error', 'preparing', 'streaming'])
 export type GenerationStatus = z.infer<typeof GenerationStatusSchema>
@@ -122,88 +121,80 @@ export const tetraDbDefinition = defineTypedTinybase({
   },
   tables: {
     languageModels: tinybaseTable({
-      contextLength: tinybaseCell.number(z.number(), { default: 0 }),
-      createdAt: tinybaseCell.number(z.number(), { default: 0 }),
-      inputModalities: tinybaseCell.array(z.array(z.string()), { default: [] }),
-      name: tinybaseCell.string(z.string(), { default: '' }),
-      outputModalities: tinybaseCell.array(z.array(z.string()), { default: [] }),
-      provider: tinybaseCell.string(z.string(), { default: '' }),
-      providerName: tinybaseCell.string(z.string(), { default: '' }),
-      supportedParameters: tinybaseCell.array(z.array(z.string()), { default: [] }),
-      updatedAt: tinybaseCell.number(z.number(), { default: 0 }),
-      upstreamCreatedAt: tinybaseCell.number(z.number(), { default: 0 }),
+      contextLength: tinybaseCell.number(z.number()),
+      createdAt: tinybaseCell.number(z.number()),
+      inputModalities: tinybaseCell.array(z.array(z.string())),
+      name: tinybaseCell.string(z.string()),
+      outputModalities: tinybaseCell.array(z.array(z.string())),
+      provider: tinybaseCell.string(z.string()),
+      providerName: tinybaseCell.string(z.string()),
+      supportedParameters: tinybaseCell.array(z.array(z.string())),
+      updatedAt: tinybaseCell.number(z.number()),
+      upstreamCreatedAt: tinybaseCell.number(z.number()),
     }),
     messageGenerations: tinybaseTable({
-      createdAt: tinybaseCell.number(z.number(), { default: 0 }),
-      parts: tinybaseCell.array(MessageParts, { default: [] }),
-      requestId: tinybaseCell.string(z.string(), { default: '' }),
-      sessionId: tinybaseCell.string(z.string(), { default: '' }),
-      status: tinybaseCell.string(GenerationStatusSchema, {
-        default: 'preparing',
-      }),
-      steps: tinybaseCell.array(z.array(StepRecord), { default: [] }),
-      updatedAt: tinybaseCell.number(z.number(), { default: 0 }),
-      usage: tinybaseCell.object(UsageSummary, { default: EMPTY_USAGE }),
+      createdAt: tinybaseCell.number(z.number()),
+      parts: tinybaseCell.array(MessageParts),
+      requestId: tinybaseCell.string(z.string()),
+      sessionId: tinybaseCell.string(z.string()),
+      status: tinybaseCell.string(GenerationStatusSchema),
+      steps: tinybaseCell.array(z.array(StepRecord)),
+      updatedAt: tinybaseCell.number(z.number()),
+      usage: tinybaseCell.object(UsageSummary),
     }),
     messages: tinybaseTable({
-      createdAt: tinybaseCell.number(z.number(), { default: 0 }),
-      parts: tinybaseCell.array(MessageParts, { default: [] }),
-      role: tinybaseCell.string(MessageRoleSchema, { default: 'user' }),
-      sessionId: tinybaseCell.string(z.string(), { default: '' }),
-      steps: tinybaseCell.array(z.array(StepRecord), { default: [] }),
-      updatedAt: tinybaseCell.number(z.number(), { default: 0 }),
-      usage: tinybaseCell.object(UsageSummary, { default: EMPTY_USAGE }),
+      createdAt: tinybaseCell.number(z.number()),
+      parts: tinybaseCell.array(MessageParts),
+      role: tinybaseCell.string(MessageRoleSchema),
+      sessionId: tinybaseCell.string(z.string()),
+      steps: tinybaseCell.array(z.array(StepRecord)),
+      updatedAt: tinybaseCell.number(z.number()),
+      usage: tinybaseCell.object(UsageSummary),
     }),
     prompts: tinybaseTable({
-      content: tinybaseCell.string(z.string(), { default: '' }),
-      createdAt: tinybaseCell.number(z.number(), { default: 0 }),
-      label: tinybaseCell.string(z.string(), { default: '' }),
-      updatedAt: tinybaseCell.number(z.number(), { default: 0 }),
+      content: tinybaseCell.string(z.string()),
+      createdAt: tinybaseCell.number(z.number()),
+      label: tinybaseCell.string(z.string()),
+      updatedAt: tinybaseCell.number(z.number()),
     }),
     requests: tinybaseTable({
-      assistantMessageId: tinybaseCell.string(z.string(), { default: '' }),
-      config: tinybaseCell.object(RequestConfig, {
-        default: DEFAULT_REQUEST_CONFIG,
-      }),
-      createdAt: tinybaseCell.number(z.number(), { default: 0 }),
-      errorMessage: tinybaseCell.string(z.string(), { default: '' }),
-      sessionId: tinybaseCell.string(z.string(), { default: '' }),
-      status: tinybaseCell.string(RequestStatusSchema, {
-        default: 'preparing',
-      }),
-      terminalAt: tinybaseCell.number(z.number(), { default: 0 }),
-      updatedAt: tinybaseCell.number(z.number(), { default: 0 }),
+      assistantMessageId: tinybaseCell.string(z.string()),
+      config: tinybaseCell.object(RequestConfig),
+      createdAt: tinybaseCell.number(z.number()),
+      errorMessage: tinybaseCell.string(z.string()),
+      sessionId: tinybaseCell.string(z.string()),
+      status: tinybaseCell.string(RequestStatusSchema),
+      terminalAt: tinybaseCell.number(z.number()),
+      updatedAt: tinybaseCell.number(z.number()),
     }),
     // Execution parameters for a session. Keyed by the same ID as the sessions table (1:1).
     // Stored separately so sidebar reactive reads on sessions are not triggered by config edits.
     sessionConfigs: tinybaseTable({
-      maxMessages: tinybaseCell.number(z.number(), { default: 0 }),
-      modelId: tinybaseCell.string(z.string(), { default: '' }),
-      providerOptions: tinybaseCell.object(ProviderOptions, { default: {} }),
-      systemPromptId: tinybaseCell.string(z.string(), { default: '' }),
-      toolIds: tinybaseCell.array(z.array(z.string()), { default: [] }),
+      maxMessages: tinybaseCell.number(z.number()),
+      modelId: tinybaseCell.string(z.string()),
+      providerOptions: tinybaseCell.object(ProviderOptions),
+      systemPromptId: tinybaseCell.string(z.string()),
+      toolIds: tinybaseCell.array(z.array(z.string())),
     }),
     // Derived usage for a session. Keyed by the same ID as the sessions table (1:1).
     // Stored separately so sidebar/session identity reads are not invalidated by usage churn.
     sessionSummaries: tinybaseTable({
-      createdAt: tinybaseCell.number(z.number(), { default: 0 }),
-      updatedAt: tinybaseCell.number(z.number(), { default: 0 }),
-      usage: tinybaseCell.object(UsageSummary, { default: EMPTY_USAGE }),
+      createdAt: tinybaseCell.number(z.number()),
+      updatedAt: tinybaseCell.number(z.number()),
+      usage: tinybaseCell.object(UsageSummary),
     }),
     sessions: tinybaseTable({
-      createdAt: tinybaseCell.number(z.number(), { default: 0 }),
-      title: tinybaseCell.string(z.string(), { default: '' }),
-      updatedAt: tinybaseCell.number(z.number(), { default: 0 }),
+      createdAt: tinybaseCell.number(z.number()),
+      title: tinybaseCell.string(z.string()),
+      updatedAt: tinybaseCell.number(z.number()),
     }),
   },
   values: {
-    catalogLastRefreshed: tinybaseCell.number(z.number(), { default: 0 }),
-    cliActiveSessionId: tinybaseCell.string(z.string(), { default: '' }),
+    catalogLastRefreshed: tinybaseCell.number(z.number()),
+    cliActiveSessionId: tinybaseCell.string(z.string()),
     // Mutable workspace-level default applied when creating a new session. Stored as a blob
     // since it is a cold path (read once at session creation, not on every render).
-    defaultSessionConfig: tinybaseCell.object(RequestConfig, {
-      default: DEFAULT_REQUEST_CONFIG,
-    }),
+    defaultSessionConfig: tinybaseCell.object(RequestConfig),
   },
 })
 

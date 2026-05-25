@@ -30,7 +30,9 @@ export class Catalog {
 
   async refresh(args: { force?: boolean } = {}): Promise<void> {
     const { catalogLastRefreshed } = this.db.values
-    const lastRefreshed = catalogLastRefreshed.get()
+    const lastRefreshed = this.db.store.hasValue('catalogLastRefreshed')
+      ? catalogLastRefreshed.get()
+      : 0
     const isStale = lastRefreshed === 0 || Date.now() - lastRefreshed > STALE_MS
     if (args.force !== true && !isStale) {
       return

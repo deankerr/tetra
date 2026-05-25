@@ -1,6 +1,10 @@
 import type { UIMessage } from 'ai'
 
-import { RequestConfig as RequestConfigSchema, createIdGenerator } from '#db'
+import {
+  DEFAULT_REQUEST_CONFIG,
+  RequestConfig as RequestConfigSchema,
+  createIdGenerator,
+} from '#db'
 import type { MessageRole, RequestConfig, TetraDb } from '#db'
 import { combineUsageSummaries } from '#usage'
 
@@ -19,8 +23,11 @@ export class Helpers {
 
   createSession(args: { config?: Partial<RequestConfig>; title?: string } = {}): string {
     const sessionId = this.nextSessionId()
+    const storedDefaultConfig = this.db.store.hasValue('defaultSessionConfig')
+      ? this.db.values.defaultSessionConfig.get()
+      : DEFAULT_REQUEST_CONFIG
     const config = RequestConfigSchema.parse({
-      ...this.db.values.defaultSessionConfig.get(),
+      ...storedDefaultConfig,
       ...args.config,
     })
     const now = Date.now()

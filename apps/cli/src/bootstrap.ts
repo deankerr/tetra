@@ -50,7 +50,7 @@ export async function bootstrap(mode: BootstrapMode) {
       cliActiveSessionId.set('')
     },
     getActiveSessionId(): string | undefined {
-      const sessionId = cliActiveSessionId.get()
+      const sessionId = core.db.store.hasValue('cliActiveSessionId') ? cliActiveSessionId.get() : ''
       return sessionId.trim() === '' ? undefined : sessionId
     },
     setActiveSessionId(sessionId: string): void {
