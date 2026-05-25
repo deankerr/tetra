@@ -95,6 +95,9 @@ These are deliberate project-shaped choices, not accidental API drift:
 - `getEntity` / `requireEntity` add the row id to parsed rows.
 - Index ids are typed from the definition object. Slice ids are still plain
   strings.
+- TinyBase native `default` values are supported by the wrapper but are not a
+  substitute for app-level defaults. Tetra core avoids them in its real schema
+  so missing values fail loudly unless the read site has an explicit fallback.
 
 ## Escape Hatches
 

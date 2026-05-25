@@ -46,16 +46,18 @@ The TinyBase repo is cloned as a submodule in `reference/tinybase`.
 - Define Tetra store shape in `@tetra/core` with `defineTypedTinybase`, `tinybaseTable`, `tinybaseCell`, and `tinybaseIndex`.
 - Prefer `db.tables.*`, `db.tables.getValue`, typed indexes, and typed React hooks over raw TinyBase calls in app code.
 - Use raw `store`/`indexes.raw` only for TinyBase integration points such as persisters, providers, or APIs the wrapper intentionally does not cover yet.
+- Tetra's core schema does not rely on TinyBase native defaults or row-dropping validation. If a value needs a fallback, make that fallback explicit at the read or creation site.
 - Track wrapper design notes, gaps, and deferred ideas in `packages/tinybase-schema/README.md`.
 
 ## Sync & Persistence
 
 `createTetraDb({ mergeable })` in `@tetra/core` creates either a plain `Store` or a `MergeableStore` depending on the caller's needs. Both return the same typed API — the sync layer is invisible to business logic.
 
-**Web app** (`apps/web`) — always uses `MergeableStore`. Two persistence layers run in parallel:
+**Web app** (`apps/web`) — mode selected by `VITE_TETRA_DATA_MODE`:
 
-- OPFS file (`tetra-redesign-runtime.json`) — local cache, survives offline/reload
-- `WsSynchronizer` → Cloudflare Durable Object at `VITE_WORKER_URL/tetra` — live sync across surfaces
+- `memory`: plain in-memory `Store`, no persistence
+- `local`: plain `Store` + IndexedDB persister (`tetra-local`)
+- `sync`: `MergeableStore` + `WsSynchronizer` to the Cloudflare Durable Object at `VITE_WORKER_URL/tetra`
 
 **CLI** (`apps/cli`) — mode selected by `--local` flag (default: sync):
 
@@ -63,6 +65,11 @@ The TinyBase repo is cloned as a submodule in `reference/tinybase`.
 - `--local`: plain `Store` + tabular SQLite (`tetra-redesign.db`) — one SQL table per TinyBase table, no sync
 
 **Worker** (`apps/worker`) — Cloudflare Worker + Durable Object. The DO extends `WsServerDurableObject` and persists to its own SQLite via `createDurableObjectSqlStoragePersister`. Deploy: `bun run --filter @tetra/worker deploy`.
+
+**Reset commands** — prototype data can be hard-erased instead of relying on TinyBase schema validation to drop invalid rows:
+
+- Web local data: bug menu -> "Clear all data", or the root error screen's "Clear all data" action. This deletes the `tetra-local` IndexedDB database and reloads.
+- Synced DO data: set `TETRA_RESET_TOKEN` locally and as a Wrangler secret, then run `bun run --filter @tetra/cli start reset-sync --yes`. Localhost worker resets are allowed without a token only when the worker has no token configured.
 
 **Dump command** — snapshots the live DO store into a local tabular SQLite for SQL inspection without touching normal runtime state:
 
@@ -98,7 +105,7 @@ When working in an isolated worktree or without an API key, load bundled seed se
 # CLI (SQLite)
 bun run --filter @tetra/cli start seed
 
-# Web (OPFS) — open the app, click the bug icon (bottom-left), choose "Load seed data"
+# Web — open the app, click the bug icon (bottom-left), choose "Load seed data"
 ```
 
 ## Project Docs

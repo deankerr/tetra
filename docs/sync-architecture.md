@@ -1,16 +1,41 @@
 # Sync Architecture
 
-TinyBase's sync layer (MergeableStore + WsSynchronizer) is completely opaque to business logic — the store API is identical whether data comes from local SQLite, OPFS, or a live DO. This isolation is one of TinyBase's key strengths and a reason to tolerate its rougher edges.
+TinyBase's sync layer (MergeableStore + WsSynchronizer) is completely opaque to business logic — the store API is identical whether data comes from local SQLite, IndexedDB, memory, or a live DO. This isolation is one of TinyBase's key strengths and a reason to tolerate its rougher edges.
 
 ## Current Setup
 
-A single Durable Object instance at path `/tetra` holds the entire store. The web app and CLI both sync to it via WebSocket. The DO persists to SQLite using `createDurableObjectSqlStoragePersister`.
+A single Durable Object instance at path `/tetra` holds the synced store. The web app sync mode and the CLI default mode both sync to it via WebSocket. The DO persists to SQLite using `createDurableObjectSqlStoragePersister`.
 
 ```
-Web (OPFS + WsSync) ──┐
-                       ├──► DO /tetra (SQLite)
-CLI (cache + WsSync) ──┘
+Web sync (WsSync) ───────┐
+                         ├──► DO /tetra (SQLite)
+CLI sync (cache + WsSync)┘
 ```
+
+The web app also supports non-sync modes:
+
+- `memory`: a plain in-memory Store with no persistence.
+- `local`: a plain Store persisted to IndexedDB database `tetra-local`.
+
+The CLI also supports `--local`, which uses a plain Store and tabular SQLite database `tetra-redesign.db`.
+
+## Resetting Prototype Data
+
+Tetra does not rely on TinyBase native schema defaults or row-dropping validation as a reset path. Bad prototype data should be erased explicitly.
+
+For web local data, use the bug menu's "Clear all data" action, or the same action on the root error screen. This deletes the `tetra-local` IndexedDB database and reloads the page.
+
+For synced Durable Object data, the worker exposes `POST /tetra/reset`. Remote resets require `TETRA_RESET_TOKEN`, accepted as either `Authorization: Bearer <token>` or `x-tetra-reset-token`. Localhost resets are allowed without a token only when the worker has no token configured.
+
+The CLI wraps the reset endpoint:
+
+```bash
+TETRA_WORKER_URL=https://tetra-worker.example.workers.dev \
+TETRA_RESET_TOKEN=... \
+bun run --filter @tetra/cli start reset-sync --yes
+```
+
+Use `bunx wrangler secret put TETRA_RESET_TOKEN` from `apps/worker` when the deployed worker needs a new remote reset token.
 
 ## The Single-Store Problem
 
