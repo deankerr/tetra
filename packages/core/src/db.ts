@@ -1,4 +1,3 @@
-import type { JSONObject } from '@ai-sdk/provider'
 import {
   defineTypedTinybase,
   tinybaseCell,
@@ -10,9 +9,7 @@ import type { UIMessage } from 'ai'
 import { getHlcFunctions } from 'tinybase/common'
 import { z } from 'zod'
 
-const ProviderOptions = z.custom<JSONObject>(
-  (value) => z.record(z.string(), z.json()).safeParse(value).success,
-)
+const ProviderOptions = z.record(z.string(), z.json())
 
 export const RequestConfig = z.object({
   maxMessages: z.number().int().nonnegative(),
@@ -96,7 +93,9 @@ export const UsageSummary = z.object({
 })
 export type UsageSummary = z.infer<typeof UsageSummary>
 
-const MessageParts = z.custom<UIMessage['parts']>((value) => Array.isArray(value))
+const MessagePart = z.custom<UIMessage['parts'][number]>(
+  (value) => typeof value === 'object' && value !== null && 'type' in value,
+)
 const GenerationStatusSchema = z.enum(['cancelled', 'completed', 'error', 'preparing', 'streaming'])
 export type GenerationStatus = z.infer<typeof GenerationStatusSchema>
 const MessageRoleSchema = z.enum(['assistant', 'user'])
@@ -134,7 +133,7 @@ export const tetraDbDefinition = defineTypedTinybase({
     }),
     messageGenerations: tinybaseTable({
       createdAt: tinybaseCell.number(z.number()),
-      parts: tinybaseCell.array(MessageParts),
+      parts: tinybaseCell.array(MessagePart.array()),
       requestId: tinybaseCell.string(z.string()),
       sessionId: tinybaseCell.string(z.string()),
       status: tinybaseCell.string(GenerationStatusSchema),
@@ -144,7 +143,7 @@ export const tetraDbDefinition = defineTypedTinybase({
     }),
     messages: tinybaseTable({
       createdAt: tinybaseCell.number(z.number()),
-      parts: tinybaseCell.array(MessageParts),
+      parts: tinybaseCell.array(MessagePart.array()),
       role: tinybaseCell.string(MessageRoleSchema),
       sessionId: tinybaseCell.string(z.string()),
       steps: tinybaseCell.array(z.array(StepRecord)),
