@@ -29,8 +29,6 @@ Dev data is wiped and regenerated as needed. This app is not public. There are h
 
 ## TinyBase
 
-The TinyBase repo is cloned as a submodule in `reference/tinybase`.
-
 - TinyBase is explicitly an in-memory Store with tabular rows and cells, where cells can be arrays/objects, and reads return copies rather than network results.
 - Its reactivity is listener-based at table/row/cell granularity, not query-cache based like a server DB client.
 - The design pressure here is not “normalize because joins are expensive” or “avoid loading related data”, it’s mostly:
@@ -38,6 +36,9 @@ The TinyBase repo is cloned as a submodule in `reference/tinybase`.
   - what components need to rerender,
   - what needs an index,
   - what needs to be persisted as a durable artifact.
+
+- Cleaned TinyBase docs: `reference/tinybase-docs` - this is .gitignored, use your bash tool to navigate.
+- Inspect the library directly in `node_modules` when a deeper understand of beavhiour is necessary.
 
 ### TinyBase Schema
 
