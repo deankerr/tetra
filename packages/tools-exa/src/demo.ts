@@ -46,7 +46,6 @@ const search = ExaSearchResponseSchema.parse(
     }),
     {
       query: 'Exa API documentation',
-      type: 'auto',
     },
   ),
 )

@@ -29,15 +29,21 @@ full page text on the first call.
 All tool factories require `apiKey` from `ExaClientOptions`. They also accept
 the shared client options `baseUrl`, `fetchImpl`, `retry`, and `timeout`.
 
+Factory options are policy. If a factory option and model input overlap, the
+factory option wins. Operational knobs such as content freshness are configured
+through factory options and are not exposed to the model.
+
 ### `exaSearch(options)`
 
 Factory options:
 
-- `category`: default Exa category when the model does not provide one.
+- `category`: Exa category restriction. When set, the model cannot override it.
 - `contents`: default content extraction config. Defaults to `{ highlights: true }`.
-- `numResults`: default result count. Defaults to `5`.
-- `type`: default Exa search strategy: `auto`, `deep`, `deep-lite`,
-  `deep-reasoning`, `fast`, or `instant`.
+- `numResults`: result count. Defaults to `5`; when set, the model cannot
+  override it.
+- `type`: Exa search strategy: `auto`, `deep`, `deep-lite`, `deep-reasoning`,
+  `fast`, or `instant`. This is factory-only because the labels are not
+  meaningful enough for model choice.
 
 Model input:
 
@@ -47,15 +53,15 @@ Model input:
 - `includeDomains` / `excludeDomains`: domain filters.
 - `startPublishedDate` / `endPublishedDate`: ISO date filters.
 - `numResults`: result count, capped at `25`.
-- `type`: per-call search strategy.
-- `maxAgeHours`: content freshness. `0` live-crawls, `-1` uses cache only.
 - `userLocation`: two-letter country code for geo-relevant results.
 
 ### `exaGetContents(options)`
 
 Factory options:
 
-- `contents`: default Exa contents config. Defaults to `{ highlights: true }`.
+- `contents`: exact Exa contents config. Defaults to `{ highlights: true }`.
+  When set, the model cannot override extraction mode, focus query, character
+  cap, or freshness.
 
 Model input:
 
@@ -63,7 +69,6 @@ Model input:
 - `mode`: `highlights`, `summary`, or `text`. Defaults to `highlights`.
 - `query`: focus query for highlights or summaries.
 - `maxCharacters`: character cap when `mode` is `text`.
-- `maxAgeHours`: content freshness. `0` live-crawls, `-1` uses cache only.
 
 `mode` is compiled into mutually exclusive Exa content flags. For example,
 `mode: 'summary'` sends summary config and removes text/highlights config.
@@ -73,14 +78,14 @@ Model input:
 Factory options:
 
 - `contents`: default content extraction config. Defaults to `{ highlights: true }`.
-- `numResults`: default result count. Defaults to `5`.
+- `numResults`: result count. Defaults to `5`; when set, the model cannot
+  override it.
 
 Model input:
 
 - `url`: source URL.
 - `excludeSourceDomain`: exclude pages from the source URL's domain.
 - `numResults`: result count, capped at `25`.
-- `maxAgeHours`: content freshness. `0` live-crawls, `-1` uses cache only.
 
 ### `exaAnswer(options)`
 

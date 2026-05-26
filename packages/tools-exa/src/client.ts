@@ -21,10 +21,6 @@ export class ExaClient {
   private readonly fetchJson: UpFetch
 
   constructor(options: ExaClientOptions) {
-    if (options.apiKey === '') {
-      throw new Error('[tools-exa] An Exa API key is required.')
-    }
-
     // Build request defaults per call so future credential or endpoint changes have one boundary.
     this.fetchJson = up(options.fetchImpl ?? fetch, () => ({
       baseUrl: options.baseUrl ?? DEFAULT_BASE_URL,

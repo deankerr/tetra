@@ -64,12 +64,6 @@ const inputSchema = z.object({
     .boolean()
     .optional()
     .describe('Exclude results from the same domain as the source URL.'),
-  maxAgeHours: z
-    .number()
-    .int()
-    .min(-1)
-    .optional()
-    .describe('Freshness for returned page contents. 0 always live-crawls, -1 uses cache only.'),
   numResults: z
     .number()
     .int()
@@ -83,7 +77,6 @@ const inputSchema = z.object({
 export function exaFindSimilar(options: ExaFindSimilarToolOptions): Tool {
   const client = new ExaClient(options)
   const contents = options.contents ?? { highlights: true }
-  const defaultNumResults = options.numResults ?? 5
 
   return tool({
     description: 'Find web pages semantically similar to a given URL using Exa.',
@@ -91,12 +84,9 @@ export function exaFindSimilar(options: ExaFindSimilarToolOptions): Tool {
       await client.post<ExaFindSimilarResponse>(
         '/findSimilar',
         ExaFindSimilarRequestSchema.parse({
-          contents: {
-            ...contents,
-            maxAgeHours: input.maxAgeHours ?? contents.maxAgeHours,
-          },
+          contents,
           excludeSourceDomain: input.excludeSourceDomain,
-          numResults: input.numResults ?? defaultNumResults,
+          numResults: options.numResults ?? input.numResults ?? 5,
           url: input.url,
         }),
         ExaFindSimilarResponseSchema,

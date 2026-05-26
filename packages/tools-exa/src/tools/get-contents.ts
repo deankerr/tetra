@@ -96,12 +96,6 @@ export interface ExaGetContentsToolOptions extends ExaClientOptions {
 }
 
 const inputSchema = z.object({
-  maxAgeHours: z
-    .number()
-    .int()
-    .min(-1)
-    .optional()
-    .describe('Freshness for page contents. 0 always live-crawls, -1 uses cache only.'),
   maxCharacters: z
     .number()
     .int()
@@ -122,35 +116,30 @@ const inputSchema = z.object({
 
 export function exaGetContents(options: ExaGetContentsToolOptions): Tool {
   const client = new ExaClient(options)
-  const contents = options.contents ?? { highlights: true }
 
   return tool({
     description:
       'Fetch cleaned page content for known URLs using Exa, preferring concise highlights by default.',
     execute: async (input, { abortSignal }) => {
-      const mode = input.mode ?? 'highlights'
-      const requestContents: ExaContentsConfig = {
-        ...contents,
-        maxAgeHours: input.maxAgeHours ?? contents.maxAgeHours,
-      }
+      let requestContents: ExaContentsConfig = options.contents ?? { highlights: true }
 
-      if (mode === 'text') {
-        delete requestContents.highlights
-        delete requestContents.summary
-        requestContents.text =
-          input.maxCharacters === undefined ? true : { maxCharacters: input.maxCharacters }
-      }
+      // Caller-provided contents are policy; model input only chooses mode for the default config.
+      if (options.contents === undefined) {
+        const mode = input.mode ?? 'highlights'
+        requestContents = {}
 
-      if (mode === 'summary') {
-        delete requestContents.highlights
-        requestContents.summary = input.query === undefined ? true : { query: input.query }
-        delete requestContents.text
-      }
+        if (mode === 'text') {
+          requestContents.text =
+            input.maxCharacters === undefined ? true : { maxCharacters: input.maxCharacters }
+        }
 
-      if (mode === 'highlights') {
-        requestContents.highlights = input.query === undefined ? true : { query: input.query }
-        delete requestContents.summary
-        delete requestContents.text
+        if (mode === 'summary') {
+          requestContents.summary = input.query === undefined ? true : { query: input.query }
+        }
+
+        if (mode === 'highlights') {
+          requestContents.highlights = input.query === undefined ? true : { query: input.query }
+        }
       }
 
       return await client.post<ExaContentsResponse>(

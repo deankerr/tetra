@@ -122,12 +122,6 @@ const inputSchema = z.object({
     .array(z.string())
     .optional()
     .describe('Restrict results to these domains, e.g. ["arxiv.org"].'),
-  maxAgeHours: z
-    .number()
-    .int()
-    .min(-1)
-    .optional()
-    .describe('Freshness for returned page contents. 0 always live-crawls, -1 uses cache only.'),
   numResults: z
     .number()
     .int()
@@ -140,10 +134,6 @@ const inputSchema = z.object({
     .string()
     .optional()
     .describe('Only include results published on or after this ISO 8601 date.'),
-  type: z
-    .enum(['auto', 'deep', 'deep-lite', 'deep-reasoning', 'fast', 'instant'])
-    .optional()
-    .describe('Search strategy. "auto" lets Exa pick the best search mode.'),
   userLocation: z
     .string()
     .length(2)
@@ -154,7 +144,6 @@ const inputSchema = z.object({
 export function exaSearch(options: ExaSearchToolOptions): Tool {
   const client = new ExaClient(options)
   const contents = options.contents ?? { highlights: true }
-  const defaultNumResults = options.numResults ?? 5
 
   return tool({
     description: 'Search the web with Exa and return ranked sources with token-efficient excerpts.',
@@ -162,18 +151,15 @@ export function exaSearch(options: ExaSearchToolOptions): Tool {
       await client.post(
         '/search',
         ExaSearchRequestSchema.parse({
-          category: input.category ?? options.category,
-          contents: {
-            ...contents,
-            maxAgeHours: input.maxAgeHours ?? contents.maxAgeHours,
-          },
+          category: options.category ?? input.category,
+          contents,
           endPublishedDate: input.endPublishedDate,
           excludeDomains: input.excludeDomains,
           includeDomains: input.includeDomains,
-          numResults: input.numResults ?? defaultNumResults,
+          numResults: options.numResults ?? input.numResults ?? 5,
           query: input.query,
           startPublishedDate: input.startPublishedDate,
-          type: input.type ?? options.type,
+          type: options.type,
           userLocation: input.userLocation,
         }),
         ExaSearchResponseSchema,

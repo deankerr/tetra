@@ -16,7 +16,7 @@ export interface ExaToolDescriptor {
 export const exaToolDescriptors: ExaToolDescriptor[] = [
   {
     createTool: exaSearch,
-    description: 'Search the web using Exa neural search and return full content results.',
+    description: 'Search the web using Exa neural search and return highlights.',
     id: 'exaSearch',
     label: 'Exa Web Search',
   },
