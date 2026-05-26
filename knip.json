@@ -36,6 +36,10 @@
       "includeEntryExports": true,
       "entry": ["src/**/*.test.ts"],
       "project": ["src/**/*.{ts,tsx}"]
+    },
+    "packages/tools-exa": {
+      "includeEntryExports": false,
+      "project": ["src/**/*.{ts,tsx}"]
     }
   }
 }
