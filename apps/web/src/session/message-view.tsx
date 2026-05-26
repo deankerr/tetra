@@ -216,7 +216,7 @@ export function TetraMessageView({
         </div>
       ))}
 
-      {request?.errorMessage !== null && request?.errorMessage !== undefined && (
+      {request && request.errorMessage !== '' && (
         <Block className="*:border-destructive/30 border-destructive/30 *:text-destructive text-destructive font-mono">
           <BlockHeader>error</BlockHeader>
           <BlockContent>{request.errorMessage}</BlockContent>

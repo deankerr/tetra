@@ -31,7 +31,7 @@ await mock.module('react', () => ({
   useMemo: <Value>(factory: () => Value) => factory(),
 }))
 
-await mock.module('tinybase/ui-react/with-schemas', () => ({
+const tinybaseHooks = {
   useCell: mock(() => hookState.cell),
   useCellState: mock(() => [hookState.cell, hookState.setCell]),
   useHasRow: mock(() => hookState.hasRow),
@@ -40,7 +40,9 @@ await mock.module('tinybase/ui-react/with-schemas', () => ({
   useTable: mock(() => hookState.table),
   useValue: mock(() => hookState.value),
   useValueState: mock(() => [hookState.value, hookState.setValue]),
-}))
+}
+
+await mock.module('tinybase/ui-react/with-schemas', () => tinybaseHooks)
 
 const { createStoreHooks } = await import('./react.ts')
 
@@ -69,6 +71,10 @@ beforeEach(() => {
   hookState.sliceRowIds = []
   hookState.table = {}
   hookState.value = undefined
+
+  for (const hook of Object.values(tinybaseHooks)) {
+    hook.mockClear()
+  }
 })
 
 test('parses hook query results through the typed definition without rendering React', () => {
@@ -98,6 +104,42 @@ test('parses hook query results through the typed definition without rendering R
   expect(hooks.useHasRow('sessions', 'sess_1')).toBe(true)
   expect(hooks.useSliceRowIds('sessionsByTitle', 'First')).toEqual(['sess_1'])
   expect(hooks.useValue('activeSessionId')).toBe('sess_1')
+})
+
+test('forwards named TinyBase objects to underlying hooks', () => {
+  const hooks = createHooks()
+
+  hookState.cell = '  Hook title  '
+  hookState.hasRow = true
+  hookState.row = { messageCount: '3', title: '  Row title  ' }
+  hookState.sliceRowIds = ['sess_1']
+  hookState.table = {
+    sess_1: { messageCount: '1', title: ' First ' },
+  }
+  hookState.value = '  sess_1  '
+
+  hooks.useCell('sessions', 'sess_1', 'title', 'webUi')
+  hooks.useCellState('sessions', 'sess_1', 'title', 'webUi')
+  hooks.useEntity('sessions', 'sess_1', 'webUi')
+  hooks.useEntityList('sessions', 'webUi')
+  hooks.useHasRow('sessions', 'sess_1', 'webUi')
+  hooks.useRow('sessions', 'sess_1', 'webUi')
+  hooks.useSliceRowIds('sessionsByTitle', 'First', 'webUiIndexes')
+  hooks.useValue('activeSessionId', 'webUi')
+  hooks.useValueState('activeSessionId', 'webUi')
+
+  expect(tinybaseHooks.useCell).toHaveBeenCalledWith('sessions', 'sess_1', 'title', 'webUi')
+  expect(tinybaseHooks.useCellState).toHaveBeenCalledWith('sessions', 'sess_1', 'title', 'webUi')
+  expect(tinybaseHooks.useHasRow).toHaveBeenCalledWith('sessions', 'sess_1', 'webUi')
+  expect(tinybaseHooks.useTable).toHaveBeenCalledWith('sessions', 'webUi')
+  expect(tinybaseHooks.useRow).toHaveBeenCalledWith('sessions', 'sess_1', 'webUi')
+  expect(tinybaseHooks.useSliceRowIds).toHaveBeenCalledWith(
+    'sessionsByTitle',
+    'First',
+    'webUiIndexes',
+  )
+  expect(tinybaseHooks.useValue).toHaveBeenCalledWith('activeSessionId', 'webUi')
+  expect(tinybaseHooks.useValueState).toHaveBeenCalledWith('activeSessionId', 'webUi')
 })
 
 test('returns empty hook query results when TinyBase reports no row or cell', () => {

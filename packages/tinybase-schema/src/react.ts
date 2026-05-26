@@ -40,6 +40,8 @@ type ValueOutput<Values extends ValueDefinitions, ValueId extends keyof Values &
 >
 
 const tinyHooks = UiReact as unknown as LooseHooks
+type LooseIndexesOrIndexesId = Parameters<LooseHooks['useSliceRowIds']>[2]
+type LooseStoreOrStoreId = Parameters<LooseHooks['useValue']>[1]
 
 export function createStoreHooks<
   const Tables extends TableDefinitions,
@@ -56,8 +58,9 @@ export function createStoreHooks<
       tableId: TableId,
       rowId: string,
       cellId: CellId,
+      storeOrStoreId?: LooseStoreOrStoreId,
     ): CellOutputOf<TableSchemaOf<Tables[TableId]>, CellId> | undefined {
-      const cell = tinyHooks.useCell(tableId, rowId, cellId)
+      const cell = tinyHooks.useCell(tableId, rowId, cellId, storeOrStoreId)
       const cellSchema = storeSchema.getCellSchema(tableId, cellId)
 
       return useMemo(
@@ -78,11 +81,12 @@ export function createStoreHooks<
       tableId: TableId,
       rowId: string,
       cellId: CellId,
+      storeOrStoreId?: LooseStoreOrStoreId,
     ): [
       CellOutput<Tables, TableId, CellId> | undefined,
       (value: CellInput<Tables, TableId, CellId>) => void,
     ] {
-      const [cell, setCell] = tinyHooks.useCellState(tableId, rowId, cellId)
+      const [cell, setCell] = tinyHooks.useCellState(tableId, rowId, cellId, storeOrStoreId)
       const cellSchema = storeSchema.getCellSchema(tableId, cellId)
 
       const parsedCell = useMemo<CellOutput<Tables, TableId, CellId> | undefined>(
@@ -106,9 +110,10 @@ export function createStoreHooks<
     useEntity<TableId extends keyof Tables & string>(
       tableId: TableId,
       rowId: string,
+      storeOrStoreId?: LooseStoreOrStoreId,
     ): EntityOf<TableSchemaOf<Tables[TableId]>> | null {
-      const hasRow = tinyHooks.useHasRow(tableId, rowId)
-      const row = tinyHooks.useRow(tableId, rowId)
+      const hasRow = tinyHooks.useHasRow(tableId, rowId, storeOrStoreId)
+      const row = tinyHooks.useRow(tableId, rowId, storeOrStoreId)
 
       return useMemo(() => {
         if (!hasRow) {
@@ -121,8 +126,9 @@ export function createStoreHooks<
 
     useEntityList<TableId extends keyof Tables & string>(
       tableId: TableId,
+      storeOrStoreId?: LooseStoreOrStoreId,
     ): EntityOf<TableSchemaOf<Tables[TableId]>>[] {
-      const table = tinyHooks.useTable(tableId)
+      const table = tinyHooks.useTable(tableId, storeOrStoreId)
 
       return useMemo(
         () =>
@@ -131,16 +137,21 @@ export function createStoreHooks<
       )
     },
 
-    useHasRow(tableId: keyof Tables & string, rowId: string): boolean {
-      return tinyHooks.useHasRow(tableId, rowId)
+    useHasRow(
+      tableId: keyof Tables & string,
+      rowId: string,
+      storeOrStoreId?: LooseStoreOrStoreId,
+    ): boolean {
+      return tinyHooks.useHasRow(tableId, rowId, storeOrStoreId)
     },
 
     useRow<TableId extends keyof Tables & string>(
       tableId: TableId,
       rowId: string,
+      storeOrStoreId?: LooseStoreOrStoreId,
     ): OutputRowOf<TableSchemaOf<Tables[TableId]>> | null {
-      const hasRow = tinyHooks.useHasRow(tableId, rowId)
-      const row = tinyHooks.useRow(tableId, rowId)
+      const hasRow = tinyHooks.useHasRow(tableId, rowId, storeOrStoreId)
+      const row = tinyHooks.useRow(tableId, rowId, storeOrStoreId)
 
       return useMemo(() => {
         if (!hasRow) {
@@ -151,21 +162,27 @@ export function createStoreHooks<
       }, [hasRow, row, tableId])
     },
 
-    useSliceRowIds(indexId: IndexIdList[number], sliceId: string): string[] {
-      return tinyHooks.useSliceRowIds(indexId, sliceId)
+    useSliceRowIds(
+      indexId: IndexIdList[number],
+      sliceId: string,
+      indexesOrIndexesId?: LooseIndexesOrIndexesId,
+    ): string[] {
+      return tinyHooks.useSliceRowIds(indexId, sliceId, indexesOrIndexesId)
     },
 
     useValue<ValueId extends keyof Values & string>(
       valueId: ValueId,
+      storeOrStoreId?: LooseStoreOrStoreId,
     ): ValueOutput<Values, ValueId> {
-      const value = tinyHooks.useValue(valueId)
+      const value = tinyHooks.useValue(valueId, storeOrStoreId)
       return useMemo(() => storeSchema.parseValue(valueId, value), [value, valueId])
     },
 
     useValueState<ValueId extends keyof Values & string>(
       valueId: ValueId,
+      storeOrStoreId?: LooseStoreOrStoreId,
     ): [ValueOutput<Values, ValueId>, (value: ValueInput<Values, ValueId>) => void] {
-      const [value, setValue] = tinyHooks.useValueState(valueId)
+      const [value, setValue] = tinyHooks.useValueState(valueId, storeOrStoreId)
       const valueSchema = storeSchema.values[valueId]
 
       const parsedValue = useMemo<ValueOutput<Values, ValueId>>(

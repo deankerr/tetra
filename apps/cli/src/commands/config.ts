@@ -1,5 +1,4 @@
 import { RequestConfig } from '@tetra/store-schema'
-import type { RequestConfigType } from '@tetra/store-schema'
 import type { Command } from 'commander'
 
 import type { bootstrap } from '../bootstrap'
@@ -30,7 +29,7 @@ export function registerConfigCommand(
           throw new Error('No active session. Try: tetra "hello"')
         }
 
-        const overrides: Partial<RequestConfigType> = {
+        const overrides: Partial<RequestConfig> = {
           ...(opts.maxMessages !== undefined && { maxMessages: opts.maxMessages }),
           ...(opts.model !== undefined && { modelId: opts.model }),
           ...(typeof opts.prompt === 'string' && { systemPromptId: opts.prompt }),

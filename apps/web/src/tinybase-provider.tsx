@@ -10,6 +10,8 @@ import { Inspector } from 'tinybase/ui-react-inspector'
 
 import { TETRA_INDEXED_DB_NAME } from '@/lib/hard-reset'
 import { tinybase } from '@/tetra-tinybase-react'
+import { WEB_UI_STORE_ID, webUiReact, webUiStoreSchema } from '@/web-ui-state'
+import type { WebUiRawStore } from '@/web-ui-state'
 
 const DATA_MODE = import.meta.env.VITE_TETRA_DATA_MODE ?? 'persist'
 const WORKER_URL = getSyncUrl(import.meta.env.VITE_WORKER_URL ?? 'ws://localhost:8787')
@@ -54,9 +56,28 @@ function useCreateTetraMergeableStore() {
   }, [])
 }
 
+function useCreateWebUiStore(): WebUiRawStore {
+  return useMemo(() => {
+    // Web UI state is intentionally tab-local: no persister, no synchronizer.
+    const rawStore = createStore().setSchema(
+      structuredClone(webUiStoreSchema.tablesSchema),
+      structuredClone(webUiStoreSchema.valuesSchema),
+    )
+
+    rawStore.setValues({
+      activeSessionId: '',
+      settingsOpen: false,
+    })
+
+    // oxlint-disable-next-line no-unsafe-type-assertion -- The schema is applied immediately above.
+    return rawStore as WebUiRawStore
+  }, [])
+}
+
 function TinyBasePersisterProvider({ children }: { children: React.ReactNode }) {
   // Plain web modes create their Store and Indexes synchronously.
   const { rawIndexes, rawStore } = useCreateTetraStore()
+  const webUiStore = useCreateWebUiStore()
 
   // Local mode persists the plain Store to IndexedDB without blocking initial render.
   const persister = tinybase.useCreatePersister(
@@ -76,7 +97,9 @@ function TinyBasePersisterProvider({ children }: { children: React.ReactNode }) 
       store={rawStore}
       {...(persister === undefined ? {} : { persister })}
     >
-      {children}
+      <webUiReact.Provider storesById={{ [WEB_UI_STORE_ID]: webUiStore }}>
+        {children}
+      </webUiReact.Provider>
     </tinybase.Provider>
   )
 }
@@ -84,6 +107,7 @@ function TinyBasePersisterProvider({ children }: { children: React.ReactNode }) 
 function TinyBaseSyncProvider({ children }: { children: React.ReactNode }) {
   // Sync mode creates its MergeableStore and Indexes synchronously.
   const { rawIndexes, rawStore } = useCreateTetraMergeableStore()
+  const webUiStore = useCreateWebUiStore()
 
   const synchronizer = tinybase.useCreateSynchronizer(
     rawStore,
@@ -104,7 +128,9 @@ function TinyBaseSyncProvider({ children }: { children: React.ReactNode }) {
       store={rawStore}
       {...(synchronizer === undefined ? {} : { synchronizer })}
     >
-      {children}
+      <webUiReact.Provider storesById={{ [WEB_UI_STORE_ID]: webUiStore }}>
+        {children}
+      </webUiReact.Provider>
       <Inspector />
     </tinybase.Provider>
   )

@@ -5,8 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@tetra/ui/components/u
 import { Settings2Icon, TableIcon, TriangleIcon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 
-import { useOpenSessionIds, useSetOpenSessionIds } from '@/app-state'
 import { typedTinybase } from '@/tetra-tinybase-react'
+import { WEB_UI_STORE_ID, webUiTinybase } from '@/web-ui-state'
 
 import { TetraConversationView } from './conversation-view'
 import { SessionExportButton } from './export-button'
@@ -16,39 +16,28 @@ import { PromptEditorSheet } from './settings/prompt-editor-sheet'
 import { SessionUsageMeter } from './usage-meter'
 
 export function SessionView() {
-  const openSessionIds = useOpenSessionIds()
-  const setOpenSessionIds = useSetOpenSessionIds()
+  const [activeSessionId, setActiveSessionId] = webUiTinybase.useValueState(
+    'activeSessionId',
+    WEB_UI_STORE_ID,
+  )
 
-  if (openSessionIds.length === 0) {
+  if (activeSessionId === '') {
     return null
   }
 
   return (
-    <>
-      {openSessionIds.map((sessionId, index) => (
-        <ActiveSession
-          key={sessionId}
-          onClose={() => {
-            setOpenSessionIds(openSessionIds.filter((id) => id !== sessionId))
-          }}
-          sessionId={sessionId}
-          showSidebarTrigger={index === 0}
-        />
-      ))}
-    </>
+    <ActiveSession
+      key={activeSessionId}
+      onClose={() => {
+        setActiveSessionId('')
+      }}
+      sessionId={activeSessionId}
+    />
   )
 }
 
 /** Renders one session panel. Guards session existence — children can assume valid sessionId. */
-function ActiveSession({
-  onClose,
-  sessionId,
-  showSidebarTrigger,
-}: {
-  onClose: () => void
-  sessionId: string
-  showSidebarTrigger: boolean
-}) {
+function ActiveSession({ onClose, sessionId }: { onClose: () => void; sessionId: string }) {
   const session = typedTinybase.useEntity('sessions', sessionId)
   const [detailOpen, setDetailOpen] = useState(false)
   const [promptSheetOpen, setPromptSheetOpen] = useState(false)
@@ -62,7 +51,7 @@ function ActiveSession({
       {/* Main content */}
       <Tabs className="flex min-h-0 min-w-0 flex-1 flex-col">
         <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b px-2">
-          {showSidebarTrigger && <SidebarTrigger />}
+          <SidebarTrigger />
           <span className="min-w-0 flex-1 truncate text-xs font-medium">
             {session.title ?? 'New session'}
           </span>

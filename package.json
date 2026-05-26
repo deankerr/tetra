@@ -29,7 +29,7 @@
     "build:vercel": "rm -rf .vercel/output apps/web/.vercel/output && NITRO_PRESET=vercel bun run --filter @tetra/web build && mkdir -p .vercel && mv apps/web/.vercel/output .vercel/output",
     "check": "ultracite check --type-aware --type-check",
     "cli": "bun run --cwd apps/cli start",
-    "dev": "turbo run dev",
+    "dev": "bun run --cwd apps/web dev --port 5148",
     "fix": "ultracite fix --type-aware --type-check",
     "knip": "knip",
     "preview": "turbo run preview"

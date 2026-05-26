@@ -1,4 +1,4 @@
-import type { RequestConfigType } from '@tetra/store-schema'
+import type { RequestConfig } from '@tetra/store-schema'
 import type { Command } from 'commander'
 
 import type { bootstrap } from '../bootstrap'
@@ -43,7 +43,7 @@ export async function runChatContent(
   })
 
   // Only pass per-request config fields that the user explicitly provided.
-  const config: Partial<RequestConfigType> = {
+  const config: Partial<RequestConfig> = {
     ...(opts.model !== undefined && { modelId: opts.model }),
     ...(typeof opts.prompt === 'string' && { systemPromptId: opts.prompt }),
   }

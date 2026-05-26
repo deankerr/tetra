@@ -21,20 +21,20 @@ import { ArrowUpFromDot, ImageIcon } from 'lucide-react'
 import { useState } from 'react'
 
 import { ModelPicker } from '@/session/settings/model-picker'
-import { useSettings } from '@/settings-provider'
 import { useTetra } from '@/tetra-context'
 import { typedTinybase } from '@/tetra-tinybase-react'
 import { useCredential } from '@/use-credential'
+import { WEB_UI_STORE_ID, webUiTinybase } from '@/web-ui-state'
 
 const activeStatuses = new Set(['preparing', 'streaming'])
 
 export function Composer({ sessionId }: { sessionId: string }) {
   const tetra = useTetra()
-  const settings = useSettings()
   const activeRequest = useActiveRequest(sessionId)
   const isStreaming = activeRequest !== null
   const [modelId, setModelId] = typedTinybase.useCellState('sessionConfigs', sessionId, 'modelId')
   const [openrouterApiKey] = useCredential('OPENROUTER_API_KEY')
+  const [, setSettingsOpen] = webUiTinybase.useValueState('settingsOpen', WEB_UI_STORE_ID)
   const [draft, setDraft] = useState('')
 
   const handleSubmit: NonNullable<Parameters<typeof PromptInput>[0]['onSubmit']> = (
@@ -66,7 +66,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
       toast.error('OpenRouter API key required', {
         description: 'Add an OpenRouter API key before running model inference.',
       })
-      settings.openCredentialSettings('OPENROUTER_API_KEY')
+      setSettingsOpen(true)
       throw new Error('OpenRouter API key required')
     }
 

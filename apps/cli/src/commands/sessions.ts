@@ -1,4 +1,4 @@
-import type { RequestConfigType } from '@tetra/store-schema'
+import type { RequestConfig } from '@tetra/store-schema'
 import type { Command } from 'commander'
 
 import type { bootstrap } from '../bootstrap'
@@ -36,7 +36,7 @@ export function registerSessionCommands(
       ) => {
         const ctx = await getContext()
         const content = await readMessage({ message: opts.message, parts })
-        const config: Partial<RequestConfigType> = {
+        const config: Partial<RequestConfig> = {
           ...(opts.model !== undefined && { modelId: opts.model }),
           ...(typeof opts.prompt === 'string' && { systemPromptId: opts.prompt }),
         }

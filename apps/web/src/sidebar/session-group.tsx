@@ -19,9 +19,9 @@ import {
 import { MoreHorizontalIcon, PlusIcon } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 
-import { useOpenSessionIds, useSetOpenSessionIds } from '@/app-state'
 import { useTetra } from '@/tetra-context'
 import { typedTinybase } from '@/tetra-tinybase-react'
+import { WEB_UI_STORE_ID, webUiTinybase } from '@/web-ui-state'
 
 // Sessions sorted by updatedAt descending — most recently active first.
 // appendMessage touches updatedAt, so this order naturally tracks conversation activity.
@@ -39,8 +39,10 @@ const useSessionIds = () => {
 export function SessionGroup() {
   const { helpers } = useTetra()
   const sessionIds = useSessionIds()
-  const openSessionIds = useOpenSessionIds()
-  const setOpenSessionIds = useSetOpenSessionIds()
+  const [activeSessionId, setActiveSessionId] = webUiTinybase.useValueState(
+    'activeSessionId',
+    WEB_UI_STORE_ID,
+  )
 
   return (
     <SidebarGroup>
@@ -49,7 +51,7 @@ export function SessionGroup() {
         className="top-2.5"
         onClick={() => {
           const newId = helpers.createSession()
-          setOpenSessionIds([...openSessionIds, newId])
+          setActiveSessionId(newId)
         }}
       >
         <PlusIcon />
@@ -59,18 +61,15 @@ export function SessionGroup() {
         <SidebarMenu>
           {sessionIds.map((sessionId) => (
             <SessionListItem
-              active={openSessionIds.includes(sessionId)}
+              active={activeSessionId === sessionId}
               key={sessionId}
               onDelete={() => {
                 helpers.deleteSession(sessionId)
 
-                // Remove from open list; if that empties it, open the next available session
-                const remaining = openSessionIds.filter((id) => id !== sessionId)
-                if (remaining.length > 0) {
-                  setOpenSessionIds(remaining)
-                } else {
+                // If the active session was deleted, move to the next available session.
+                if (activeSessionId === sessionId) {
                   const nextId = sessionIds.find((id) => id !== sessionId)
-                  setOpenSessionIds(nextId === undefined ? [helpers.createSession()] : [nextId])
+                  setActiveSessionId(nextId ?? helpers.createSession())
                 }
               }}
               onRename={(title) => {
@@ -80,10 +79,10 @@ export function SessionGroup() {
                 })
               }}
               onSelect={() => {
-                if (openSessionIds.includes(sessionId)) {
-                  setOpenSessionIds(openSessionIds.filter((id) => id !== sessionId))
+                if (activeSessionId === sessionId) {
+                  setActiveSessionId('')
                 } else {
-                  setOpenSessionIds([...openSessionIds, sessionId])
+                  setActiveSessionId(sessionId)
                 }
               }}
               sessionId={sessionId}

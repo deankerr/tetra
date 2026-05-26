@@ -12,16 +12,15 @@ import {
 import { Input } from '@tetra/ui/components/ui/input'
 import { Label } from '@tetra/ui/components/ui/label'
 import { SettingsIcon } from 'lucide-react'
-import { useEffect, useRef } from 'react'
 
-import { useSettings } from '@/settings-provider'
 import { useCredential } from '@/use-credential'
+import { WEB_UI_STORE_ID, webUiTinybase } from '@/web-ui-state'
 
 export function SettingsDialog() {
-  const settings = useSettings()
+  const [open, setOpen] = webUiTinybase.useValueState('settingsOpen', WEB_UI_STORE_ID)
 
   return (
-    <Dialog onOpenChange={settings.setOpen} open={settings.open}>
+    <Dialog onOpenChange={setOpen} open={open}>
       <DialogTrigger
         render={
           <Button size="icon" variant="ghost">
@@ -38,36 +37,16 @@ export function SettingsDialog() {
         </DialogHeader>
 
         {credentialRegistry.map((definition) => (
-          <CredentialField
-            key={definition.id}
-            active={settings.activeCredentialId === definition.id}
-            definition={definition}
-          />
+          <CredentialField key={definition.id} definition={definition} />
         ))}
       </DialogContent>
     </Dialog>
   )
 }
 
-function CredentialField({
-  active,
-  definition,
-}: {
-  active: boolean
-  definition: CredentialDefinition
-}) {
+function CredentialField({ definition }: { definition: CredentialDefinition }) {
   const [value, setValue] = useCredential(definition.id)
   const inputId = `credential-${definition.id}`
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    if (!active) {
-      return
-    }
-    window.requestAnimationFrame(() => {
-      inputRef.current?.focus()
-    })
-  }, [active])
 
   return (
     <div className="grid gap-2">
@@ -78,7 +57,6 @@ function CredentialField({
           setValue(e.target.value)
         }}
         placeholder={definition.placeholder}
-        ref={inputRef}
         type="password"
         value={value}
       />
