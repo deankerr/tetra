@@ -57,6 +57,7 @@ function useCreateWebUiStore(): WebUiRawStore {
 
     rawStore.setValues({
       activeSessionId: '',
+      jsonView: { json: '', title: '' },
       settingsOpen: false,
     })
 

@@ -6,6 +6,7 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { Sidebar, SidebarInset, SidebarProvider } from '@tetra/ui/components/ui/sidebar'
 import { Toaster } from '@tetra/ui/components/ui/sonner'
 import { TooltipProvider } from '@tetra/ui/components/ui/tooltip'
+import { JsonViewSheet } from '@/components/json-view-sheet'
 import { RootErrorComponent } from '@/components/root-error'
 import { RootNotFoundComponent } from '@/components/root-not-found'
 import { AppSidebar } from '@/sidebar/app-sidebar'
@@ -61,6 +62,7 @@ function RootAppLayout() {
             </div>
           </SidebarInset>
         </SidebarProvider>
+        <JsonViewSheet />
         <Toaster richColors />
       </TetraProvider>
     </TinyBaseProvider>

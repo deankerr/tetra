@@ -21,12 +21,16 @@ Dev data is wiped and regenerated as needed. This app is not public. There are h
 
 ## Packages
 
-- `@tetra/cli` — Bun CLI frontend, should always track the feature set of the web frontend (within reason)
-- `@tetra/core` — store schema, sessions, runner, tool registry. UI-agnostic.
-- `@tetra/credentials` — credential registry and localStorage store.
-- `@tetra/ui` — shadcn/ai-elements component library.
-- `@tetra/tinybase-schema` — typed TinyBase schema, store, index, and React wrappers.
-- `@tetra/sdk-probe` — scratch space for AI SDK experiments.
+- `apps/cli` — Bun CLI frontend, should always track the feature set of the web frontend (within reason).
+- `apps/web` — TanStack Start web frontend.
+- `apps/worker` — Cloudflare Worker and Durable Object sync backend.
+- `packages/core` — sessions, runner, tool registry, and UI-agnostic app logic.
+- `packages/credentials` — credential registry and localStorage store.
+- `packages/sdk-probe` — scratch space for AI SDK experiments.
+- `packages/store-schema` — Tetra TinyBase schema, table definitions, indexes, and row types.
+- `packages/tinybase-schema` — typed TinyBase schema, store, index, and React wrappers.
+- `packages/tools-exa` — Exa search tool integration.
+- `packages/ui` — shadcn/ai-elements component library.
 
 ## TinyBase
 
@@ -39,79 +43,27 @@ Dev data is wiped and regenerated as needed. This app is not public. There are h
   - what needs to be persisted as a durable artifact.
 
 - Cleaned TinyBase docs: `reference/tinybase-docs` - this is .gitignored, use your bash tool to navigate.
-- Inspect the library directly in `node_modules` when a deeper understand of beavhiour is necessary.
+- Inspect the library directly in `{apps|packages}/<name>/node_modules` when a deeper understand of behaviour is necessary.
 - TinyBase `store.transaction` batches listener notifications and exposes a transaction log; it is not a persistence or exception-safety boundary.
 - `store.transaction` is synchronous and does not use `try/finally`: validate or parse before entering it, and do not put `await` inside it.
-- Use transactions around multi-row writes when TinyBase listeners, persisters, synchronizers, or React bindings should observe one coherent net change.
 
 ### TinyBase Schema
 
 `packages/tinybase-schema` wraps TinyBase with zod-derived table, value, index, and React APIs. Keep it close to TinyBase's API first, and let concrete app usage justify any more opinionated helpers.
 
-- Define Tetra store shape in `@tetra/core` with `defineTypedTinybase`, `tinybaseTable`, `tinybaseCell`, and `tinybaseIndex`.
-- Prefer `db.tables.*`, `db.tables.getValue`, typed indexes, and typed React hooks over raw TinyBase calls in app code.
-- Use raw `store`/`indexes.raw` only for TinyBase integration points such as persisters, providers, or APIs the wrapper intentionally does not cover yet.
-- Tetra's core schema does not rely on TinyBase native defaults or row-dropping validation. If a value needs a fallback, make that fallback explicit at the read or creation site.
 - Track wrapper design notes, gaps, and deferred ideas in `packages/tinybase-schema/README.md`.
-
-## Sync & Persistence
-
-`createTetraDb({ mergeable })` in `@tetra/core` creates either a plain `Store` or a `MergeableStore` depending on the caller's needs. Both return the same typed API — the sync layer is invisible to business logic.
-
-**Web app** (`apps/web`) — mode selected by `VITE_TETRA_DATA_MODE`:
-
-- `memory`: plain in-memory `Store`, no persistence
-- `local`: plain `Store` + IndexedDB persister (`tetra-local`)
-- `sync`: `MergeableStore` + `WsSynchronizer` to the Cloudflare Durable Object at `VITE_WORKER_URL/tetra`
-
-**CLI** (`apps/cli`) — mode selected by `--local` flag (default: sync):
-
-- `sync` (default): `MergeableStore` + `WsSynchronizer` to `TETRA_WORKER_URL/tetra` + JSON SQLite local cache (`tetra-sync-cache.db`)
-- `--local`: plain `Store` + tabular SQLite (`tetra-redesign.db`) — one SQL table per TinyBase table, no sync
-
-**Worker** (`apps/worker`) — Cloudflare Worker + Durable Object. The DO extends `WsServerDurableObject` and persists to its own SQLite via `createDurableObjectSqlStoragePersister`. Deploy: `bun run --filter @tetra/worker deploy`.
-
-**Reset commands** — prototype data can be hard-erased instead of relying on TinyBase schema validation to drop invalid rows:
-
-- Web local data: bug menu -> "Clear all data", or the root error screen's "Clear all data" action. This deletes the `tetra-local` IndexedDB database and reloads.
-- Synced DO data: set `TETRA_RESET_TOKEN` locally and as a Wrangler secret, then run `bun run --filter @tetra/cli start reset-sync --yes`. Localhost worker resets are allowed without a token only when the worker has no token configured.
-
-**Dump command** — snapshots the live DO store into a local tabular SQLite for SQL inspection without touching normal runtime state:
-
-```bash
-bun run --filter @tetra/cli start -- dump [--db path] [--settle ms]
-```
-
-See `docs/sync-architecture.md` for design notes and future directions (per-session DOs, session index).
 
 ## Monorepo
 
-Bun workspaces. Run scripts from the root.
-
+- Bun workspaces with isolated modules.
 - Auto-fix lint/format/type-aware issues: `bun run fix`. This is the only check script you should use. Do not use `tsc`.
-- App-specific scripts: `bun run --filter <name> <script>`, e.g. `bun run --filter @tetra/web dev`
-
-## Linting
-
-- The ruleset is strict and type-aware via Ultracite/Oxlint.
-- Inline disables are allowed only when the local reason is written in the disable comment.
-- `sort-keys` is enabled; let tooling reorder object keys.
+- Inline disables may be used if the reasoning is justified.
+- `sort-keys` is enabled - allow it to re-order object keys.
 
 ## TypeScript 6
 
 - `@types/*` packages are manually specified `"types": ["bun"]`, only if required
 - Subpath Imports support, e.g. `"#/*": "./dist/*"`, replace deep relative paths `../../utils.js` with `#root/utils.js`
-
-## Seeding the database
-
-When working in an isolated worktree or without an API key, load bundled seed sessions so you have real data to work with:
-
-```bash
-# CLI (SQLite)
-bun run --filter @tetra/cli start seed
-
-# Web — open the app, click the bug icon (bottom-left), choose "Load seed data"
-```
 
 ## Project Docs
 

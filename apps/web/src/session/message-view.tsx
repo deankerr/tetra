@@ -12,6 +12,7 @@ import { Button } from '@tetra/ui/components/ui/button'
 import { cn } from '@tetra/ui/lib/utils'
 import {
   BanIcon,
+  BracesIcon,
   CheckCircle2Icon,
   CopyIcon,
   LoaderCircleIcon,
@@ -21,6 +22,7 @@ import {
 } from 'lucide-react'
 import { useMemo } from 'react'
 
+import { useJsonViewSheet } from '@/components/json-view-sheet'
 import { typedTinybase } from '@/lib/tinybase'
 import { useTetra } from '@/tetra-context'
 
@@ -268,6 +270,7 @@ function MessageFooter({
   message: NonNullable<ReturnType<typeof useTetraMessage>>
 }) {
   const { helpers, runs } = useTetra()
+  const { openJsonView } = useJsonViewSheet()
 
   const messageText = message.steps
     .flatMap((s) => s.parts)
@@ -289,6 +292,16 @@ function MessageFooter({
         onClick={() => void navigator.clipboard.writeText(messageText)}
       >
         <CopyIcon />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        aria-label="Inspect JSON"
+        onClick={() => {
+          openJsonView({ title: `Message: ${message.id}`, value: message })
+        }}
+      >
+        <BracesIcon />
       </Button>
       {canRegenerate && (
         <Button

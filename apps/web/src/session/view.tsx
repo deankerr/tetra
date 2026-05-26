@@ -2,9 +2,10 @@ import { Button } from '@tetra/ui/components/ui/button'
 import { Sheet, SheetClose, SheetContent } from '@tetra/ui/components/ui/sheet'
 import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@tetra/ui/components/ui/tabs'
-import { Settings2Icon, TableIcon, TriangleIcon, XIcon } from 'lucide-react'
+import { BracesIcon, Settings2Icon, TableIcon, TriangleIcon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 
+import { useJsonViewSheet } from '@/components/json-view-sheet'
 import { WEB_UI_STORE_ID, typedTinybase, webUiTinybase } from '@/lib/tinybase'
 
 import { TetraConversationView } from './conversation-view'
@@ -40,6 +41,7 @@ function ActiveSession({ onClose, sessionId }: { onClose: () => void; sessionId:
   const session = typedTinybase.useEntity('sessions', sessionId)
   const [detailOpen, setDetailOpen] = useState(false)
   const [promptSheetOpen, setPromptSheetOpen] = useState(false)
+  const { openJsonView } = useJsonViewSheet()
 
   if (session === null) {
     return null
@@ -63,6 +65,16 @@ function ActiveSession({ onClose, sessionId }: { onClose: () => void; sessionId:
               <TableIcon />
             </TabsTrigger>
           </TabsList>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Inspect JSON"
+            onClick={() => {
+              openJsonView({ title: `Session: ${session.id}`, value: session })
+            }}
+          >
+            <BracesIcon />
+          </Button>
           <SessionExportButton sessionId={sessionId} />
           <Button
             onClick={() => {

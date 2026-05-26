@@ -21,6 +21,10 @@ export const webUiStoreSchema = defineTypedStore({
   tables: {},
   values: {
     activeSessionId: z.string(),
+    jsonView: z.object({
+      json: z.string(),
+      title: z.string(),
+    }),
     settingsOpen: z.boolean(),
   },
 })
