@@ -9,6 +9,7 @@ import timeInNewYork from './seeds/time-in-new-york.json'
 
 export interface SessionExport {
   sessionConfig: RequestConfigType
+  sessionSummaries: Rows['sessionSummaries']
   exportedAt: string
   messages: PortableMessage[]
   requests: PortableRequest[]
@@ -19,8 +20,9 @@ type PortableMessage = Omit<Rows['messages'], 'usage'> & { usage?: Rows['message
 type PortableRequest = Omit<Rows['requests'], 'updatedAt'> & {
   updatedAt?: Rows['requests']['updatedAt']
 }
-type PortableSessionExport = Omit<SessionExport, 'sessionConfig'> & {
+type PortableSessionExport = Omit<SessionExport, 'sessionConfig' | 'sessionSummaries'> & {
   sessionConfig?: Partial<RequestConfigType>
+  sessionSummaries?: Rows['sessionSummaries']
 }
 
 // JSON imports type all string fields as `string`, not specific string literal unions.
@@ -54,6 +56,7 @@ export function exportSession(helpers: Helpers, sessionId: string): SessionExpor
       .map((id) => helpers.typedStore.tables.requests.requireEntity(id)),
     session: helpers.typedStore.tables.sessions.requireEntity(sessionId),
     sessionConfig: helpers.typedStore.tables.sessionConfigs.requireEntity(sessionId),
+    sessionSummaries: helpers.typedStore.tables.sessionSummaries.requireEntity(sessionId),
   }
 }
 

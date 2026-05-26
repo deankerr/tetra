@@ -36,9 +36,17 @@ export class ExaClient {
           data = await response.text()
         }
 
+        const responseError =
+          typeof data === 'object' &&
+          data !== null &&
+          'error' in data &&
+          typeof data.error === 'string'
+            ? `: ${data.error}`
+            : ''
+
         return new ResponseError({
           data,
-          message: `[tools-exa] ${response.url} failed (${response.status} ${response.statusText})`,
+          message: `[tools-exa] ${response.url} failed (${response.status} ${response.statusText})${responseError}`,
           status: response.status,
         })
       },

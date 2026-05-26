@@ -5,8 +5,6 @@ import { z } from 'zod'
 import { ExaClient } from '../client.ts'
 import type { ExaClientOptions } from '../client.ts'
 
-const MAX_RESULTS = 25
-
 const ExaSearchTypeSchema = z.enum([
   'auto',
   'deep',
@@ -97,48 +95,16 @@ export interface ExaSearchToolOptions extends ExaClientOptions {
 }
 
 const inputSchema = z.object({
-  category: z
-    .enum([
-      'company',
-      'financial report',
-      'github',
-      'news',
-      'pdf',
-      'people',
-      'personal site',
-      'research paper',
-    ])
-    .optional()
-    .describe('Restrict results to a known content category.'),
-  endPublishedDate: z
-    .string()
-    .optional()
-    .describe('Only include results published on or before this ISO 8601 date.'),
-  excludeDomains: z
-    .array(z.string())
-    .optional()
-    .describe('Domains to exclude from results, e.g. ["reddit.com"].'),
-  includeDomains: z
-    .array(z.string())
-    .optional()
-    .describe('Restrict results to these domains, e.g. ["arxiv.org"].'),
-  numResults: z
-    .number()
-    .int()
-    .min(1)
-    .max(MAX_RESULTS)
-    .optional()
-    .describe('Number of results to return.'),
   query: z.string().describe('The search query.'),
   startPublishedDate: z
     .string()
     .optional()
-    .describe('Only include results published on or after this ISO 8601 date.'),
+    .describe('Only set when the user asks for recent/current results or names a time window.'),
   userLocation: z
     .string()
     .length(2)
     .optional()
-    .describe('Two-letter ISO country code for geographically relevant results, e.g. "US".'),
+    .describe('Only set when local or country-specific results matter and the country is known.'),
 })
 
 export function exaSearch(options: ExaSearchToolOptions): Tool {
@@ -151,12 +117,9 @@ export function exaSearch(options: ExaSearchToolOptions): Tool {
       await client.post(
         '/search',
         ExaSearchRequestSchema.parse({
-          category: options.category ?? input.category,
+          category: options.category,
           contents,
-          endPublishedDate: input.endPublishedDate,
-          excludeDomains: input.excludeDomains,
-          includeDomains: input.includeDomains,
-          numResults: options.numResults ?? input.numResults ?? 5,
+          numResults: options.numResults ?? 5,
           query: input.query,
           startPublishedDate: input.startPublishedDate,
           type: options.type,

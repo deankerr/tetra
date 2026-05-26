@@ -13,16 +13,13 @@ AI SDK tools and a small typed Exa API client for Tetra.
 
 ## Tools
 
-The package exports four AI SDK tool factories:
+The package exports two AI SDK tool factories:
 
 - `exaSearch` searches the web and returns ranked Exa results.
-- `exaGetContents` fetches page content for known URLs.
-- `exaFindSimilar` finds pages semantically similar to a URL.
-- `exaAnswer` asks Exa for a sourced answer.
+- `exaGetContents` summarizes known URLs after search has found relevant sources.
 
-The default content mode for search-like tools is `highlights: true`. This keeps
-tool results smaller and usually works better for agent loops than returning
-full page text on the first call.
+Search returns token-efficient highlights. Contents returns summaries. The model
+does not choose extraction modes.
 
 ## Tool Options
 
@@ -48,54 +45,23 @@ Factory options:
 Model input:
 
 - `query`: search query.
-- `category`: restrict to `company`, `financial report`, `github`, `news`,
-  `pdf`, `people`, `personal site`, or `research paper`.
-- `includeDomains` / `excludeDomains`: domain filters.
-- `startPublishedDate` / `endPublishedDate`: ISO date filters.
-- `numResults`: result count, capped at `25`.
-- `userLocation`: two-letter country code for geo-relevant results.
+- `startPublishedDate`: ISO date lower bound. Use only when the user asks for
+  recent/current results or names a time window.
+- `userLocation`: two-letter ISO country code. Use only when local or
+  country-specific results matter and the country is known.
 
 ### `exaGetContents(options)`
 
 Factory options:
 
-- `contents`: exact Exa contents config. Defaults to `{ highlights: true }`.
-  When set, the model cannot override extraction mode, focus query, character
-  cap, or freshness.
+- `contents`: exact Exa contents config. Defaults to `{ summary: true }`. When
+  set, the model cannot override extraction mode, focus query, or freshness.
 
 Model input:
 
-- `urls`: URLs to fetch content for.
-- `mode`: `highlights`, `summary`, or `text`. Defaults to `highlights`.
-- `query`: focus query for highlights or summaries.
-- `maxCharacters`: character cap when `mode` is `text`.
-
-`mode` is compiled into mutually exclusive Exa content flags. For example,
-`mode: 'summary'` sends summary config and removes text/highlights config.
-
-### `exaFindSimilar(options)`
-
-Factory options:
-
-- `contents`: default content extraction config. Defaults to `{ highlights: true }`.
-- `numResults`: result count. Defaults to `5`; when set, the model cannot
-  override it.
-
-Model input:
-
-- `url`: source URL.
-- `excludeSourceDomain`: exclude pages from the source URL's domain.
-- `numResults`: result count, capped at `25`.
-
-### `exaAnswer(options)`
-
-Factory options:
-
-- `includeText`: ask Exa to include source text in citations.
-
-Model input:
-
-- `query`: question to answer.
+- `urls`: known page URLs to summarize.
+- `query`: optional focus query. Use only when the user asks about a specific
+  aspect of each page.
 
 ## Quick Use
 
@@ -128,7 +94,7 @@ const result = streamText({
 
 ## Demo
 
-Run a smoke demo for all four tools:
+Run a smoke demo for both tools:
 
 ```bash
 bun run --filter @tetra/tools-exa demo

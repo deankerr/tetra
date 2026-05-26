@@ -5,29 +5,6 @@ import { z } from 'zod'
 import { ExaClient } from '../client.ts'
 import type { ExaClientOptions } from '../client.ts'
 
-const ExaContentSectionSchema = z.enum([
-  'banner',
-  'body',
-  'footer',
-  'header',
-  'metadata',
-  'navigation',
-  'sidebar',
-])
-
-const ExaContentsTextOptionsSchema = z.object({
-  excludeSections: z.array(ExaContentSectionSchema).optional(),
-  includeHtmlTags: z.boolean().optional(),
-  includeSections: z.array(ExaContentSectionSchema).optional(),
-  maxCharacters: z.number().int().positive().optional(),
-  verbosity: z.enum(['compact', 'full', 'standard']).optional(),
-})
-
-const ExaContentsHighlightsOptionsSchema = z.object({
-  maxCharacters: z.number().int().positive().optional(),
-  query: z.string().min(1).optional(),
-})
-
 const ExaContentsSummaryOptionsSchema = z.object({
   query: z.string().min(1).optional(),
   schema: z.record(z.string(), z.unknown()).optional(),
@@ -40,13 +17,11 @@ export const ExaContentsConfigSchema = z.object({
       links: z.number().int().min(0).optional(),
     })
     .optional(),
-  highlights: z.union([z.boolean(), ExaContentsHighlightsOptionsSchema]).optional(),
   livecrawlTimeout: z.number().int().positive().optional(),
   maxAgeHours: z.number().int().min(-1).optional(),
   subpageTarget: z.union([z.string().min(1), z.array(z.string().min(1))]).optional(),
   subpages: z.number().int().min(0).optional(),
   summary: z.union([z.boolean(), ExaContentsSummaryOptionsSchema]).optional(),
-  text: z.union([z.boolean(), ExaContentsTextOptionsSchema]).optional(),
 })
 export type ExaContentsConfig = z.infer<typeof ExaContentsConfigSchema>
 
@@ -96,49 +71,26 @@ export interface ExaGetContentsToolOptions extends ExaClientOptions {
 }
 
 const inputSchema = z.object({
-  maxCharacters: z
-    .number()
-    .int()
-    .positive()
-    .optional()
-    .describe('Character cap when full text is requested.'),
-  mode: z
-    .enum(['highlights', 'summary', 'text'])
-    .optional()
-    .describe('Content mode. Highlights are best for token-efficient agent workflows.'),
   query: z
     .string()
     .min(1)
     .optional()
-    .describe('Focus query for highlights or summary when a specific part of each page matters.'),
-  urls: z.array(z.url()).min(1).describe('The page URLs to fetch contents for.'),
+    .describe('Only set when the user asks about a specific aspect of each page.'),
+  urls: z.array(z.url()).min(1).describe('Known page URLs to summarize.'),
 })
 
 export function exaGetContents(options: ExaGetContentsToolOptions): Tool {
   const client = new ExaClient(options)
 
   return tool({
-    description:
-      'Fetch cleaned page content for known URLs using Exa, preferring concise highlights by default.',
+    description: 'Summarize known page URLs using Exa after search has found relevant sources.',
     execute: async (input, { abortSignal }) => {
-      let requestContents: ExaContentsConfig = options.contents ?? { highlights: true }
+      let requestContents: ExaContentsConfig = options.contents ?? { summary: true }
 
-      // Caller-provided contents are policy; model input only chooses mode for the default config.
+      // Caller-provided contents are policy; model input only focuses the default summary.
       if (options.contents === undefined) {
-        const mode = input.mode ?? 'highlights'
-        requestContents = {}
-
-        if (mode === 'text') {
-          requestContents.text =
-            input.maxCharacters === undefined ? true : { maxCharacters: input.maxCharacters }
-        }
-
-        if (mode === 'summary') {
-          requestContents.summary = input.query === undefined ? true : { query: input.query }
-        }
-
-        if (mode === 'highlights') {
-          requestContents.highlights = input.query === undefined ? true : { query: input.query }
+        requestContents = {
+          summary: input.query === undefined ? true : { query: input.query },
         }
       }
 

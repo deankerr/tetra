@@ -1,32 +1,6 @@
 export { ExaClient } from './client.ts'
 export type { ExaClientOptions, ExaRequestOptions } from './client.ts'
 export {
-  ExaAnswerCitationSchema,
-  ExaAnswerRequestSchema,
-  ExaAnswerResponseSchema,
-  exaAnswer,
-} from './tools/answer.ts'
-export type {
-  ExaAnswerCitation,
-  ExaAnswerRequest,
-  ExaAnswerResponse,
-  ExaAnswerToolOptions,
-} from './tools/answer.ts'
-export {
-  ExaFindSimilarContentsConfigSchema,
-  ExaFindSimilarRequestSchema,
-  ExaFindSimilarResponseSchema,
-  ExaFindSimilarResultSchema,
-  exaFindSimilar,
-} from './tools/find-similar.ts'
-export type {
-  ExaFindSimilarContentsConfig,
-  ExaFindSimilarRequest,
-  ExaFindSimilarResponse,
-  ExaFindSimilarResult,
-  ExaFindSimilarToolOptions,
-} from './tools/find-similar.ts'
-export {
   ExaContentsConfigSchema,
   ExaContentsRequestSchema,
   ExaContentsResponseSchema,

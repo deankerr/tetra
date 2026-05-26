@@ -1,12 +1,8 @@
 import type { Tool, ToolExecutionOptions } from 'ai'
 
 import {
-  ExaAnswerResponseSchema,
   ExaContentsResponseSchema,
-  ExaFindSimilarResponseSchema,
   ExaSearchResponseSchema,
-  exaAnswer,
-  exaFindSimilar,
   exaGetContents,
   exaSearch,
 } from './index.ts'
@@ -64,7 +60,6 @@ const contents = ExaContentsResponseSchema.parse(
       apiKey,
     }),
     {
-      mode: 'highlights',
       query: 'What is this page about?',
       urls: [firstUrl],
     },
@@ -76,38 +71,4 @@ console.log(`- results: ${contents.results.length}`)
 console.log(
   `- first: ${contents.results[0] === undefined ? 'none' : summarizeResult(contents.results[0])}`,
 )
-console.log(`- highlights: ${contents.results[0]?.highlights?.length ?? 0}`)
-
-const similar = ExaFindSimilarResponseSchema.parse(
-  await executeTool(
-    exaFindSimilar({
-      apiKey,
-      numResults: 2,
-    }),
-    {
-      excludeSourceDomain: true,
-      url: firstUrl,
-    },
-  ),
-)
-
-console.log('exaFindSimilar')
-console.log(`- results: ${similar.results.length}`)
-console.log(
-  `- first: ${similar.results[0] === undefined ? 'none' : summarizeResult(similar.results[0])}`,
-)
-
-const answer = ExaAnswerResponseSchema.parse(
-  await executeTool(
-    exaAnswer({
-      apiKey,
-    }),
-    {
-      query: 'What does Exa provide for AI applications?',
-    },
-  ),
-)
-
-console.log('exaAnswer')
-console.log(`- answer type: ${typeof answer.answer}`)
-console.log(`- citations: ${answer.citations.length}`)
+console.log(`- summary type: ${typeof contents.results[0]?.summary}`)

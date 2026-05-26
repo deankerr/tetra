@@ -1,8 +1,6 @@
 import type { Tool } from 'ai'
 
 import type { ExaClientOptions } from './client.ts'
-import { exaAnswer } from './tools/answer.ts'
-import { exaFindSimilar } from './tools/find-similar.ts'
 import { exaGetContents } from './tools/get-contents.ts'
 import { exaSearch } from './tools/search.ts'
 
@@ -22,20 +20,8 @@ export const exaToolDescriptors: ExaToolDescriptor[] = [
   },
   {
     createTool: exaGetContents,
-    description: 'Retrieve cleaned page text, highlights, and summaries for URLs using Exa.',
+    description: 'Summarize known page URLs using Exa after search has found relevant sources.',
     id: 'exaGetContents',
     label: 'Exa Get Contents',
-  },
-  {
-    createTool: exaFindSimilar,
-    description: 'Find web pages semantically similar to a given URL using Exa.',
-    id: 'exaFindSimilar',
-    label: 'Exa Find Similar',
-  },
-  {
-    createTool: exaAnswer,
-    description: 'Ask Exa a question and get a sourced answer with citations.',
-    id: 'exaAnswer',
-    label: 'Exa Answer',
   },
 ]
