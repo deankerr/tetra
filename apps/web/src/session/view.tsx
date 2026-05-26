@@ -58,35 +58,53 @@ function ActiveSession({ onClose, sessionId }: { onClose: () => void; sessionId:
           </span>
           <SessionUsageMeter sessionId={sessionId} />
           <TabsList className="h-7">
-            <TabsTrigger aria-label="Show Tetra conversation view" value="tetra">
+            <TabsTrigger
+              aria-label="Show Tetra conversation view"
+              title="Show Tetra conversation view"
+              value="tetra"
+            >
               <TriangleIcon />
             </TabsTrigger>
-            <TabsTrigger aria-label="Show requests table" value="requests">
+            <TabsTrigger
+              aria-label="Show requests table"
+              title="Show requests table"
+              value="requests"
+            >
               <TableIcon />
             </TabsTrigger>
           </TabsList>
           <Button
-            variant="ghost"
-            size="icon-sm"
             aria-label="Inspect JSON"
             onClick={() => {
               openJsonView({ title: `Session: ${session.id}`, value: session })
             }}
+            size="icon-sm"
+            title="Inspect JSON"
+            variant="ghost"
           >
             <BracesIcon />
           </Button>
           <SessionExportButton sessionId={sessionId} />
           <Button
+            aria-label="Open session settings"
             onClick={() => {
               setDetailOpen(true)
             }}
             size="icon-sm"
+            title="Open session settings"
             type="button"
             variant="ghost"
           >
             <Settings2Icon />
           </Button>
-          <Button onClick={onClose} size="icon-sm" type="button" variant="ghost">
+          <Button
+            aria-label="Close session"
+            onClick={onClose}
+            size="icon-sm"
+            title="Close session"
+            type="button"
+            variant="ghost"
+          >
             <XIcon />
           </Button>
         </header>
@@ -105,7 +123,16 @@ function ActiveSession({ onClose, sessionId }: { onClose: () => void; sessionId:
         <SheetContent className="w-80 sm:max-w-80" showCloseButton={false}>
           <div className="flex h-(--header-height) shrink-0 items-center justify-between border-b px-2">
             <span className="px-2 text-xs font-medium">Settings</span>
-            <SheetClose render={<Button variant="ghost" size="icon-sm" />}>
+            <SheetClose
+              render={
+                <Button
+                  aria-label="Close session settings"
+                  size="icon-sm"
+                  title="Close session settings"
+                  variant="ghost"
+                />
+              }
+            >
               <XIcon />
             </SheetClose>
           </div>

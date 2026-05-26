@@ -23,7 +23,7 @@ export function SettingsDialog() {
     <Dialog onOpenChange={setOpen} open={open}>
       <DialogTrigger
         render={
-          <Button size="icon" variant="ghost">
+          <Button aria-label="Open settings" size="icon" title="Open settings" variant="ghost">
             <SettingsIcon />
           </Button>
         }

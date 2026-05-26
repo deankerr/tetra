@@ -54,13 +54,14 @@ function RefreshButton() {
 
   return (
     <Button
-      variant="ghost"
-      size="icon"
+      aria-label="Refresh model list"
       onClick={(e) => {
         e.stopPropagation()
         void refresh()
       }}
+      size="icon"
       title="Refresh model list"
+      variant="ghost"
     >
       <RotateCcwIcon className={cn('size-3.5', loading && 'animate-spin')} />
     </Button>

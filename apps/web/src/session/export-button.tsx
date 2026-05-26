@@ -9,6 +9,7 @@ export function SessionExportButton({ sessionId }: { sessionId: string }) {
 
   return (
     <Button
+      aria-label="Export session"
       onClick={() => {
         const exported = exportSession(helpers, sessionId)
         const title = exported.session.title.trim() ?? sessionId
@@ -24,6 +25,7 @@ export function SessionExportButton({ sessionId }: { sessionId: string }) {
         URL.revokeObjectURL(url)
       }}
       size="icon-sm"
+      title="Export session"
       type="button"
       variant="ghost"
     >

@@ -222,10 +222,12 @@ function ScalarRow({ dispatch, entry }: { dispatch: Dispatch<Action>; entry: Sca
         value={entry.value}
       />
       <Button
+        aria-label={`Remove provider option ${entry.key || 'row'}`}
         onClick={() => {
           dispatch({ id: entry.id, type: 'remove' })
         }}
         size="icon-xs"
+        title={`Remove provider option ${entry.key || 'row'}`}
         variant="ghost"
       >
         <XIcon />
@@ -247,10 +249,12 @@ function ObjectRow({ dispatch, entry }: { dispatch: Dispatch<Action>; entry: Obj
           value={entry.key}
         />
         <Button
+          aria-label={`Remove provider option group ${entry.key || 'row'}`}
           onClick={() => {
             dispatch({ id: entry.id, type: 'remove' })
           }}
           size="icon-xs"
+          title={`Remove provider option group ${entry.key || 'row'}`}
           variant="ghost"
         >
           <XIcon />
@@ -288,10 +292,12 @@ function ObjectRow({ dispatch, entry }: { dispatch: Dispatch<Action>; entry: Obj
               value={child.value}
             />
             <Button
+              aria-label={`Remove provider option ${child.key || 'row'}`}
               onClick={() => {
                 dispatch({ childId: child.id, id: entry.id, type: 'remove-child' })
               }}
               size="icon-xs"
+              title={`Remove provider option ${child.key || 'row'}`}
               variant="ghost"
             >
               <XIcon />

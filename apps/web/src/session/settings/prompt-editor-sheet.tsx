@@ -66,7 +66,13 @@ function SelectedPromptFields({
       <>
         <div className="flex gap-2">
           <Input disabled placeholder="No prompt selected" />
-          <Button disabled size="icon" variant="ghost" title="Delete prompt">
+          <Button
+            aria-label="Delete prompt"
+            disabled
+            size="icon"
+            title="Delete prompt"
+            variant="ghost"
+          >
             <Trash2Icon />
           </Button>
         </div>
@@ -92,7 +98,13 @@ function PromptCellFields({ onDelete, promptId }: { onDelete: () => void; prompt
           placeholder="Label"
           value={label ?? ''}
         />
-        <Button onClick={onDelete} size="icon" variant="ghost" title="Delete prompt">
+        <Button
+          aria-label="Delete prompt"
+          onClick={onDelete}
+          size="icon"
+          title="Delete prompt"
+          variant="ghost"
+        >
           <Trash2Icon />
         </Button>
       </div>
@@ -185,7 +197,16 @@ export function PromptEditorSheet({
       >
         <div className="flex h-(--header-height) shrink-0 items-center justify-between border-b px-2">
           <span className="px-2 text-xs font-medium">System Prompt</span>
-          <SheetClose render={<Button size="icon-sm" variant="ghost" />}>
+          <SheetClose
+            render={
+              <Button
+                aria-label="Close system prompt editor"
+                size="icon-sm"
+                title="Close system prompt editor"
+                variant="ghost"
+              />
+            }
+          >
             <XIcon />
           </SheetClose>
         </div>

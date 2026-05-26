@@ -180,6 +180,7 @@ function ImageInputButton({ disabled }: { disabled: boolean }) {
       disabled={disabled}
       onClick={attachments.openFileDialog}
       size="icon-sm"
+      title="Add image"
       type="button"
     >
       <ImageIcon className="size-4" />
@@ -207,6 +208,7 @@ function ComposerSubmitControls({
         data-action="add"
         disabled={!isStreaming && isEmpty}
         size="icon-sm"
+        title="Add"
         type="submit"
         variant="secondary"
       >

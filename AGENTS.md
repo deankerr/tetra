@@ -11,7 +11,6 @@ Dev data is wiped and regenerated as needed. This app is not public. There are h
 - NO backwards compatibility shims
 - NO migrations - break schemas without hesitation
 - NO premature convenience helpers - start with the pure and verbose form before assuming the correct abstraction
-- NO accessibility or mobile UI support
 - NO premature optimization of code or bundle size
 - NO purist git hygiene - all parts of the app are in flux
 

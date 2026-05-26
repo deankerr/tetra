@@ -20,7 +20,7 @@ export function DebugMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button size="icon" variant="ghost">
+          <Button aria-label="Open debug menu" size="icon" title="Open debug menu" variant="ghost">
             <BugIcon />
           </Button>
         }

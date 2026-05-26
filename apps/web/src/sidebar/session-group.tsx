@@ -153,7 +153,7 @@ function SessionListItem({
           value={draft}
         />
       ) : (
-        <SidebarMenuButton isActive={active} onClick={onSelect}>
+        <SidebarMenuButton aria-pressed={active} isActive={active} onClick={onSelect}>
           {session.title ? (
             <span>{session.title}</span>
           ) : (
@@ -162,7 +162,14 @@ function SessionListItem({
         </SidebarMenuButton>
       )}
       <DropdownMenu>
-        <DropdownMenuTrigger render={<SidebarMenuAction showOnHover />}>
+        <DropdownMenuTrigger
+          render={
+            <SidebarMenuAction
+              aria-label={`Session actions for ${session.title || 'Untitled session'}`}
+              showOnHover
+            />
+          }
+        >
           <MoreHorizontalIcon />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" side="right">

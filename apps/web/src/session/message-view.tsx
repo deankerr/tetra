@@ -285,43 +285,47 @@ function MessageFooter({
   return (
     <div className="flex items-center gap-1 px-1">
       <Button
-        variant="ghost"
-        size="icon-sm"
         aria-label="Copy"
         disabled={messageText === ''}
         onClick={() => void navigator.clipboard.writeText(messageText)}
+        size="icon-sm"
+        title="Copy"
+        variant="ghost"
       >
         <CopyIcon />
       </Button>
       <Button
-        variant="ghost"
-        size="icon-sm"
         aria-label="Inspect JSON"
         onClick={() => {
           openJsonView({ title: `Message: ${message.id}`, value: message })
         }}
+        size="icon-sm"
+        title="Inspect JSON"
+        variant="ghost"
       >
         <BracesIcon />
       </Button>
       {canRegenerate && (
         <Button
-          variant="ghost"
-          size="icon-sm"
           aria-label="Regenerate"
           onClick={() => {
             runs.regenerate({ messageId: message.id })
           }}
+          size="icon-sm"
+          title="Regenerate"
+          variant="ghost"
         >
           <RefreshCwIcon />
         </Button>
       )}
       <Button
-        variant="ghost"
-        size="icon-sm"
         aria-label="Delete"
         onClick={() => {
           helpers.deleteMessage(message.id)
         }}
+        size="icon-sm"
+        title="Delete"
+        variant="ghost"
       >
         <TrashIcon />
       </Button>

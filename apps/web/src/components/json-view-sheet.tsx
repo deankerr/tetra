@@ -42,15 +42,17 @@ export function JsonViewSheet() {
           <span className="truncate px-2 text-xs font-medium">{jsonView.title || 'JSON View'}</span>
           <div className="flex items-center gap-1">
             <Button
+              aria-label="Copy JSON"
               onClick={() => void navigator.clipboard.writeText(jsonView.json)}
               size="icon-sm"
               type="button"
               variant="ghost"
-              aria-label="Copy JSON"
             >
               <CopyIcon />
             </Button>
-            <SheetClose render={<Button size="icon-sm" variant="ghost" />}>
+            <SheetClose
+              render={<Button aria-label="Close JSON view" size="icon-sm" variant="ghost" />}
+            >
               <XIcon />
             </SheetClose>
           </div>
