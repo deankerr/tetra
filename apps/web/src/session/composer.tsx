@@ -20,11 +20,10 @@ import type { UIMessage } from 'ai'
 import { ArrowUpFromDot, ImageIcon } from 'lucide-react'
 import { useState } from 'react'
 
+import { WEB_UI_STORE_ID, typedTinybase, webUiTinybase } from '@/lib/tinybase'
 import { ModelPicker } from '@/session/settings/model-picker'
 import { useTetra } from '@/tetra-context'
-import { typedTinybase } from '@/tetra-tinybase-react'
 import { useCredential } from '@/use-credential'
-import { WEB_UI_STORE_ID, webUiTinybase } from '@/web-ui-state'
 
 const activeStatuses = new Set(['preparing', 'streaming'])
 

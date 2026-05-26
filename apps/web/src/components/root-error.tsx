@@ -3,7 +3,7 @@ import { useRouter } from '@tanstack/react-router'
 import { Button } from '@tetra/ui/components/ui/button'
 import { AlertCircleIcon, Trash2Icon } from 'lucide-react'
 
-import { hardEraseWebData } from '@/lib/hard-reset'
+import { clearTetraIndexedDbAndReload } from '@/lib/tinybase'
 
 export function RootErrorComponent({ error, reset }: ErrorComponentProps) {
   const router = useRouter()
@@ -29,7 +29,7 @@ export function RootErrorComponent({ error, reset }: ErrorComponentProps) {
         </Button>
         <Button
           onClick={() => {
-            void hardEraseWebData()
+            void clearTetraIndexedDbAndReload()
           }}
           variant="outline"
         >

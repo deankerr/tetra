@@ -5,8 +5,8 @@ import type { TetraRawIndexes, TetraRawStore } from '@tetra/store-schema'
 import { bindIndexes, bindStore } from '@tetra/tinybase-schema'
 import { useMemo } from 'react'
 
+import { tinybase } from '@/lib/tinybase'
 import { TetraContext } from '@/tetra-context'
-import { tinybase } from '@/tetra-tinybase-react'
 
 function createTetraApp(rawStore: TetraRawStore, rawIndexes: TetraRawIndexes) {
   // Bind the raw TinyBase objects to Tetra's typed APIs at the app boundary.

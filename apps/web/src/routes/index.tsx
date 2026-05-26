@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { App } from '@/app'
+import { SessionView } from '@/session/view'
 
 export const Route = createFileRoute('/')({
-  component: App,
+  component: SessionView,
 })

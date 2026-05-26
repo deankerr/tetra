@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@tetra/ui/components/u
 import { Field, FieldGroup, FieldTitle } from '@tetra/ui/components/ui/field'
 import { Input } from '@tetra/ui/components/ui/input'
 
+import { typedTinybase } from '@/lib/tinybase'
 import { useTetra } from '@/tetra-context'
-import { typedTinybase } from '@/tetra-tinybase-react'
 
 import { ModelPicker } from './settings/model-picker'
 import { PromptPreviewButton } from './settings/prompt-editor-sheet'

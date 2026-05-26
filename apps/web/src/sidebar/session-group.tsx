@@ -19,9 +19,8 @@ import {
 import { MoreHorizontalIcon, PlusIcon } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 
+import { WEB_UI_STORE_ID, typedTinybase, webUiTinybase } from '@/lib/tinybase'
 import { useTetra } from '@/tetra-context'
-import { typedTinybase } from '@/tetra-tinybase-react'
-import { WEB_UI_STORE_ID, webUiTinybase } from '@/web-ui-state'
 
 // Sessions sorted by updatedAt descending — most recently active first.
 // appendMessage touches updatedAt, so this order naturally tracks conversation activity.

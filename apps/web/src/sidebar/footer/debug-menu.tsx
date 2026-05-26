@@ -10,7 +10,7 @@ import {
 } from '@tetra/ui/components/ui/dropdown-menu'
 import { BugIcon, DatabaseIcon, Trash2Icon } from 'lucide-react'
 
-import { hardEraseWebData } from '@/lib/hard-reset'
+import { clearTetraIndexedDbAndReload } from '@/lib/tinybase'
 import { useTetra } from '@/tetra-context'
 
 export function DebugMenu() {
@@ -38,7 +38,7 @@ export function DebugMenu() {
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => {
-              void hardEraseWebData()
+              void clearTetraIndexedDbAndReload()
             }}
           >
             <Trash2Icon />

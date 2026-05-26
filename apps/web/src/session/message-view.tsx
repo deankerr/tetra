@@ -21,8 +21,8 @@ import {
 } from 'lucide-react'
 import { useMemo } from 'react'
 
+import { typedTinybase } from '@/lib/tinybase'
 import { useTetra } from '@/tetra-context'
-import { typedTinybase } from '@/tetra-tinybase-react'
 
 type UIMessagePart = Rows['messages']['parts'][number]
 

@@ -12,8 +12,8 @@ import { Textarea } from '@tetra/ui/components/ui/textarea'
 import { Trash2Icon, XIcon } from 'lucide-react'
 import { useMemo } from 'react'
 
+import { typedTinybase } from '@/lib/tinybase'
 import { useTetra } from '@/tetra-context'
-import { typedTinybase } from '@/tetra-tinybase-react'
 
 const usePromptIds = () => {
   const prompts = typedTinybase.useEntityList('prompts')

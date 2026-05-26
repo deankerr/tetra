@@ -1,6 +1,5 @@
 import { setTetraIndexDefinitions, tetraStoreSchema } from '@tetra/store-schema'
 import { useMemo } from 'react'
-import ReconnectingWebSocket from 'reconnecting-websocket'
 import { createIndexes } from 'tinybase/indexes/with-schemas'
 import { createMergeableStore } from 'tinybase/mergeable-store/with-schemas'
 import { createIndexedDbPersister } from 'tinybase/persisters/persister-indexed-db/with-schemas'
@@ -8,25 +7,17 @@ import { createStore } from 'tinybase/store/with-schemas'
 import { createWsSynchronizer } from 'tinybase/synchronizers/synchronizer-ws-client/with-schemas'
 import { Inspector } from 'tinybase/ui-react-inspector'
 
-import { TETRA_INDEXED_DB_NAME } from '@/lib/hard-reset'
-import { tinybase } from '@/tetra-tinybase-react'
-import { WEB_UI_STORE_ID, webUiReact, webUiStoreSchema } from '@/web-ui-state'
-import type { WebUiRawStore } from '@/web-ui-state'
+import type { WebUiRawStore } from '@/lib/tinybase'
+import {
+  TETRA_INDEXED_DB_NAME,
+  WEB_UI_STORE_ID,
+  tinybase,
+  webUiReact,
+  webUiStoreSchema,
+} from '@/lib/tinybase'
+import { createSyncWebSocket } from '@/lib/websocket'
 
 const DATA_MODE = import.meta.env.VITE_TETRA_DATA_MODE ?? 'persist'
-const WORKER_URL = getSyncUrl(import.meta.env.VITE_WORKER_URL ?? 'ws://localhost:8787')
-
-function getSyncUrl(workerUrl: string): string {
-  // Convert the configured Worker origin into the Durable Object websocket URL.
-  const url = new URL('/tetra', workerUrl)
-  if (url.protocol === 'http:') {
-    url.protocol = 'ws:'
-  }
-  if (url.protocol === 'https:') {
-    url.protocol = 'wss:'
-  }
-  return url.toString()
-}
 
 function useCreateTetraStore() {
   return useMemo(() => {
@@ -112,9 +103,7 @@ function TinyBaseSyncProvider({ children }: { children: React.ReactNode }) {
   const synchronizer = tinybase.useCreateSynchronizer(
     rawStore,
     async (store) => {
-      // TinyBase accepts WebSocket-compatible clients but its type only names native WebSocket.
-      // oxlint-disable-next-line no-unsafe-type-assertion
-      const webSocket = new ReconnectingWebSocket(WORKER_URL) as unknown as WebSocket
+      const webSocket = createSyncWebSocket()
       const wsSynchronizer = await createWsSynchronizer(store, webSocket)
       await wsSynchronizer.startSync()
       return wsSynchronizer

@@ -5,8 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@tetra/ui/components/u
 import { Settings2Icon, TableIcon, TriangleIcon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 
-import { typedTinybase } from '@/tetra-tinybase-react'
-import { WEB_UI_STORE_ID, webUiTinybase } from '@/web-ui-state'
+import { WEB_UI_STORE_ID, typedTinybase, webUiTinybase } from '@/lib/tinybase'
 
 import { TetraConversationView } from './conversation-view'
 import { SessionExportButton } from './export-button'

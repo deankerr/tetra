@@ -6,7 +6,7 @@ import type { Dispatch } from 'react'
 import { useEffect, useReducer, useRef } from 'react'
 import { z } from 'zod'
 
-import { typedTinybase } from '@/tetra-tinybase-react'
+import { typedTinybase } from '@/lib/tinybase'
 
 // --- Types ---
 
