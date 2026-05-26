@@ -21,6 +21,12 @@
       "sourceType": "github",
       "computedHash": "1ec42c9b918b315d8e5c6c856b78c3c4725fc93dea30b9b7e9975c69848fcce6"
     },
+    "upfetch": {
+      "source": "L-Blondy/up-fetch",
+      "sourceType": "github",
+      "skillPath": "skills/upfetch/SKILL.md",
+      "computedHash": "fe158c482ee58e41b0705ff40a63eca00855da4bead7d625cabdc62d66a13a71"
+    },
     "vercel-composition-patterns": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
