@@ -3,20 +3,111 @@ import type { Tool } from 'ai'
 import { z } from 'zod'
 
 import { ExaClient } from '../client.ts'
-import type { ExaClientOptions, ExaContentsConfig, ExaSearchType } from '../client.ts'
+import type { ExaClientOptions } from '../client.ts'
 
 const MAX_RESULTS = 25
 
+const ExaSearchTypeSchema = z.enum([
+  'auto',
+  'deep',
+  'deep-lite',
+  'deep-reasoning',
+  'fast',
+  'instant',
+])
+export type ExaSearchType = z.infer<typeof ExaSearchTypeSchema>
+export type ExaCategory = string
+
+const ExaSearchHighlightsOptionsSchema = z.object({
+  maxCharacters: z.number().int().positive().optional(),
+  query: z.string().min(1).optional(),
+})
+
+export const ExaSearchContentsConfigSchema = z.object({
+  highlights: z.union([z.boolean(), ExaSearchHighlightsOptionsSchema]).optional(),
+  livecrawlTimeout: z.number().int().positive().optional(),
+  maxAgeHours: z.number().int().min(-1).optional(),
+})
+export type ExaSearchContentsConfig = z.infer<typeof ExaSearchContentsConfigSchema>
+
+export const ExaSearchRequestSchema = z.object({
+  additionalQueries: z.array(z.string().min(1)).min(1).max(10).optional(),
+  category: z.string().min(1).optional(),
+  contents: ExaSearchContentsConfigSchema.optional(),
+  endCrawlDate: z.string().optional(),
+  endPublishedDate: z.string().optional(),
+  excludeDomains: z.array(z.string().min(1)).max(1200).optional(),
+  includeDomains: z.array(z.string().min(1)).max(1200).optional(),
+  moderation: z.boolean().optional(),
+  numResults: z.number().int().min(1).max(100).optional(),
+  query: z.string().min(1),
+  startCrawlDate: z.string().optional(),
+  startPublishedDate: z.string().optional(),
+  systemPrompt: z.string().min(1).optional(),
+  type: ExaSearchTypeSchema.optional(),
+  userLocation: z.string().length(2).optional(),
+})
+export type ExaSearchRequest = z.infer<typeof ExaSearchRequestSchema>
+
+export const ExaSearchResultSchema = z.looseObject({
+  author: z.string().nullish(),
+  favicon: z.string().nullish(),
+  highlightScores: z.array(z.number()).optional(),
+  highlights: z.array(z.string()).optional(),
+  id: z.string(),
+  image: z.string().nullish(),
+  publishedDate: z.string().nullish(),
+  score: z.number().nullish(),
+  text: z.string().optional(),
+  title: z.string().nullish(),
+  url: z.string(),
+})
+export type ExaSearchResult = z.infer<typeof ExaSearchResultSchema>
+
+const ExaSearchOutputSchema = z.looseObject({
+  content: z.unknown(),
+  grounding: z
+    .array(
+      z.looseObject({
+        citations: z
+          .array(z.looseObject({ title: z.string().optional(), url: z.string() }))
+          .optional(),
+        confidence: z.enum(['high', 'low', 'medium']).optional(),
+        field: z.string().optional(),
+      }),
+    )
+    .optional(),
+})
+
+export const ExaSearchResponseSchema = z.looseObject({
+  costDollars: z.looseObject({ total: z.number() }).nullish(),
+  output: ExaSearchOutputSchema.optional(),
+  requestId: z.string().optional(),
+  resolvedSearchType: z.string().optional(),
+  results: z.array(ExaSearchResultSchema),
+  searchType: z.string().optional(),
+})
+export type ExaSearchResponse = z.infer<typeof ExaSearchResponseSchema>
+
 export interface ExaSearchToolOptions extends ExaClientOptions {
-  category?: string
-  contents?: ExaContentsConfig
+  category?: ExaCategory
+  contents?: ExaSearchContentsConfig
   numResults?: number
   type?: ExaSearchType
 }
 
 const inputSchema = z.object({
   category: z
-    .enum(['company', 'financial report', 'news', 'people', 'personal site', 'research paper'])
+    .enum([
+      'company',
+      'financial report',
+      'github',
+      'news',
+      'pdf',
+      'people',
+      'personal site',
+      'research paper',
+    ])
     .optional()
     .describe('Restrict results to a known content category.'),
   endPublishedDate: z
@@ -31,6 +122,12 @@ const inputSchema = z.object({
     .array(z.string())
     .optional()
     .describe('Restrict results to these domains, e.g. ["arxiv.org"].'),
+  maxAgeHours: z
+    .number()
+    .int()
+    .min(-1)
+    .optional()
+    .describe('Freshness for returned page contents. 0 always live-crawls, -1 uses cache only.'),
   numResults: z
     .number()
     .int()
@@ -47,20 +144,29 @@ const inputSchema = z.object({
     .enum(['auto', 'deep', 'deep-lite', 'deep-reasoning', 'fast', 'instant'])
     .optional()
     .describe('Search strategy. "auto" lets Exa pick the best search mode.'),
+  userLocation: z
+    .string()
+    .length(2)
+    .optional()
+    .describe('Two-letter ISO country code for geographically relevant results, e.g. "US".'),
 })
 
 export function exaSearch(options: ExaSearchToolOptions): Tool {
   const client = new ExaClient(options)
-  const contents = options.contents ?? { text: true }
+  const contents = options.contents ?? { highlights: true }
   const defaultNumResults = options.numResults ?? 5
 
   return tool({
-    description: 'Search the web with Exa and return ranked results with extracted page contents.',
+    description: 'Search the web with Exa and return ranked sources with token-efficient excerpts.',
     execute: async (input, { abortSignal }) =>
-      await client.search(
-        {
+      await client.post(
+        '/search',
+        ExaSearchRequestSchema.parse({
           category: input.category ?? options.category,
-          contents,
+          contents: {
+            ...contents,
+            maxAgeHours: input.maxAgeHours ?? contents.maxAgeHours,
+          },
           endPublishedDate: input.endPublishedDate,
           excludeDomains: input.excludeDomains,
           includeDomains: input.includeDomains,
@@ -68,7 +174,9 @@ export function exaSearch(options: ExaSearchToolOptions): Tool {
           query: input.query,
           startPublishedDate: input.startPublishedDate,
           type: input.type ?? options.type,
-        },
+          userLocation: input.userLocation,
+        }),
+        ExaSearchResponseSchema,
         { signal: abortSignal },
       ),
     inputSchema,

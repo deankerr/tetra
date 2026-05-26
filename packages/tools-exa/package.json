@@ -5,8 +5,12 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "scripts": {
+    "demo": "bun src/demo.ts"
+  },
   "dependencies": {
     "ai": "catalog:",
+    "up-fetch": "^2.6.0",
     "zod": "catalog:"
   },
   "devDependencies": {
