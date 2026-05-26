@@ -16,17 +16,7 @@ export interface ExaSearchToolOptions extends ExaClientOptions {
 
 const inputSchema = z.object({
   category: z
-    .enum([
-      'company',
-      'financial report',
-      'github',
-      'linkedin profile',
-      'news',
-      'pdf',
-      'personal site',
-      'research paper',
-      'tweet',
-    ])
+    .enum(['company', 'financial report', 'news', 'people', 'personal site', 'research paper'])
     .optional()
     .describe('Restrict results to a known content category.'),
   endPublishedDate: z
@@ -54,9 +44,9 @@ const inputSchema = z.object({
     .optional()
     .describe('Only include results published on or after this ISO 8601 date.'),
   type: z
-    .enum(['auto', 'fast', 'keyword', 'neural'])
+    .enum(['auto', 'deep', 'deep-lite', 'deep-reasoning', 'fast', 'instant'])
     .optional()
-    .describe('Search strategy. "auto" lets Exa pick between neural and keyword.'),
+    .describe('Search strategy. "auto" lets Exa pick the best search mode.'),
 })
 
 export function exaSearch(options: ExaSearchToolOptions): Tool {

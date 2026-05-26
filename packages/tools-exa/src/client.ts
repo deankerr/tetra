@@ -13,7 +13,7 @@ export interface ExaRequestOptions {
 }
 
 export type ExaLivecrawl = 'always' | 'fallback' | 'never' | 'preferred'
-export type ExaSearchType = 'auto' | 'fast' | 'keyword' | 'neural'
+export type ExaSearchType = 'auto' | 'deep' | 'deep-lite' | 'deep-reasoning' | 'fast' | 'instant'
 
 export interface ExaTextOptions {
   includeHtmlTags?: boolean
