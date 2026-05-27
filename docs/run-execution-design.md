@@ -255,7 +255,6 @@ class Run extends EventTarget {
   status: 'preparing' | 'streaming' | 'completed' | 'error' | 'cancelled'
   parts: UIMessage['parts']
   finalParts: UIMessage['parts'] | null
-  steps: StepRecord[]
   error: unknown
 
   start(): void
@@ -318,10 +317,11 @@ During a run:
 - user message should exist durably before streaming starts
 - assistant placeholder should exist durably before streaming starts
 - request row should exist durably before streaming starts
-- generation-time parts and steps are persisted to `messageGenerations`
-- committed assistant parts and steps are written back to `messages` at terminal status
+- generation-time parts are persisted to `messageGenerations`
+- completed model-call accounting is persisted to `steps`
+- committed assistant parts are written back to `messages` at terminal status
 - request rows stay focused on lifecycle/config/status
-- usage summaries are derived from steps in core write paths, not React render paths
+- usage totals are derived from step rows at the read sites that need them
 - terminal status must always be written for completed, failed, and cancelled runs
 
 Open question: whether the request row should begin as `preparing` instead of `streaming`.
@@ -330,10 +330,9 @@ Open question: whether the request row should begin as `preparing` instead of `s
 
 These are not bugs yet; they are design pressure to revisit when long sessions or richer editing make them visible.
 
-- `rebuildSessionUsage` currently scans all message and hot-generation usage for a session. Keep it until long sessions show pressure, then switch to delta updates.
 - Every rendered message currently subscribes to its own `messageGenerations` row. Keep it while transcripts are modest; revisit if large sessions make subscription count noticeable.
 - Cancelled/error assistant messages currently commit partial generation content into the transcript. Keep this explicit in UI semantics as editing/retry behavior grows.
-- Existing prototype data may have missing usage summaries. Avoid migrations for now; add a dev-only rebuild command if blank usage on old sessions becomes annoying.
+- Session-level usage currently derives from `stepsBySession`. Add stored summaries only if session sizes make that visibly expensive.
 
 ## Failure Boundary
 
@@ -423,7 +422,7 @@ Tests should be able to assert:
 - live `run.parts`
 - final `run.finalParts`
 - request status
-- embedded `requests.steps`
+- step rows
 - AI SDK result details where useful
 - cancellation and recovery behavior
 

@@ -20,7 +20,6 @@
       ],
       "role": "user",
       "sessionId": "sess_Ot3uXUS----SflWn",
-      "steps": [],
       "updatedAt": 1779272674481,
       "id": "mesg_Ot3uaml----SflWn"
     },
@@ -111,56 +110,6 @@
       ],
       "role": "assistant",
       "sessionId": "sess_Ot3uXUS----SflWn",
-      "steps": [
-        {
-          "cost": {
-            "currency": "USD",
-            "inputTotal": 0.0000336,
-            "isByok": false,
-            "outputTotal": 0.00001232,
-            "total": 0.00004592
-          },
-          "createdAt": 1779272677073,
-          "finishReason": "tool-calls",
-          "generationId": "gen-1779272674-vpbyzLguwiiW6zmUT8z8",
-          "model": "deepseek/deepseek-v4-flash-20260423",
-          "provider": "GMICloud",
-          "stepNumber": 0,
-          "tokens": {
-            "inputNoCache": 300,
-            "inputText": 300,
-            "inputTotal": 300,
-            "outputReasoning": 25,
-            "outputText": 30,
-            "outputTotal": 55,
-            "total": 355
-          }
-        },
-        {
-          "cost": {
-            "currency": "USD",
-            "inputTotal": 0.000046592,
-            "isByok": false,
-            "outputTotal": 0.000044128,
-            "total": 0.00009072
-          },
-          "createdAt": 1779272681166,
-          "finishReason": "stop",
-          "generationId": "gen-1779272677-2hQ3wa3Kjble8wDJGmQR",
-          "model": "deepseek/deepseek-v4-flash-20260423",
-          "provider": "GMICloud",
-          "stepNumber": 1,
-          "tokens": {
-            "inputNoCache": 416,
-            "inputText": 416,
-            "inputTotal": 416,
-            "outputReasoning": 140,
-            "outputText": 57,
-            "outputTotal": 197,
-            "total": 613
-          }
-        }
-      ],
       "updatedAt": 1779272681177,
       "id": "mesg_Ot3uamm----SflWn"
     }
@@ -191,5 +140,71 @@
     "title": "what time is it in new york?",
     "updatedAt": 1779272674482,
     "id": "sess_Ot3uXUS----SflWn"
-  }
+  },
+  "steps": [
+    {
+      "cost": {
+        "input": 0.0000336,
+        "output": 0.00001232,
+        "total": 0.00004592,
+        "currency": "USD"
+      },
+      "createdAt": 1779272677073,
+      "finishReason": "tool-calls",
+      "generationId": "gen-1779272674-vpbyzLguwiiW6zmUT8z8",
+      "id": "rqst_Ot3uamn----SflWn_step_0",
+      "messageId": "mesg_Ot3uamm----SflWn",
+      "model": "deepseek/deepseek-v4-flash-20260423",
+      "provider": "GMICloud",
+      "raw": {},
+      "requestId": "rqst_Ot3uamn----SflWn",
+      "sessionId": "sess_Ot3uXUS----SflWn",
+      "stepNumber": 0,
+      "usage": {
+        "input": {
+          "noCache": 300,
+          "total": 300
+        },
+        "output": {
+          "reasoning": 25,
+          "text": 30,
+          "total": 55
+        },
+        "total": 355
+      },
+      "warnings": []
+    },
+    {
+      "cost": {
+        "input": 0.000046592,
+        "output": 0.000044128,
+        "total": 0.00009072,
+        "currency": "USD"
+      },
+      "createdAt": 1779272681166,
+      "finishReason": "stop",
+      "generationId": "gen-1779272677-2hQ3wa3Kjble8wDJGmQR",
+      "id": "rqst_Ot3uamn----SflWn_step_1",
+      "messageId": "mesg_Ot3uamm----SflWn",
+      "model": "deepseek/deepseek-v4-flash-20260423",
+      "provider": "GMICloud",
+      "raw": {},
+      "requestId": "rqst_Ot3uamn----SflWn",
+      "sessionId": "sess_Ot3uXUS----SflWn",
+      "stepNumber": 1,
+      "usage": {
+        "input": {
+          "noCache": 416,
+          "total": 416
+        },
+        "output": {
+          "reasoning": 140,
+          "text": 57,
+          "total": 197
+        },
+        "total": 613
+      },
+      "warnings": []
+    }
+  ]
 }

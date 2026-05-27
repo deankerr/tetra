@@ -1,4 +1,4 @@
-import type { UsageSummary } from '@tetra/store-schema'
+import type { UsageTotals } from '@tetra/core'
 import { Button } from '@tetra/ui/components/ui/button'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@tetra/ui/components/ui/hover-card'
 import { Progress } from '@tetra/ui/components/ui/progress'
@@ -6,11 +6,13 @@ import { useMemo } from 'react'
 
 import { typedTinybase } from '@/lib/tinybase'
 
+import { useSessionUsageTotals } from './usage-hooks'
+
 interface SessionContextSummary {
   maxTokens: number
   modelLabel: string
   percentUsed: number | null
-  usage: UsageSummary
+  usage: UsageTotals
   usedTokens: number
 }
 
@@ -68,10 +70,9 @@ export function SessionUsageMeter({ sessionId }: { sessionId: string }) {
 function useSessionContextSummary(sessionId: string): SessionContextSummary | null {
   const modelId = typedTinybase.useCell('sessionConfigs', sessionId, 'modelId') ?? ''
   const languageModel = typedTinybase.useRow('languageModels', modelId)
-  const sessionSummary = typedTinybase.useRow('sessionSummaries', sessionId)
+  const usage = useSessionUsageTotals(sessionId)
 
   return useMemo(() => {
-    const usage = sessionSummary?.usage ?? {}
     if ((usage.totalTokens ?? 0) === 0) {
       return null
     }
@@ -87,7 +88,7 @@ function useSessionContextSummary(sessionId: string): SessionContextSummary | nu
       usage,
       usedTokens: input,
     }
-  }, [languageModel, modelId, sessionSummary])
+  }, [languageModel, modelId, usage])
 }
 
 function UsageIcon({ percentUsed }: { percentUsed: number | null }) {

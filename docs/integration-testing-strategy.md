@@ -195,10 +195,10 @@ Exercise:
 
 Assert:
 
-- `requests.steps` has one entry per completed model step
+- `stepsByRequest` has one row per completed model step
 - token fields are parsed from normalized SDK usage
 - cost fields are parsed from raw provider usage
-- no separate steps table exists
+- raw provider usage is preserved on the step row when returned
 
 ### Error Path
 

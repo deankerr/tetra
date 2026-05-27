@@ -8,7 +8,6 @@ import type { Helpers } from '#helpers'
 import { resolveTools } from '#tools'
 
 import {
-  appendMessageGenerationStep,
   commitMessageGeneration,
   updateMessageGeneration,
   writeMessageGenerationSnapshot,
@@ -74,7 +73,6 @@ export class Run extends EventTarget {
   parts: UIMessage['parts'] = []
   result: ReturnType<typeof streamText> | null = null
   status: RunStatus = 'preparing'
-  steps: StepRecord[] = []
   tools: ToolSet = {}
 
   private readonly credentials: CredentialReader
@@ -141,9 +139,14 @@ export class Run extends EventTarget {
     this.dispatchEvent(new Event('snapshot'))
   }
 
-  private recordStep(step: StepRecord): void {
-    this.steps = [...this.steps, step]
-    appendMessageGenerationStep(this.helpers, this.assistantMessageId, step)
+  private recordStep(step: Omit<StepRecord, 'messageId' | 'requestId' | 'sessionId'>): void {
+    const stepId = `${this.requestId}_step_${step.stepNumber}`
+    this.helpers.typedStore.tables.steps.setRow(stepId, {
+      ...step,
+      messageId: this.assistantMessageId,
+      requestId: this.requestId,
+      sessionId: this.sessionId,
+    })
     this.dispatchEvent(new Event('step'))
   }
 

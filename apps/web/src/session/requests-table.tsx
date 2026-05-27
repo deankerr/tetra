@@ -1,3 +1,4 @@
+import { summarizeSteps } from '@tetra/core'
 import type { Rows } from '@tetra/store-schema'
 import {
   Table,
@@ -10,6 +11,8 @@ import {
 import { useMemo } from 'react'
 
 import { typedTinybase } from '@/lib/tinybase'
+
+import { useRequestSteps } from './usage-hooks'
 
 type Request = Rows['requests']
 
@@ -58,18 +61,17 @@ function statusClass(status: string) {
   return 'text-muted-foreground'
 }
 
-function useRequestAccountingSummary(message: Rows['messages'] | null) {
-  const generation = typedTinybase.useEntity('messageGenerations', message?.id ?? '')
-  const usage = generation?.usage ?? message?.usage
+function useRequestAccountingSummary(requestId: string) {
+  const steps = useRequestSteps(requestId)
 
-  return useMemo(
-    () => ({
-      cost: usage?.costTotal ?? null,
-      inputTokens: usage?.inputTokens ?? 0,
-      outputTokens: usage?.outputTokens ?? 0,
-    }),
-    [usage],
-  )
+  return useMemo(() => {
+    const usage = summarizeSteps(steps)
+    return {
+      cost: usage.costTotal ?? null,
+      inputTokens: usage.inputTokens ?? 0,
+      outputTokens: usage.outputTokens ?? 0,
+    }
+  }, [steps])
 }
 
 // Split out so each row subscribes independently to its request row.
@@ -82,8 +84,7 @@ function RequestRowById({ requestId }: { requestId: string }) {
 }
 
 function RequestRow({ request }: { request: Request }) {
-  const message = typedTinybase.useEntity('messages', request.assistantMessageId)
-  const summary = useRequestAccountingSummary(message)
+  const summary = useRequestAccountingSummary(request.id)
 
   return (
     <TableRow>
