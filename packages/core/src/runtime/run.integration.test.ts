@@ -317,9 +317,15 @@ test('Regenerate — assistant tail is cleared and reused', async () => {
     role: 'assistant',
   })
 
+  const firstRun = runs.start({ assistantMessageId })
+  await firstRun.done
+  expect(core.typedIndexes.getSliceRowIds('stepsByMessage', assistantMessageId)).toHaveLength(1)
+
   const run = runs.regenerate({ messageId: assistantMessageId })
   expect(run.assistantMessageId).toBe(assistantMessageId)
   expect(core.typedStore.tables.messages.requireEntity(assistantMessageId).parts).toEqual([])
+  expect(core.typedIndexes.getSliceRowIds('stepsByMessage', assistantMessageId)).toEqual([])
+  expect(core.typedIndexes.getSliceRowIds('stepsByRequest', firstRun.requestId)).toEqual([])
   expect(core.typedIndexes.getSliceRowIds('stepsByRequest', run.requestId)).toEqual([])
 
   await run.done
@@ -329,7 +335,7 @@ test('Regenerate — assistant tail is cleared and reused', async () => {
     .map((id) => core.typedStore.tables.messages.requireEntity(id))
   expect(messages).toHaveLength(2)
   expect(messages[1]?.id).toBe(assistantMessageId)
-  expect(model.doStreamCalls[0]?.prompt).toEqual([
+  expect(model.doStreamCalls[1]?.prompt).toEqual([
     { content: [{ text: 'again', type: 'text' }], role: 'user' },
   ])
 })

@@ -10,8 +10,15 @@ export interface MessageGenerationPatch {
 
 export function clearMessageContent(helpers: Helpers, messageId: string): void {
   helpers.typedStore.tables.messages.requireEntity(messageId)
-  setMessageGenerationResult(helpers, messageId, { parts: [] })
-  helpers.typedStore.tables.messageGenerations.deleteRow(messageId)
+
+  helpers.rawStore.transaction(() => {
+    for (const stepId of helpers.typedIndexes.getSliceRowIds('stepsByMessage', messageId)) {
+      helpers.typedStore.tables.steps.deleteRow(stepId)
+    }
+
+    setMessageGenerationResult(helpers, messageId, { parts: [] })
+    helpers.typedStore.tables.messageGenerations.deleteRow(messageId)
+  })
 }
 
 export function commitMessageGeneration(helpers: Helpers, messageId: string): void {
