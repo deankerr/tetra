@@ -1,0 +1,20 @@
+{
+  "finishReason": "stop",
+  "totalUsage": {
+    "inputTokens": 695,
+    "inputTokenDetails": {
+      "noCacheTokens": 695,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    "outputTokens": 135,
+    "outputTokenDetails": {
+      "textTokens": 92,
+      "reasoningTokens": 43
+    },
+    "totalTokens": 830,
+    "reasoningTokens": 43,
+    "cachedInputTokens": 0
+  },
+  "warnings": []
+}

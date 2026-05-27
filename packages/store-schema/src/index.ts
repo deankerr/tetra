@@ -30,70 +30,60 @@ export const DEFAULT_REQUEST_CONFIG: RequestConfig = {
   toolIds: [],
 }
 
-const TokenMetrics = z.object({
-  inputAudio: z.number().optional(),
-  inputCacheRead: z.number().optional(),
-  inputCacheWrite: z.number().optional(),
-  inputImage: z.number().optional(),
-  inputNoCache: z.number().optional(),
-  inputText: z.number().optional(),
-  inputTotal: z.number(),
-  inputVideo: z.number().optional(),
-  outputAudio: z.number().optional(),
-  outputImage: z.number().optional(),
-  outputReasoning: z.number().optional(),
-  outputText: z.number().optional(),
-  outputTotal: z.number(),
-  outputVideo: z.number().optional(),
-  total: z.number(),
-})
-type TokenMetrics = z.infer<typeof TokenMetrics>
-
-const CostMetrics = z.object({
-  currency: z.literal('USD'),
-  inputAudio: z.number().optional(),
-  inputCacheRead: z.number().optional(),
-  inputCacheWrite: z.number().optional(),
-  inputImage: z.number().optional(),
-  inputNoCache: z.number().optional(),
-  inputText: z.number().optional(),
-  inputTotal: z.number().optional(),
-  inputVideo: z.number().optional(),
-  isByok: z.boolean(),
-  outputAudio: z.number().optional(),
-  outputImage: z.number().optional(),
-  outputReasoning: z.number().optional(),
-  outputText: z.number().optional(),
-  outputTotal: z.number().optional(),
-  outputVideo: z.number().optional(),
+export const StepUsage = z.object({
+  input: z.object({
+    cacheRead: z.number().optional(),
+    cacheWrite: z.number().optional(),
+    noCache: z.number().optional(),
+    total: z.number().optional(),
+  }),
+  output: z.object({
+    reasoning: z.number().optional(),
+    text: z.number().optional(),
+    total: z.number().optional(),
+  }),
   total: z.number().optional(),
 })
-type CostMetrics = z.infer<typeof CostMetrics>
+export type StepUsage = z.infer<typeof StepUsage>
+
+export const StepCost = z.object({
+  currency: z.literal('USD').optional(),
+  input: z.number().optional(),
+  output: z.number().optional(),
+  total: z.number().optional(),
+})
+export type StepCost = z.infer<typeof StepCost>
+
+export const StepRaw = z.object({
+  finishReason: z.string().optional(),
+  usage: z.record(z.string(), z.json()).optional(),
+})
+export type StepRaw = z.infer<typeof StepRaw>
+
+export const StepWarning = z.looseObject({
+  details: z.string().optional(),
+  feature: z.string().optional(),
+  message: z.string().optional(),
+  type: z.string(),
+})
+export type StepWarning = z.infer<typeof StepWarning>
 
 export const StepRecord = z.object({
-  cost: CostMetrics,
+  cost: StepCost,
   createdAt: z.number(),
   finishReason: z.string(),
   generationId: z.string(),
+  messageId: z.string(),
   model: z.string(),
   provider: z.string(),
+  raw: StepRaw,
+  requestId: z.string(),
+  sessionId: z.string(),
   stepNumber: z.number(),
-  tokens: TokenMetrics,
+  usage: StepUsage,
+  warnings: z.array(StepWarning),
 })
 export type StepRecord = z.infer<typeof StepRecord>
-
-export const UsageSummary = z.object({
-  cacheReadTokens: z.number().optional(),
-  cacheWriteTokens: z.number().optional(),
-  costInput: z.number().optional(),
-  costOutput: z.number().optional(),
-  costTotal: z.number().optional(),
-  inputTokens: z.number().optional(),
-  outputTokens: z.number().optional(),
-  reasoningTokens: z.number().optional(),
-  totalTokens: z.number().optional(),
-})
-export type UsageSummary = z.infer<typeof UsageSummary>
 
 const MessagePart = z.custom<UIMessage['parts'][number]>(
   (value) => typeof value === 'object' && value !== null && 'type' in value,
@@ -111,6 +101,9 @@ export const tetraIndexIds = [
   'messagesBySession',
   'requestsByAssistantMessageNewestFirst',
   'requestsBySessionNewestFirst',
+  'stepsByMessage',
+  'stepsByRequest',
+  'stepsBySession',
 ] as const
 
 export const tetraStoreSchema = defineTypedStore({
@@ -133,18 +126,14 @@ export const tetraStoreSchema = defineTypedStore({
       requestId: z.string(),
       sessionId: z.string(),
       status: GenerationStatusSchema,
-      steps: z.array(StepRecord),
       updatedAt: z.number(),
-      usage: UsageSummary,
     }),
     messages: z.object({
       createdAt: z.number(),
       parts: MessagePart.array(),
       role: MessageRoleSchema,
       sessionId: z.string(),
-      steps: z.array(StepRecord),
       updatedAt: z.number(),
-      usage: UsageSummary,
     }),
     prompts: z.object({
       content: z.string(),
@@ -171,18 +160,12 @@ export const tetraStoreSchema = defineTypedStore({
       systemPromptId: z.string(),
       toolIds: z.array(z.string()),
     }),
-    // Derived usage for a session. Keyed by the same ID as the sessions table (1:1).
-    // Stored separately so sidebar/session identity reads are not invalidated by usage churn.
-    sessionSummaries: z.object({
-      createdAt: z.number(),
-      updatedAt: z.number(),
-      usage: UsageSummary,
-    }),
     sessions: z.object({
       createdAt: z.number(),
       title: z.string(),
       updatedAt: z.number(),
     }),
+    steps: StepRecord,
   },
   values: {
     catalogLastRefreshed: z.number(),
@@ -223,4 +206,7 @@ export function setTetraIndexDefinitions(indexes: TetraRawIndexes): void {
       undefined,
       (a, b) => Number(b) - Number(a),
     )
+    .setIndexDefinition('stepsByMessage', 'steps', 'messageId', 'createdAt')
+    .setIndexDefinition('stepsByRequest', 'steps', 'requestId', 'stepNumber')
+    .setIndexDefinition('stepsBySession', 'steps', 'sessionId', 'createdAt')
 }

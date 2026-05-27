@@ -9,7 +9,7 @@ import { createIndexes } from 'tinybase/indexes/with-schemas'
 import { createStore } from 'tinybase/store/with-schemas'
 import { z } from 'zod'
 
-import { Helpers, Runs } from '../index.ts'
+import { Helpers, Runs, summarizeSteps } from '../index.ts'
 import { toolsRegistryMap } from '../tools/tools.ts'
 import { createMessageGeneration, writeMessageGenerationSnapshot } from './message-generations.ts'
 import type { CredentialReader, LanguageModelResolver } from './run.ts'
@@ -129,13 +129,24 @@ test('start streams through the AI SDK into TinyBase rows', async () => {
     type: 'text',
   })
   expect(run.finalParts).toEqual(messages[1]?.parts)
-  expect(messages[1]?.usage).toEqual({ inputTokens: 1, outputTokens: 2, totalTokens: 3 })
-  expect(core.typedStore.tables.messageGenerations.getEntity(assistantMessageId)).toBeNull()
-  expect(core.typedStore.tables.sessionSummaries.requireEntity(sessionId).usage).toEqual({
-    inputTokens: 1,
-    outputTokens: 2,
-    totalTokens: 3,
+  const steps = core.typedIndexes
+    .getSliceRowIds('stepsByRequest', run.requestId)
+    .map((id) => core.typedStore.tables.steps.requireEntity(id))
+  expect(steps).toHaveLength(1)
+  expect(steps[0]).toMatchObject({
+    finishReason: 'stop',
+    messageId: run.assistantMessageId,
+    requestId: run.requestId,
+    sessionId,
+    stepNumber: 0,
+    usage: {
+      input: { noCache: 1, total: 1 },
+      output: { text: 2, total: 2 },
+      total: 3,
+    },
   })
+  expect(summarizeSteps(steps)).toEqual({ inputTokens: 1, outputTokens: 2, totalTokens: 3 })
+  expect(core.typedStore.tables.messageGenerations.getEntity(assistantMessageId)).toBeNull()
   expect(model.doStreamCalls).toHaveLength(1)
   expect(model.doStreamCalls[0]?.prompt).toEqual([
     { content: [{ text: 'hello', type: 'text' }], role: 'user' },
@@ -309,8 +320,7 @@ test('Regenerate — assistant tail is cleared and reused', async () => {
   const run = runs.regenerate({ messageId: assistantMessageId })
   expect(run.assistantMessageId).toBe(assistantMessageId)
   expect(core.typedStore.tables.messages.requireEntity(assistantMessageId).parts).toEqual([])
-  expect(core.typedStore.tables.messages.requireEntity(assistantMessageId).steps).toEqual([])
-  expect(core.typedStore.tables.messages.requireEntity(assistantMessageId).usage).toEqual({})
+  expect(core.typedIndexes.getSliceRowIds('stepsByRequest', run.requestId)).toEqual([])
 
   await run.done
 

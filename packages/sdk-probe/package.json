@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "streamtext-result": "bun run src/streamtext-result.ts"
+    "streamtext-result": "bun run src/streamtext-result.ts",
+    "usage": "bun run src/usage/usage.ts"
   },
   "dependencies": {
     "@openrouter/ai-sdk-provider": "catalog:",

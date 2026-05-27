@@ -9,7 +9,6 @@ import type {
 import type { UIMessage } from 'ai'
 
 import { createIdGenerator } from '#ids'
-import { combineUsageSummaries } from '#usage'
 
 export class Helpers {
   readonly rawStore: TetraRawStore
@@ -55,11 +54,6 @@ export class Helpers {
         updatedAt: now,
       })
       this.typedStore.tables.sessionConfigs.setRow(sessionId, config)
-      this.typedStore.tables.sessionSummaries.setRow(sessionId, {
-        createdAt: now,
-        updatedAt: now,
-        usage: {},
-      })
     })
 
     return sessionId
@@ -68,7 +62,7 @@ export class Helpers {
   deleteSession(sessionId: string): void {
     this.typedStore.tables.sessions.requireEntity(sessionId)
 
-    // Cascade: remove messages, requests, and config before deleting the session row.
+    // Cascade all session-owned rows before deleting the session row.
     this.rawStore.transaction(() => {
       for (const messageId of this.typedIndexes.getSliceRowIds('messagesBySession', sessionId)) {
         this.typedStore.tables.messages.deleteRow(messageId)
@@ -85,7 +79,10 @@ export class Helpers {
         this.typedStore.tables.messageGenerations.deleteRow(messageId)
       }
 
-      this.typedStore.tables.sessionSummaries.deleteRow(sessionId)
+      for (const stepId of this.typedIndexes.getSliceRowIds('stepsBySession', sessionId)) {
+        this.typedStore.tables.steps.deleteRow(stepId)
+      }
+
       this.typedStore.tables.sessionConfigs.deleteRow(sessionId)
       this.typedStore.tables.sessions.deleteRow(sessionId)
     })
@@ -103,9 +100,7 @@ export class Helpers {
       parts: args.parts,
       role: args.role,
       sessionId,
-      steps: [],
       updatedAt: now,
-      usage: {},
     })
 
     // Touch session to update its updatedAt whenever a message is appended.
@@ -116,10 +111,28 @@ export class Helpers {
 
   deleteMessage(messageId: string): void {
     const message = this.typedStore.tables.messages.requireEntity(messageId)
-    this.typedStore.tables.messageGenerations.deleteRow(messageId)
-    this.typedStore.tables.messages.deleteRow(messageId)
-    this.typedStore.tables.sessions.setCell(message.sessionId, 'updatedAt', Date.now())
-    this.rebuildSessionUsage(message.sessionId)
+    const now = Date.now()
+
+    // Remove request and step sidecars for assistant messages before dropping the content row.
+    this.rawStore.transaction(() => {
+      for (const requestId of this.typedIndexes.getSliceRowIds(
+        'requestsByAssistantMessageNewestFirst',
+        messageId,
+      )) {
+        for (const stepId of this.typedIndexes.getSliceRowIds('stepsByRequest', requestId)) {
+          this.typedStore.tables.steps.deleteRow(stepId)
+        }
+        this.typedStore.tables.requests.deleteRow(requestId)
+      }
+
+      for (const stepId of this.typedIndexes.getSliceRowIds('stepsByMessage', messageId)) {
+        this.typedStore.tables.steps.deleteRow(stepId)
+      }
+
+      this.typedStore.tables.messageGenerations.deleteRow(messageId)
+      this.typedStore.tables.messages.deleteRow(messageId)
+      this.typedStore.tables.sessions.setCell(message.sessionId, 'updatedAt', now)
+    })
   }
 
   // ——— Prompts ———
@@ -152,24 +165,6 @@ export class Helpers {
       }
 
       this.typedStore.tables.prompts.deleteRow(promptId)
-    })
-  }
-
-  rebuildSessionUsage(sessionId: string): void {
-    this.typedStore.tables.sessions.requireEntity(sessionId)
-
-    const messageUsages = this.typedIndexes
-      .getSliceRowIds('messagesBySession', sessionId)
-      .map((messageId) => this.typedStore.tables.messages.getCell(messageId, 'usage') ?? {})
-    const generationUsages = this.typedIndexes
-      .getSliceRowIds('generationBySession', sessionId)
-      .map(
-        (messageId) => this.typedStore.tables.messageGenerations.getCell(messageId, 'usage') ?? {},
-      )
-
-    this.typedStore.tables.sessionSummaries.updateRow(sessionId, {
-      updatedAt: Date.now(),
-      usage: combineUsageSummaries([...messageUsages, ...generationUsages]),
     })
   }
 }

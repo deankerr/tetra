@@ -1,0 +1,30 @@
+{
+  "body": {
+    "model": "deepseek/deepseek-v4-flash",
+    "messages": [
+      {
+        "role": "user",
+        "content": "What is the exact current time? Use the tool."
+      }
+    ],
+    "reasoning": {
+      "effort": "low"
+    },
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "getCurrentDateTime",
+          "description": "Get the current local date, time, and timezone.",
+          "parameters": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "type": "object",
+            "properties": {},
+            "additionalProperties": false
+          }
+        }
+      }
+    ],
+    "tool_choice": "auto"
+  }
+}

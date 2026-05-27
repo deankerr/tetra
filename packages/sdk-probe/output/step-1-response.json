@@ -1,0 +1,117 @@
+{
+  "id": "gen-1778842827-dL74XZF1YINYJFed0F3S",
+  "modelId": "deepseek/deepseek-v4-flash-20260423",
+  "timestamp": "2026-05-15T11:00:32.929Z",
+  "headers": {
+    "access-control-allow-origin": "*",
+    "access-control-expose-headers": "X-Generation-Id,cf-ray",
+    "cache-control": "no-cache",
+    "cf-ray": "9fc1a3955e3f5a91-MEL",
+    "connection": "keep-alive",
+    "content-type": "text/event-stream",
+    "date": "Fri, 15 May 2026 11:00:32 GMT",
+    "permissions-policy": "payment=(self \"https://checkout.stripe.com\" \"https://connect-js.stripe.com\" \"https://js.stripe.com\" \"https://*.js.stripe.com\" \"https://hooks.stripe.com\")",
+    "referrer-policy": "no-referrer, strict-origin-when-cross-origin",
+    "server": "cloudflare",
+    "transfer-encoding": "chunked",
+    "x-content-type-options": "nosniff",
+    "x-generation-id": "gen-1778842827-dL74XZF1YINYJFed0F3S"
+  },
+  "messages": [
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "The user wants to know the current time. Let me use the getCurrentDateTime tool to find out.",
+          "providerOptions": {
+            "openrouter": {
+              "reasoning_details": [
+                {
+                  "type": "reasoning.text",
+                  "text": "The user wants to know the current time. Let me use the getCurrentDateTime tool to find out.",
+                  "format": "unknown",
+                  "index": 0
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_a76d2628e46e499ba83a3109",
+          "toolName": "getCurrentDateTime",
+          "input": {},
+          "providerOptions": {
+            "openrouter": {
+              "reasoning_details": [
+                {
+                  "type": "reasoning.text",
+                  "text": "The user wants to know the current time. Let me use the getCurrentDateTime tool to find out.",
+                  "format": "unknown",
+                  "index": 0
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "type": "tool-result",
+          "toolCallId": "call_a76d2628e46e499ba83a3109",
+          "toolName": "getCurrentDateTime",
+          "output": {
+            "type": "json",
+            "value": {
+              "iso": "2026-05-15T11:00:27.034Z",
+              "local": "Friday, May 15, 2026 at 9:00:27 PM GMT+10",
+              "locale": "en-US",
+              "timeZone": "Australia/Melbourne"
+            }
+          },
+          "providerOptions": {
+            "openrouter": {
+              "reasoning_details": [
+                {
+                  "type": "reasoning.text",
+                  "text": "The user wants to know the current time. Let me use the getCurrentDateTime tool to find out.",
+                  "format": "unknown",
+                  "index": 0
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "The user asked for the exact current time. I'll provide the information from the tool.",
+          "providerOptions": {
+            "openrouter": {
+              "reasoning_details": [
+                {
+                  "type": "reasoning.text",
+                  "text": "The user asked for the exact current time. I'll provide the information from the tool.",
+                  "format": "unknown",
+                  "index": 0
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "text",
+          "text": "The exact current time is **Friday, May 15, 2026 at 9:00:27 PM** in the **Australia/Melbourne** timezone (GMT+10).\n\nIn UTC (ISO format), it's **2026-05-15T11:00:27.034Z**."
+        }
+      ]
+    }
+  ]
+}

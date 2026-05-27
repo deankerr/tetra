@@ -1,0 +1,120 @@
+{
+  "finishedAt": "2026-05-27T08:02:16.751Z",
+  "finishReason": "stop",
+  "model": {
+    "requested": "openai/gpt-5.4-nano",
+    "servedByStep": [
+      {
+        "responseModelId": "openai/gpt-5.4-nano-20260317",
+        "stepNumber": 0
+      },
+      {
+        "responseModelId": "openai/gpt-5.4-nano-20260317",
+        "stepNumber": 1
+      },
+      {
+        "responseModelId": "openai/gpt-5.4-nano-20260317",
+        "stepNumber": 2
+      }
+    ]
+  },
+  "prompts": {
+    "system": "You are advising a TypeScript/React developer.\nToday is Wednesday, May 27, 2026 in Australia/Melbourne.\nUse the search tool before answering, then give a concise recommendation.",
+    "user": "what libs can help me built an llm agent system in typescript/react?\nMake two targeted searches before the final answer.\nUse startPublishedDate only if you specifically need recent material."
+  },
+  "rawFinishReason": "stop",
+  "resultAliases": {
+    "providerMetadata": {
+      "openrouter": {
+        "provider": "OpenAI",
+        "reasoningDetailsLength": 81,
+        "usage": {
+          "promptTokens": 1002,
+          "promptTokensDetails": {
+            "cachedTokens": 0
+          },
+          "completionTokens": 322,
+          "completionTokensDetails": {
+            "reasoningTokens": 21
+          },
+          "cost": 0.0006029,
+          "totalTokens": 1324,
+          "costDetails": {
+            "upstreamInferenceCost": 0.0006029
+          }
+        }
+      }
+    },
+    "usage": {
+      "inputTokens": 1002,
+      "inputTokenDetails": {
+        "noCacheTokens": 1002,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0
+      },
+      "outputTokens": 322,
+      "outputTokenDetails": {
+        "textTokens": 301,
+        "reasoningTokens": 21
+      },
+      "totalTokens": 1324,
+      "raw": {
+        "prompt_tokens": 1002,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "completion_tokens": 322,
+        "completion_tokens_details": {
+          "reasoning_tokens": 21,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        },
+        "total_tokens": 1324,
+        "cost": 0.0006029,
+        "cost_details": {
+          "upstream_inference_cost": 0.0006029,
+          "upstream_inference_prompt_cost": 0.0002004,
+          "upstream_inference_completions_cost": 0.0004025
+        },
+        "is_byok": false
+      },
+      "reasoningTokens": 21,
+      "cachedInputTokens": 0
+    },
+    "warnings": []
+  },
+  "settings": {
+    "maxOutputTokens": 900,
+    "openRouterModelSettings": {
+      "reasoning": {
+        "effort": "low"
+      },
+      "usage": {
+        "include": true
+      }
+    },
+    "stopWhen": "stepCountIs(5)",
+    "toolLoop": "steps 0 and 1 require a tool; later steps force toolChoice none"
+  },
+  "startedAt": "2026-05-27T08:02:03.269Z",
+  "stepCount": 3,
+  "totalUsage": {
+    "inputTokens": 1809,
+    "inputTokenDetails": {
+      "noCacheTokens": 1809,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    "outputTokens": 514,
+    "outputTokenDetails": {
+      "textTokens": 419,
+      "reasoningTokens": 95
+    },
+    "totalTokens": 2323,
+    "reasoningTokens": 95,
+    "cachedInputTokens": 0
+  }
+}

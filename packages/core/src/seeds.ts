@@ -1,29 +1,29 @@
 import type { RequestConfig as RequestConfigType, Rows } from '@tetra/store-schema'
 import { DEFAULT_REQUEST_CONFIG, RequestConfig, StepRecord } from '@tetra/store-schema'
+import { z } from 'zod'
 
 import type { Helpers } from '#helpers'
-import { deriveUsageSummary } from '#usage'
 
 import tailwindV4Cheatsheet from './seeds/tailwind-v4-cheatsheet.json'
 import timeInNewYork from './seeds/time-in-new-york.json'
 
 export interface SessionExport {
   sessionConfig: RequestConfigType
-  sessionSummaries: Rows['sessionSummaries']
   exportedAt: string
   messages: PortableMessage[]
   requests: PortableRequest[]
   session: Rows['sessions']
+  steps: Rows['steps'][]
 }
 
-type PortableMessage = Omit<Rows['messages'], 'usage'> & { usage?: Rows['messages']['usage'] }
+type PortableMessage = Rows['messages']
 type PortableRequest = Omit<Rows['requests'], 'updatedAt'> & {
   updatedAt?: Rows['requests']['updatedAt']
 }
-type PortableSessionExport = Omit<SessionExport, 'sessionConfig' | 'sessionSummaries'> & {
+type PortableSessionExport = Omit<SessionExport, 'sessionConfig'> & {
   sessionConfig?: Partial<RequestConfigType>
-  sessionSummaries?: Rows['sessionSummaries']
 }
+const PortableStepRecord = StepRecord.extend({ id: z.string() })
 
 // JSON imports type all string fields as `string`, not specific string literal unions.
 // This mapped type widens string fields to accept either, preserving structural checking.
@@ -56,13 +56,21 @@ export function exportSession(helpers: Helpers, sessionId: string): SessionExpor
       .map((id) => helpers.typedStore.tables.requests.requireEntity(id)),
     session: helpers.typedStore.tables.sessions.requireEntity(sessionId),
     sessionConfig: helpers.typedStore.tables.sessionConfigs.requireEntity(sessionId),
-    sessionSummaries: helpers.typedStore.tables.sessionSummaries.requireEntity(sessionId),
+    steps: helpers.typedIndexes
+      .getSliceRowIds('stepsBySession', sessionId)
+      .map((id) => helpers.typedStore.tables.steps.requireEntity(id)),
   }
 }
 
 function importSession(
   helpers: Helpers,
-  { sessionConfig: rawSessionConfig, messages, requests, session }: Loose<PortableSessionExport>,
+  {
+    sessionConfig: rawSessionConfig,
+    messages,
+    requests,
+    session,
+    steps,
+  }: Loose<PortableSessionExport>,
 ): string {
   const sessionConfig = RequestConfig.parse({
     ...DEFAULT_REQUEST_CONFIG,
@@ -78,14 +86,7 @@ function importSession(
 
     helpers.typedStore.tables.sessionConfigs.setRow(session.id, sessionConfig)
 
-    helpers.typedStore.tables.sessionSummaries.setRow(session.id, {
-      createdAt: session.createdAt,
-      updatedAt: session.updatedAt,
-      usage: {},
-    })
-
     for (const message of messages) {
-      const steps = parsePortableSteps(message.steps)
       helpers.typedStore.tables.messages.setRow(message.id, {
         createdAt: message.createdAt,
         // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Loose<T> widens string fields for JSON import compatibility; data is validated by structure.
@@ -93,9 +94,7 @@ function importSession(
         // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Loose<T> widens string fields for JSON import compatibility; data is validated by structure.
         role: message.role as unknown as Rows['messages']['role'],
         sessionId: message.sessionId,
-        steps,
         updatedAt: message.updatedAt,
-        usage: deriveUsageSummary(steps),
       })
     }
 
@@ -113,19 +112,30 @@ function importSession(
       })
     }
 
-    helpers.rebuildSessionUsage(session.id)
+    for (const step of parsePortableSteps(steps)) {
+      helpers.typedStore.tables.steps.setRow(step.id, {
+        cost: step.cost,
+        createdAt: step.createdAt,
+        finishReason: step.finishReason,
+        generationId: step.generationId,
+        messageId: step.messageId,
+        model: step.model,
+        provider: step.provider,
+        raw: step.raw,
+        requestId: step.requestId,
+        sessionId: step.sessionId,
+        stepNumber: step.stepNumber,
+        usage: step.usage,
+        warnings: step.warnings,
+      })
+    }
   })
 
   return session.id
 }
 
-function parsePortableSteps(value: unknown): Rows['messages']['steps'] {
-  if (!Array.isArray(value)) {
-    return []
-  }
-  return value
-    .map((step) => StepRecord.safeParse(step).data)
-    .filter((step): step is Rows['messages']['steps'][number] => step !== undefined)
+function parsePortableSteps(value: unknown): Rows['steps'][] {
+  return PortableStepRecord.array().parse(value)
 }
 
 export function loadSeeds(helpers: Helpers): void {

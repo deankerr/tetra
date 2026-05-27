@@ -1,0 +1,1548 @@
+{
+  "stepFinishEvents": [
+    {
+      "content": [
+        {
+          "providerMetadata": {
+            "openrouter": {
+              "reasoningDetailsLength": 78
+            }
+          },
+          "textLength": 409,
+          "textPreview": "**Planning two searches**\n\nI need to perform two searches using exaSearch. I want to make sure I set up both searches correctly so that I get the necessary resu...",
+          "type": "reasoning"
+        },
+        {
+          "input": {
+            "bytes": 102,
+            "preview": "{\"query\":\"TypeScript library LLM agents React framework LangGraph TypeScript\",\"startPublishedDate\":\"\"}"
+          },
+          "providerMetadata": {
+            "openrouter": {
+              "reasoningDetailsLength": 78
+            }
+          },
+          "toolCallId": "call_T0dibOTQQvW5sq7GA1eQeOaI",
+          "toolName": "exaSearch",
+          "type": "tool-call"
+        },
+        {
+          "input": {
+            "bytes": 102,
+            "preview": "{\"query\":\"TypeScript library LLM agents React framework LangGraph TypeScript\",\"startPublishedDate\":\"\"}"
+          },
+          "output": {
+            "bytes": 594,
+            "preview": "{\"costDollars\":0,\"query\":\"TypeScript library LLM agents React framework LangGraph TypeScript\",\"requestId\":\"probe-0279\",\"results\":[{\"publishedDate\":\"2026-05-01\",\"summary\":\"Mastra is a TypeScript-first agent framework with..."
+          },
+          "providerMetadata": {
+            "openrouter": {
+              "reasoningDetailsLength": 78
+            }
+          },
+          "toolCallId": "call_T0dibOTQQvW5sq7GA1eQeOaI",
+          "toolName": "exaSearch",
+          "type": "tool-result"
+        },
+        {
+          "input": {
+            "bytes": 106,
+            "preview": "{\"query\":\"GitHub TypeScript LLM agent framework LangChain.js agents tools memory\",\"startPublishedDate\":\"\"}"
+          },
+          "toolCallId": "call_KW8okx7dhPrHSsqRvuvBQiyU",
+          "toolName": "exaSearch",
+          "type": "tool-call"
+        },
+        {
+          "input": {
+            "bytes": 106,
+            "preview": "{\"query\":\"GitHub TypeScript LLM agent framework LangChain.js agents tools memory\",\"startPublishedDate\":\"\"}"
+          },
+          "output": {
+            "bytes": 1062,
+            "preview": "{\"costDollars\":0,\"query\":\"GitHub TypeScript LLM agent framework LangChain.js agents tools memory\",\"requestId\":\"probe-4346\",\"results\":[{\"publishedDate\":\"2026-05-01\",\"summary\":\"Mastra is a TypeScript-first agent framework ..."
+          },
+          "toolCallId": "call_KW8okx7dhPrHSsqRvuvBQiyU",
+          "toolName": "exaSearch",
+          "type": "tool-result"
+        }
+      ],
+      "finishReason": "tool-calls",
+      "model": {
+        "provider": "openrouter",
+        "modelId": "openai/gpt-5.4-nano"
+      },
+      "providerMetadata": {
+        "openrouter": {
+          "provider": "OpenAI",
+          "reasoningDetailsLength": 78,
+          "usage": {
+            "promptTokens": 146,
+            "promptTokensDetails": {
+              "cachedTokens": 0
+            },
+            "completionTokens": 101,
+            "completionTokensDetails": {
+              "reasoningTokens": 14
+            },
+            "cost": 0.00015545,
+            "totalTokens": 247,
+            "costDetails": {
+              "upstreamInferenceCost": 0.00015545
+            }
+          }
+        }
+      },
+      "rawFinishReason": "tool_calls",
+      "request": {
+        "keys": [
+          "model",
+          "models",
+          "logit_bias",
+          "logprobs",
+          "top_logprobs",
+          "user",
+          "parallel_tool_calls",
+          "max_tokens",
+          "temperature",
+          "top_p",
+          "frequency_penalty",
+          "presence_penalty",
+          "seed",
+          "stop",
+          "response_format",
+          "top_k",
+          "messages",
+          "include_reasoning",
+          "reasoning",
+          "usage",
+          "plugins",
+          "web_search_options",
+          "provider",
+          "debug",
+          "cache_control",
+          "tools",
+          "tool_choice"
+        ],
+        "maxTokens": 900,
+        "messageCount": 2,
+        "messageSummaries": [
+          {
+            "contentTypes": ["text"],
+            "role": "system"
+          },
+          {
+            "contentLength": 190,
+            "contentPreview": "what libs can help me built an llm agent system in typescript/react?\nMake two targeted searches before the final answer.\nUse startPublishedDate only if you spec...",
+            "role": "user"
+          }
+        ],
+        "model": "openai/gpt-5.4-nano",
+        "reasoning": {
+          "effort": "low"
+        },
+        "toolChoice": "required",
+        "toolNames": ["exaSearch"],
+        "usage": {
+          "include": true
+        }
+      },
+      "response": {
+        "headers": {
+          "access-control-allow-origin": "*",
+          "access-control-expose-headers": "X-Generation-Id,cf-ray",
+          "cache-control": "no-cache",
+          "cf-ray": "a0237ec35fddd853-MEL",
+          "connection": "keep-alive",
+          "content-type": "text/event-stream",
+          "date": "Wed, 27 May 2026 08:02:04 GMT",
+          "permissions-policy": "payment=(self \"https://checkout.stripe.com\" \"https://connect-js.stripe.com\" \"https://js.stripe.com\" \"https://*.js.stripe.com\" \"https://hooks.stripe.com\")",
+          "referrer-policy": "no-referrer, strict-origin-when-cross-origin",
+          "server": "cloudflare",
+          "transfer-encoding": "chunked",
+          "x-content-type-options": "nosniff",
+          "x-generation-id": "gen-1779868923-weuCAon1DEHbrzcawqTp"
+        },
+        "id": "gen-1779868923-weuCAon1DEHbrzcawqTp",
+        "messageCount": 2,
+        "messageSummaries": [
+          {
+            "contentTypes": ["reasoning", "tool-call", "tool-call"],
+            "role": "assistant",
+            "toolResultCount": 0
+          },
+          {
+            "contentTypes": ["tool-result", "tool-result"],
+            "role": "tool",
+            "toolResultCount": 2
+          }
+        ],
+        "modelId": "openai/gpt-5.4-nano-20260317",
+        "timestamp": "2026-05-27T08:02:04.093Z"
+      },
+      "stepNumber": 0,
+      "usage": {
+        "normalized": {
+          "inputTokens": 146,
+          "inputTokenDetails": {
+            "noCacheTokens": 146,
+            "cacheReadTokens": 0,
+            "cacheWriteTokens": 0
+          },
+          "outputTokens": 101,
+          "outputTokenDetails": {
+            "textTokens": 87,
+            "reasoningTokens": 14
+          },
+          "totalTokens": 247,
+          "raw": {
+            "prompt_tokens": 146,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "completion_tokens": 101,
+            "completion_tokens_details": {
+              "reasoning_tokens": 14,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            },
+            "total_tokens": 247,
+            "cost": 0.00015545,
+            "cost_details": {
+              "upstream_inference_cost": 0.00015545,
+              "upstream_inference_prompt_cost": 0.0000292,
+              "upstream_inference_completions_cost": 0.00012625
+            },
+            "is_byok": false
+          },
+          "reasoningTokens": 14,
+          "cachedInputTokens": 0
+        },
+        "rawKeys": [
+          "prompt_tokens",
+          "prompt_tokens_details",
+          "completion_tokens",
+          "completion_tokens_details",
+          "total_tokens",
+          "cost",
+          "cost_details",
+          "is_byok"
+        ],
+        "rawUsage": {
+          "prompt_tokens": 146,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "cache_write_tokens": 0,
+            "audio_tokens": 0,
+            "video_tokens": 0
+          },
+          "completion_tokens": 101,
+          "completion_tokens_details": {
+            "reasoning_tokens": 14,
+            "image_tokens": 0,
+            "audio_tokens": 0
+          },
+          "total_tokens": 247,
+          "cost": 0.00015545,
+          "cost_details": {
+            "upstream_inference_cost": 0.00015545,
+            "upstream_inference_prompt_cost": 0.0000292,
+            "upstream_inference_completions_cost": 0.00012625
+          },
+          "is_byok": false
+        }
+      },
+      "warnings": []
+    },
+    {
+      "content": [
+        {
+          "providerMetadata": {
+            "openrouter": {
+              "reasoningDetailsLength": 96
+            }
+          },
+          "textLength": 471,
+          "textPreview": "**Considering AI tools for React**\n\nI've already conducted two searches in parallel. Now I'm looking to give a concise recommendation on tools like Mastra, Verc...",
+          "type": "reasoning"
+        },
+        {
+          "input": {
+            "bytes": 64,
+            "preview": "{\"query\":\"LangGraph TypeScript support\",\"startPublishedDate\":\"\"}"
+          },
+          "providerMetadata": {
+            "openrouter": {
+              "reasoningDetailsLength": 96
+            }
+          },
+          "toolCallId": "call_jobWytsogIVkDdNvIewccHlg",
+          "toolName": "exaSearch",
+          "type": "tool-call"
+        },
+        {
+          "input": {
+            "bytes": 64,
+            "preview": "{\"query\":\"LangGraph TypeScript support\",\"startPublishedDate\":\"\"}"
+          },
+          "output": {
+            "bytes": 1020,
+            "preview": "{\"costDollars\":0,\"query\":\"LangGraph TypeScript support\",\"requestId\":\"probe-0292\",\"results\":[{\"publishedDate\":\"2026-05-01\",\"summary\":\"Mastra is a TypeScript-first agent framework with workflows, evals, memory, and tool ab..."
+          },
+          "providerMetadata": {
+            "openrouter": {
+              "reasoningDetailsLength": 96
+            }
+          },
+          "toolCallId": "call_jobWytsogIVkDdNvIewccHlg",
+          "toolName": "exaSearch",
+          "type": "tool-result"
+        }
+      ],
+      "finishReason": "tool-calls",
+      "model": {
+        "provider": "openrouter",
+        "modelId": "openai/gpt-5.4-nano"
+      },
+      "providerMetadata": {
+        "openrouter": {
+          "provider": "OpenAI",
+          "reasoningDetailsLength": 96,
+          "usage": {
+            "promptTokens": 661,
+            "promptTokensDetails": {
+              "cachedTokens": 0
+            },
+            "completionTokens": 91,
+            "completionTokensDetails": {
+              "reasoningTokens": 60
+            },
+            "cost": 0.00024595,
+            "totalTokens": 752,
+            "costDetails": {
+              "upstreamInferenceCost": 0.00024595
+            }
+          }
+        }
+      },
+      "rawFinishReason": "tool_calls",
+      "request": {
+        "keys": [
+          "model",
+          "models",
+          "logit_bias",
+          "logprobs",
+          "top_logprobs",
+          "user",
+          "parallel_tool_calls",
+          "max_tokens",
+          "temperature",
+          "top_p",
+          "frequency_penalty",
+          "presence_penalty",
+          "seed",
+          "stop",
+          "response_format",
+          "top_k",
+          "messages",
+          "include_reasoning",
+          "reasoning",
+          "usage",
+          "plugins",
+          "web_search_options",
+          "provider",
+          "debug",
+          "cache_control",
+          "tools",
+          "tool_choice"
+        ],
+        "maxTokens": 900,
+        "messageCount": 5,
+        "messageSummaries": [
+          {
+            "contentTypes": ["text"],
+            "role": "system"
+          },
+          {
+            "contentLength": 190,
+            "contentPreview": "what libs can help me built an llm agent system in typescript/react?\nMake two targeted searches before the final answer.\nUse startPublishedDate only if you spec...",
+            "role": "user"
+          },
+          {
+            "contentLength": 0,
+            "contentPreview": "",
+            "role": "assistant",
+            "toolCallCount": 2,
+            "toolCallNames": ["exaSearch", "exaSearch"]
+          },
+          {
+            "contentLength": 594,
+            "contentPreview": "{\"costDollars\":0,\"query\":\"TypeScript library LLM agents React framework LangGraph TypeScript\",\"requestId\":\"probe-0279\",\"results\":[{\"publishedDate\":\"2026-05-01\",...",
+            "role": "tool"
+          },
+          {
+            "contentLength": 1062,
+            "contentPreview": "{\"costDollars\":0,\"query\":\"GitHub TypeScript LLM agent framework LangChain.js agents tools memory\",\"requestId\":\"probe-4346\",\"results\":[{\"publishedDate\":\"2026-05-...",
+            "role": "tool"
+          }
+        ],
+        "model": "openai/gpt-5.4-nano",
+        "reasoning": {
+          "effort": "low"
+        },
+        "toolChoice": "required",
+        "toolNames": ["exaSearch"],
+        "usage": {
+          "include": true
+        }
+      },
+      "response": {
+        "headers": {
+          "access-control-allow-origin": "*",
+          "access-control-expose-headers": "X-Generation-Id,cf-ray",
+          "cache-control": "no-cache",
+          "cf-ray": "a0237ee14b2dd853-MEL",
+          "connection": "keep-alive",
+          "content-type": "text/event-stream",
+          "date": "Wed, 27 May 2026 08:02:08 GMT",
+          "permissions-policy": "payment=(self \"https://checkout.stripe.com\" \"https://connect-js.stripe.com\" \"https://js.stripe.com\" \"https://*.js.stripe.com\" \"https://hooks.stripe.com\")",
+          "referrer-policy": "no-referrer, strict-origin-when-cross-origin",
+          "server": "cloudflare",
+          "transfer-encoding": "chunked",
+          "x-content-type-options": "nosniff",
+          "x-generation-id": "gen-1779868928-ooZIF3MBXG3bAh89aGce"
+        },
+        "id": "gen-1779868928-ooZIF3MBXG3bAh89aGce",
+        "messageCount": 4,
+        "messageSummaries": [
+          {
+            "contentTypes": ["reasoning", "tool-call", "tool-call"],
+            "role": "assistant",
+            "toolResultCount": 0
+          },
+          {
+            "contentTypes": ["tool-result", "tool-result"],
+            "role": "tool",
+            "toolResultCount": 2
+          },
+          {
+            "contentTypes": ["reasoning", "tool-call"],
+            "role": "assistant",
+            "toolResultCount": 0
+          },
+          {
+            "contentTypes": ["tool-result"],
+            "role": "tool",
+            "toolResultCount": 1
+          }
+        ],
+        "modelId": "openai/gpt-5.4-nano-20260317",
+        "timestamp": "2026-05-27T08:02:08.584Z"
+      },
+      "stepNumber": 1,
+      "usage": {
+        "normalized": {
+          "inputTokens": 661,
+          "inputTokenDetails": {
+            "noCacheTokens": 661,
+            "cacheReadTokens": 0,
+            "cacheWriteTokens": 0
+          },
+          "outputTokens": 91,
+          "outputTokenDetails": {
+            "textTokens": 31,
+            "reasoningTokens": 60
+          },
+          "totalTokens": 752,
+          "raw": {
+            "prompt_tokens": 661,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "completion_tokens": 91,
+            "completion_tokens_details": {
+              "reasoning_tokens": 60,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            },
+            "total_tokens": 752,
+            "cost": 0.00024595,
+            "cost_details": {
+              "upstream_inference_cost": 0.00024595,
+              "upstream_inference_prompt_cost": 0.0001322,
+              "upstream_inference_completions_cost": 0.00011375
+            },
+            "is_byok": false
+          },
+          "reasoningTokens": 60,
+          "cachedInputTokens": 0
+        },
+        "rawKeys": [
+          "prompt_tokens",
+          "prompt_tokens_details",
+          "completion_tokens",
+          "completion_tokens_details",
+          "total_tokens",
+          "cost",
+          "cost_details",
+          "is_byok"
+        ],
+        "rawUsage": {
+          "prompt_tokens": 661,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "cache_write_tokens": 0,
+            "audio_tokens": 0,
+            "video_tokens": 0
+          },
+          "completion_tokens": 91,
+          "completion_tokens_details": {
+            "reasoning_tokens": 60,
+            "image_tokens": 0,
+            "audio_tokens": 0
+          },
+          "total_tokens": 752,
+          "cost": 0.00024595,
+          "cost_details": {
+            "upstream_inference_cost": 0.00024595,
+            "upstream_inference_prompt_cost": 0.0001322,
+            "upstream_inference_completions_cost": 0.00011375
+          },
+          "is_byok": false
+        }
+      },
+      "warnings": []
+    },
+    {
+      "content": [
+        {
+          "providerMetadata": {
+            "openrouter": {
+              "reasoningDetailsLength": 81
+            }
+          },
+          "textLength": 441,
+          "textPreview": "**Compiling library list**\n\nI need to answer without using any tools. First, I'll gather the list of libraries relevant to the user's inquiry. Once I’ve searche...",
+          "type": "reasoning"
+        },
+        {
+          "textLength": 1306,
+          "textPreview": "Here are solid TypeScript/React-friendly libraries to build an LLM **agent system** (tools, orchestration, memory, and UI):\n\n- **Mastra** (TypeScript-first agen...",
+          "type": "text"
+        }
+      ],
+      "finishReason": "stop",
+      "model": {
+        "provider": "openrouter",
+        "modelId": "openai/gpt-5.4-nano"
+      },
+      "providerMetadata": {
+        "openrouter": {
+          "provider": "OpenAI",
+          "reasoningDetailsLength": 81,
+          "usage": {
+            "promptTokens": 1002,
+            "promptTokensDetails": {
+              "cachedTokens": 0
+            },
+            "completionTokens": 322,
+            "completionTokensDetails": {
+              "reasoningTokens": 21
+            },
+            "cost": 0.0006029,
+            "totalTokens": 1324,
+            "costDetails": {
+              "upstreamInferenceCost": 0.0006029
+            }
+          }
+        }
+      },
+      "rawFinishReason": "stop",
+      "request": {
+        "keys": [
+          "model",
+          "models",
+          "logit_bias",
+          "logprobs",
+          "top_logprobs",
+          "user",
+          "parallel_tool_calls",
+          "max_tokens",
+          "temperature",
+          "top_p",
+          "frequency_penalty",
+          "presence_penalty",
+          "seed",
+          "stop",
+          "response_format",
+          "top_k",
+          "messages",
+          "include_reasoning",
+          "reasoning",
+          "usage",
+          "plugins",
+          "web_search_options",
+          "provider",
+          "debug",
+          "cache_control",
+          "tools",
+          "tool_choice"
+        ],
+        "maxTokens": 900,
+        "messageCount": 7,
+        "messageSummaries": [
+          {
+            "contentTypes": ["text"],
+            "role": "system"
+          },
+          {
+            "contentLength": 190,
+            "contentPreview": "what libs can help me built an llm agent system in typescript/react?\nMake two targeted searches before the final answer.\nUse startPublishedDate only if you spec...",
+            "role": "user"
+          },
+          {
+            "contentLength": 0,
+            "contentPreview": "",
+            "role": "assistant",
+            "toolCallCount": 2,
+            "toolCallNames": ["exaSearch", "exaSearch"]
+          },
+          {
+            "contentLength": 594,
+            "contentPreview": "{\"costDollars\":0,\"query\":\"TypeScript library LLM agents React framework LangGraph TypeScript\",\"requestId\":\"probe-0279\",\"results\":[{\"publishedDate\":\"2026-05-01\",...",
+            "role": "tool"
+          },
+          {
+            "contentLength": 1062,
+            "contentPreview": "{\"costDollars\":0,\"query\":\"GitHub TypeScript LLM agent framework LangChain.js agents tools memory\",\"requestId\":\"probe-4346\",\"results\":[{\"publishedDate\":\"2026-05-...",
+            "role": "tool"
+          },
+          {
+            "contentLength": 0,
+            "contentPreview": "",
+            "role": "assistant",
+            "toolCallCount": 1,
+            "toolCallNames": ["exaSearch"]
+          },
+          {
+            "contentLength": 1020,
+            "contentPreview": "{\"costDollars\":0,\"query\":\"LangGraph TypeScript support\",\"requestId\":\"probe-0292\",\"results\":[{\"publishedDate\":\"2026-05-01\",\"summary\":\"Mastra is a TypeScript-firs...",
+            "role": "tool"
+          }
+        ],
+        "model": "openai/gpt-5.4-nano",
+        "reasoning": {
+          "effort": "low"
+        },
+        "toolChoice": "none",
+        "toolNames": ["exaSearch"],
+        "usage": {
+          "include": true
+        }
+      },
+      "response": {
+        "headers": {
+          "access-control-allow-origin": "*",
+          "access-control-expose-headers": "X-Generation-Id,cf-ray",
+          "cache-control": "no-cache",
+          "cf-ray": "a0237efaed89d853-MEL",
+          "connection": "keep-alive",
+          "content-type": "text/event-stream",
+          "date": "Wed, 27 May 2026 08:02:12 GMT",
+          "permissions-policy": "payment=(self \"https://checkout.stripe.com\" \"https://connect-js.stripe.com\" \"https://js.stripe.com\" \"https://*.js.stripe.com\" \"https://hooks.stripe.com\")",
+          "referrer-policy": "no-referrer, strict-origin-when-cross-origin",
+          "server": "cloudflare",
+          "transfer-encoding": "chunked",
+          "x-content-type-options": "nosniff",
+          "x-generation-id": "gen-1779868932-cwYHgDM53mymBi9usAhh"
+        },
+        "id": "gen-1779868932-cwYHgDM53mymBi9usAhh",
+        "messageCount": 5,
+        "messageSummaries": [
+          {
+            "contentTypes": ["reasoning", "tool-call", "tool-call"],
+            "role": "assistant",
+            "toolResultCount": 0
+          },
+          {
+            "contentTypes": ["tool-result", "tool-result"],
+            "role": "tool",
+            "toolResultCount": 2
+          },
+          {
+            "contentTypes": ["reasoning", "tool-call"],
+            "role": "assistant",
+            "toolResultCount": 0
+          },
+          {
+            "contentTypes": ["tool-result"],
+            "role": "tool",
+            "toolResultCount": 1
+          },
+          {
+            "contentTypes": ["reasoning", "text"],
+            "role": "assistant",
+            "toolResultCount": 0
+          }
+        ],
+        "modelId": "openai/gpt-5.4-nano-20260317",
+        "timestamp": "2026-05-27T08:02:12.720Z"
+      },
+      "stepNumber": 2,
+      "usage": {
+        "normalized": {
+          "inputTokens": 1002,
+          "inputTokenDetails": {
+            "noCacheTokens": 1002,
+            "cacheReadTokens": 0,
+            "cacheWriteTokens": 0
+          },
+          "outputTokens": 322,
+          "outputTokenDetails": {
+            "textTokens": 301,
+            "reasoningTokens": 21
+          },
+          "totalTokens": 1324,
+          "raw": {
+            "prompt_tokens": 1002,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "completion_tokens": 322,
+            "completion_tokens_details": {
+              "reasoning_tokens": 21,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            },
+            "total_tokens": 1324,
+            "cost": 0.0006029,
+            "cost_details": {
+              "upstream_inference_cost": 0.0006029,
+              "upstream_inference_prompt_cost": 0.0002004,
+              "upstream_inference_completions_cost": 0.0004025
+            },
+            "is_byok": false
+          },
+          "reasoningTokens": 21,
+          "cachedInputTokens": 0
+        },
+        "rawKeys": [
+          "prompt_tokens",
+          "prompt_tokens_details",
+          "completion_tokens",
+          "completion_tokens_details",
+          "total_tokens",
+          "cost",
+          "cost_details",
+          "is_byok"
+        ],
+        "rawUsage": {
+          "prompt_tokens": 1002,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "cache_write_tokens": 0,
+            "audio_tokens": 0,
+            "video_tokens": 0
+          },
+          "completion_tokens": 322,
+          "completion_tokens_details": {
+            "reasoning_tokens": 21,
+            "image_tokens": 0,
+            "audio_tokens": 0
+          },
+          "total_tokens": 1324,
+          "cost": 0.0006029,
+          "cost_details": {
+            "upstream_inference_cost": 0.0006029,
+            "upstream_inference_prompt_cost": 0.0002004,
+            "upstream_inference_completions_cost": 0.0004025
+          },
+          "is_byok": false
+        }
+      },
+      "warnings": []
+    }
+  ],
+  "steps": [
+    {
+      "content": [
+        {
+          "providerMetadata": {
+            "openrouter": {
+              "reasoningDetailsLength": 78
+            }
+          },
+          "textLength": 409,
+          "textPreview": "**Planning two searches**\n\nI need to perform two searches using exaSearch. I want to make sure I set up both searches correctly so that I get the necessary resu...",
+          "type": "reasoning"
+        },
+        {
+          "input": {
+            "bytes": 102,
+            "preview": "{\"query\":\"TypeScript library LLM agents React framework LangGraph TypeScript\",\"startPublishedDate\":\"\"}"
+          },
+          "providerMetadata": {
+            "openrouter": {
+              "reasoningDetailsLength": 78
+            }
+          },
+          "toolCallId": "call_T0dibOTQQvW5sq7GA1eQeOaI",
+          "toolName": "exaSearch",
+          "type": "tool-call"
+        },
+        {
+          "input": {
+            "bytes": 102,
+            "preview": "{\"query\":\"TypeScript library LLM agents React framework LangGraph TypeScript\",\"startPublishedDate\":\"\"}"
+          },
+          "output": {
+            "bytes": 594,
+            "preview": "{\"costDollars\":0,\"query\":\"TypeScript library LLM agents React framework LangGraph TypeScript\",\"requestId\":\"probe-0279\",\"results\":[{\"publishedDate\":\"2026-05-01\",\"summary\":\"Mastra is a TypeScript-first agent framework with..."
+          },
+          "providerMetadata": {
+            "openrouter": {
+              "reasoningDetailsLength": 78
+            }
+          },
+          "toolCallId": "call_T0dibOTQQvW5sq7GA1eQeOaI",
+          "toolName": "exaSearch",
+          "type": "tool-result"
+        },
+        {
+          "input": {
+            "bytes": 106,
+            "preview": "{\"query\":\"GitHub TypeScript LLM agent framework LangChain.js agents tools memory\",\"startPublishedDate\":\"\"}"
+          },
+          "toolCallId": "call_KW8okx7dhPrHSsqRvuvBQiyU",
+          "toolName": "exaSearch",
+          "type": "tool-call"
+        },
+        {
+          "input": {
+            "bytes": 106,
+            "preview": "{\"query\":\"GitHub TypeScript LLM agent framework LangChain.js agents tools memory\",\"startPublishedDate\":\"\"}"
+          },
+          "output": {
+            "bytes": 1062,
+            "preview": "{\"costDollars\":0,\"query\":\"GitHub TypeScript LLM agent framework LangChain.js agents tools memory\",\"requestId\":\"probe-4346\",\"results\":[{\"publishedDate\":\"2026-05-01\",\"summary\":\"Mastra is a TypeScript-first agent framework ..."
+          },
+          "toolCallId": "call_KW8okx7dhPrHSsqRvuvBQiyU",
+          "toolName": "exaSearch",
+          "type": "tool-result"
+        }
+      ],
+      "finishReason": "tool-calls",
+      "model": {
+        "provider": "openrouter",
+        "modelId": "openai/gpt-5.4-nano"
+      },
+      "providerMetadata": {
+        "openrouter": {
+          "provider": "OpenAI",
+          "reasoningDetailsLength": 78,
+          "usage": {
+            "promptTokens": 146,
+            "promptTokensDetails": {
+              "cachedTokens": 0
+            },
+            "completionTokens": 101,
+            "completionTokensDetails": {
+              "reasoningTokens": 14
+            },
+            "cost": 0.00015545,
+            "totalTokens": 247,
+            "costDetails": {
+              "upstreamInferenceCost": 0.00015545
+            }
+          }
+        }
+      },
+      "rawFinishReason": "tool_calls",
+      "request": {
+        "keys": [
+          "model",
+          "models",
+          "logit_bias",
+          "logprobs",
+          "top_logprobs",
+          "user",
+          "parallel_tool_calls",
+          "max_tokens",
+          "temperature",
+          "top_p",
+          "frequency_penalty",
+          "presence_penalty",
+          "seed",
+          "stop",
+          "response_format",
+          "top_k",
+          "messages",
+          "include_reasoning",
+          "reasoning",
+          "usage",
+          "plugins",
+          "web_search_options",
+          "provider",
+          "debug",
+          "cache_control",
+          "tools",
+          "tool_choice"
+        ],
+        "maxTokens": 900,
+        "messageCount": 2,
+        "messageSummaries": [
+          {
+            "contentTypes": ["text"],
+            "role": "system"
+          },
+          {
+            "contentLength": 190,
+            "contentPreview": "what libs can help me built an llm agent system in typescript/react?\nMake two targeted searches before the final answer.\nUse startPublishedDate only if you spec...",
+            "role": "user"
+          }
+        ],
+        "model": "openai/gpt-5.4-nano",
+        "reasoning": {
+          "effort": "low"
+        },
+        "toolChoice": "required",
+        "toolNames": ["exaSearch"],
+        "usage": {
+          "include": true
+        }
+      },
+      "response": {
+        "headers": {
+          "access-control-allow-origin": "*",
+          "access-control-expose-headers": "X-Generation-Id,cf-ray",
+          "cache-control": "no-cache",
+          "cf-ray": "a0237ec35fddd853-MEL",
+          "connection": "keep-alive",
+          "content-type": "text/event-stream",
+          "date": "Wed, 27 May 2026 08:02:04 GMT",
+          "permissions-policy": "payment=(self \"https://checkout.stripe.com\" \"https://connect-js.stripe.com\" \"https://js.stripe.com\" \"https://*.js.stripe.com\" \"https://hooks.stripe.com\")",
+          "referrer-policy": "no-referrer, strict-origin-when-cross-origin",
+          "server": "cloudflare",
+          "transfer-encoding": "chunked",
+          "x-content-type-options": "nosniff",
+          "x-generation-id": "gen-1779868923-weuCAon1DEHbrzcawqTp"
+        },
+        "id": "gen-1779868923-weuCAon1DEHbrzcawqTp",
+        "messageCount": 2,
+        "messageSummaries": [
+          {
+            "contentTypes": ["reasoning", "tool-call", "tool-call"],
+            "role": "assistant",
+            "toolResultCount": 0
+          },
+          {
+            "contentTypes": ["tool-result", "tool-result"],
+            "role": "tool",
+            "toolResultCount": 2
+          }
+        ],
+        "modelId": "openai/gpt-5.4-nano-20260317",
+        "timestamp": "2026-05-27T08:02:04.093Z"
+      },
+      "stepNumber": 0,
+      "usage": {
+        "normalized": {
+          "inputTokens": 146,
+          "inputTokenDetails": {
+            "noCacheTokens": 146,
+            "cacheReadTokens": 0,
+            "cacheWriteTokens": 0
+          },
+          "outputTokens": 101,
+          "outputTokenDetails": {
+            "textTokens": 87,
+            "reasoningTokens": 14
+          },
+          "totalTokens": 247,
+          "raw": {
+            "prompt_tokens": 146,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "completion_tokens": 101,
+            "completion_tokens_details": {
+              "reasoning_tokens": 14,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            },
+            "total_tokens": 247,
+            "cost": 0.00015545,
+            "cost_details": {
+              "upstream_inference_cost": 0.00015545,
+              "upstream_inference_prompt_cost": 0.0000292,
+              "upstream_inference_completions_cost": 0.00012625
+            },
+            "is_byok": false
+          },
+          "reasoningTokens": 14,
+          "cachedInputTokens": 0
+        },
+        "rawKeys": [
+          "prompt_tokens",
+          "prompt_tokens_details",
+          "completion_tokens",
+          "completion_tokens_details",
+          "total_tokens",
+          "cost",
+          "cost_details",
+          "is_byok"
+        ],
+        "rawUsage": {
+          "prompt_tokens": 146,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "cache_write_tokens": 0,
+            "audio_tokens": 0,
+            "video_tokens": 0
+          },
+          "completion_tokens": 101,
+          "completion_tokens_details": {
+            "reasoning_tokens": 14,
+            "image_tokens": 0,
+            "audio_tokens": 0
+          },
+          "total_tokens": 247,
+          "cost": 0.00015545,
+          "cost_details": {
+            "upstream_inference_cost": 0.00015545,
+            "upstream_inference_prompt_cost": 0.0000292,
+            "upstream_inference_completions_cost": 0.00012625
+          },
+          "is_byok": false
+        }
+      },
+      "warnings": []
+    },
+    {
+      "content": [
+        {
+          "providerMetadata": {
+            "openrouter": {
+              "reasoningDetailsLength": 96
+            }
+          },
+          "textLength": 471,
+          "textPreview": "**Considering AI tools for React**\n\nI've already conducted two searches in parallel. Now I'm looking to give a concise recommendation on tools like Mastra, Verc...",
+          "type": "reasoning"
+        },
+        {
+          "input": {
+            "bytes": 64,
+            "preview": "{\"query\":\"LangGraph TypeScript support\",\"startPublishedDate\":\"\"}"
+          },
+          "providerMetadata": {
+            "openrouter": {
+              "reasoningDetailsLength": 96
+            }
+          },
+          "toolCallId": "call_jobWytsogIVkDdNvIewccHlg",
+          "toolName": "exaSearch",
+          "type": "tool-call"
+        },
+        {
+          "input": {
+            "bytes": 64,
+            "preview": "{\"query\":\"LangGraph TypeScript support\",\"startPublishedDate\":\"\"}"
+          },
+          "output": {
+            "bytes": 1020,
+            "preview": "{\"costDollars\":0,\"query\":\"LangGraph TypeScript support\",\"requestId\":\"probe-0292\",\"results\":[{\"publishedDate\":\"2026-05-01\",\"summary\":\"Mastra is a TypeScript-first agent framework with workflows, evals, memory, and tool ab..."
+          },
+          "providerMetadata": {
+            "openrouter": {
+              "reasoningDetailsLength": 96
+            }
+          },
+          "toolCallId": "call_jobWytsogIVkDdNvIewccHlg",
+          "toolName": "exaSearch",
+          "type": "tool-result"
+        }
+      ],
+      "finishReason": "tool-calls",
+      "model": {
+        "provider": "openrouter",
+        "modelId": "openai/gpt-5.4-nano"
+      },
+      "providerMetadata": {
+        "openrouter": {
+          "provider": "OpenAI",
+          "reasoningDetailsLength": 96,
+          "usage": {
+            "promptTokens": 661,
+            "promptTokensDetails": {
+              "cachedTokens": 0
+            },
+            "completionTokens": 91,
+            "completionTokensDetails": {
+              "reasoningTokens": 60
+            },
+            "cost": 0.00024595,
+            "totalTokens": 752,
+            "costDetails": {
+              "upstreamInferenceCost": 0.00024595
+            }
+          }
+        }
+      },
+      "rawFinishReason": "tool_calls",
+      "request": {
+        "keys": [
+          "model",
+          "models",
+          "logit_bias",
+          "logprobs",
+          "top_logprobs",
+          "user",
+          "parallel_tool_calls",
+          "max_tokens",
+          "temperature",
+          "top_p",
+          "frequency_penalty",
+          "presence_penalty",
+          "seed",
+          "stop",
+          "response_format",
+          "top_k",
+          "messages",
+          "include_reasoning",
+          "reasoning",
+          "usage",
+          "plugins",
+          "web_search_options",
+          "provider",
+          "debug",
+          "cache_control",
+          "tools",
+          "tool_choice"
+        ],
+        "maxTokens": 900,
+        "messageCount": 5,
+        "messageSummaries": [
+          {
+            "contentTypes": ["text"],
+            "role": "system"
+          },
+          {
+            "contentLength": 190,
+            "contentPreview": "what libs can help me built an llm agent system in typescript/react?\nMake two targeted searches before the final answer.\nUse startPublishedDate only if you spec...",
+            "role": "user"
+          },
+          {
+            "contentLength": 0,
+            "contentPreview": "",
+            "role": "assistant",
+            "toolCallCount": 2,
+            "toolCallNames": ["exaSearch", "exaSearch"]
+          },
+          {
+            "contentLength": 594,
+            "contentPreview": "{\"costDollars\":0,\"query\":\"TypeScript library LLM agents React framework LangGraph TypeScript\",\"requestId\":\"probe-0279\",\"results\":[{\"publishedDate\":\"2026-05-01\",...",
+            "role": "tool"
+          },
+          {
+            "contentLength": 1062,
+            "contentPreview": "{\"costDollars\":0,\"query\":\"GitHub TypeScript LLM agent framework LangChain.js agents tools memory\",\"requestId\":\"probe-4346\",\"results\":[{\"publishedDate\":\"2026-05-...",
+            "role": "tool"
+          }
+        ],
+        "model": "openai/gpt-5.4-nano",
+        "reasoning": {
+          "effort": "low"
+        },
+        "toolChoice": "required",
+        "toolNames": ["exaSearch"],
+        "usage": {
+          "include": true
+        }
+      },
+      "response": {
+        "headers": {
+          "access-control-allow-origin": "*",
+          "access-control-expose-headers": "X-Generation-Id,cf-ray",
+          "cache-control": "no-cache",
+          "cf-ray": "a0237ee14b2dd853-MEL",
+          "connection": "keep-alive",
+          "content-type": "text/event-stream",
+          "date": "Wed, 27 May 2026 08:02:08 GMT",
+          "permissions-policy": "payment=(self \"https://checkout.stripe.com\" \"https://connect-js.stripe.com\" \"https://js.stripe.com\" \"https://*.js.stripe.com\" \"https://hooks.stripe.com\")",
+          "referrer-policy": "no-referrer, strict-origin-when-cross-origin",
+          "server": "cloudflare",
+          "transfer-encoding": "chunked",
+          "x-content-type-options": "nosniff",
+          "x-generation-id": "gen-1779868928-ooZIF3MBXG3bAh89aGce"
+        },
+        "id": "gen-1779868928-ooZIF3MBXG3bAh89aGce",
+        "messageCount": 4,
+        "messageSummaries": [
+          {
+            "contentTypes": ["reasoning", "tool-call", "tool-call"],
+            "role": "assistant",
+            "toolResultCount": 0
+          },
+          {
+            "contentTypes": ["tool-result", "tool-result"],
+            "role": "tool",
+            "toolResultCount": 2
+          },
+          {
+            "contentTypes": ["reasoning", "tool-call"],
+            "role": "assistant",
+            "toolResultCount": 0
+          },
+          {
+            "contentTypes": ["tool-result"],
+            "role": "tool",
+            "toolResultCount": 1
+          }
+        ],
+        "modelId": "openai/gpt-5.4-nano-20260317",
+        "timestamp": "2026-05-27T08:02:08.584Z"
+      },
+      "stepNumber": 1,
+      "usage": {
+        "normalized": {
+          "inputTokens": 661,
+          "inputTokenDetails": {
+            "noCacheTokens": 661,
+            "cacheReadTokens": 0,
+            "cacheWriteTokens": 0
+          },
+          "outputTokens": 91,
+          "outputTokenDetails": {
+            "textTokens": 31,
+            "reasoningTokens": 60
+          },
+          "totalTokens": 752,
+          "raw": {
+            "prompt_tokens": 661,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "completion_tokens": 91,
+            "completion_tokens_details": {
+              "reasoning_tokens": 60,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            },
+            "total_tokens": 752,
+            "cost": 0.00024595,
+            "cost_details": {
+              "upstream_inference_cost": 0.00024595,
+              "upstream_inference_prompt_cost": 0.0001322,
+              "upstream_inference_completions_cost": 0.00011375
+            },
+            "is_byok": false
+          },
+          "reasoningTokens": 60,
+          "cachedInputTokens": 0
+        },
+        "rawKeys": [
+          "prompt_tokens",
+          "prompt_tokens_details",
+          "completion_tokens",
+          "completion_tokens_details",
+          "total_tokens",
+          "cost",
+          "cost_details",
+          "is_byok"
+        ],
+        "rawUsage": {
+          "prompt_tokens": 661,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "cache_write_tokens": 0,
+            "audio_tokens": 0,
+            "video_tokens": 0
+          },
+          "completion_tokens": 91,
+          "completion_tokens_details": {
+            "reasoning_tokens": 60,
+            "image_tokens": 0,
+            "audio_tokens": 0
+          },
+          "total_tokens": 752,
+          "cost": 0.00024595,
+          "cost_details": {
+            "upstream_inference_cost": 0.00024595,
+            "upstream_inference_prompt_cost": 0.0001322,
+            "upstream_inference_completions_cost": 0.00011375
+          },
+          "is_byok": false
+        }
+      },
+      "warnings": []
+    },
+    {
+      "content": [
+        {
+          "providerMetadata": {
+            "openrouter": {
+              "reasoningDetailsLength": 81
+            }
+          },
+          "textLength": 441,
+          "textPreview": "**Compiling library list**\n\nI need to answer without using any tools. First, I'll gather the list of libraries relevant to the user's inquiry. Once I’ve searche...",
+          "type": "reasoning"
+        },
+        {
+          "textLength": 1306,
+          "textPreview": "Here are solid TypeScript/React-friendly libraries to build an LLM **agent system** (tools, orchestration, memory, and UI):\n\n- **Mastra** (TypeScript-first agen...",
+          "type": "text"
+        }
+      ],
+      "finishReason": "stop",
+      "model": {
+        "provider": "openrouter",
+        "modelId": "openai/gpt-5.4-nano"
+      },
+      "providerMetadata": {
+        "openrouter": {
+          "provider": "OpenAI",
+          "reasoningDetailsLength": 81,
+          "usage": {
+            "promptTokens": 1002,
+            "promptTokensDetails": {
+              "cachedTokens": 0
+            },
+            "completionTokens": 322,
+            "completionTokensDetails": {
+              "reasoningTokens": 21
+            },
+            "cost": 0.0006029,
+            "totalTokens": 1324,
+            "costDetails": {
+              "upstreamInferenceCost": 0.0006029
+            }
+          }
+        }
+      },
+      "rawFinishReason": "stop",
+      "request": {
+        "keys": [
+          "model",
+          "models",
+          "logit_bias",
+          "logprobs",
+          "top_logprobs",
+          "user",
+          "parallel_tool_calls",
+          "max_tokens",
+          "temperature",
+          "top_p",
+          "frequency_penalty",
+          "presence_penalty",
+          "seed",
+          "stop",
+          "response_format",
+          "top_k",
+          "messages",
+          "include_reasoning",
+          "reasoning",
+          "usage",
+          "plugins",
+          "web_search_options",
+          "provider",
+          "debug",
+          "cache_control",
+          "tools",
+          "tool_choice"
+        ],
+        "maxTokens": 900,
+        "messageCount": 7,
+        "messageSummaries": [
+          {
+            "contentTypes": ["text"],
+            "role": "system"
+          },
+          {
+            "contentLength": 190,
+            "contentPreview": "what libs can help me built an llm agent system in typescript/react?\nMake two targeted searches before the final answer.\nUse startPublishedDate only if you spec...",
+            "role": "user"
+          },
+          {
+            "contentLength": 0,
+            "contentPreview": "",
+            "role": "assistant",
+            "toolCallCount": 2,
+            "toolCallNames": ["exaSearch", "exaSearch"]
+          },
+          {
+            "contentLength": 594,
+            "contentPreview": "{\"costDollars\":0,\"query\":\"TypeScript library LLM agents React framework LangGraph TypeScript\",\"requestId\":\"probe-0279\",\"results\":[{\"publishedDate\":\"2026-05-01\",...",
+            "role": "tool"
+          },
+          {
+            "contentLength": 1062,
+            "contentPreview": "{\"costDollars\":0,\"query\":\"GitHub TypeScript LLM agent framework LangChain.js agents tools memory\",\"requestId\":\"probe-4346\",\"results\":[{\"publishedDate\":\"2026-05-...",
+            "role": "tool"
+          },
+          {
+            "contentLength": 0,
+            "contentPreview": "",
+            "role": "assistant",
+            "toolCallCount": 1,
+            "toolCallNames": ["exaSearch"]
+          },
+          {
+            "contentLength": 1020,
+            "contentPreview": "{\"costDollars\":0,\"query\":\"LangGraph TypeScript support\",\"requestId\":\"probe-0292\",\"results\":[{\"publishedDate\":\"2026-05-01\",\"summary\":\"Mastra is a TypeScript-firs...",
+            "role": "tool"
+          }
+        ],
+        "model": "openai/gpt-5.4-nano",
+        "reasoning": {
+          "effort": "low"
+        },
+        "toolChoice": "none",
+        "toolNames": ["exaSearch"],
+        "usage": {
+          "include": true
+        }
+      },
+      "response": {
+        "headers": {
+          "access-control-allow-origin": "*",
+          "access-control-expose-headers": "X-Generation-Id,cf-ray",
+          "cache-control": "no-cache",
+          "cf-ray": "a0237efaed89d853-MEL",
+          "connection": "keep-alive",
+          "content-type": "text/event-stream",
+          "date": "Wed, 27 May 2026 08:02:12 GMT",
+          "permissions-policy": "payment=(self \"https://checkout.stripe.com\" \"https://connect-js.stripe.com\" \"https://js.stripe.com\" \"https://*.js.stripe.com\" \"https://hooks.stripe.com\")",
+          "referrer-policy": "no-referrer, strict-origin-when-cross-origin",
+          "server": "cloudflare",
+          "transfer-encoding": "chunked",
+          "x-content-type-options": "nosniff",
+          "x-generation-id": "gen-1779868932-cwYHgDM53mymBi9usAhh"
+        },
+        "id": "gen-1779868932-cwYHgDM53mymBi9usAhh",
+        "messageCount": 5,
+        "messageSummaries": [
+          {
+            "contentTypes": ["reasoning", "tool-call", "tool-call"],
+            "role": "assistant",
+            "toolResultCount": 0
+          },
+          {
+            "contentTypes": ["tool-result", "tool-result"],
+            "role": "tool",
+            "toolResultCount": 2
+          },
+          {
+            "contentTypes": ["reasoning", "tool-call"],
+            "role": "assistant",
+            "toolResultCount": 0
+          },
+          {
+            "contentTypes": ["tool-result"],
+            "role": "tool",
+            "toolResultCount": 1
+          },
+          {
+            "contentTypes": ["reasoning", "text"],
+            "role": "assistant",
+            "toolResultCount": 0
+          }
+        ],
+        "modelId": "openai/gpt-5.4-nano-20260317",
+        "timestamp": "2026-05-27T08:02:12.720Z"
+      },
+      "stepNumber": 2,
+      "usage": {
+        "normalized": {
+          "inputTokens": 1002,
+          "inputTokenDetails": {
+            "noCacheTokens": 1002,
+            "cacheReadTokens": 0,
+            "cacheWriteTokens": 0
+          },
+          "outputTokens": 322,
+          "outputTokenDetails": {
+            "textTokens": 301,
+            "reasoningTokens": 21
+          },
+          "totalTokens": 1324,
+          "raw": {
+            "prompt_tokens": 1002,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "cache_write_tokens": 0,
+              "audio_tokens": 0,
+              "video_tokens": 0
+            },
+            "completion_tokens": 322,
+            "completion_tokens_details": {
+              "reasoning_tokens": 21,
+              "image_tokens": 0,
+              "audio_tokens": 0
+            },
+            "total_tokens": 1324,
+            "cost": 0.0006029,
+            "cost_details": {
+              "upstream_inference_cost": 0.0006029,
+              "upstream_inference_prompt_cost": 0.0002004,
+              "upstream_inference_completions_cost": 0.0004025
+            },
+            "is_byok": false
+          },
+          "reasoningTokens": 21,
+          "cachedInputTokens": 0
+        },
+        "rawKeys": [
+          "prompt_tokens",
+          "prompt_tokens_details",
+          "completion_tokens",
+          "completion_tokens_details",
+          "total_tokens",
+          "cost",
+          "cost_details",
+          "is_byok"
+        ],
+        "rawUsage": {
+          "prompt_tokens": 1002,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "cache_write_tokens": 0,
+            "audio_tokens": 0,
+            "video_tokens": 0
+          },
+          "completion_tokens": 322,
+          "completion_tokens_details": {
+            "reasoning_tokens": 21,
+            "image_tokens": 0,
+            "audio_tokens": 0
+          },
+          "total_tokens": 1324,
+          "cost": 0.0006029,
+          "cost_details": {
+            "upstream_inference_cost": 0.0006029,
+            "upstream_inference_prompt_cost": 0.0002004,
+            "upstream_inference_completions_cost": 0.0004025
+          },
+          "is_byok": false
+        }
+      },
+      "warnings": []
+    }
+  ]
+}

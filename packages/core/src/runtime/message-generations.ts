@@ -1,42 +1,23 @@
-import type { GenerationStatus, StepRecord, UsageSummary } from '@tetra/store-schema'
+import type { GenerationStatus } from '@tetra/store-schema'
 import type { UIMessage } from 'ai'
 
 import type { Helpers } from '#helpers'
-import { deriveUsageSummary } from '#usage'
 
 export interface MessageGenerationPatch {
   parts?: UIMessage['parts']
   status?: GenerationStatus
-  steps?: StepRecord[]
-  usage?: UsageSummary
-}
-
-export function appendMessageGenerationStep(
-  helpers: Helpers,
-  messageId: string,
-  step: StepRecord,
-): void {
-  const generation = helpers.typedStore.tables.messageGenerations.requireEntity(messageId)
-  const steps = [...generation.steps, step]
-  updateMessageGeneration(helpers, messageId, { steps, usage: deriveUsageSummary(steps) })
-  helpers.rebuildSessionUsage(generation.sessionId)
 }
 
 export function clearMessageContent(helpers: Helpers, messageId: string): void {
-  const message = helpers.typedStore.tables.messages.requireEntity(messageId)
-  setMessageGenerationResult(helpers, messageId, { parts: [], steps: [] })
+  helpers.typedStore.tables.messages.requireEntity(messageId)
+  setMessageGenerationResult(helpers, messageId, { parts: [] })
   helpers.typedStore.tables.messageGenerations.deleteRow(messageId)
-  helpers.rebuildSessionUsage(message.sessionId)
 }
 
 export function commitMessageGeneration(helpers: Helpers, messageId: string): void {
   const generation = helpers.typedStore.tables.messageGenerations.requireEntity(messageId)
-  setMessageGenerationResult(helpers, messageId, {
-    parts: generation.parts,
-    steps: generation.steps,
-  })
+  setMessageGenerationResult(helpers, messageId, { parts: generation.parts })
   helpers.typedStore.tables.messageGenerations.deleteRow(messageId)
-  helpers.rebuildSessionUsage(generation.sessionId)
 }
 
 export function createMessageGeneration(
@@ -55,11 +36,8 @@ export function createMessageGeneration(
     requestId: args.requestId,
     sessionId: args.sessionId,
     status: args.status ?? 'preparing',
-    steps: [],
     updatedAt: now,
-    usage: {},
   })
-  helpers.rebuildSessionUsage(args.sessionId)
 }
 
 export function updateMessageGeneration(
@@ -70,9 +48,7 @@ export function updateMessageGeneration(
   helpers.typedStore.tables.messageGenerations.updateRow(messageId, {
     ...('parts' in patch && { parts: patch.parts ?? [] }),
     ...('status' in patch && { status: patch.status }),
-    ...('steps' in patch && { steps: patch.steps ?? [] }),
     updatedAt: Date.now(),
-    ...('usage' in patch && { usage: patch.usage ?? {} }),
   })
 }
 
@@ -87,12 +63,10 @@ export function writeMessageGenerationSnapshot(
 function setMessageGenerationResult(
   helpers: Helpers,
   messageId: string,
-  args: { parts: UIMessage['parts']; steps: StepRecord[] },
+  args: { parts: UIMessage['parts'] },
 ): void {
   helpers.typedStore.tables.messages.updateRow(messageId, {
     parts: args.parts,
-    steps: args.steps,
     updatedAt: Date.now(),
-    usage: deriveUsageSummary(args.steps),
   })
 }

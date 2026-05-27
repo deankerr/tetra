@@ -1,0 +1,138 @@
+{
+  "stepNumber": 0,
+  "finishReason": "tool-calls",
+  "rawFinishReason": "tool_calls",
+  "model": {
+    "provider": "openrouter",
+    "modelId": "deepseek/deepseek-v4-flash"
+  },
+  "usage": {
+    "inputTokens": 300,
+    "inputTokenDetails": {
+      "noCacheTokens": 300,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    "outputTokens": 51,
+    "outputTokenDetails": {
+      "textTokens": 30,
+      "reasoningTokens": 21
+    },
+    "totalTokens": 351,
+    "raw": {
+      "prompt_tokens": 300,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "cache_write_tokens": 0,
+        "audio_tokens": 0,
+        "video_tokens": 0
+      },
+      "completion_tokens": 51,
+      "completion_tokens_details": {
+        "reasoning_tokens": 21,
+        "image_tokens": 0,
+        "audio_tokens": 0
+      },
+      "total_tokens": 351,
+      "cost": 0.00005628,
+      "cost_details": {
+        "upstream_inference_cost": 0.00005628,
+        "upstream_inference_prompt_cost": 0.000042,
+        "upstream_inference_completions_cost": 0.00001428
+      },
+      "is_byok": false
+    },
+    "reasoningTokens": 21,
+    "cachedInputTokens": 0
+  },
+  "providerMetadata": {
+    "openrouter": {
+      "usage": {
+        "promptTokens": 300,
+        "promptTokensDetails": {
+          "cachedTokens": 0
+        },
+        "completionTokens": 51,
+        "completionTokensDetails": {
+          "reasoningTokens": 21
+        },
+        "cost": 0.00005628,
+        "totalTokens": 351,
+        "costDetails": {
+          "upstreamInferenceCost": 0.00005628
+        }
+      },
+      "provider": "Novita",
+      "reasoning_details": [
+        {
+          "type": "reasoning.text",
+          "text": "The user wants to know the current time. Let me use the getCurrentDateTime tool to find out.",
+          "format": "unknown",
+          "index": 0
+        }
+      ]
+    }
+  },
+  "content": [
+    {
+      "type": "reasoning",
+      "text": "The user wants to know the current time. Let me use the getCurrentDateTime tool to find out.",
+      "providerMetadata": {
+        "openrouter": {
+          "reasoning_details": [
+            {
+              "type": "reasoning.text",
+              "text": "The user wants to know the current time. Let me use the getCurrentDateTime tool to find out.",
+              "format": "unknown",
+              "index": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "tool-call",
+      "toolCallId": "call_a76d2628e46e499ba83a3109",
+      "toolName": "getCurrentDateTime",
+      "input": {},
+      "providerMetadata": {
+        "openrouter": {
+          "reasoning_details": [
+            {
+              "type": "reasoning.text",
+              "text": "The user wants to know the current time. Let me use the getCurrentDateTime tool to find out.",
+              "format": "unknown",
+              "index": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "tool-result",
+      "toolCallId": "call_a76d2628e46e499ba83a3109",
+      "toolName": "getCurrentDateTime",
+      "input": {},
+      "output": {
+        "iso": "2026-05-15T11:00:27.034Z",
+        "local": "Friday, May 15, 2026 at 9:00:27 PM GMT+10",
+        "locale": "en-US",
+        "timeZone": "Australia/Melbourne"
+      },
+      "dynamic": false,
+      "providerMetadata": {
+        "openrouter": {
+          "reasoning_details": [
+            {
+              "type": "reasoning.text",
+              "text": "The user wants to know the current time. Let me use the getCurrentDateTime tool to find out.",
+              "format": "unknown",
+              "index": 0
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "warnings": []
+}

@@ -20,7 +20,6 @@
       ],
       "role": "user",
       "sessionId": "sess_OsyJwZv----kQWHS",
-      "steps": [],
       "updatedAt": 1779167608304,
       "id": "mesg_Osydnrk----wzvFR"
     },
@@ -152,55 +151,6 @@
       ],
       "role": "assistant",
       "sessionId": "sess_OsyJwZv----kQWHS",
-      "steps": [
-        {
-          "cost": {
-            "currency": "USD",
-            "inputTotal": 0.002139,
-            "isByok": false,
-            "outputTotal": 0.00201,
-            "total": 0.004149
-          },
-          "createdAt": 1779167613365,
-          "finishReason": "tool-calls",
-          "generationId": "gen-1779167608-sc9TUbu1F8Vs4nhlPsig",
-          "model": "anthropic/claude-4.5-sonnet-20250929",
-          "provider": "Amazon Bedrock",
-          "stepNumber": 0,
-          "tokens": {
-            "inputNoCache": 713,
-            "inputText": 713,
-            "inputTotal": 713,
-            "outputReasoning": 72,
-            "outputText": 62,
-            "outputTotal": 134,
-            "total": 847
-          }
-        },
-        {
-          "cost": {
-            "currency": "USD",
-            "inputTotal": 0.020421,
-            "isByok": false,
-            "outputTotal": 0.03453,
-            "total": 0.054951
-          },
-          "createdAt": 1779167646741,
-          "finishReason": "stop",
-          "generationId": "gen-1779167613-uBkuEs1WQsVG8DRxuIIW",
-          "model": "anthropic/claude-4.5-sonnet-20250929",
-          "provider": "Amazon Bedrock",
-          "stepNumber": 1,
-          "tokens": {
-            "inputNoCache": 6807,
-            "inputText": 6807,
-            "inputTotal": 6807,
-            "outputText": 2302,
-            "outputTotal": 2302,
-            "total": 9109
-          }
-        }
-      ],
       "updatedAt": 1779167646752,
       "id": "mesg_Osydnrm----wzvFR"
     }
@@ -231,5 +181,70 @@
     "title": "I need a cheatsheet for the new classes/variants/utilities a",
     "updatedAt": 1779167608306,
     "id": "sess_OsyJwZv----kQWHS"
-  }
+  },
+  "steps": [
+    {
+      "cost": {
+        "input": 0.002139,
+        "output": 0.00201,
+        "total": 0.004149,
+        "currency": "USD"
+      },
+      "createdAt": 1779167613365,
+      "finishReason": "tool-calls",
+      "generationId": "gen-1779167608-sc9TUbu1F8Vs4nhlPsig",
+      "id": "rqst_Osydnrm---0wzvFR_step_0",
+      "messageId": "mesg_Osydnrm----wzvFR",
+      "model": "anthropic/claude-4.5-sonnet-20250929",
+      "provider": "Amazon Bedrock",
+      "raw": {},
+      "requestId": "rqst_Osydnrm---0wzvFR",
+      "sessionId": "sess_OsyJwZv----kQWHS",
+      "stepNumber": 0,
+      "usage": {
+        "input": {
+          "noCache": 713,
+          "total": 713
+        },
+        "output": {
+          "reasoning": 72,
+          "text": 62,
+          "total": 134
+        },
+        "total": 847
+      },
+      "warnings": []
+    },
+    {
+      "cost": {
+        "input": 0.020421,
+        "output": 0.03453,
+        "total": 0.054951,
+        "currency": "USD"
+      },
+      "createdAt": 1779167646741,
+      "finishReason": "stop",
+      "generationId": "gen-1779167613-uBkuEs1WQsVG8DRxuIIW",
+      "id": "rqst_Osydnrm---0wzvFR_step_1",
+      "messageId": "mesg_Osydnrm----wzvFR",
+      "model": "anthropic/claude-4.5-sonnet-20250929",
+      "provider": "Amazon Bedrock",
+      "raw": {},
+      "requestId": "rqst_Osydnrm---0wzvFR",
+      "sessionId": "sess_OsyJwZv----kQWHS",
+      "stepNumber": 1,
+      "usage": {
+        "input": {
+          "noCache": 6807,
+          "total": 6807
+        },
+        "output": {
+          "text": 2302,
+          "total": 2302
+        },
+        "total": 9109
+      },
+      "warnings": []
+    }
+  ]
 }

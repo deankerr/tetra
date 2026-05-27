@@ -1,4 +1,5 @@
-import type { RequestStatus, Rows, StepRecord } from '@tetra/store-schema'
+import { summarizeSteps } from '@tetra/core'
+import type { RequestStatus, Rows } from '@tetra/store-schema'
 import {
   Tool,
   ToolContent,
@@ -26,12 +27,15 @@ import { useJsonViewSheet } from '@/components/json-view-sheet'
 import { typedTinybase } from '@/lib/tinybase'
 import { useTetra } from '@/tetra-context'
 
+import { useRequestSteps } from './usage-hooks'
+
 type UIMessagePart = Rows['messages']['parts'][number]
 
 function useTetraMessage(messageId: string) {
   const message = typedTinybase.useEntity('messages', messageId)
   const generation = typedTinybase.useEntity('messageGenerations', messageId)
   const request = useRequestForMessage(messageId)
+  const steps = useRequestSteps(generation?.requestId ?? request?.id)
 
   return useMemo(() => {
     if (!message) {
@@ -39,8 +43,7 @@ function useTetraMessage(messageId: string) {
     }
 
     const parts = generation?.parts ?? message.parts
-    const stepRecords = generation?.steps ?? message.steps
-    const usage = generation?.usage ?? message.usage
+    const usage = summarizeSteps(steps)
     const totalTokens = usage.totalTokens ?? 0
 
     return {
@@ -61,10 +64,10 @@ function useTetraMessage(messageId: string) {
         : null,
       role: message.role,
       sessionId: message.sessionId,
-      steps: groupPartsByStep(parts, stepRecords),
+      stepGroups: groupPartsByStep(parts, steps),
       updatedAt: message.updatedAt,
     }
-  }, [generation, message, request])
+  }, [generation, message, request, steps])
 }
 
 function useRequestForMessage(messageId: string) {
@@ -73,7 +76,7 @@ function useRequestForMessage(messageId: string) {
 }
 
 // Groups a flat parts array into per-step buckets using step-start markers as boundaries.
-function groupPartsByStep(parts: UIMessagePart[], stepRecords: StepRecord[]) {
+function groupPartsByStep(parts: UIMessagePart[], stepRecords: Rows['steps'][]) {
   let current: UIMessagePart[] = []
   let hasSeenStepStart = false
   const groups: UIMessagePart[][] = []
@@ -109,7 +112,7 @@ export function TetraMessageView({
     return <div>this should not be possible</div>
   }
 
-  const { role, id, steps, request } = message
+  const { role, id, stepGroups, request } = message
   const isStreaming = request?.status === 'preparing' || request?.status === 'streaming'
 
   return (
@@ -122,7 +125,7 @@ export function TetraMessageView({
         {request && <RequestStatusBadge status={request.status} />}
       </div>
 
-      {steps.map(({ inference, parts, stepIndex }) => (
+      {stepGroups.map(({ inference, parts, stepIndex }) => (
         <div className="space-y-2.5" key={`${id}-step-${stepIndex}`}>
           {inference && (
             <StepHeader>
@@ -146,7 +149,7 @@ export function TetraMessageView({
                 <Block key={partId}>
                   <BlockHeader>
                     <span>reasoning</span>
-                    <OutputTokens tokens={inference?.tokens.outputReasoning} />
+                    <OutputTokens tokens={inference?.usage.output.reasoning} />
                   </BlockHeader>
                   <BlockContent className="text-muted-foreground">{p.text}</BlockContent>
                 </Block>
@@ -158,7 +161,7 @@ export function TetraMessageView({
                 <Block key={partId}>
                   <BlockHeader>
                     <span>text</span>
-                    <OutputTokens tokens={inference?.tokens.outputText} />
+                    <OutputTokens tokens={inference?.usage.output.text} />
                   </BlockHeader>
                   <BlockContent>{p.text}</BlockContent>
                 </Block>
@@ -170,7 +173,7 @@ export function TetraMessageView({
                 <Block key={partId}>
                   <BlockHeader>
                     <span>{p.type}</span>
-                    <OutputTokens tokens={inference?.tokens.outputText} />
+                    <OutputTokens tokens={inference?.usage.output.text} />
                   </BlockHeader>
                   <BlockContent>
                     <Tool>
@@ -272,7 +275,7 @@ function MessageFooter({
   const { helpers, runs } = useTetra()
   const { openJsonView } = useJsonViewSheet()
 
-  const messageText = message.steps
+  const messageText = message.stepGroups
     .flatMap((s) => s.parts)
     .filter((p): p is Extract<typeof p, { type: 'text' }> => p.type === 'text')
     .map((p) => p.text)
