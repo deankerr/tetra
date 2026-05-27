@@ -146,6 +146,9 @@ export const tetraStoreSchema = defineTypedStore({
       updatedAt: z.number(),
       usage: UsageSummary,
     }),
+    modelFavorites: z.object({
+      createdAt: z.number(),
+    }),
     prompts: z.object({
       content: z.string(),
       createdAt: z.number(),

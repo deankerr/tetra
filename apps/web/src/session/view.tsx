@@ -12,6 +12,7 @@ import { TetraConversationView } from './conversation-view'
 import { SessionExportButton } from './export-button'
 import { RequestsTable } from './requests-table'
 import { SessionSettings } from './settings'
+import { SessionModelPickerSheet } from './settings/model-picker'
 import { PromptEditorSheet } from './settings/prompt-editor-sheet'
 import { SessionUsageMeter } from './usage-meter'
 
@@ -40,6 +41,7 @@ export function SessionView() {
 function ActiveSession({ onClose, sessionId }: { onClose: () => void; sessionId: string }) {
   const session = typedTinybase.useEntity('sessions', sessionId)
   const [detailOpen, setDetailOpen] = useState(false)
+  const [modelSheetOpen, setModelSheetOpen] = useState(false)
   const [promptSheetOpen, setPromptSheetOpen] = useState(false)
   const { openJsonView } = useJsonViewSheet()
 
@@ -138,6 +140,9 @@ function ActiveSession({ onClose, sessionId }: { onClose: () => void; sessionId:
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto p-4">
             <SessionSettings
+              onOpenModelSheet={() => {
+                setModelSheetOpen(true)
+              }}
               onOpenPromptSheet={() => {
                 setPromptSheetOpen(true)
               }}
@@ -151,6 +156,13 @@ function ActiveSession({ onClose, sessionId }: { onClose: () => void; sessionId:
       <PromptEditorSheet
         onOpenChange={setPromptSheetOpen}
         open={promptSheetOpen}
+        sessionId={sessionId}
+      />
+
+      {/* Model sheet — sibling to settings sheet for the same stacked overlay behavior. */}
+      <SessionModelPickerSheet
+        onOpenChange={setModelSheetOpen}
+        open={modelSheetOpen}
         sessionId={sessionId}
       />
     </div>
