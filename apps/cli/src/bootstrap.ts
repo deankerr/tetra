@@ -12,6 +12,7 @@ import { createWsSynchronizer } from 'tinybase/synchronizers/synchronizer-ws-cli
 
 // oxlint-disable-next-line dot-notation -- env var name has underscores, bracket notation is clearer
 export const WORKER_URL = process.env['TETRA_WORKER_URL'] ?? 'ws://localhost:8787'
+export const SYNC_URL = `${WORKER_URL}/tetra`
 
 // Tabular persister config — maps each TinyBase table to a SQL table with an 'id' row key column.
 // Used in local mode and by the dump command.
@@ -132,7 +133,8 @@ export async function bootstrap(mode: BootstrapMode) {
   }
   const sqlite = new Database('./tetra-sync-cache.db')
   const persister = createSqliteBunPersister(store, sqlite)
-  const ws = new WebSocket(`${WORKER_URL}/tetra`)
+  console.log(`Sync URL: ${SYNC_URL}`)
+  const ws = new WebSocket(SYNC_URL)
   const synchronizer = await createWsSynchronizer(store, ws)
 
   await persister.load()

@@ -8,7 +8,7 @@ import { createSqliteBunPersister } from 'tinybase/persisters/persister-sqlite-b
 import { createStore } from 'tinybase/store/with-schemas'
 import { createWsSynchronizer } from 'tinybase/synchronizers/synchronizer-ws-client/with-schemas'
 
-import { TABULAR_CONFIG, WORKER_URL } from '../bootstrap'
+import { SYNC_URL, TABULAR_CONFIG } from '../bootstrap'
 
 const SYNC_SETTLE_MS = 3000
 
@@ -28,11 +28,11 @@ export function registerDumpCommand(program: Command): void {
         structuredClone(tetraStoreSchema.tablesSchema),
         structuredClone(tetraStoreSchema.valuesSchema),
       )
-      const ws = new WebSocket(`${WORKER_URL}/tetra`)
+      const ws = new WebSocket(SYNC_URL)
       const synchronizer = await createWsSynchronizer(mergeableStore, ws)
       await synchronizer.startSync()
 
-      process.stdout.write(`Syncing from ${WORKER_URL} (${settleMs}ms)…`)
+      process.stdout.write(`Syncing from ${SYNC_URL} (${settleMs}ms)…`)
       await Bun.sleep(settleMs)
       console.log(' done')
 

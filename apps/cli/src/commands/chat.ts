@@ -50,6 +50,13 @@ export async function runChatContent(
   if (opts.prompt === false) {
     config.systemPromptId = ''
   }
+  if (Object.keys(config).length > 0) {
+    const sessionConfig = ctx.helpers.typedStore.tables.sessionConfigs.requireEntity(sessionId)
+    ctx.helpers.typedStore.tables.sessionConfigs.setRow(sessionId, {
+      ...sessionConfig,
+      ...config,
+    })
+  }
 
   // Create the user and assistant messages, then hand off to the run.
   ctx.helpers.appendMessage(sessionId, {
@@ -60,7 +67,7 @@ export async function runChatContent(
 
   // Stream new assistant text to stdout as UIMessage snapshots arrive.
   let lastLength = 0
-  const run = ctx.runs.start({ assistantMessageId, config })
+  const run = ctx.runs.start({ assistantMessageId })
   run.addEventListener('snapshot', () => {
     const text = run.parts
       .filter((part): part is { text: string; type: 'text' } => part.type === 'text')
