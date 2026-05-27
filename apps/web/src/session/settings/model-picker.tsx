@@ -49,10 +49,6 @@ function compareByLatest(left: LanguageModel, right: LanguageModel) {
   )
 }
 
-function isModelSortMode(value: string): value is ModelSortMode {
-  return value === 'latest' || value === 'provider'
-}
-
 function compareByProvider(left: LanguageModel, right: LanguageModel) {
   return (
     normalizeProviderName(left).localeCompare(normalizeProviderName(right)) ||
@@ -502,9 +498,7 @@ export function ModelPickerSheet({
                 active={sortMode === nextSortMode}
                 key={nextSortMode}
                 onClick={() => {
-                  if (isModelSortMode(nextSortMode)) {
-                    setSortMode(nextSortMode)
-                  }
+                  setSortMode(nextSortMode)
                 }}
               >
                 {nextSortMode === 'latest' ? 'Latest first' : 'Group by provider'}
