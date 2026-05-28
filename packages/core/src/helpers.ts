@@ -75,8 +75,11 @@ export class Helpers {
         this.typedStore.tables.requests.deleteRow(requestId)
       }
 
-      for (const messageId of this.typedIndexes.getSliceRowIds('generationBySession', sessionId)) {
-        this.typedStore.tables.messageGenerations.deleteRow(messageId)
+      for (const messageId of this.typedIndexes.getSliceRowIds(
+        'streamingPartsBySession',
+        sessionId,
+      )) {
+        this.typedStore.tables.streamingMessageParts.deleteRow(messageId)
       }
 
       for (const stepId of this.typedIndexes.getSliceRowIds('stepsBySession', sessionId)) {
@@ -129,7 +132,7 @@ export class Helpers {
         this.typedStore.tables.steps.deleteRow(stepId)
       }
 
-      this.typedStore.tables.messageGenerations.deleteRow(messageId)
+      this.typedStore.tables.streamingMessageParts.deleteRow(messageId)
       this.typedStore.tables.messages.deleteRow(messageId)
       this.typedStore.tables.sessions.setCell(message.sessionId, 'updatedAt', now)
     })

@@ -7,11 +7,6 @@ import type { LanguageModel, ModelMessage, ToolSet, UIMessage } from 'ai'
 import type { Helpers } from '#helpers'
 import { resolveTools } from '#tools'
 
-import {
-  commitMessageGeneration,
-  updateMessageGeneration,
-  writeMessageGenerationSnapshot,
-} from './message-generations.ts'
 import { cancelRequest, completeRequest, failRequest, startStreaming } from './requests.ts'
 import { StepEvent } from './steps.ts'
 
@@ -100,14 +95,15 @@ export class Run extends EventTarget {
   }
 
   start(): void {
+    this.createStreamingParts()
     void this.stream()
   }
 
   private complete(parts: UIMessage['parts']): void {
     this.parts = [...parts]
     this.finalParts = [...parts]
-    writeMessageGenerationSnapshot(this.helpers, this.assistantMessageId, parts)
-    commitMessageGeneration(this.helpers, this.assistantMessageId)
+    this.writeStreamingPartsSnapshot(parts)
+    this.commitStreamingParts()
     completeRequest(this.helpers.typedStore, this.requestId)
     this.setStatus('completed')
     this.dispatchEvent(new Event('finish'))
@@ -117,8 +113,8 @@ export class Run extends EventTarget {
   private fail(error: unknown): void {
     this.error = error
     if (this.abortController.signal.aborted) {
-      updateMessageGeneration(this.helpers, this.assistantMessageId, { status: 'cancelled' })
-      commitMessageGeneration(this.helpers, this.assistantMessageId)
+      this.writeStreamingPartsSnapshot(this.parts)
+      this.commitStreamingParts()
       cancelRequest(this.helpers.typedStore, this.requestId, 'Request cancelled')
       this.setStatus('cancelled')
       this.dispatchEvent(new Event('cancel'))
@@ -126,8 +122,8 @@ export class Run extends EventTarget {
       return
     }
 
-    updateMessageGeneration(this.helpers, this.assistantMessageId, { status: 'error' })
-    commitMessageGeneration(this.helpers, this.assistantMessageId)
+    this.writeStreamingPartsSnapshot(this.parts)
+    this.commitStreamingParts()
     failRequest(this.helpers.typedStore, this.requestId, error)
     this.setStatus('error')
     this.dispatchEvent(new Event('error'))
@@ -174,7 +170,6 @@ export class Run extends EventTarget {
       this.modelMessages = modelMessages
       this.tools = tools
       startStreaming(this.helpers.typedStore, this.requestId)
-      updateMessageGeneration(this.helpers, this.assistantMessageId, { status: 'streaming' })
       this.setStatus('streaming')
 
       const result = streamText({
@@ -222,13 +217,44 @@ export class Run extends EventTarget {
     )
   }
 
+  private commitStreamingParts(): void {
+    const streamingParts = this.helpers.typedStore.tables.streamingMessageParts.requireEntity(
+      this.assistantMessageId,
+    )
+
+    this.helpers.typedStore.tables.messages.updateRow(this.assistantMessageId, {
+      parts: streamingParts.parts,
+      updatedAt: Date.now(),
+    })
+    this.helpers.typedStore.tables.streamingMessageParts.deleteRow(this.assistantMessageId)
+  }
+
+  private createStreamingParts(): void {
+    const now = Date.now()
+
+    this.helpers.typedStore.tables.streamingMessageParts.setRow(this.assistantMessageId, {
+      createdAt: now,
+      parts: [],
+      requestId: this.requestId,
+      sessionId: this.sessionId,
+      updatedAt: now,
+    })
+  }
+
   private writeDurableSnapshot(message: UIMessage): void {
     const now = Date.now()
     if (now - this.lastDurableWriteAt < DURABLE_SNAPSHOT_INTERVAL_MS) {
       return
     }
 
-    writeMessageGenerationSnapshot(this.helpers, this.assistantMessageId, message.parts)
+    this.writeStreamingPartsSnapshot(message.parts)
     this.lastDurableWriteAt = now
+  }
+
+  private writeStreamingPartsSnapshot(parts: UIMessage['parts']): void {
+    this.helpers.typedStore.tables.streamingMessageParts.updateRow(this.assistantMessageId, {
+      parts,
+      updatedAt: Date.now(),
+    })
   }
 }

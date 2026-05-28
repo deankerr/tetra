@@ -1,9 +1,6 @@
 import type { RequestConfig as RequestConfigType, TetraTypedStore } from '@tetra/store-schema'
 
-import type { Helpers } from '#helpers'
 import { createIdGenerator } from '#ids'
-
-import { commitMessageGeneration, updateMessageGeneration } from './message-generations.ts'
 
 const nextId = createIdGenerator('req')
 
@@ -63,23 +60,4 @@ export function failRequest(typedStore: TetraTypedStore, requestId: string, erro
     terminalAt: now,
     updatedAt: now,
   })
-}
-
-export function recoverInterrupted(helpers: Helpers, message = 'Request interrupted'): void {
-  const { typedStore } = helpers
-
-  for (const requestId of typedStore.tables.requests.getRowIds()) {
-    const status = typedStore.tables.requests.getCell(requestId, 'status')
-    if (status === 'preparing' || status === 'streaming') {
-      failRequest(typedStore, requestId, message)
-    }
-  }
-
-  for (const messageId of typedStore.tables.messageGenerations.getRowIds()) {
-    const status = typedStore.tables.messageGenerations.getCell(messageId, 'status')
-    if (status === 'preparing' || status === 'streaming') {
-      updateMessageGeneration(helpers, messageId, { status: 'error' })
-    }
-    commitMessageGeneration(helpers, messageId)
-  }
 }

@@ -21,7 +21,6 @@ export const TABULAR_CONFIG = {
   tables: {
     load: {
       languageModels: { rowIdColumnName: 'id', tableId: 'languageModels' },
-      messageGenerations: { rowIdColumnName: 'id', tableId: 'messageGenerations' },
       messages: { rowIdColumnName: 'id', tableId: 'messages' },
       modelFavorites: { rowIdColumnName: 'id', tableId: 'modelFavorites' },
       prompts: { rowIdColumnName: 'id', tableId: 'prompts' },
@@ -29,10 +28,10 @@ export const TABULAR_CONFIG = {
       sessionConfigs: { rowIdColumnName: 'id', tableId: 'sessionConfigs' },
       sessions: { rowIdColumnName: 'id', tableId: 'sessions' },
       steps: { rowIdColumnName: 'id', tableId: 'steps' },
+      streamingMessageParts: { rowIdColumnName: 'id', tableId: 'streamingMessageParts' },
     },
     save: {
       languageModels: { rowIdColumnName: 'id', tableName: 'languageModels' },
-      messageGenerations: { rowIdColumnName: 'id', tableName: 'messageGenerations' },
       messages: { rowIdColumnName: 'id', tableName: 'messages' },
       modelFavorites: { rowIdColumnName: 'id', tableName: 'modelFavorites' },
       prompts: { rowIdColumnName: 'id', tableName: 'prompts' },
@@ -40,6 +39,7 @@ export const TABULAR_CONFIG = {
       sessionConfigs: { rowIdColumnName: 'id', tableName: 'sessionConfigs' },
       sessions: { rowIdColumnName: 'id', tableName: 'sessions' },
       steps: { rowIdColumnName: 'id', tableName: 'steps' },
+      streamingMessageParts: { rowIdColumnName: 'id', tableName: 'streamingMessageParts' },
     },
   },
   values: { load: true, save: true },

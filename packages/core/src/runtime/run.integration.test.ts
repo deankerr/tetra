@@ -11,7 +11,6 @@ import { z } from 'zod'
 
 import { Helpers, Runs, summarizeSteps } from '../index.ts'
 import { toolsRegistryMap } from '../tools/tools.ts'
-import { createMessageGeneration, writeMessageGenerationSnapshot } from './message-generations.ts'
 import type { CredentialReader, LanguageModelResolver } from './run.ts'
 
 function createTestDb() {
@@ -146,14 +145,14 @@ test('start streams through the AI SDK into TinyBase rows', async () => {
     },
   })
   expect(summarizeSteps(steps)).toEqual({ inputTokens: 1, outputTokens: 2, totalTokens: 3 })
-  expect(core.typedStore.tables.messageGenerations.getEntity(assistantMessageId)).toBeNull()
+  expect(core.typedStore.tables.streamingMessageParts.getEntity(assistantMessageId)).toBeNull()
   expect(model.doStreamCalls).toHaveLength(1)
   expect(model.doStreamCalls[0]?.prompt).toEqual([
     { content: [{ text: 'hello', type: 'text' }], role: 'user' },
   ])
 })
 
-test('streaming snapshots persist to messageGenerations before message commit', async () => {
+test('streaming snapshots persist to streamingMessageParts before message commit', async () => {
   const context = createTestDb()
   const helpers = new Helpers(context)
   const { typedIndexes, typedStore } = helpers
@@ -202,12 +201,13 @@ test('streaming snapshots persist to messageGenerations before message commit', 
 
   await firstSnapshot.promise
 
-  const generation = core.typedStore.tables.messageGenerations.requireEntity(assistantMessageId)
+  const streamingParts =
+    core.typedStore.tables.streamingMessageParts.requireEntity(assistantMessageId)
   expect(core.typedStore.tables.messages.requireEntity(assistantMessageId).parts).toEqual([])
-  expect(generation.parts.length).toBeGreaterThan(0)
+  expect(streamingParts.parts.length).toBeGreaterThan(0)
 
   await run.done
-  expect(core.typedStore.tables.messageGenerations.getEntity(assistantMessageId)).toBeNull()
+  expect(core.typedStore.tables.streamingMessageParts.getEntity(assistantMessageId)).toBeNull()
   expect(
     core.typedStore.tables.messages.requireEntity(assistantMessageId).parts.length,
   ).toBeGreaterThan(0)
@@ -519,12 +519,12 @@ test('Error Path — stream error sets request to error status', async () => {
   expect(run.status).toBe('error')
   expect(request.status).toBe('error')
   expect(request.errorMessage).toContain('Provider API error')
-  expect(core.typedStore.tables.messageGenerations.getEntity(assistantMessageId)).toBeNull()
+  expect(core.typedStore.tables.streamingMessageParts.getEntity(assistantMessageId)).toBeNull()
   expect(run.error).toBeDefined()
   expect(String(run.error)).toContain('Provider API error')
 })
 
-test('Recovery — interrupted requests commit partial generations and clean hot rows', () => {
+test('Recovery — interrupted requests commit partial streaming parts and clean hot rows', () => {
   const { core, runs } = createTestRuntime()
   const sessionId = core.helpers.createSession({ config: { modelId: 'mock-model' } })
 
@@ -552,21 +552,23 @@ test('Recovery — interrupted requests commit partial generations and clean hot
       terminalAt: 0,
       updatedAt: now,
     }).id
-    createMessageGeneration(core.helpers, {
-      messageId: assistantMessageId,
+    core.typedStore.tables.streamingMessageParts.setRow(assistantMessageId, {
+      createdAt: now,
+      parts: [],
       requestId,
       sessionId,
-      status: 'streaming',
+      updatedAt: now,
     })
   })
 
-  writeMessageGenerationSnapshot(core.helpers, assistantMessageId, [
-    { text: 'partial', type: 'text' },
-  ])
+  core.typedStore.tables.streamingMessageParts.updateRow(assistantMessageId, {
+    parts: [{ text: 'partial', type: 'text' }],
+    updatedAt: Date.now(),
+  })
   runs.recover()
 
   expect(core.typedStore.tables.requests.requireEntity(requestId).status).toBe('error')
-  expect(core.typedStore.tables.messageGenerations.getEntity(assistantMessageId)).toBeNull()
+  expect(core.typedStore.tables.streamingMessageParts.getEntity(assistantMessageId)).toBeNull()
   expect(core.typedStore.tables.messages.requireEntity(assistantMessageId).parts).toEqual([
     { text: 'partial', type: 'text' },
   ])

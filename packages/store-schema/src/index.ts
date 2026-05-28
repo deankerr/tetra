@@ -88,19 +88,16 @@ export type StepRecord = z.infer<typeof StepRecord>
 const MessagePart = z.custom<UIMessage['parts'][number]>(
   (value) => typeof value === 'object' && value !== null && 'type' in value,
 )
-const GenerationStatusSchema = z.enum(['cancelled', 'completed', 'error', 'preparing', 'streaming'])
-export type GenerationStatus = z.infer<typeof GenerationStatusSchema>
 const MessageRoleSchema = z.enum(['assistant', 'user'])
 export type MessageRole = z.infer<typeof MessageRoleSchema>
 const RequestStatusSchema = z.enum(['cancelled', 'completed', 'error', 'preparing', 'streaming'])
 export type RequestStatus = z.infer<typeof RequestStatusSchema>
 
 export const tetraIndexIds = [
-  'generationByRequest',
-  'generationBySession',
   'messagesBySession',
   'requestsByAssistantMessageNewestFirst',
   'requestsBySessionNewestFirst',
+  'streamingPartsBySession',
   'stepsByMessage',
   'stepsByRequest',
   'stepsBySession',
@@ -119,14 +116,6 @@ export const tetraStoreSchema = defineTypedStore({
       supportedParameters: z.array(z.string()),
       updatedAt: z.number(),
       upstreamCreatedAt: z.number(),
-    }),
-    messageGenerations: z.object({
-      createdAt: z.number(),
-      parts: z.array(MessagePart),
-      requestId: z.string(),
-      sessionId: z.string(),
-      status: GenerationStatusSchema,
-      updatedAt: z.number(),
     }),
     messages: z.object({
       createdAt: z.number(),
@@ -169,6 +158,13 @@ export const tetraStoreSchema = defineTypedStore({
       updatedAt: z.number(),
     }),
     steps: StepRecord,
+    streamingMessageParts: z.object({
+      createdAt: z.number(),
+      parts: z.array(MessagePart),
+      requestId: z.string(),
+      sessionId: z.string(),
+      updatedAt: z.number(),
+    }),
   },
   values: {
     catalogLastRefreshed: z.number(),
@@ -189,8 +185,6 @@ export type Rows = StoreRowsFor<typeof tetraStoreSchema>
 export function setTetraIndexDefinitions(indexes: TetraRawIndexes): void {
   // Apply native TinyBase indexes from the store model definition.
   indexes
-    .setIndexDefinition('generationByRequest', 'messageGenerations', 'requestId')
-    .setIndexDefinition('generationBySession', 'messageGenerations', 'sessionId')
     // HLC row IDs are lexicographically sortable, giving creation-time order for free.
     .setIndexDefinition('messagesBySession', 'messages', 'sessionId')
     .setIndexDefinition(
@@ -209,6 +203,7 @@ export function setTetraIndexDefinitions(indexes: TetraRawIndexes): void {
       undefined,
       (a, b) => Number(b) - Number(a),
     )
+    .setIndexDefinition('streamingPartsBySession', 'streamingMessageParts', 'sessionId')
     .setIndexDefinition('stepsByMessage', 'steps', 'messageId', 'createdAt')
     .setIndexDefinition('stepsByRequest', 'steps', 'requestId', 'stepNumber')
     .setIndexDefinition('stepsBySession', 'steps', 'sessionId', 'createdAt')

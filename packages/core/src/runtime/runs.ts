@@ -3,8 +3,7 @@ import type { RequestConfig as RequestConfigType, Rows } from '@tetra/store-sche
 
 import type { Helpers } from '#helpers'
 
-import { clearMessageContent, createMessageGeneration } from './message-generations.ts'
-import { createRequest, recoverInterrupted } from './requests.ts'
+import { createRequest, failRequest } from './requests.ts'
 import { Run, openRouterLanguageModelResolver } from './run.ts'
 import type { CredentialReader, LanguageModelResolver, RunStart } from './run.ts'
 
@@ -63,7 +62,8 @@ export class Runs {
   }
 
   recover(): void {
-    recoverInterrupted(this.helpers)
+    this.failInterruptedRequests()
+    this.commitInterruptedStreamingParts()
   }
 
   // Re-run the final conversation turn by reusing an assistant tail or appending one after a user tail.
@@ -82,7 +82,7 @@ export class Runs {
     }
 
     if (message.role === 'assistant') {
-      clearMessageContent(this.helpers, message.id)
+      this.clearAssistantMessageForRegeneration(message.id)
       return this.start({ assistantMessageId: message.id, config: args.config })
     }
 
@@ -115,11 +115,6 @@ export class Runs {
         config,
         sessionId: session.id,
       })
-      createMessageGeneration(this.helpers, {
-        messageId: args.assistantMessageId,
-        requestId,
-        sessionId: session.id,
-      })
     })
 
     return this.launchRun({
@@ -148,6 +143,45 @@ export class Runs {
     }
 
     return transcriptMessages.slice(-config.maxMessages)
+  }
+
+  private clearAssistantMessageForRegeneration(messageId: string): void {
+    this.helpers.typedStore.tables.messages.requireEntity(messageId)
+
+    // Regeneration clears the committed assistant result, step rows, and any streaming buffer.
+    this.helpers.rawStore.transaction(() => {
+      for (const stepId of this.helpers.typedIndexes.getSliceRowIds('stepsByMessage', messageId)) {
+        this.helpers.typedStore.tables.steps.deleteRow(stepId)
+      }
+
+      this.helpers.typedStore.tables.messages.updateRow(messageId, {
+        parts: [],
+        updatedAt: Date.now(),
+      })
+      this.helpers.typedStore.tables.streamingMessageParts.deleteRow(messageId)
+    })
+  }
+
+  private commitInterruptedStreamingParts(): void {
+    for (const messageId of this.helpers.typedStore.tables.streamingMessageParts.getRowIds()) {
+      const streamingParts =
+        this.helpers.typedStore.tables.streamingMessageParts.requireEntity(messageId)
+
+      this.helpers.typedStore.tables.messages.updateRow(messageId, {
+        parts: streamingParts.parts,
+        updatedAt: Date.now(),
+      })
+      this.helpers.typedStore.tables.streamingMessageParts.deleteRow(messageId)
+    }
+  }
+
+  private failInterruptedRequests(message = 'Request interrupted'): void {
+    for (const requestId of this.helpers.typedStore.tables.requests.getRowIds()) {
+      const status = this.helpers.typedStore.tables.requests.getCell(requestId, 'status')
+      if (status === 'preparing' || status === 'streaming') {
+        failRequest(this.helpers.typedStore, requestId, message)
+      }
+    }
   }
 
   private launchRun(runStart: RunStart): Run {

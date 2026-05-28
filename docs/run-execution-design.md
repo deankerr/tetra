@@ -317,7 +317,7 @@ During a run:
 - user message should exist durably before streaming starts
 - assistant placeholder should exist durably before streaming starts
 - request row should exist durably before streaming starts
-- generation-time parts are persisted to `messageGenerations`
+- stream-time parts are persisted to `streamingMessageParts`
 - completed model-call accounting is persisted to `steps`
 - committed assistant parts are written back to `messages` at terminal status
 - request rows stay focused on lifecycle/config/status
@@ -330,7 +330,7 @@ Open question: whether the request row should begin as `preparing` instead of `s
 
 These are not bugs yet; they are design pressure to revisit when long sessions or richer editing make them visible.
 
-- Every rendered message currently subscribes to its own `messageGenerations` row. Keep it while transcripts are modest; revisit if large sessions make subscription count noticeable.
+- Every rendered message currently subscribes to its own `streamingMessageParts` row. Keep it while transcripts are modest; revisit if large sessions make subscription count noticeable.
 - Cancelled/error assistant messages currently commit partial generation content into the transcript. Keep this explicit in UI semantics as editing/retry behavior grows.
 - Session-level usage currently derives from `stepsBySession`. Add stored summaries only if session sizes make that visibly expensive.
 

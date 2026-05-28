@@ -33,16 +33,16 @@ type UIMessagePart = Rows['messages']['parts'][number]
 
 function useTetraMessage(messageId: string) {
   const message = typedTinybase.useEntity('messages', messageId)
-  const generation = typedTinybase.useEntity('messageGenerations', messageId)
+  const streamingParts = typedTinybase.useEntity('streamingMessageParts', messageId)
   const request = useRequestForMessage(messageId)
-  const steps = useRequestSteps(generation?.requestId ?? request?.id)
+  const steps = useRequestSteps(streamingParts?.requestId ?? request?.id)
 
   return useMemo(() => {
     if (!message) {
       return null
     }
 
-    const parts = generation?.parts ?? message.parts
+    const parts = streamingParts?.parts ?? message.parts
     const usage = summarizeSteps(steps)
     const totalTokens = usage.totalTokens ?? 0
 
@@ -67,7 +67,7 @@ function useTetraMessage(messageId: string) {
       stepGroups: groupPartsByStep(parts, steps),
       updatedAt: message.updatedAt,
     }
-  }, [generation, message, request, steps])
+  }, [message, request, steps, streamingParts])
 }
 
 function useRequestForMessage(messageId: string) {
