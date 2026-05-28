@@ -99,6 +99,54 @@ test('derives nullable, record, array, enum, and default cell schemas from zod',
   })
 })
 
+test('rejects optional table and value cells in favor of explicit nullable cells', () => {
+  expect(() =>
+    defineTypedStore({
+      tables: {
+        examples: z.object({
+          name: z.string().optional(),
+        }),
+      },
+    }),
+  ).toThrow('Optional TinyBase cells are not supported for examples.name; use nullable() instead')
+
+  expect(() =>
+    defineTypedStore({
+      tables: {
+        examples: z.object({
+          name: z.string().nullish(),
+        }),
+      },
+    }),
+  ).toThrow('Optional TinyBase cells are not supported for examples.name; use nullable() instead')
+
+  expect(() =>
+    defineTypedStore({
+      tables: {},
+      values: {
+        activeId: z.string().optional(),
+      },
+    }),
+  ).toThrow('Optional TinyBase cells are not supported for activeId; use nullable() instead')
+})
+
+test('allows optional fields inside object cells', () => {
+  const definition = defineTypedStore({
+    tables: {
+      examples: z.object({
+        config: z.object({
+          maxMessages: z.number().optional(),
+          modelId: z.string(),
+        }),
+      }),
+    },
+  })
+
+  expect(definition.tablesSchema.examples).toEqual({
+    config: { type: 'object' },
+  })
+})
+
 test('throws when a zod schema cannot be represented as a TinyBase cell', () => {
   expect(() =>
     defineTypedStore({

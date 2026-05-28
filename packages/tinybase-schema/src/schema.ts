@@ -69,6 +69,7 @@ function zodToTinybaseCellSchema(schema: AnyZod, path: string): TinyCellSchema {
   const jsonSchema = getJsonSchema(schema, path)
   const { allowNull, schema: unwrapped } = unwrapNullable(jsonSchema)
   const type = getTinybaseType(unwrapped, path)
+  assertCellIsNotOptional(schema, jsonSchema.default, path)
   return createTinybaseCellSchema(type, jsonSchema.default, allowNull, path)
 }
 
@@ -126,6 +127,15 @@ function getTinybaseType(schema: JsonSchema, path: string): FieldKind {
   }
 
   throw new Error(`Cannot convert ${path} to a TinyBase cell schema`)
+}
+
+function assertCellIsNotOptional(schema: AnyZod, defaultValue: unknown, path: string): void {
+  // TinyBase cannot reliably clear optional cells through normal row/cell writes.
+  // Use nullable cells and explicit nulls for absence; defaults are still valid cells.
+  const missingCell: unknown = undefined
+  if (defaultValue === undefined && schema.safeParse(missingCell).success) {
+    throw new Error(`Optional TinyBase cells are not supported for ${path}; use nullable() instead`)
+  }
 }
 
 function createTinybaseCellSchema(
