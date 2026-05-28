@@ -55,6 +55,7 @@ Dev data is wiped and regenerated as needed. This app is not public. There are h
 
 - Bun workspaces with isolated modules.
 - Auto-fix lint/format/type-aware issues: `bun run fix`. This is the only check script you should use. Do not use `tsc`.
+- Keep package root exports demand-driven. Do not export every internal symbol by default; let real consumers justify the public surface, and run `bun run knip` when tightening exports.
 - Inline disables may be used if the reasoning is justified.
 - `sort-keys` is enabled - allow it to re-order object keys.
 
@@ -66,3 +67,18 @@ Dev data is wiped and regenerated as needed. This app is not public. There are h
 ## Project Docs
 
 @VISION.md
+@CONTEXT-MAP.md
+
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs are tracked in GitHub Issues for `deankerr/tetra`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Triage labels use the default mattpocock/skills vocabulary. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Domain docs use a multi-context layout rooted at `CONTEXT-MAP.md`. See `docs/agents/domain.md`.
