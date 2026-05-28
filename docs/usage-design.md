@@ -23,22 +23,22 @@ provider usage payloads because they preserve upstream shape and avoid a brittle
 schema for every possible token subtype.
 
 Prefer the pure model until there is evidence to add machinery: immutable step
-records are canonical, and message/request/session totals can be derived from
+records are canonical, and message/run/session totals can be derived from
 those records wherever they are needed. Tetra is not yet pushing session sizes
 large enough to require precomputed summaries for efficiency.
 
 ## Vocabulary
 
-### Message generation
+### Streaming message parts
 
-A message generation is Tetra's volatile streaming state for one assistant
+Streaming message parts are Tetra's volatile streaming state for one assistant
 outcome.
 
-It exists mainly to isolate constantly changing UI parts from the committed
+They exist mainly to isolate constantly changing UI parts from the committed
 message row. This keeps the conversation view manageable in React while text,
 reasoning, tool calls, and tool results are still streaming.
 
-Message generations are ephemeral. They should not become stable foreign keys
+Streaming message parts are ephemeral. They should not become stable foreign keys
 for immutable usage records.
 
 ### Message
@@ -55,7 +55,7 @@ model call.
 
 It is not the entire AI SDK step. It should not duplicate message parts,
 streamed content, rendered reasoning blocks, or response messages used to build
-the next prompt. Those belong to message generation state while streaming, and
+the next prompt. Those belong to streaming message parts while streaming, and
 to the message after commit.
 
 ## Step Table Scope
@@ -67,7 +67,7 @@ Tetra stores completed model-call sidecar data in a `steps` table:
   stepId,
   sessionId,
   messageId,
-  requestId,
+  runId,
   stepNumber,
   provider,
   model,
@@ -81,9 +81,9 @@ Tetra stores completed model-call sidecar data in a `steps` table:
 }
 ```
 
-The important omission is intentional: no `messageGenerationId`.
+The important omission is intentional: no ID for the temporary streaming row.
 
-The generation row is ephemeral and can be found through more relevant entity
+The streaming row is ephemeral and can be found through more relevant entity
 IDs while it exists. The stable relationship is between the step and the
 assistant outcome it contributed to, represented by `messageId`, plus the
 conversation represented by `sessionId`.
@@ -198,12 +198,12 @@ Totals should be derived from step records by default.
 Current derivation points:
 
 - message totals for message headers and footers,
-- request totals for the request table,
+- run totals for the run table,
 - session totals for conversation-level spend surfaces,
 - latest measured prompt size for context-window display.
 
 At the current app scale, these do not need to be stored. A message component
-can read the steps for its current request and memoize a local total. A session
+can read the steps for its current run and memoize a local total. A session
 view can read all steps for the session when it needs a conversation-level
 total.
 
@@ -263,15 +263,15 @@ It also risks creating a custom accounting ledger too early.
 
 ## Decisions
 
-### 2026-05-27: Step records do not include `messageGenerationId`
+### 2026-05-27: Step records do not include streaming-state IDs
 
-Message generations are ephemeral streaming state. Step records should attach
+Streaming message parts are ephemeral streaming state. Step records should attach
 to stable entities instead: the session, the assistant outcome/message, and the
 provider generation ID when available.
 
 ### 2026-05-27: Step records store accounting metadata, not parts
 
-Conversation parts remain in message generation state while streaming and in
+Conversation parts remain in streaming message parts while streaming and in
 messages after commit. Step records should not duplicate them.
 
 ### 2026-05-27: Preserve provider raw data in one cell
@@ -283,7 +283,7 @@ top-level cells without a concrete read/index/render reason.
 
 ### 2026-05-27: Do not store usage summaries without evidence
 
-At current app scale, message, request, and session totals can be derived from
+At current app scale, message, run, and session totals can be derived from
 step records at the read sites that need them. Stored summaries add machinery
 and duplicate data, so they should wait until there is evidence that deriving
 from step rows is too expensive or awkward.

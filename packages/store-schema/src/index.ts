@@ -13,16 +13,19 @@ import { z } from 'zod'
 const ProviderOptions = z.record(z.string(), z.json())
 export type ProviderOptions = z.infer<typeof ProviderOptions>
 
-export const RequestConfig = z.object({
+export const RunConfig = z.object({
   maxMessages: z.number().int().nonnegative(),
   modelId: z.string(),
   providerOptions: ProviderOptions,
   systemPromptId: z.string(),
   toolIds: z.array(z.string()),
 })
-export type RequestConfig = z.infer<typeof RequestConfig>
+export type RunConfig = z.infer<typeof RunConfig>
 
-export const DEFAULT_REQUEST_CONFIG: RequestConfig = {
+export const RunConfigSnapshot = z.record(z.string(), z.json())
+export type RunConfigSnapshot = z.infer<typeof RunConfigSnapshot>
+
+export const DEFAULT_RUN_CONFIG: RunConfig = {
   maxMessages: 0,
   modelId: '',
   providerOptions: {},
@@ -77,7 +80,7 @@ export const StepRecord = z.object({
   model: z.string(),
   provider: z.string(),
   raw: StepRaw,
-  requestId: z.string(),
+  runId: z.string(),
   sessionId: z.string(),
   stepNumber: z.number(),
   usage: StepUsage,
@@ -90,16 +93,16 @@ const MessagePart = z.custom<UIMessage['parts'][number]>(
 )
 const MessageRoleSchema = z.enum(['assistant', 'user'])
 export type MessageRole = z.infer<typeof MessageRoleSchema>
-const RequestStatusSchema = z.enum(['cancelled', 'completed', 'error', 'preparing', 'streaming'])
-export type RequestStatus = z.infer<typeof RequestStatusSchema>
+const RunStatusSchema = z.enum(['cancelled', 'completed', 'error', 'preparing', 'streaming'])
+export type RunStatus = z.infer<typeof RunStatusSchema>
 
 export const tetraIndexIds = [
   'messagesBySession',
-  'requestsByAssistantMessageNewestFirst',
-  'requestsBySessionNewestFirst',
+  'runsByAssistantMessageNewestFirst',
+  'runsBySessionNewestFirst',
   'streamingPartsBySession',
   'stepsByMessage',
-  'stepsByRequest',
+  'stepsByRun',
   'stepsBySession',
 ] as const
 
@@ -133,19 +136,19 @@ export const tetraStoreSchema = defineTypedStore({
       label: z.string(),
       updatedAt: z.number(),
     }),
-    requests: z.object({
+    runs: z.object({
       assistantMessageId: z.string(),
-      config: RequestConfig,
+      config: RunConfigSnapshot,
       createdAt: z.number(),
       errorMessage: z.string(),
       sessionId: z.string(),
-      status: RequestStatusSchema,
+      status: RunStatusSchema,
       terminalAt: z.number(),
       updatedAt: z.number(),
     }),
     // Execution parameters for a session. Keyed by the same ID as the sessions table (1:1).
     // Stored separately so sidebar reactive reads on sessions are not triggered by config edits.
-    sessionConfigs: z.object({
+    sessionRunConfigs: z.object({
       maxMessages: z.number(),
       modelId: z.string(),
       providerOptions: ProviderOptions,
@@ -161,7 +164,7 @@ export const tetraStoreSchema = defineTypedStore({
     streamingMessageParts: z.object({
       createdAt: z.number(),
       parts: z.array(MessagePart),
-      requestId: z.string(),
+      runId: z.string(),
       sessionId: z.string(),
       updatedAt: z.number(),
     }),
@@ -171,7 +174,7 @@ export const tetraStoreSchema = defineTypedStore({
     cliActiveSessionId: z.string(),
     // Mutable workspace-level default applied when creating a new session. Stored as a blob
     // since it is a cold path (read once at session creation, not on every render).
-    defaultSessionConfig: RequestConfig,
+    defaultRunConfig: RunConfigSnapshot,
   },
 })
 
@@ -188,16 +191,16 @@ export function setTetraIndexDefinitions(indexes: TetraRawIndexes): void {
     // HLC row IDs are lexicographically sortable, giving creation-time order for free.
     .setIndexDefinition('messagesBySession', 'messages', 'sessionId')
     .setIndexDefinition(
-      'requestsByAssistantMessageNewestFirst',
-      'requests',
+      'runsByAssistantMessageNewestFirst',
+      'runs',
       'assistantMessageId',
       'createdAt',
       undefined,
       (a, b) => Number(b) - Number(a),
     )
     .setIndexDefinition(
-      'requestsBySessionNewestFirst',
-      'requests',
+      'runsBySessionNewestFirst',
+      'runs',
       'sessionId',
       'createdAt',
       undefined,
@@ -205,6 +208,6 @@ export function setTetraIndexDefinitions(indexes: TetraRawIndexes): void {
     )
     .setIndexDefinition('streamingPartsBySession', 'streamingMessageParts', 'sessionId')
     .setIndexDefinition('stepsByMessage', 'steps', 'messageId', 'createdAt')
-    .setIndexDefinition('stepsByRequest', 'steps', 'requestId', 'stepNumber')
+    .setIndexDefinition('stepsByRun', 'steps', 'runId', 'stepNumber')
     .setIndexDefinition('stepsBySession', 'steps', 'sessionId', 'createdAt')
 }

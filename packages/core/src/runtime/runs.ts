@@ -1,19 +1,19 @@
-import { RequestConfig } from '@tetra/store-schema'
-import type { RequestConfig as RequestConfigType, Rows } from '@tetra/store-schema'
+import { DEFAULT_RUN_CONFIG, RunConfig } from '@tetra/store-schema'
+import type { RunConfig as RunConfigType, Rows } from '@tetra/store-schema'
 
 import type { Helpers } from '#helpers'
 
-import { createRequest, failRequest } from './requests.ts'
+import { createRunRecord, failRunRecord } from './run-records.ts'
 import { Run, openRouterLanguageModelResolver } from './run.ts'
 import type { CredentialReader, LanguageModelResolver, RunStart } from './run.ts'
 
 export interface StartArgs {
   assistantMessageId: string
-  config?: Partial<RequestConfigType>
+  config?: Partial<RunConfigType>
 }
 
 export interface RegenerateArgs {
-  config?: Partial<RequestConfigType>
+  config?: Partial<RunConfigType>
   messageId: string
 }
 
@@ -33,12 +33,12 @@ export class Runs {
     this.helpers = helpers
   }
 
-  cancel(requestId: string): void {
-    this.active.get(requestId)?.cancel()
+  cancel(runId: string): void {
+    this.active.get(runId)?.cancel()
   }
 
-  get(requestId: string): Run | null {
-    return this.active.get(requestId) ?? null
+  get(runId: string): Run | null {
+    return this.active.get(runId) ?? null
   }
 
   getByAssistantMessage(messageId: string): Run | null {
@@ -62,7 +62,7 @@ export class Runs {
   }
 
   recover(): void {
-    this.failInterruptedRequests()
+    this.failInterruptedRuns()
     this.commitInterruptedStreamingParts()
   }
 
@@ -102,15 +102,19 @@ export class Runs {
     const session = this.helpers.typedStore.tables.sessions.requireEntity(
       assistantMessage.sessionId,
     )
-    const sessionConfig = this.helpers.typedStore.tables.sessionConfigs.requireEntity(session.id)
-    const config = RequestConfig.parse({ ...sessionConfig, ...args.config })
+    const sessionRunConfig = this.helpers.rawStore.getRow('sessionRunConfigs', session.id)
+    const config = RunConfig.parse({
+      ...DEFAULT_RUN_CONFIG,
+      ...sessionRunConfig,
+      ...args.config,
+    })
     const system = this.requireSystemPrompt(config)
     const transcriptMessages = this.collectMessagesBefore(args.assistantMessageId, config)
 
-    let requestId = ''
+    let runId = ''
     this.helpers.rawStore.transaction(() => {
       this.helpers.typedStore.tables.sessions.setCell(session.id, 'updatedAt', Date.now())
-      requestId = createRequest(this.helpers.typedStore, {
+      runId = createRunRecord(this.helpers.typedStore, {
         assistantMessageId: args.assistantMessageId,
         config,
         sessionId: session.id,
@@ -120,14 +124,14 @@ export class Runs {
     return this.launchRun({
       assistantMessageId: args.assistantMessageId,
       config,
-      requestId,
+      runId,
       session,
       system,
       transcriptMessages,
     })
   }
 
-  private collectMessagesBefore(messageId: string, config: RequestConfigType): Rows['messages'][] {
+  private collectMessagesBefore(messageId: string, config: RunConfigType): Rows['messages'][] {
     const target = this.helpers.typedStore.tables.messages.requireEntity(messageId)
     const messages = this.helpers.typedIndexes
       .getSliceRowIds('messagesBySession', target.sessionId)
@@ -175,11 +179,11 @@ export class Runs {
     }
   }
 
-  private failInterruptedRequests(message = 'Request interrupted'): void {
-    for (const requestId of this.helpers.typedStore.tables.requests.getRowIds()) {
-      const status = this.helpers.typedStore.tables.requests.getCell(requestId, 'status')
+  private failInterruptedRuns(message = 'Run interrupted'): void {
+    for (const runId of this.helpers.typedStore.tables.runs.getRowIds()) {
+      const status = this.helpers.typedStore.tables.runs.getCell(runId, 'status')
       if (status === 'preparing' || status === 'streaming') {
-        failRequest(this.helpers.typedStore, requestId, message)
+        failRunRecord(this.helpers.typedStore, runId, message)
       }
     }
   }
@@ -192,7 +196,7 @@ export class Runs {
       start: runStart,
     })
 
-    this.active.set(run.requestId, run)
+    this.active.set(run.runId, run)
     void this.removeWhenDone(run)
     run.start()
 
@@ -201,10 +205,10 @@ export class Runs {
 
   private async removeWhenDone(run: Run): Promise<void> {
     await run.done
-    this.active.delete(run.requestId)
+    this.active.delete(run.runId)
   }
 
-  private requireSystemPrompt(config: RequestConfigType): string | undefined {
+  private requireSystemPrompt(config: RunConfigType): string | undefined {
     if (config.systemPromptId === '') {
       return undefined
     }

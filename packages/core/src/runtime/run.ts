@@ -1,13 +1,18 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
-import { RequestConfig } from '@tetra/store-schema'
-import type { RequestConfig as RequestConfigType, Rows, StepRecord } from '@tetra/store-schema'
+import { RunConfig } from '@tetra/store-schema'
+import type { RunConfig as RunConfigType, Rows, StepRecord } from '@tetra/store-schema'
 import { convertToModelMessages, readUIMessageStream, stepCountIs, streamText } from 'ai'
 import type { LanguageModel, ModelMessage, ToolSet, UIMessage } from 'ai'
 
 import type { Helpers } from '#helpers'
 import { resolveTools } from '#tools'
 
-import { cancelRequest, completeRequest, failRequest, startStreaming } from './requests.ts'
+import {
+  cancelRunRecord,
+  completeRunRecord,
+  failRunRecord,
+  startRunStreaming,
+} from './run-records.ts'
 import { StepEvent } from './steps.ts'
 
 const DURABLE_SNAPSHOT_INTERVAL_MS = 500
@@ -17,13 +22,13 @@ export interface CredentialReader {
 }
 
 export interface LanguageModelResolver {
-  resolve(args: { config: RequestConfigType; credentials: CredentialReader }): LanguageModel
+  resolve(args: { config: RunConfigType; credentials: CredentialReader }): LanguageModel
 }
 
 export interface RunStart {
   assistantMessageId: string
-  config: RequestConfigType
-  requestId: string
+  config: RunConfigType
+  runId: string
   session: Rows['sessions']
   system?: string
   transcriptMessages: Rows['messages'][]
@@ -52,9 +57,9 @@ export const openRouterLanguageModelResolver: LanguageModelResolver = {
 export class Run extends EventTarget {
   readonly abortController = new AbortController()
   readonly assistantMessageId: string
-  readonly config: RequestConfigType
+  readonly config: RunConfigType
   readonly done: Promise<void>
-  readonly requestId: string
+  readonly runId: string
   readonly session: Rows['sessions']
   readonly sessionId: string
   readonly system: string | undefined
@@ -83,7 +88,7 @@ export class Run extends EventTarget {
     this.done = this.doneController.promise
     this.modelResolver = init.modelResolver
     this.helpers = init.helpers
-    this.requestId = init.start.requestId
+    this.runId = init.start.runId
     this.session = init.start.session
     this.sessionId = init.start.session.id
     this.system = init.start.system
@@ -104,7 +109,7 @@ export class Run extends EventTarget {
     this.finalParts = [...parts]
     this.writeStreamingPartsSnapshot(parts)
     this.commitStreamingParts()
-    completeRequest(this.helpers.typedStore, this.requestId)
+    completeRunRecord(this.helpers.typedStore, this.runId)
     this.setStatus('completed')
     this.dispatchEvent(new Event('finish'))
     this.doneController.resolve()
@@ -115,7 +120,7 @@ export class Run extends EventTarget {
     if (this.abortController.signal.aborted) {
       this.writeStreamingPartsSnapshot(this.parts)
       this.commitStreamingParts()
-      cancelRequest(this.helpers.typedStore, this.requestId, 'Request cancelled')
+      cancelRunRecord(this.helpers.typedStore, this.runId, 'Run cancelled')
       this.setStatus('cancelled')
       this.dispatchEvent(new Event('cancel'))
       this.doneController.resolve()
@@ -124,7 +129,7 @@ export class Run extends EventTarget {
 
     this.writeStreamingPartsSnapshot(this.parts)
     this.commitStreamingParts()
-    failRequest(this.helpers.typedStore, this.requestId, error)
+    failRunRecord(this.helpers.typedStore, this.runId, error)
     this.setStatus('error')
     this.dispatchEvent(new Event('error'))
     this.doneController.resolve()
@@ -135,12 +140,12 @@ export class Run extends EventTarget {
     this.dispatchEvent(new Event('snapshot'))
   }
 
-  private recordStep(step: Omit<StepRecord, 'messageId' | 'requestId' | 'sessionId'>): void {
-    const stepId = `${this.requestId}_step_${step.stepNumber}`
+  private recordStep(step: Omit<StepRecord, 'messageId' | 'runId' | 'sessionId'>): void {
+    const stepId = `${this.runId}_step_${step.stepNumber}`
     this.helpers.typedStore.tables.steps.setRow(stepId, {
       ...step,
       messageId: this.assistantMessageId,
-      requestId: this.requestId,
+      runId: this.runId,
       sessionId: this.sessionId,
     })
     this.dispatchEvent(new Event('step'))
@@ -161,7 +166,7 @@ export class Run extends EventTarget {
 
   private async stream(): Promise<void> {
     try {
-      const config = RequestConfig.parse(this.config)
+      const config = RunConfig.parse(this.config)
       const tools = this.resolveTools()
       const model = this.resolveModel()
       const modelMessages = await Run.toModelMessages(this.transcriptMessages, tools)
@@ -169,7 +174,7 @@ export class Run extends EventTarget {
       this.model = model
       this.modelMessages = modelMessages
       this.tools = tools
-      startStreaming(this.helpers.typedStore, this.requestId)
+      startRunStreaming(this.helpers.typedStore, this.runId)
       this.setStatus('streaming')
 
       const result = streamText({
@@ -235,7 +240,7 @@ export class Run extends EventTarget {
     this.helpers.typedStore.tables.streamingMessageParts.setRow(this.assistantMessageId, {
       createdAt: now,
       parts: [],
-      requestId: this.requestId,
+      runId: this.runId,
       sessionId: this.sessionId,
       updatedAt: now,
     })

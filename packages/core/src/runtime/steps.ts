@@ -3,7 +3,7 @@ import { StepWarning } from '@tetra/store-schema'
 import { pickBy } from 'remeda'
 import { z } from 'zod'
 
-type CapturedStep = Omit<StepRecord, 'messageId' | 'requestId' | 'sessionId'>
+type CapturedStep = Omit<StepRecord, 'messageId' | 'runId' | 'sessionId'>
 type StepRawUsage = NonNullable<StepRecord['raw']['usage']>
 
 // OpenRouter can report null for some cost/token fields; normalize those to absent.
@@ -100,7 +100,7 @@ function captureStep(event: StepEventShape): CapturedStep {
   // The SDK normalizes counts, but OpenRouter-specific cost and modality details live in raw.
   const providerRaw = ProviderRaw.parse(event.usage.raw ?? {})
 
-  // Store one immutable accounting row; request/message/session ids are added by the caller.
+  // Store one immutable accounting row; run/message/session ids are added by the caller.
   return {
     cost: withCurrency(captureCost(providerRaw)),
     createdAt: Date.now(),

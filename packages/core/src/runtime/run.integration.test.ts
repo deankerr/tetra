@@ -99,18 +99,18 @@ test('start streams through the AI SDK into TinyBase rows', async () => {
   const assistantMessageId = core.helpers.appendMessage(sessionId, { parts: [], role: 'assistant' })
 
   const run = runs.start({ assistantMessageId })
-  expect(core.typedStore.tables.requests.requireEntity(run.requestId).status).toBe('preparing')
+  expect(core.typedStore.tables.runs.requireEntity(run.runId).status).toBe('preparing')
 
   await run.done
 
   const messages = core.typedIndexes
     .getSliceRowIds('messagesBySession', sessionId)
     .map((id) => core.typedStore.tables.messages.requireEntity(id))
-  const request = core.typedStore.tables.requests.requireEntity(run.requestId)
+  const runRecord = core.typedStore.tables.runs.requireEntity(run.runId)
 
   expect(run.status).toBe('completed')
-  expect(request.status).toBe('completed')
-  expect(request.config).toEqual({
+  expect(runRecord.status).toBe('completed')
+  expect(runRecord.config).toEqual({
     maxMessages: 0,
     modelId: 'mock-model',
     providerOptions: {},
@@ -129,13 +129,13 @@ test('start streams through the AI SDK into TinyBase rows', async () => {
   })
   expect(run.finalParts).toEqual(messages[1]?.parts)
   const steps = core.typedIndexes
-    .getSliceRowIds('stepsByRequest', run.requestId)
+    .getSliceRowIds('stepsByRun', run.runId)
     .map((id) => core.typedStore.tables.steps.requireEntity(id))
   expect(steps).toHaveLength(1)
   expect(steps[0]).toMatchObject({
     finishReason: 'stop',
     messageId: run.assistantMessageId,
-    requestId: run.requestId,
+    runId: run.runId,
     sessionId,
     stepNumber: 0,
     usage: {
@@ -213,7 +213,7 @@ test('streaming snapshots persist to streamingMessageParts before message commit
   ).toBeGreaterThan(0)
 })
 
-test('Pre-Run Invariants — throws before creating request when systemPromptId is missing', () => {
+test('Pre-Run Invariants — throws before creating run when systemPromptId is missing', () => {
   const { core, runs } = createTestRuntime()
   const sessionId = core.helpers.createSession({
     config: { modelId: 'mock-model', systemPromptId: 'non-existent-prompt' },
@@ -224,17 +224,17 @@ test('Pre-Run Invariants — throws before creating request when systemPromptId 
     role: 'user',
   })
   const assistantMessageId = core.helpers.appendMessage(sessionId, { parts: [], role: 'assistant' })
-  const requestsBefore = core.typedIndexes.getSliceRowIds('requestsBySessionNewestFirst', sessionId)
+  const runsBefore = core.typedIndexes.getSliceRowIds('runsBySessionNewestFirst', sessionId)
   const sessionBefore = core.typedStore.tables.sessions.requireEntity(sessionId)
 
   expect(() => runs.start({ assistantMessageId })).toThrow(
     'Missing row: prompts/non-existent-prompt',
   )
 
-  const requestsAfter = core.typedIndexes.getSliceRowIds('requestsBySessionNewestFirst', sessionId)
+  const runsAfter = core.typedIndexes.getSliceRowIds('runsBySessionNewestFirst', sessionId)
   const sessionAfter = core.typedStore.tables.sessions.requireEntity(sessionId)
 
-  expect(requestsAfter).toHaveLength(requestsBefore.length)
+  expect(runsAfter).toHaveLength(runsBefore.length)
   expect(sessionAfter.updatedAt).toBe(sessionBefore.updatedAt)
 })
 
@@ -325,8 +325,8 @@ test('Regenerate — assistant tail is cleared and reused', async () => {
   expect(run.assistantMessageId).toBe(assistantMessageId)
   expect(core.typedStore.tables.messages.requireEntity(assistantMessageId).parts).toEqual([])
   expect(core.typedIndexes.getSliceRowIds('stepsByMessage', assistantMessageId)).toEqual([])
-  expect(core.typedIndexes.getSliceRowIds('stepsByRequest', firstRun.requestId)).toEqual([])
-  expect(core.typedIndexes.getSliceRowIds('stepsByRequest', run.requestId)).toEqual([])
+  expect(core.typedIndexes.getSliceRowIds('stepsByRun', firstRun.runId)).toEqual([])
+  expect(core.typedIndexes.getSliceRowIds('stepsByRun', run.runId)).toEqual([])
 
   await run.done
 
@@ -486,7 +486,7 @@ test('Tool Loop — tool call executes and result appears in final parts', async
   }
 })
 
-test('Error Path — stream error sets request to error status', async () => {
+test('Error Path — stream error sets run to error status', async () => {
   const context = createTestDb()
   const helpers = new Helpers(context)
   const { typedIndexes, typedStore } = helpers
@@ -514,17 +514,17 @@ test('Error Path — stream error sets request to error status', async () => {
     return startedRun
   })
 
-  const request = core.typedStore.tables.requests.requireEntity(run.requestId)
+  const runRecord = core.typedStore.tables.runs.requireEntity(run.runId)
 
   expect(run.status).toBe('error')
-  expect(request.status).toBe('error')
-  expect(request.errorMessage).toContain('Provider API error')
+  expect(runRecord.status).toBe('error')
+  expect(runRecord.errorMessage).toContain('Provider API error')
   expect(core.typedStore.tables.streamingMessageParts.getEntity(assistantMessageId)).toBeNull()
   expect(run.error).toBeDefined()
   expect(String(run.error)).toContain('Provider API error')
 })
 
-test('Recovery — interrupted requests commit partial streaming parts and clean hot rows', () => {
+test('Recovery — interrupted runs commit partial streaming parts and clean hot rows', () => {
   const { core, runs } = createTestRuntime()
   const sessionId = core.helpers.createSession({ config: { modelId: 'mock-model' } })
 
@@ -533,10 +533,10 @@ test('Recovery — interrupted requests commit partial streaming parts and clean
     role: 'user',
   })
   const assistantMessageId = core.helpers.appendMessage(sessionId, { parts: [], role: 'assistant' })
-  let requestId = ''
+  let runId = ''
   const now = Date.now()
   core.rawStore.transaction(() => {
-    requestId = core.typedStore.tables.requests.setRow('req_test', {
+    runId = core.typedStore.tables.runs.setRow('run_test', {
       assistantMessageId,
       config: {
         maxMessages: 0,
@@ -555,7 +555,7 @@ test('Recovery — interrupted requests commit partial streaming parts and clean
     core.typedStore.tables.streamingMessageParts.setRow(assistantMessageId, {
       createdAt: now,
       parts: [],
-      requestId,
+      runId,
       sessionId,
       updatedAt: now,
     })
@@ -567,14 +567,14 @@ test('Recovery — interrupted requests commit partial streaming parts and clean
   })
   runs.recover()
 
-  expect(core.typedStore.tables.requests.requireEntity(requestId).status).toBe('error')
+  expect(core.typedStore.tables.runs.requireEntity(runId).status).toBe('error')
   expect(core.typedStore.tables.streamingMessageParts.getEntity(assistantMessageId)).toBeNull()
   expect(core.typedStore.tables.messages.requireEntity(assistantMessageId).parts).toEqual([
     { text: 'partial', type: 'text' },
   ])
 })
 
-test('Error Path — later requests can still run after an error', async () => {
+test('Error Path — later runs can still run after an error', async () => {
   const context = createTestDb()
   const helpers = new Helpers(context)
   const { typedIndexes, typedStore } = helpers

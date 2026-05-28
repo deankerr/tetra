@@ -326,7 +326,7 @@ function ObjectRow({ dispatch, entry }: { dispatch: Dispatch<Action>; entry: Obj
 // so sessionId never changes within this component's lifetime.
 export function ProviderOptionsEditor({ sessionId }: { sessionId: string }) {
   const [options = EMPTY_PROVIDER_OPTIONS, setOptions] = typedTinybase.useCellState(
-    'sessionConfigs',
+    'sessionRunConfigs',
     sessionId,
     'providerOptions',
   )

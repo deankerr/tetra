@@ -138,7 +138,7 @@ export function PromptPreviewButton({
   sessionId: string
 }) {
   const promptIds = usePromptIds()
-  const systemPromptId = typedTinybase.useCell('sessionConfigs', sessionId, 'systemPromptId')
+  const systemPromptId = typedTinybase.useCell('sessionRunConfigs', sessionId, 'systemPromptId')
   const selectedPromptId =
     systemPromptId !== undefined && systemPromptId !== '' && promptIds.includes(systemPromptId)
       ? systemPromptId
@@ -178,7 +178,7 @@ export function PromptEditorSheet({
 }) {
   const { helpers } = useTetra()
   const [systemPromptId, setSystemPromptId] = typedTinybase.useCellState(
-    'sessionConfigs',
+    'sessionRunConfigs',
     sessionId,
     'systemPromptId',
   )

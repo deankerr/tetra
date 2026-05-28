@@ -6,10 +6,10 @@ import { useMemo } from 'react'
 
 import { tinybase, typedTinybase } from '@/lib/tinybase'
 
-type StepIndexId = 'stepsByRequest' | 'stepsBySession'
+type StepIndexId = 'stepsByRun' | 'stepsBySession'
 
-export function useRequestSteps(requestId: string | undefined): Rows['steps'][] {
-  return useStepsBySlice('stepsByRequest', requestId ?? '')
+export function useRunSteps(runId: string | undefined): Rows['steps'][] {
+  return useStepsBySlice('stepsByRun', runId ?? '')
 }
 
 export function useSessionUsageTotals(sessionId: string): UsageTotals {

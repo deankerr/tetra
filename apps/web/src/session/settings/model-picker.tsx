@@ -591,7 +591,11 @@ export function SessionModelPickerSheet({
   open: boolean
   sessionId: string
 }) {
-  const [modelId, setModelId] = typedTinybase.useCellState('sessionConfigs', sessionId, 'modelId')
+  const [modelId, setModelId] = typedTinybase.useCellState(
+    'sessionRunConfigs',
+    sessionId,
+    'modelId',
+  )
 
   return (
     <ModelPickerSheet

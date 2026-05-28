@@ -1,5 +1,5 @@
 import { summarizeSteps } from '@tetra/core'
-import type { RequestStatus, Rows } from '@tetra/store-schema'
+import type { RunStatus, Rows } from '@tetra/store-schema'
 import {
   Tool,
   ToolContent,
@@ -27,15 +27,15 @@ import { useJsonViewSheet } from '@/components/json-view-sheet'
 import { typedTinybase } from '@/lib/tinybase'
 import { useTetra } from '@/tetra-context'
 
-import { useRequestSteps } from './usage-hooks'
+import { useRunSteps } from './usage-hooks'
 
 type UIMessagePart = Rows['messages']['parts'][number]
 
 function useTetraMessage(messageId: string) {
   const message = typedTinybase.useEntity('messages', messageId)
   const streamingParts = typedTinybase.useEntity('streamingMessageParts', messageId)
-  const request = useRequestForMessage(messageId)
-  const steps = useRequestSteps(streamingParts?.requestId ?? request?.id)
+  const run = useRunForMessage(messageId)
+  const steps = useRunSteps(streamingParts?.runId ?? run?.id)
 
   return useMemo(() => {
     if (!message) {
@@ -49,10 +49,11 @@ function useTetraMessage(messageId: string) {
     return {
       createdAt: message.createdAt,
       id: message.id,
-      request: request
+      role: message.role,
+      run: run
         ? {
-            errorMessage: request.errorMessage ?? null,
-            status: request.status,
+            errorMessage: run.errorMessage ?? null,
+            status: run.status,
             totals:
               totalTokens === 0
                 ? null
@@ -62,17 +63,16 @@ function useTetraMessage(messageId: string) {
                   },
           }
         : null,
-      role: message.role,
       sessionId: message.sessionId,
       stepGroups: groupPartsByStep(parts, steps),
       updatedAt: message.updatedAt,
     }
-  }, [message, request, steps, streamingParts])
+  }, [message, run, steps, streamingParts])
 }
 
-function useRequestForMessage(messageId: string) {
-  const ids = typedTinybase.useSliceRowIds('requestsByAssistantMessageNewestFirst', messageId)
-  return typedTinybase.useEntity('requests', ids[0] ?? '')
+function useRunForMessage(messageId: string) {
+  const ids = typedTinybase.useSliceRowIds('runsByAssistantMessageNewestFirst', messageId)
+  return typedTinybase.useEntity('runs', ids[0] ?? '')
 }
 
 // Groups a flat parts array into per-step buckets using step-start markers as boundaries.
@@ -112,8 +112,8 @@ export function TetraMessageView({
     return <div>this should not be possible</div>
   }
 
-  const { role, id, stepGroups, request } = message
-  const isStreaming = request?.status === 'preparing' || request?.status === 'streaming'
+  const { role, id, stepGroups, run } = message
+  const isStreaming = run?.status === 'preparing' || run?.status === 'streaming'
 
   return (
     <div className={cn('text-xxs space-y-2.5 border border-dashed p-2.5', className)} {...props}>
@@ -122,7 +122,7 @@ export function TetraMessageView({
         <Badge className="rounded-xs font-mono uppercase" variant="secondary">
           {role}
         </Badge>
-        {request && <RequestStatusBadge status={request.status} />}
+        {run && <RunStatusBadge status={run.status} />}
       </div>
 
       {stepGroups.map(({ inference, parts, stepIndex }) => (
@@ -221,10 +221,10 @@ export function TetraMessageView({
         </div>
       ))}
 
-      {request && request.errorMessage !== '' && (
+      {run && run.errorMessage !== '' && (
         <Block className="*:border-destructive/30 border-destructive/30 *:text-destructive text-destructive font-mono">
           <BlockHeader>error</BlockHeader>
-          <BlockContent>{request.errorMessage}</BlockContent>
+          <BlockContent>{run.errorMessage}</BlockContent>
         </Block>
       )}
 
@@ -233,7 +233,7 @@ export function TetraMessageView({
   )
 }
 
-function RequestStatusBadge({ status }: { status: RequestStatus }) {
+function RunStatusBadge({ status }: { status: RunStatus }) {
   if (status === 'completed') {
     return (
       <Badge className="text-muted-foreground" variant="secondary">
@@ -283,7 +283,7 @@ function MessageFooter({
 
   const canRegenerate = isLastMessage
 
-  const totals = message.request?.totals
+  const totals = message.run?.totals
 
   return (
     <div className="flex items-center gap-1 px-1">

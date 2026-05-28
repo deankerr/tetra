@@ -29,9 +29,13 @@ const activeStatuses = new Set(['preparing', 'streaming'])
 
 export function Composer({ sessionId }: { sessionId: string }) {
   const tetra = useTetra()
-  const activeRequest = useActiveRequest(sessionId)
-  const isStreaming = activeRequest !== null
-  const [modelId, setModelId] = typedTinybase.useCellState('sessionConfigs', sessionId, 'modelId')
+  const activeRun = useActiveRun(sessionId)
+  const isStreaming = activeRun !== null
+  const [modelId, setModelId] = typedTinybase.useCellState(
+    'sessionRunConfigs',
+    sessionId,
+    'modelId',
+  )
   const [openrouterApiKey] = useCredential('OPENROUTER_API_KEY')
   const [, setSettingsOpen] = webUiTinybase.useValueState('settingsOpen', WEB_UI_STORE_ID)
   const [draft, setDraft] = useState('')
@@ -125,7 +129,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
           </PromptInputTools>
 
           <ComposerSubmitControls
-            activeRequestId={activeRequest?.id ?? null}
+            activeRunId={activeRun?.id ?? null}
             draft={draft}
             isStreaming={isStreaming}
           />
@@ -135,14 +139,14 @@ export function Composer({ sessionId }: { sessionId: string }) {
   )
 }
 
-// Returns the current active request for this composer so submit controls stay in sync.
-const useActiveRequest = (sessionId: string) => {
-  const ids = typedTinybase.useSliceRowIds('requestsBySessionNewestFirst', sessionId)
-  const request = typedTinybase.useEntity('requests', ids[0] ?? '')
-  if (request === null || !activeStatuses.has(request.status)) {
+// Returns the current active run for this composer so submit controls stay in sync.
+const useActiveRun = (sessionId: string) => {
+  const ids = typedTinybase.useSliceRowIds('runsBySessionNewestFirst', sessionId)
+  const run = typedTinybase.useEntity('runs', ids[0] ?? '')
+  if (run === null || !activeStatuses.has(run.status)) {
     return null
   }
-  return request
+  return run
 }
 
 function ComposerAttachments() {
@@ -189,11 +193,11 @@ function ImageInputButton({ disabled }: { disabled: boolean }) {
 }
 
 function ComposerSubmitControls({
-  activeRequestId,
+  activeRunId,
   draft,
   isStreaming,
 }: {
-  activeRequestId: string | null
+  activeRunId: string | null
   draft: string
   isStreaming: boolean
 }) {
@@ -218,8 +222,8 @@ function ComposerSubmitControls({
       <PromptInputSubmit
         disabled={!isStreaming && isEmpty}
         onStop={() => {
-          if (activeRequestId !== null) {
-            tetra.runs.cancel(activeRequestId)
+          if (activeRunId !== null) {
+            tetra.runs.cancel(activeRunId)
           }
         }}
         status={isStreaming ? 'streaming' : 'ready'}

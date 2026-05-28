@@ -2,7 +2,7 @@
 
 ## Context
 
-Tetra's highest-value behavior is the integration between TinyBase rows, synchronous modules, request lifecycle, tools, and AI SDK streaming.
+Tetra's highest-value behavior is the integration between TinyBase rows, synchronous modules, run lifecycle, tools, and AI SDK streaming.
 
 The redesigned core puts us in a good position: tests can use the same `Accessors`, modules, `Runs`, and `Run` objects as the web app and CLI. We should replace only remote provider/model resolution, then let the rest of the system run for real.
 
@@ -115,7 +115,7 @@ doStream: async () => { ... }
 
 ## First Test Cases
 
-### Request Happy Path
+### Run Happy Path
 
 Exercise:
 
@@ -128,8 +128,8 @@ Assert:
 
 - user message row exists with the submitted text part
 - assistant message row exists with final text parts
-- request status moves through `preparing` / `streaming` / `completed`
-- request config is the run snapshot
+- run status moves through `preparing` / `streaming` / `completed`
+- run config is the run snapshot
 - `run.finalParts` matches the durable assistant message parts
 - mock model received converted model messages
 
@@ -142,7 +142,7 @@ Exercise:
 
 Assert:
 
-- the call throws before creating user, assistant, or request rows
+- the call throws before creating user, assistant, or run rows
 - the session is not touched as a side effect of the failed run
 
 ### History Reconstruction
@@ -169,7 +169,7 @@ Assert:
 
 - no new user message is created
 - target assistant message is cleared before streaming
-- request row points at the same assistant message
+- run row points at the same assistant message
 - final parts replace the previous assistant parts
 
 ### Tool Loop
@@ -185,7 +185,7 @@ Assert:
 - tool output appears in final assistant parts
 - mock model was streamed more than once as required by the AI SDK tool loop
 - later model input includes the assistant tool call and tool result
-- request status is `completed`
+- run status is `completed`
 
 ### Step Accounting
 
@@ -195,7 +195,7 @@ Exercise:
 
 Assert:
 
-- `stepsByRequest` has one row per completed model step
+- `stepsByRun` has one row per completed model step
 - token fields are parsed from normalized SDK usage
 - cost fields are parsed from raw provider usage
 - raw provider usage is preserved on the step row when returned
@@ -208,22 +208,22 @@ Exercise:
 
 Assert:
 
-- request status is `error`
+- run status is `error`
 - `errorMessage` is stored
 - `run.error` is set
-- later requests can still run
+- later runs can still run
 
 ### Cancellation
 
 Exercise:
 
 - stream slowly with `simulateReadableStream`
-- call `runs.cancel(requestId)` while streaming
+- call `runs.cancel(runId)` while streaming
 
 Assert:
 
-- request status is `cancelled`
-- request has `terminalAt`
+- run status is `cancelled`
+- run has `terminalAt`
 - `run.status` is `cancelled`
 - no stale live overlay remains after the run becomes terminal
 
@@ -231,14 +231,14 @@ Assert:
 
 Exercise:
 
-- create request rows with `preparing` and `streaming`
+- create run rows with `preparing` and `streaming`
 - call `runs.recover()`
 
 Assert:
 
-- interrupted requests become terminal errors
+- interrupted runs become terminal errors
 - error text explains interruption or restart
-- completed requests are untouched
+- completed runs are untouched
 
 ## React Scope
 

@@ -1,11 +1,11 @@
-import type { RequestConfig } from '@tetra/store-schema'
+import type { RunConfig } from '@tetra/store-schema'
 import type { Command } from 'commander'
 
 import type { bootstrap } from '../bootstrap'
 import { readMessage } from '../lib/input'
 import { resolveSession } from '../lib/session-ref'
 import { titleFromMessage } from '../lib/title'
-import { waitForRequest } from '../lib/wait-request'
+import { waitForRun } from '../lib/wait-run'
 
 type CliContext = Awaited<ReturnType<typeof bootstrap>>
 
@@ -42,8 +42,8 @@ export async function runChatContent(
     title: titleFromMessage(content),
   })
 
-  // Only pass per-request config fields that the user explicitly provided.
-  const config: Partial<RequestConfig> = {
+  // Persist any CLI-provided run config fields onto the session before starting.
+  const config: Partial<RunConfig> = {
     ...(opts.model !== undefined && { modelId: opts.model }),
     ...(typeof opts.prompt === 'string' && { systemPromptId: opts.prompt }),
   }
@@ -51,9 +51,10 @@ export async function runChatContent(
     config.systemPromptId = ''
   }
   if (Object.keys(config).length > 0) {
-    const sessionConfig = ctx.helpers.typedStore.tables.sessionConfigs.requireEntity(sessionId)
-    ctx.helpers.typedStore.tables.sessionConfigs.setRow(sessionId, {
-      ...sessionConfig,
+    const sessionRunConfig =
+      ctx.helpers.typedStore.tables.sessionRunConfigs.requireEntity(sessionId)
+    ctx.helpers.typedStore.tables.sessionRunConfigs.setRow(sessionId, {
+      ...sessionRunConfig,
       ...config,
     })
   }
@@ -77,8 +78,8 @@ export async function runChatContent(
     lastLength = text.length
   })
 
-  // Wait for the durable request row to reach a terminal status before exiting.
-  await waitForRequest(run)
+  // Wait for the live run to reach a terminal status before exiting.
+  await waitForRun(run)
   console.log()
 }
 

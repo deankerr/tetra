@@ -21,12 +21,16 @@ export function SessionSettings({
   sessionId: string
 }) {
   const [maxMessages, setMaxMessages] = typedTinybase.useCellState(
-    'sessionConfigs',
+    'sessionRunConfigs',
     sessionId,
     'maxMessages',
   )
-  const modelId = typedTinybase.useCell('sessionConfigs', sessionId, 'modelId')
-  const [toolIds, setToolIds] = typedTinybase.useCellState('sessionConfigs', sessionId, 'toolIds')
+  const modelId = typedTinybase.useCell('sessionRunConfigs', sessionId, 'modelId')
+  const [toolIds, setToolIds] = typedTinybase.useCellState(
+    'sessionRunConfigs',
+    sessionId,
+    'toolIds',
+  )
 
   return (
     <FieldGroup>
@@ -91,9 +95,10 @@ function UseAsDefaultButton({ sessionId }: { sessionId: string }) {
     <Button
       className="w-full"
       onClick={() => {
-        helpers.typedStore.values.defaultSessionConfig.set(
-          helpers.typedStore.tables.sessionConfigs.requireEntity(sessionId),
-        )
+        const config = helpers.typedStore.tables.sessionRunConfigs.getRow(sessionId)
+        if (config !== null) {
+          helpers.typedStore.values.defaultRunConfig.set(config)
+        }
       }}
       variant="outline"
     >

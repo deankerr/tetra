@@ -10,7 +10,7 @@ import { WEB_UI_STORE_ID, typedTinybase, webUiTinybase } from '@/lib/tinybase'
 
 import { TetraConversationView } from './conversation-view'
 import { SessionExportButton } from './export-button'
-import { RequestsTable } from './requests-table'
+import { RunsTable } from './runs-table'
 import { SessionSettings } from './settings'
 import { SessionModelPickerSheet } from './settings/model-picker'
 import { PromptEditorSheet } from './settings/prompt-editor-sheet'
@@ -67,11 +67,7 @@ function ActiveSession({ onClose, sessionId }: { onClose: () => void; sessionId:
             >
               <TriangleIcon />
             </TabsTrigger>
-            <TabsTrigger
-              aria-label="Show requests table"
-              title="Show requests table"
-              value="requests"
-            >
+            <TabsTrigger aria-label="Show runs table" title="Show runs table" value="runs">
               <TableIcon />
             </TabsTrigger>
           </TabsList>
@@ -115,8 +111,8 @@ function ActiveSession({ onClose, sessionId }: { onClose: () => void; sessionId:
           <TetraConversationView sessionId={sessionId} />
         </TabsContent>
 
-        <TabsContent className="flex min-h-0 flex-1 flex-col" value="requests">
-          <RequestsTable sessionId={sessionId} />
+        <TabsContent className="flex min-h-0 flex-1 flex-col" value="runs">
+          <RunsTable sessionId={sessionId} />
         </TabsContent>
       </Tabs>
 

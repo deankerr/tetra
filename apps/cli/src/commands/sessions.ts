@@ -1,4 +1,4 @@
-import type { RequestConfig } from '@tetra/store-schema'
+import type { RunConfig } from '@tetra/store-schema'
 import type { Command } from 'commander'
 
 import type { bootstrap } from '../bootstrap'
@@ -36,7 +36,7 @@ export function registerSessionCommands(
       ) => {
         const ctx = await getContext()
         const content = await readMessage({ message: opts.message, parts })
-        const config: Partial<RequestConfig> = {
+        const config: Partial<RunConfig> = {
           ...(opts.model !== undefined && { modelId: opts.model }),
           ...(typeof opts.prompt === 'string' && { systemPromptId: opts.prompt }),
         }
@@ -125,7 +125,7 @@ export function registerSessionCommands(
       console.log(sessionId)
     })
 
-  // Delete a full session cascade: messages, requests, config, summaries, and hot generations.
+  // Delete a full session cascade: messages, runs, config, steps, and hot streaming parts.
   program
     .command('delete-session <id>')
     .alias('rm-session')
@@ -139,7 +139,7 @@ export function registerSessionCommands(
       console.log(sessionId)
     })
 
-  // Delete one message row and any hot generation row attached to it.
+  // Delete one message row and any hot streaming row attached to it.
   program
     .command('delete-message <id>')
     .alias('rm-message')

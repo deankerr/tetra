@@ -12,9 +12,9 @@ import { useMemo } from 'react'
 
 import { typedTinybase } from '@/lib/tinybase'
 
-import { useRequestSteps } from './usage-hooks'
+import { useRunSteps } from './usage-hooks'
 
-type Request = Rows['requests']
+type Run = Rows['runs']
 
 function formatTime(ts: number) {
   return new Date(ts).toLocaleTimeString([], {
@@ -61,8 +61,8 @@ function statusClass(status: string) {
   return 'text-muted-foreground'
 }
 
-function useRequestAccountingSummary(requestId: string) {
-  const steps = useRequestSteps(requestId)
+function useRunAccountingSummary(runId: string) {
+  const steps = useRunSteps(runId)
 
   return useMemo(() => {
     const usage = summarizeSteps(steps)
@@ -74,38 +74,34 @@ function useRequestAccountingSummary(requestId: string) {
   }, [steps])
 }
 
-// Split out so each row subscribes independently to its request row.
-function RequestRowById({ requestId }: { requestId: string }) {
-  const request = typedTinybase.useEntity('requests', requestId)
-  if (!request) {
+// Split out so each row subscribes independently to its run row.
+function RunRowById({ runId }: { runId: string }) {
+  const run = typedTinybase.useEntity('runs', runId)
+  if (!run) {
     return null
   }
-  return <RequestRow request={request} />
+  return <RunRow run={run} />
 }
 
-function RequestRow({ request }: { request: Request }) {
-  const summary = useRequestAccountingSummary(request.id)
+function RunRow({ run }: { run: Run }) {
+  const summary = useRunAccountingSummary(run.id)
 
   return (
     <TableRow>
-      <TableCell className="text-muted-foreground font-mono">
-        {formatTime(request.createdAt)}
-      </TableCell>
-      <TableCell className={statusClass(request.status)}>{request.status}</TableCell>
-      <TableCell className="max-w-48 truncate font-mono">{formatModel(request.config)}</TableCell>
+      <TableCell className="text-muted-foreground font-mono">{formatTime(run.createdAt)}</TableCell>
+      <TableCell className={statusClass(run.status)}>{run.status}</TableCell>
+      <TableCell className="max-w-48 truncate font-mono">{formatModel(run.config)}</TableCell>
       <TableCell className="font-mono">
         {formatTokens(summary.inputTokens, summary.outputTokens)}
       </TableCell>
       <TableCell className="font-mono">{formatCost(summary.cost)}</TableCell>
-      <TableCell className="max-w-64 truncate text-red-400">
-        {request.errorMessage ?? null}
-      </TableCell>
+      <TableCell className="max-w-64 truncate text-red-400">{run.errorMessage ?? null}</TableCell>
     </TableRow>
   )
 }
 
-export function RequestsTable({ sessionId }: { sessionId: string }) {
-  const requestIds = typedTinybase.useSliceRowIds('requestsBySessionNewestFirst', sessionId)
+export function RunsTable({ sessionId }: { sessionId: string }) {
+  const runIds = typedTinybase.useSliceRowIds('runsBySessionNewestFirst', sessionId)
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
@@ -121,14 +117,14 @@ export function RequestsTable({ sessionId }: { sessionId: string }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {requestIds.length === 0 ? (
+          {runIds.length === 0 ? (
             <TableRow>
               <TableCell className="text-muted-foreground" colSpan={6}>
-                No requests yet.
+                No runs yet.
               </TableCell>
             </TableRow>
           ) : (
-            requestIds.map((id) => <RequestRowById key={id} requestId={id} />)
+            runIds.map((id) => <RunRowById key={id} runId={id} />)
           )}
         </TableBody>
       </Table>

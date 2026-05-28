@@ -2,7 +2,7 @@
 
 ## Status
 
-Exploratory. This document records the evolving design for request execution in Tetra's redesigned core.
+Exploratory. This document records the evolving design for run execution in Tetra's redesigned core.
 
 The goal is not to freeze an API too early. The goal is to keep the important ideas visible while we test names, responsibilities, and boundaries in code.
 
@@ -16,32 +16,32 @@ Tetra is a local-first chat app, but the main user experience is not just "store
 - prepare model input
 - execute an AI SDK stream
 - expose live assistant state while streaming
-- persist durable request/message state
+- persist durable run/message state
 - account for model steps and usage
 - support cancellation, recovery, tools, and future customization
 
-If this shape is wrong, everything else bends around it: CLI, web, integration tests, request history, tool configuration, and later transcription/customization flows.
+If this shape is wrong, everything else bends around it: CLI, web, integration tests, run history, tool configuration, and later transcription/customization flows.
 
 ## Current Direction
 
 The working direction is:
 
 - `Runs` is the manager and registry.
-- `Run` is the per-request execution object.
+- `Run` is the per-run execution object.
 - `Run` exists to enhance our use of the AI SDK `streamText` function.
 - TinyBase remains the durable source of truth.
-- Live run state can exist outside TinyBase while a request is in progress.
+- Live run state can exist outside TinyBase while a run is in progress.
 - The AI SDK should stay visible. We are not trying to hide it behind a generic LLM abstraction.
 
-This suggests that `Run` should be the centerpiece of request execution, not a thin wrapper hidden behind callbacks.
+This suggests that `Run` should be the centerpiece of run execution, not a thin wrapper hidden behind callbacks.
 
 ## Terms
 
 ### Run
 
-A single request execution.
+A single model-producing action applied to a session.
 
-A `Run` should know its request id, assistant message id, abort controller, current status, live parts, final parts, steps, error, and AI SDK stream result.
+A `Run` should know its run id, assistant message id, abort controller, current status, live parts, final parts, steps, error, and AI SDK stream result.
 
 It is the handle a frontend or CLI can observe, cancel, and await.
 
@@ -53,11 +53,11 @@ The manager for active and recovered runs.
 
 It creates `Run` instances and answers questions like:
 
-- which run owns this request id?
+- which run owns this run id?
 - which run owns this assistant message id?
 - is there an active run for this session?
-- cancel this request
-- recover interrupted request rows
+- cancel this run
+- recover interrupted run rows
 
 ### Pre-Run
 
@@ -73,9 +73,9 @@ This is expected to become one of the most complex parts of the app. It may incl
 - converting `Rows.Message[]` to AI SDK `ModelMessage[]`
 - resolving tools
 - applying future transcription or prompt customization
-- creating durable user message, assistant placeholder, and request row
+- creating durable user message, assistant placeholder, and run row
 
-Pre-run should be designed as a phase of request execution, not hidden as incidental setup.
+Pre-run should be designed as a phase of run execution, not hidden as incidental setup.
 
 ### Stream
 
@@ -87,7 +87,7 @@ The phase that calls `streamText`, consumes the AI SDK stream, updates live part
 
 The existing `@tetra/core` runner works, but it mixes many responsibilities:
 
-- request row creation
+- run row creation
 - user and assistant message creation
 - credential validation
 - OpenRouter provider creation
@@ -107,7 +107,7 @@ This made the first prototype simple, but it makes testing and future customizat
 
 The first redesign pass split the work into:
 
-- `Execute`: prepare a request
+- `Execute`: prepare a run
 - `Runner`: call `streamText`
 - `Runs`: bridge live state, durable writes, cancellation, and active tracking
 
@@ -118,7 +118,7 @@ This was useful because it exposed the phases. It also exposed too many half-con
 - `PreparedRun`, `RunnerInput`, `ActiveRun`, and `RunHandle` were different names for pieces of the same thing.
 - `finalParts` and the AI SDK result were hidden local variables.
 
-The lesson: the missing concept is not a separate runner function. The missing concept is a real per-request `Run`.
+The lesson: the missing concept is not a separate runner function. The missing concept is a real per-run `Run`.
 
 ## Important Questions
 
@@ -236,8 +236,8 @@ class Runs {
   sendMessage(sessionId: string, args: SendMessageArgs): Run
   regenerate(assistantMessageId: string, args?: RegenerateArgs): Run
   start(args: RunStart): Run
-  cancel(requestId: string): void
-  get(requestId: string): Run | null
+  cancel(runId: string): void
+  get(runId: string): Run | null
   getByAssistantMessage(messageId: string): Run | null
   getBySession(sessionId: string): Run | null
   recover(): void
@@ -246,7 +246,7 @@ class Runs {
 
 ```ts
 class Run extends EventTarget {
-  readonly requestId: string
+  readonly runId: string
   readonly assistantMessageId: string
   readonly abortController: AbortController
   readonly done: Promise<void>
@@ -283,7 +283,7 @@ run.start()
     emit snapshot
     write throttled durable assistant parts
   write final assistant parts
-  complete request
+  complete run
   set status: completed
   emit finish
 ```
@@ -292,19 +292,19 @@ Error and cancellation:
 
 ```txt
 pre-run error
-  mark durable request error if request row exists
+  mark durable run error if run row exists
   set run.error
   set status: error
   reject or resolve done? still undecided
 
 stream error
-  mark request error
+  mark run error
   set run.error
   set status: error
 
 cancel
   abort controller
-  mark request cancelled
+  mark run cancelled
   set status: cancelled
 ```
 
@@ -316,15 +316,15 @@ During a run:
 
 - user message should exist durably before streaming starts
 - assistant placeholder should exist durably before streaming starts
-- request row should exist durably before streaming starts
+- run row should exist durably before streaming starts
 - stream-time parts are persisted to `streamingMessageParts`
 - completed model-call accounting is persisted to `steps`
 - committed assistant parts are written back to `messages` at terminal status
-- request rows stay focused on lifecycle/config/status
+- run rows stay focused on lifecycle/config/status
 - usage totals are derived from step rows at the read sites that need them
 - terminal status must always be written for completed, failed, and cancelled runs
 
-Open question: whether the request row should begin as `preparing` instead of `streaming`.
+Open question: whether the run row should begin as `preparing` instead of `streaming`.
 
 ## Watchlist
 
@@ -353,13 +353,13 @@ Possible approaches:
 
 1. Do all fallible preparation before creating durable rows.
 2. Create durable rows early, but have `Run` own failure cleanup immediately after creation.
-3. Add request status `preparing`, then transition to `streaming` only once `streamText` starts.
+3. Add run status `preparing`, then transition to `streaming` only once `streamText` starts.
 
 The likely answer is either 2 or 3, because frontends benefit from immediate durable rows.
 
 ## Promise Semantics
 
-The old CLI waited for request terminal status and threw on error or cancellation.
+The old CLI waited for run terminal status and threw on error or cancellation.
 
 A `Run.done` promise could mean one of two things:
 
@@ -395,7 +395,7 @@ Likely web shape:
 ```txt
 composer
   calls runs.execute()
-  calls run.cancel() or runs.cancel(requestId)
+  calls run.cancel() or runs.cancel(runId)
 
 api hooks
   read TinyBase rows
@@ -421,7 +421,7 @@ Tests should be able to assert:
 - durable assistant placeholder
 - live `run.parts`
 - final `run.finalParts`
-- request status
+- run status
 - step rows
 - AI SDK result details where useful
 - cancellation and recovery behavior
@@ -442,7 +442,7 @@ The design should not require mocking `streamText`.
 Replace the current `Execute` plus `Runner` plus `RunHandle` sketch with:
 
 - `src/runs.ts` for workflow-level send/regenerate/start orchestration
-- `src/run.ts` for the per-request `streamText` execution object
+- `src/run.ts` for the per-run `streamText` execution object
 
 Move step parsing to top level until a more durable folder structure emerges.
 

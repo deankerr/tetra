@@ -1,4 +1,4 @@
-import { RequestConfig } from '@tetra/store-schema'
+import { RunConfig } from '@tetra/store-schema'
 import type { Command } from 'commander'
 
 import type { bootstrap } from '../bootstrap'
@@ -29,27 +29,28 @@ export function registerConfigCommand(
           throw new Error('No active session. Try: tetra "hello"')
         }
 
-        const overrides: Partial<RequestConfig> = {
+        const overrides: Partial<RunConfig> = {
           ...(opts.maxMessages !== undefined && { maxMessages: opts.maxMessages }),
           ...(opts.model !== undefined && { modelId: opts.model }),
           ...(typeof opts.prompt === 'string' && { systemPromptId: opts.prompt }),
         }
 
-        const config = ctx.helpers.typedStore.tables.sessionConfigs.requireEntity(resolvedSessionId)
+        const config =
+          ctx.helpers.typedStore.tables.sessionRunConfigs.requireEntity(resolvedSessionId)
 
         if (Object.keys(overrides).length > 0 || opts.prompt === false) {
           const next = { ...config, ...overrides }
           if (opts.prompt === false) {
             next.systemPromptId = ''
           }
-          ctx.helpers.typedStore.tables.sessionConfigs.setRow(
+          ctx.helpers.typedStore.tables.sessionRunConfigs.setRow(
             resolvedSessionId,
-            RequestConfig.parse(next),
+            RunConfig.parse(next),
           )
         }
 
         const latestConfig =
-          ctx.helpers.typedStore.tables.sessionConfigs.requireEntity(resolvedSessionId)
+          ctx.helpers.typedStore.tables.sessionRunConfigs.requireEntity(resolvedSessionId)
         console.log(`session:      ${resolvedSessionId}`)
         console.log(`model:        ${latestConfig.modelId}`)
         console.log(

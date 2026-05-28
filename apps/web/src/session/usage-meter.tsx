@@ -68,7 +68,7 @@ export function SessionUsageMeter({ sessionId }: { sessionId: string }) {
 }
 
 function useSessionContextSummary(sessionId: string): SessionContextSummary | null {
-  const modelId = typedTinybase.useCell('sessionConfigs', sessionId, 'modelId') ?? ''
+  const modelId = typedTinybase.useCell('sessionRunConfigs', sessionId, 'modelId') ?? ''
   const languageModel = typedTinybase.useRow('languageModels', modelId)
   const usage = useSessionUsageTotals(sessionId)
 

@@ -1,10 +1,10 @@
-import { DEFAULT_REQUEST_CONFIG, RequestConfig as RequestConfigSchema } from '@tetra/store-schema'
+import { DEFAULT_RUN_CONFIG, RunConfig as RunConfigSchema } from '@tetra/store-schema'
 import type {
   TetraTypedIndexes,
   TetraRawStore,
   TetraTypedStore,
   MessageRole,
-  RequestConfig,
+  RunConfig,
 } from '@tetra/store-schema'
 import type { UIMessage } from 'ai'
 
@@ -35,13 +35,13 @@ export class Helpers {
 
   // ——— Sessions ———
 
-  createSession(args: { config?: Partial<RequestConfig>; title?: string } = {}): string {
+  createSession(args: { config?: Partial<RunConfig>; title?: string } = {}): string {
     const sessionId = this.nextSessionId()
-    const storedDefaultConfig = this.rawStore.hasValue('defaultSessionConfig')
-      ? this.typedStore.values.defaultSessionConfig.get()
-      : DEFAULT_REQUEST_CONFIG
-    const config = RequestConfigSchema.parse({
-      ...storedDefaultConfig,
+    const storedDefaultConfig = this.rawStore.hasValue('defaultRunConfig')
+      ? this.rawStore.getValue('defaultRunConfig')
+      : DEFAULT_RUN_CONFIG
+    const config = RunConfigSchema.parse({
+      ...toConfigObject(storedDefaultConfig),
       ...args.config,
     })
     const now = Date.now()
@@ -53,7 +53,7 @@ export class Helpers {
         title: args.title ?? '',
         updatedAt: now,
       })
-      this.typedStore.tables.sessionConfigs.setRow(sessionId, config)
+      this.typedStore.tables.sessionRunConfigs.setRow(sessionId, config)
     })
 
     return sessionId
@@ -68,11 +68,8 @@ export class Helpers {
         this.typedStore.tables.messages.deleteRow(messageId)
       }
 
-      for (const requestId of this.typedIndexes.getSliceRowIds(
-        'requestsBySessionNewestFirst',
-        sessionId,
-      )) {
-        this.typedStore.tables.requests.deleteRow(requestId)
+      for (const runId of this.typedIndexes.getSliceRowIds('runsBySessionNewestFirst', sessionId)) {
+        this.typedStore.tables.runs.deleteRow(runId)
       }
 
       for (const messageId of this.typedIndexes.getSliceRowIds(
@@ -86,7 +83,7 @@ export class Helpers {
         this.typedStore.tables.steps.deleteRow(stepId)
       }
 
-      this.typedStore.tables.sessionConfigs.deleteRow(sessionId)
+      this.typedStore.tables.sessionRunConfigs.deleteRow(sessionId)
       this.typedStore.tables.sessions.deleteRow(sessionId)
     })
   }
@@ -116,16 +113,16 @@ export class Helpers {
     const message = this.typedStore.tables.messages.requireEntity(messageId)
     const now = Date.now()
 
-    // Remove request and step sidecars for assistant messages before dropping the content row.
+    // Remove run and step sidecars for assistant messages before dropping the content row.
     this.rawStore.transaction(() => {
-      for (const requestId of this.typedIndexes.getSliceRowIds(
-        'requestsByAssistantMessageNewestFirst',
+      for (const runId of this.typedIndexes.getSliceRowIds(
+        'runsByAssistantMessageNewestFirst',
         messageId,
       )) {
-        for (const stepId of this.typedIndexes.getSliceRowIds('stepsByRequest', requestId)) {
+        for (const stepId of this.typedIndexes.getSliceRowIds('stepsByRun', runId)) {
           this.typedStore.tables.steps.deleteRow(stepId)
         }
-        this.typedStore.tables.requests.deleteRow(requestId)
+        this.typedStore.tables.runs.deleteRow(runId)
       }
 
       for (const stepId of this.typedIndexes.getSliceRowIds('stepsByMessage', messageId)) {
@@ -161,9 +158,9 @@ export class Helpers {
     this.rawStore.transaction(() => {
       for (const sessionId of this.typedStore.tables.sessions.getRowIds()) {
         if (
-          this.typedStore.tables.sessionConfigs.getCell(sessionId, 'systemPromptId') === promptId
+          this.typedStore.tables.sessionRunConfigs.getCell(sessionId, 'systemPromptId') === promptId
         ) {
-          this.typedStore.tables.sessionConfigs.setCell(sessionId, 'systemPromptId', '')
+          this.typedStore.tables.sessionRunConfigs.setCell(sessionId, 'systemPromptId', '')
         }
       }
 
@@ -181,14 +178,22 @@ export class Helpers {
       messages: this.typedIndexes
         .getSliceRowIds('messagesBySession', sessionId)
         .map((id) => this.typedStore.tables.messages.requireEntity(id)),
-      requests: this.typedIndexes
-        .getSliceRowIds('requestsBySessionNewestFirst', sessionId)
-        .map((id) => this.typedStore.tables.requests.requireEntity(id)),
+      runs: this.typedIndexes
+        .getSliceRowIds('runsBySessionNewestFirst', sessionId)
+        .map((id) => this.typedStore.tables.runs.requireEntity(id)),
       session: this.typedStore.tables.sessions.requireEntity(sessionId),
-      sessionConfig: this.typedStore.tables.sessionConfigs.requireEntity(sessionId),
+      sessionRunConfig: this.typedStore.tables.sessionRunConfigs.requireEntity(sessionId),
       steps: this.typedIndexes
         .getSliceRowIds('stepsBySession', sessionId)
         .map((id) => this.typedStore.tables.steps.requireEntity(id)),
     }
   }
+}
+
+function toConfigObject(value: unknown): Record<string, unknown> {
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    return Object.fromEntries(Object.entries(value))
+  }
+
+  return {}
 }

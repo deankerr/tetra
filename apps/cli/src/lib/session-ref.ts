@@ -31,7 +31,7 @@ export function resolveSession(
     return sessionId
   }
 
-  // Forced-new requests intentionally bypass the currently active session.
+  // Forced-new sessions intentionally bypass the currently active session.
   if (forceNew) {
     const nextSessionId = helpers.createSession({ title })
     if (setActive) {
