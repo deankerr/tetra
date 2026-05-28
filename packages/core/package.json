@@ -7,7 +7,6 @@
     "#helpers": "./src/helpers.ts",
     "#ids": "./src/ids.ts",
     "#runtime": "./src/runtime/index.ts",
-    "#seeds": "./src/seeds.ts",
     "#tools": "./src/tools/tools.ts",
     "#usage": "./src/usage.ts"
   },

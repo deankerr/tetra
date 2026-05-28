@@ -170,4 +170,25 @@ export class Helpers {
       this.typedStore.tables.prompts.deleteRow(promptId)
     })
   }
+
+  exportSession(sessionId: string) {
+    if (!this.typedStore.tables.sessions.hasRow(sessionId)) {
+      throw new Error(`Session not found: ${sessionId}`)
+    }
+
+    return {
+      exportedAt: new Date().toISOString(),
+      messages: this.typedIndexes
+        .getSliceRowIds('messagesBySession', sessionId)
+        .map((id) => this.typedStore.tables.messages.requireEntity(id)),
+      requests: this.typedIndexes
+        .getSliceRowIds('requestsBySessionNewestFirst', sessionId)
+        .map((id) => this.typedStore.tables.requests.requireEntity(id)),
+      session: this.typedStore.tables.sessions.requireEntity(sessionId),
+      sessionConfig: this.typedStore.tables.sessionConfigs.requireEntity(sessionId),
+      steps: this.typedIndexes
+        .getSliceRowIds('stepsBySession', sessionId)
+        .map((id) => this.typedStore.tables.steps.requireEntity(id)),
+    }
+  }
 }

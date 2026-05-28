@@ -34,7 +34,7 @@ export function RootErrorComponent({ error, reset }: ErrorComponentProps) {
           variant="outline"
         >
           <Trash2Icon />
-          Clear data
+          Clear all IndexedDB data
         </Button>
       </div>
     </div>

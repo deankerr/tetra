@@ -1,4 +1,3 @@
-import { loadSeeds } from '@tetra/core'
 import { Button } from '@tetra/ui/components/ui/button'
 import {
   DropdownMenu,
@@ -8,14 +7,11 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@tetra/ui/components/ui/dropdown-menu'
-import { BugIcon, DatabaseIcon, Trash2Icon } from 'lucide-react'
+import { BugIcon, Trash2Icon } from 'lucide-react'
 
 import { clearTetraIndexedDbAndReload } from '@/lib/tinybase'
-import { useTetra } from '@/tetra-context'
 
 export function DebugMenu() {
-  const { helpers } = useTetra()
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -30,19 +26,11 @@ export function DebugMenu() {
           <DropdownMenuLabel>Debug</DropdownMenuLabel>
           <DropdownMenuItem
             onClick={() => {
-              loadSeeds(helpers)
-            }}
-          >
-            <DatabaseIcon />
-            Load seed data
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => {
               void clearTetraIndexedDbAndReload()
             }}
           >
             <Trash2Icon />
-            Clear all data
+            Clear all IndexedDB data
           </DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>

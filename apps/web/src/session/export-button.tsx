@@ -1,4 +1,3 @@
-import { exportSession } from '@tetra/core'
 import { Button } from '@tetra/ui/components/ui/button'
 import { DownloadIcon } from 'lucide-react'
 
@@ -11,7 +10,7 @@ export function SessionExportButton({ sessionId }: { sessionId: string }) {
     <Button
       aria-label="Export session"
       onClick={() => {
-        const exported = exportSession(helpers, sessionId)
+        const exported = helpers.exportSession(sessionId)
         const title = exported.session.title.trim() ?? sessionId
         const safeTitle = title.replaceAll(/[^a-z0-9_-]+/giu, '-').replaceAll(/^-|-$/gu, '')
         const blob = new Blob([JSON.stringify(exported, null, 2)], {
