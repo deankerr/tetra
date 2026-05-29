@@ -6,23 +6,23 @@ Most context files are created lazily. If a mapped `CONTEXT.md` or `docs/adr/` d
 
 ## Shared Context
 
-| Path | Scope |
-| --- | --- |
+| Path         | Scope                                                                                                                                    |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `CONTEXT.md` | Product and domain language shared across Tetra: sessions, messages, runs, tools, usage, local-first behavior, and user-facing concepts. |
 
 ## Package And App Contexts
 
-| Path | Scope |
-| --- | --- |
-| `packages/core/CONTEXT.md` | Core domain behavior: sessions, messages, runs, catalog refresh, tool execution, recovery, and shared behavior used by web and CLI. |
-| `packages/store-schema/CONTEXT.md` | Tetra's durable TinyBase data model: tables, values, indexes, persisted row semantics, and app-specific schema tradeoffs. |
+| Path                                  | Scope                                                                                                                                                           |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/core/CONTEXT.md`            | Core domain behavior: sessions, messages, runs, catalog refresh, tool execution, recovery, and shared behavior used by web and CLI.                             |
+| `packages/store-schema/CONTEXT.md`    | Tetra's durable TinyBase data model: tables, values, indexes, persisted row semantics, and app-specific schema tradeoffs.                                       |
 | `packages/tinybase-schema/CONTEXT.md` | Typed TinyBase helper library design: zod-to-TinyBase schema generation, bound store/index APIs, React wrappers, escape hatches, and library-level constraints. |
-| `apps/web/CONTEXT.md` | Web app shell behavior: TanStack Start routes, React UI state, TinyBase provider wiring, persistence/sync UI, credentials UI, and interaction workflows. |
-| `apps/cli/CONTEXT.md` | CLI workflows: command behavior, parity with web features, local session selection, terminal I/O, and scriptable operations. |
-| `apps/worker/CONTEXT.md` | Cloudflare Worker sync backend: Durable Object behavior, websocket synchronization, and deployment/runtime constraints. |
-| `packages/ui/CONTEXT.md` | Shared UI system: shadcn components, AI Elements, vendored component boundaries, theme tokens, and reusable visual primitives. |
-| `packages/credentials/CONTEXT.md` | Credential storage and provider key concerns shared by app surfaces. |
-| `packages/tools-exa/CONTEXT.md` | Exa tool integration: tool descriptors, request/response boundaries, and search/content tool semantics. |
+| `apps/web/CONTEXT.md`                 | Web app shell behavior: TanStack Start routes, React UI state, TinyBase provider wiring, persistence/sync UI, credentials UI, and interaction workflows.        |
+| `apps/cli/CONTEXT.md`                 | CLI workflows: command behavior, parity with web features, local session selection, terminal I/O, and scriptable operations.                                    |
+| `apps/worker/CONTEXT.md`              | Cloudflare Worker sync backend: Durable Object behavior, websocket synchronization, and deployment/runtime constraints.                                         |
+| `packages/ui/CONTEXT.md`              | Shared UI system: shadcn components, AI Elements, vendored component boundaries, theme tokens, and reusable visual primitives.                                  |
+| `packages/credentials/CONTEXT.md`     | Credential storage and provider key concerns shared by app surfaces.                                                                                            |
+| `packages/tools-exa/CONTEXT.md`       | Exa tool integration: tool descriptors, request/response boundaries, and search/content tool semantics.                                                         |
 
 ## ADR Lookup
 

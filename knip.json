@@ -1,9 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "ignoreExportsUsedInFile": {
-    "interface": true,
-    "type": true
-  },
+  "treatConfigHintsAsErrors": true,
   "ignoreIssues": {
     "packages/ui/src/components/ai-elements/**": ["exports", "types"],
     "packages/ui/src/components/ui/**": ["exports", "types"]
@@ -28,6 +25,11 @@
       "project": ["src/**/*.{ts,tsx}"]
     },
     "packages/core": {
+      "includeEntryExports": true,
+      "entry": ["src/**/*.test.ts"],
+      "project": ["src/**/*.{ts,tsx}"]
+    },
+    "packages/store-schema": {
       "includeEntryExports": true,
       "entry": ["src/**/*.test.ts"],
       "project": ["src/**/*.{ts,tsx}"]

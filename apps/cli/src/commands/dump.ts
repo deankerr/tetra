@@ -1,11 +1,9 @@
 import { Database } from 'bun:sqlite'
 
-import { tetraStoreSchema } from '@tetra/store-schema'
+import { createRawMergeableStore, createRawStore, tetraStoreSchema } from '@tetra/store-schema'
 import { bindStore } from '@tetra/tinybase-schema'
 import type { Command } from 'commander'
-import { createMergeableStore } from 'tinybase/mergeable-store/with-schemas'
 import { createSqliteBunPersister } from 'tinybase/persisters/persister-sqlite-bun/with-schemas'
-import { createStore } from 'tinybase/store/with-schemas'
 import { createWsSynchronizer } from 'tinybase/synchronizers/synchronizer-ws-client/with-schemas'
 
 import { SYNC_URL, TABULAR_CONFIG } from '../bootstrap'
@@ -23,11 +21,8 @@ export function registerDumpCommand(program: Command): void {
     .action(async (opts: { db: string; settle: string }) => {
       const settleMs = Number.parseInt(opts.settle, 10)
 
-      // Open a MergeableStore and sync from the DO.
-      const mergeableStore = createMergeableStore().setSchema(
-        structuredClone(tetraStoreSchema.tablesSchema),
-        structuredClone(tetraStoreSchema.valuesSchema),
-      )
+      // Open a MergeableStore rawStore and sync from the DO.
+      const { rawStore: mergeableStore } = createRawMergeableStore()
       const ws = new WebSocket(SYNC_URL)
       const synchronizer = await createWsSynchronizer(mergeableStore, ws)
       await synchronizer.startSync()
@@ -36,11 +31,8 @@ export function registerDumpCommand(program: Command): void {
       await Bun.sleep(settleMs)
       console.log(' done')
 
-      // Open a plain Store and copy the data across using the untyped store API.
-      const localStore = createStore().setSchema(
-        structuredClone(tetraStoreSchema.tablesSchema),
-        structuredClone(tetraStoreSchema.valuesSchema),
-      )
+      // Open a plain rawStore and copy the data across using the untyped store API.
+      const { rawStore: localStore } = createRawStore()
       localStore.setTables(mergeableStore.getTables())
       localStore.setValues(mergeableStore.getValues())
       const localTypedStore = bindStore(

@@ -1,9 +1,9 @@
-import { DEFAULT_RUN_CONFIG, RunConfig as RunConfigSchema } from '@tetra/store-schema'
+import { DEFAULT_RUN_CONFIG, RunConfigSchema } from '@tetra/store-schema'
 import type {
+  Rows,
   TetraTypedIndexes,
   TetraRawStore,
   TetraTypedStore,
-  MessageRole,
   RunConfig,
 } from '@tetra/store-schema'
 import type { UIMessage } from 'ai'
@@ -90,7 +90,10 @@ export class Helpers {
 
   // ——— Messages ———
 
-  appendMessage(sessionId: string, args: { parts: UIMessage['parts']; role: MessageRole }): string {
+  appendMessage(
+    sessionId: string,
+    args: { parts: UIMessage['parts']; role: Rows['messages']['role'] },
+  ): string {
     this.typedStore.tables.sessions.requireEntity(sessionId)
     const messageId = this.nextMessageId()
     const now = Date.now()

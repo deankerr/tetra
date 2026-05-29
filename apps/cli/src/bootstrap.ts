@@ -2,12 +2,14 @@ import { Database } from 'bun:sqlite'
 
 import { Catalog, Helpers, Runs } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
-import { setTetraIndexDefinitions, tetraStoreSchema, tetraIndexIds } from '@tetra/store-schema'
+import {
+  createRawMergeableStore,
+  createRawStore,
+  tetraStoreSchema,
+  tetraIndexIds,
+} from '@tetra/store-schema'
 import { bindIndexes, bindStore } from '@tetra/tinybase-schema'
-import { createIndexes } from 'tinybase/indexes/with-schemas'
-import { createMergeableStore } from 'tinybase/mergeable-store/with-schemas'
 import { createSqliteBunPersister } from 'tinybase/persisters/persister-sqlite-bun/with-schemas'
-import { createStore } from 'tinybase/store/with-schemas'
 import { createWsSynchronizer } from 'tinybase/synchronizers/synchronizer-ws-client/with-schemas'
 
 // oxlint-disable-next-line dot-notation -- env var name has underscores, bracket notation is clearer
@@ -49,18 +51,13 @@ export type BootstrapMode = 'local' | 'sync'
 
 export async function bootstrap(mode: BootstrapMode) {
   if (mode === 'local') {
-    // Local mode owns a plain Store and applies Tetra's schema directly.
-    const store = createStore().setSchema(
-      structuredClone(tetraStoreSchema.tablesSchema),
-      structuredClone(tetraStoreSchema.valuesSchema),
-    )
-    const indexes = createIndexes(store)
-    setTetraIndexDefinitions(indexes)
-    const typedStore = bindStore(store, tetraStoreSchema.tables, tetraStoreSchema.values)
-    const typedIndexes = bindIndexes(indexes, tetraIndexIds)
+    // Local mode owns a plain rawStore/rawIndexes pair before binding typed APIs.
+    const { rawIndexes, rawStore } = createRawStore()
+    const typedStore = bindStore(rawStore, tetraStoreSchema.tables, tetraStoreSchema.values)
+    const typedIndexes = bindIndexes(rawIndexes, tetraIndexIds)
     const context = {
-      rawIndexes: indexes,
-      rawStore: store,
+      rawIndexes,
+      rawStore,
       typedIndexes,
       typedStore,
     }
@@ -74,7 +71,7 @@ export async function bootstrap(mode: BootstrapMode) {
         cliActiveSessionId.set('')
       },
       getActiveSessionId(): string | undefined {
-        const sessionId = store.hasValue('cliActiveSessionId') ? cliActiveSessionId.get() : ''
+        const sessionId = rawStore.hasValue('cliActiveSessionId') ? cliActiveSessionId.get() : ''
         return sessionId.trim() === '' ? undefined : sessionId
       },
       setActiveSessionId(sessionId: string): void {
@@ -83,7 +80,7 @@ export async function bootstrap(mode: BootstrapMode) {
     }
 
     const sqlite = new Database('./tetra-redesign.db')
-    const persister = createSqliteBunPersister(store, sqlite, TABULAR_CONFIG)
+    const persister = createSqliteBunPersister(rawStore, sqlite, TABULAR_CONFIG)
     await persister.load()
     runs.recover()
 
@@ -100,18 +97,13 @@ export async function bootstrap(mode: BootstrapMode) {
     }
   }
 
-  // Sync mode owns a MergeableStore and connects it to the DO plus a local JSON SQLite cache.
-  const store = createMergeableStore().setSchema(
-    structuredClone(tetraStoreSchema.tablesSchema),
-    structuredClone(tetraStoreSchema.valuesSchema),
-  )
-  const indexes = createIndexes(store)
-  setTetraIndexDefinitions(indexes)
-  const typedStore = bindStore(store, tetraStoreSchema.tables, tetraStoreSchema.values)
-  const typedIndexes = bindIndexes(indexes, tetraIndexIds)
+  // Sync mode owns a MergeableStore rawStore/rawIndexes pair before binding typed APIs.
+  const { rawIndexes, rawStore } = createRawMergeableStore()
+  const typedStore = bindStore(rawStore, tetraStoreSchema.tables, tetraStoreSchema.values)
+  const typedIndexes = bindIndexes(rawIndexes, tetraIndexIds)
   const context = {
-    rawIndexes: indexes,
-    rawStore: store,
+    rawIndexes,
+    rawStore,
     typedIndexes,
     typedStore,
   }
@@ -124,7 +116,7 @@ export async function bootstrap(mode: BootstrapMode) {
       cliActiveSessionId.set('')
     },
     getActiveSessionId(): string | undefined {
-      const sessionId = store.hasValue('cliActiveSessionId') ? cliActiveSessionId.get() : ''
+      const sessionId = rawStore.hasValue('cliActiveSessionId') ? cliActiveSessionId.get() : ''
       return sessionId.trim() === '' ? undefined : sessionId
     },
     setActiveSessionId(sessionId: string): void {
@@ -132,10 +124,10 @@ export async function bootstrap(mode: BootstrapMode) {
     },
   }
   const sqlite = new Database('./tetra-sync-cache.db')
-  const persister = createSqliteBunPersister(store, sqlite)
+  const persister = createSqliteBunPersister(rawStore, sqlite)
   console.log(`Sync URL: ${SYNC_URL}`)
   const ws = new WebSocket(SYNC_URL)
-  const synchronizer = await createWsSynchronizer(store, ws)
+  const synchronizer = await createWsSynchronizer(rawStore, ws)
 
   await persister.load()
   await synchronizer.startSync()

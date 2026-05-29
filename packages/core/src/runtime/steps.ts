@@ -1,9 +1,10 @@
-import type { StepRecord } from '@tetra/store-schema'
-import { StepWarning } from '@tetra/store-schema'
+import { StepWarningSchema } from '@tetra/store-schema'
+import type { Rows } from '@tetra/store-schema'
 import { pickBy } from 'remeda'
 import { z } from 'zod'
 
-type CapturedStep = Omit<StepRecord, 'messageId' | 'runId' | 'sessionId'>
+type StepRecord = Rows['steps']
+type CapturedStep = Omit<StepRecord, 'id' | 'messageId' | 'runId' | 'sessionId'>
 type StepRawUsage = NonNullable<StepRecord['raw']['usage']>
 
 // OpenRouter can report null for some cost/token fields; normalize those to absent.
@@ -90,7 +91,7 @@ const StepEventShape = z.object({
     raw: z.unknown().optional(),
     totalTokens: z.number().optional(),
   }),
-  warnings: z.array(StepWarning).optional(),
+  warnings: z.array(StepWarningSchema).optional(),
 })
 type StepEventShape = z.infer<typeof StepEventShape>
 

@@ -56,6 +56,7 @@ Dev data is wiped and regenerated as needed. This app is not public. There are h
 - Bun workspaces with isolated modules.
 - Auto-fix lint/format/type-aware issues: `bun run fix`. This is the only check script you should use. Do not use `tsc`.
 - Keep package root exports demand-driven. Do not export every internal symbol by default; let real consumers justify the public surface, and run `bun run knip` when tightening exports.
+- Review `knip.json` whenever the monorepo package surface is modified, especially when adding or removing packages, package entrypoints, root exports, or test entrypoints.
 - Inline disables may be used if the reasoning is justified.
 - `sort-keys` is enabled - allow it to re-order object keys.
 
