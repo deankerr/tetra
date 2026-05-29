@@ -6,17 +6,19 @@ import { Input } from '@tetra/ui/components/ui/input'
 import { typedTinybase } from '@/lib/tinybase'
 import { useTetra } from '@/tetra-context'
 
-import { ModelPreviewButton } from './settings/model-picker'
+import { ModelPickerButton } from './settings/model-picker'
 import { PromptPreviewButton } from './settings/prompt-editor-sheet'
 import { ProviderOptionsEditor } from './settings/provider-options-editor'
 import { ToolSelector } from './settings/tool-selector'
 
 export function SessionSettings({
-  onOpenModelSheet,
+  modelId,
+  onOpenModelPicker,
   onOpenPromptSheet,
   sessionId,
 }: {
-  onOpenModelSheet: () => void
+  modelId: string
+  onOpenModelPicker: () => void
   onOpenPromptSheet: () => void
   sessionId: string
 }) {
@@ -25,7 +27,6 @@ export function SessionSettings({
     sessionId,
     'maxMessages',
   )
-  const modelId = typedTinybase.useCell('sessionRunConfigs', sessionId, 'modelId')
   const [toolIds, setToolIds] = typedTinybase.useCellState(
     'sessionRunConfigs',
     sessionId,
@@ -36,7 +37,7 @@ export function SessionSettings({
     <FieldGroup>
       <Field>
         <FieldTitle>Model</FieldTitle>
-        <ModelPreviewButton className="w-full" onOpen={onOpenModelSheet} value={modelId ?? ''} />
+        <ModelPickerButton className="w-full" onClick={onOpenModelPicker} value={modelId} />
       </Field>
 
       <Field>
