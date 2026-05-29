@@ -7,7 +7,7 @@ interface IndexesApi {
 
 export type IndexIds = readonly string[]
 
-export interface IndexApi {
+interface IndexApi {
   getSliceIds(): Ids
   getSliceRowIds(sliceId: string): Ids
 }

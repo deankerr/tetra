@@ -1,7 +1,5 @@
-import { setTetraIndexDefinitions, tetraStoreSchema } from '@tetra/store-schema'
+import { createRawMergeableStore, createRawStore } from '@tetra/store-schema'
 import { useMemo } from 'react'
-import { createIndexes } from 'tinybase/indexes/with-schemas'
-import { createMergeableStore } from 'tinybase/mergeable-store/with-schemas'
 import { createIndexedDbPersister } from 'tinybase/persisters/persister-indexed-db/with-schemas'
 import { createStore } from 'tinybase/store/with-schemas'
 import { createWsSynchronizer } from 'tinybase/synchronizers/synchronizer-ws-client/with-schemas'
@@ -21,31 +19,11 @@ import { createSyncWebSocket } from '@/lib/websocket'
 const DATA_MODE = import.meta.env.VITE_TETRA_DATA_MODE ?? 'persist'
 
 function useCreateTetraStore() {
-  return useMemo(() => {
-    // Plain web modes own Store and Indexes creation as one React-owned unit.
-    const rawStore = createStore().setSchema(
-      structuredClone(tetraStoreSchema.tablesSchema),
-      structuredClone(tetraStoreSchema.valuesSchema),
-    )
-    const rawIndexes = createIndexes(rawStore)
-    setTetraIndexDefinitions(rawIndexes)
-
-    return { rawIndexes, rawStore }
-  }, [])
+  return useMemo(() => createRawStore(), [])
 }
 
 function useCreateTetraMergeableStore() {
-  return useMemo(() => {
-    // Sync mode owns MergeableStore and Indexes creation as one React-owned unit.
-    const rawStore = createMergeableStore().setSchema(
-      structuredClone(tetraStoreSchema.tablesSchema),
-      structuredClone(tetraStoreSchema.valuesSchema),
-    )
-    const rawIndexes = createIndexes(rawStore)
-    setTetraIndexDefinitions(rawIndexes)
-
-    return { rawIndexes, rawStore }
-  }, [])
+  return useMemo(() => createRawMergeableStore(), [])
 }
 
 function useCreateWebUiStore(): WebUiRawStore {
@@ -68,7 +46,7 @@ function useCreateWebUiStore(): WebUiRawStore {
 }
 
 function TinyBasePersisterProvider({ children }: { children: React.ReactNode }) {
-  // Plain web modes create their Store and Indexes synchronously.
+  // Plain web modes create their rawStore/rawIndexes synchronously.
   const { rawIndexes, rawStore } = useCreateTetraStore()
   const webUiStore = useCreateWebUiStore()
 
@@ -100,7 +78,7 @@ function TinyBasePersisterProvider({ children }: { children: React.ReactNode }) 
 }
 
 function TinyBaseSyncProvider({ children }: { children: React.ReactNode }) {
-  // Sync mode creates its MergeableStore and Indexes synchronously.
+  // Sync mode creates its MergeableStore rawStore/rawIndexes synchronously.
   const { rawIndexes, rawStore } = useCreateTetraMergeableStore()
   const webUiStore = useCreateWebUiStore()
 

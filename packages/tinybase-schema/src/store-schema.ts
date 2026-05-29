@@ -45,11 +45,6 @@ export type StoreApiFor<Schema extends TypedStoreSchema<TableDefinitions, ValueD
 export type StoreRowsFor<Schema extends TypedStoreSchema<TableDefinitions, ValueDefinitions>> =
   Schema extends TypedStoreSchema<infer Tables, ValueDefinitions> ? EntityRowsOf<Tables> : never
 
-export type StoreRowFor<
-  Schema extends TypedStoreSchema<TableDefinitions, ValueDefinitions>,
-  TableId extends keyof StoreRowsFor<Schema>,
-> = StoreRowsFor<Schema>[TableId]
-
 // oxlint-disable no-unsafe-type-assertion -- This is the library boundary that binds typed definitions to TinyBase's schema-aware Store.
 
 export function defineTypedStore<

@@ -1,6 +1,6 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
-import { RunConfig } from '@tetra/store-schema'
-import type { RunConfig as RunConfigType, Rows, StepRecord } from '@tetra/store-schema'
+import { RunConfigSchema } from '@tetra/store-schema'
+import type { RunConfig as RunConfigType, Rows } from '@tetra/store-schema'
 import { convertToModelMessages, readUIMessageStream, stepCountIs, streamText } from 'ai'
 import type { LanguageModel, ModelMessage, ToolSet, UIMessage } from 'ai'
 
@@ -16,6 +16,8 @@ import {
 import { StepEvent } from './steps.ts'
 
 const DURABLE_SNAPSHOT_INTERVAL_MS = 500
+
+type StepRecord = Rows['steps']
 
 export interface CredentialReader {
   get(id: string): string
@@ -140,7 +142,7 @@ export class Run extends EventTarget {
     this.dispatchEvent(new Event('snapshot'))
   }
 
-  private recordStep(step: Omit<StepRecord, 'messageId' | 'runId' | 'sessionId'>): void {
+  private recordStep(step: Omit<StepRecord, 'id' | 'messageId' | 'runId' | 'sessionId'>): void {
     const stepId = `${this.runId}_step_${step.stepNumber}`
     this.helpers.typedStore.tables.steps.setRow(stepId, {
       ...step,
@@ -166,7 +168,7 @@ export class Run extends EventTarget {
 
   private async stream(): Promise<void> {
     try {
-      const config = RunConfig.parse(this.config)
+      const config = RunConfigSchema.parse(this.config)
       const tools = this.resolveTools()
       const model = this.resolveModel()
       const modelMessages = await Run.toModelMessages(this.transcriptMessages, tools)

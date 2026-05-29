@@ -422,7 +422,7 @@ export function ModelPreviewButton({
   return <ModelPreview className={className} onOpen={onOpen} value={value} />
 }
 
-export function ModelPickerSheet({
+function ModelPickerSheet({
   onOpenChange,
   onValueChange,
   open,

@@ -1,4 +1,6 @@
-import type { StepRecord } from '@tetra/store-schema'
+import type { Rows } from '@tetra/store-schema'
+
+type StepRecord = Rows['steps']
 
 export interface UsageTotals {
   cacheReadTokens?: number

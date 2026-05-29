@@ -1,5 +1,5 @@
 import { summarizeSteps } from '@tetra/core'
-import type { RunStatus, Rows } from '@tetra/store-schema'
+import type { Rows } from '@tetra/store-schema'
 import {
   Tool,
   ToolContent,
@@ -30,6 +30,7 @@ import { useTetra } from '@/tetra-context'
 import { useRunSteps } from './usage-hooks'
 
 type UIMessagePart = Rows['messages']['parts'][number]
+type RunStatus = Rows['runs']['status']
 
 function useTetraMessage(messageId: string) {
   const message = typedTinybase.useEntity('messages', messageId)

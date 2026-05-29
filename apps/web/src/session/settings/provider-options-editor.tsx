@@ -1,4 +1,4 @@
-import type { ProviderOptions } from '@tetra/store-schema'
+import type { ProviderOptionsSchema } from '@tetra/store-schema'
 import { Button } from '@tetra/ui/components/ui/button'
 import { Input } from '@tetra/ui/components/ui/input'
 import { BracesIcon, PlusIcon, XIcon } from 'lucide-react'
@@ -9,6 +9,8 @@ import { z } from 'zod'
 import { typedTinybase } from '@/lib/tinybase'
 
 // --- Types ---
+
+type ProviderOptions = z.infer<typeof ProviderOptionsSchema>
 
 interface ScalarEntry {
   id: string

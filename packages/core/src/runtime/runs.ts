@@ -1,4 +1,4 @@
-import { DEFAULT_RUN_CONFIG, RunConfig } from '@tetra/store-schema'
+import { DEFAULT_RUN_CONFIG, RunConfigSchema } from '@tetra/store-schema'
 import type { RunConfig as RunConfigType, Rows } from '@tetra/store-schema'
 
 import type { Helpers } from '#helpers'
@@ -103,7 +103,7 @@ export class Runs {
       assistantMessage.sessionId,
     )
     const sessionRunConfig = this.helpers.rawStore.getRow('sessionRunConfigs', session.id)
-    const config = RunConfig.parse({
+    const config = RunConfigSchema.parse({
       ...DEFAULT_RUN_CONFIG,
       ...sessionRunConfig,
       ...args.config,

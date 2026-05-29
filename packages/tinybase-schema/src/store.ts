@@ -21,10 +21,10 @@ interface StoreApi {
 
 export type ValueDefinitions = Record<string, AnyZod>
 export type EntityOf<Schema extends RowZod> = z.output<Schema> & { id: string }
-export type InputRowOf<Schema extends RowZod> = z.input<Schema>
+type InputRowOf<Schema extends RowZod> = z.input<Schema>
 export type OutputRowOf<Schema extends RowZod> = z.output<Schema>
 
-export type CellInputOf<
+type CellInputOf<
   Schema extends RowZod,
   CellId extends keyof z.input<Schema> & string,
 > = z.input<Schema>[CellId]
@@ -34,7 +34,7 @@ export type CellOutputOf<
   CellId extends keyof z.output<Schema> & string,
 > = z.output<Schema>[CellId]
 
-export interface TableApi<Schema extends RowZod> {
+interface TableApi<Schema extends RowZod> {
   deleteRow(rowId: string): void
   getEntity(rowId: string): EntityOf<Schema> | null
   getRow(rowId: string): OutputRowOf<Schema> | null
@@ -55,7 +55,7 @@ export interface TableApi<Schema extends RowZod> {
   updateRow(rowId: string, partialRow: Partial<InputRowOf<Schema>>): EntityOf<Schema>
 }
 
-export interface ValueApi<Schema extends AnyZod> {
+interface ValueApi<Schema extends AnyZod> {
   delete(): void
   get(): z.output<Schema>
   set(value: z.input<Schema>): z.output<Schema>
@@ -70,7 +70,7 @@ export type EntityRowsOf<Tables extends TableDefinitions> = {
   [TableId in keyof Tables]: EntityOf<TableSchemaOf<Tables[TableId]>>
 }
 
-export type BoundTableApis<Tables extends TableDefinitions> = {
+type BoundTableApis<Tables extends TableDefinitions> = {
   get<TableId extends keyof Tables & string>(
     tableId: TableId,
   ): TableApi<TableSchemaOf<Tables[TableId]>>
@@ -78,7 +78,7 @@ export type BoundTableApis<Tables extends TableDefinitions> = {
   [TableId in keyof Tables]: TableApi<TableSchemaOf<Tables[TableId]>>
 }
 
-export type BoundValueApis<Values extends ValueDefinitions> = {
+type BoundValueApis<Values extends ValueDefinitions> = {
   get<ValueId extends keyof Values & string>(valueId: ValueId): ValueApi<Values[ValueId]>
 } & {
   [ValueId in keyof Values]: ValueApi<Values[ValueId]>

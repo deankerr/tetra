@@ -1,4 +1,5 @@
-import { RunConfig } from '@tetra/store-schema'
+import { RunConfigSchema } from '@tetra/store-schema'
+import type { RunConfig } from '@tetra/store-schema'
 import type { Command } from 'commander'
 
 import type { bootstrap } from '../bootstrap'
@@ -45,7 +46,7 @@ export function registerConfigCommand(
           }
           ctx.helpers.typedStore.tables.sessionRunConfigs.setRow(
             resolvedSessionId,
-            RunConfig.parse(next),
+            RunConfigSchema.parse(next),
           )
         }
 
