@@ -1,26 +1,18 @@
-import type { Rows } from '@tetra/store-schema'
 import { ModelSelectorLogo } from '@tetra/ui/components/ai-elements/model-selector'
-import { Badge } from '@tetra/ui/components/ui/badge'
 import { Button } from '@tetra/ui/components/ui/button'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@tetra/ui/components/ui/input-group'
 import { Sheet, SheetClose, SheetContent, SheetTitle } from '@tetra/ui/components/ui/sheet'
 import { cn } from '@tetra/ui/lib/utils'
-import {
-  CalendarDaysIcon,
-  CheckIcon,
-  CopyIcon,
-  InfoIcon,
-  RotateCcwIcon,
-  SearchIcon,
-  StarIcon,
-  XIcon,
-} from 'lucide-react'
-import { useCallback, useMemo, useState } from 'react'
+import { RotateCcwIcon, SearchIcon, XIcon } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import type { ComponentProps } from 'react'
 
 import { typedTinybase } from '@/lib/tinybase'
 import { useTetra } from '@/tetra-context'
 
-type LanguageModel = Rows['languageModels'] & { id: string }
+import { ModelCard } from './model-card'
+import type { LanguageModel } from './types'
+
 type ModelFilter = 'all' | 'audio' | 'file' | 'image' | 'starred' | 'text' | 'video'
 type ModelSortMode = 'latest' | 'provider'
 
@@ -33,12 +25,6 @@ const MODEL_FILTERS = [
   { label: 'Audio', value: 'audio' },
   { label: 'Files', value: 'file' },
 ] satisfies { label: string; value: ModelFilter }[]
-
-const dateFormatter = new Intl.DateTimeFormat(undefined, {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-})
 
 function compareByLatest(left: LanguageModel, right: LanguageModel) {
   return (
@@ -55,36 +41,6 @@ function compareByProvider(left: LanguageModel, right: LanguageModel) {
     left.name.localeCompare(right.name) ||
     left.id.localeCompare(right.id)
   )
-}
-
-function formatContextLength(contextLength: number) {
-  if (contextLength <= 0) {
-    return '?'
-  }
-
-  if (contextLength >= 1_000_000) {
-    return `${Number((contextLength / 1_000_000).toFixed(1))}m`
-  }
-
-  return `${Number((contextLength / 1000).toFixed(1))}k`
-}
-
-function formatModality(modality: string) {
-  if (modality === '') {
-    return 'unknown'
-  }
-
-  return modality.replaceAll('_', ' ')
-}
-
-function formatUpstreamCreatedAt(upstreamCreatedAt: number) {
-  if (upstreamCreatedAt <= 0) {
-    return 'unknown'
-  }
-
-  const timestamp =
-    upstreamCreatedAt < 1_000_000_000_000 ? upstreamCreatedAt * 1000 : upstreamCreatedAt
-  return dateFormatter.format(new Date(timestamp))
 }
 
 function matchesSearch(model: LanguageModel, query: string) {
@@ -181,14 +137,14 @@ function RefreshButton() {
   const { catalog } = useTetra()
   const [loading, setLoading] = useState(false)
 
-  const refresh = useCallback(async () => {
+  const refresh = async () => {
     setLoading(true)
     try {
       await catalog.refresh({ force: true })
     } finally {
       setLoading(false)
     }
-  }, [catalog])
+  }
 
   return (
     <Button
@@ -206,62 +162,19 @@ function RefreshButton() {
   )
 }
 
-function ModelPreview({
+export function ModelPickerButton({
   className,
-  onOpen,
   value,
-}: {
-  className?: string | undefined
-  onOpen: () => void
-  value: string
-}) {
+  variant = 'outline',
+  ...props
+}: Omit<ComponentProps<typeof Button>, 'children' | 'value'> & { value: string }) {
   const currentModel = typedTinybase.useEntity('languageModels', value)
   const label = currentModel?.name ?? (value === '' ? 'Select model' : value)
 
   return (
-    <Button className={cn('justify-start', className)} onClick={onOpen} variant="outline">
+    <Button className={cn('justify-start', className)} variant={variant} {...props}>
       {currentModel !== null && <ModelSelectorLogo provider={currentModel.provider} />}
       <span className="min-w-0 flex-1 truncate text-left">{label}</span>
-    </Button>
-  )
-}
-
-function FavoriteButton({
-  isFavorite,
-  onToggleFavorite,
-}: {
-  isFavorite: boolean
-  onToggleFavorite: () => void
-}) {
-  return (
-    <Button
-      aria-label={isFavorite ? 'Remove model from favorites' : 'Add model to favorites'}
-      onClick={(event) => {
-        event.stopPropagation()
-        onToggleFavorite()
-      }}
-      size="icon-sm"
-      title={isFavorite ? 'Remove model from favorites' : 'Add model to favorites'}
-      variant="ghost"
-    >
-      <StarIcon className={cn(isFavorite && 'fill-current')} />
-    </Button>
-  )
-}
-
-function CopyModelIdButton({ modelId }: { modelId: string }) {
-  return (
-    <Button
-      aria-label={`Copy ${modelId}`}
-      onClick={(event) => {
-        event.stopPropagation()
-        void navigator.clipboard.writeText(modelId)
-      }}
-      size="icon-sm"
-      title="Copy model id"
-      variant="ghost"
-    >
-      <CopyIcon />
     </Button>
   )
 }
@@ -290,139 +203,7 @@ function FilterChip({
   )
 }
 
-function ModalityBadges({ label, modalities }: { label: string; modalities: string[] }) {
-  return (
-    <span className="grid min-w-0 grid-cols-[2.5rem_minmax(0,1fr)] items-start gap-1">
-      <span className="text-muted-foreground">{label}</span>
-      {modalities.length === 0 ? (
-        <span>
-          <Badge className="h-4 rounded-sm px-1 font-normal" variant="outline">
-            none
-          </Badge>
-        </span>
-      ) : (
-        <span className="flex min-w-0 flex-wrap gap-1">
-          {modalities.map((modality) => (
-            <Badge className="h-4 rounded-sm px-1 font-normal" key={modality} variant="outline">
-              {formatModality(modality)}
-            </Badge>
-          ))}
-        </span>
-      )}
-    </span>
-  )
-}
-
-function ModelCapabilities({ model }: { model: LanguageModel }) {
-  return (
-    <div className="text-muted-foreground flex items-start gap-2 text-xs leading-5">
-      <InfoIcon className="mt-0.5 size-3.5 shrink-0" />
-      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-        <span>Context {formatContextLength(model.contextLength)}</span>
-        <ModalityBadges label="Input" modalities={model.inputModalities} />
-        <ModalityBadges label="Output" modalities={model.outputModalities} />
-      </div>
-    </div>
-  )
-}
-
-function ModelDateFact({ model }: { model: LanguageModel }) {
-  return (
-    <div className="text-muted-foreground text-xxs flex items-start gap-2 leading-4">
-      <CalendarDaysIcon className="mt-0.5 size-3 shrink-0" />
-      <span className="min-w-0">
-        Release date: {formatUpstreamCreatedAt(model.upstreamCreatedAt)}
-      </span>
-    </div>
-  )
-}
-
-function ModelCard({
-  favorite,
-  model,
-  onSelect,
-  onToggleFavorite,
-  selected,
-}: {
-  favorite: boolean
-  model: LanguageModel
-  onSelect: () => void
-  onToggleFavorite: () => void
-  selected: boolean
-}) {
-  return (
-    <div
-      aria-current={selected ? 'true' : undefined}
-      className={cn(
-        'border-border border-b border-l-2 border-l-transparent px-4 py-2.5 transition-colors last:border-b-0',
-        selected && 'border-l-ring bg-muted/35',
-      )}
-    >
-      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-        <div className="flex min-w-0 flex-col gap-1.5">
-          <div className="flex min-w-0 items-start gap-3">
-            <div className="bg-muted flex size-9 shrink-0 items-center justify-center rounded-md">
-              <ModelSelectorLogo className="size-4" provider={model.provider} />
-            </div>
-            <div className="flex min-w-0 flex-col gap-0.5">
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <Button
-                  aria-label={`Select ${model.name}`}
-                  className="h-auto min-w-0 justify-start px-0 py-0 text-left text-sm font-medium hover:bg-transparent"
-                  onClick={onSelect}
-                  variant="ghost"
-                >
-                  <span className="min-w-0 truncate">{model.name}</span>
-                </Button>
-                {selected && (
-                  <Badge className="gap-1" variant="secondary">
-                    <CheckIcon className="size-3" />
-                    Selected
-                  </Badge>
-                )}
-              </div>
-              <div className="text-muted-foreground min-w-0 truncate font-mono text-xs">
-                {model.id}
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-col gap-1 sm:pl-12">
-            <ModelCapabilities model={model} />
-            <ModelDateFact model={model} />
-          </div>
-        </div>
-        <div className="flex items-start justify-end gap-1 sm:pt-1">
-          <FavoriteButton isFavorite={favorite} onToggleFavorite={onToggleFavorite} />
-          <CopyModelIdButton modelId={model.id} />
-          <Button
-            aria-label={selected ? `${model.name} selected` : `Use ${model.name}`}
-            disabled={selected}
-            onClick={onSelect}
-            size="icon-sm"
-            title={selected ? 'Selected model' : 'Use model'}
-            variant={selected ? 'secondary' : 'ghost'}
-          >
-            <CheckIcon />
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-export function ModelPreviewButton({
-  className,
-  onOpen,
-  value,
-}: {
-  className?: string | undefined
-  onOpen: () => void
-  value: string
-}) {
-  return <ModelPreview className={className} onOpen={onOpen} value={value} />
-}
-
-function ModelPickerSheet({
+export function ModelPickerSheet({
   onOpenChange,
   onValueChange,
   open,
@@ -442,11 +223,7 @@ function ModelPickerSheet({
 
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
-      <SheetContent
-        className="flex flex-col"
-        showCloseButton={false}
-        style={{ maxWidth: 'min(100vw, 760px)', width: 'min(100vw, 760px)' }}
-      >
+      <SheetContent className="data-[side=right]:sm:max-w-lg" showCloseButton={false}>
         <div className="flex h-(--header-height) shrink-0 items-center justify-between border-b px-2">
           <SheetTitle className="px-2 text-xs font-medium">Model selection</SheetTitle>
           <SheetClose
@@ -549,62 +326,5 @@ function ModelPickerSheet({
         </div>
       </SheetContent>
     </Sheet>
-  )
-}
-
-export function ModelPicker({
-  className,
-  onValueChange,
-  value,
-}: {
-  className?: string | undefined
-  onValueChange: (modelId: string) => void
-  value: string
-}) {
-  const [open, setOpen] = useState(false)
-
-  return (
-    <>
-      <ModelPreviewButton
-        className={className}
-        onOpen={() => {
-          setOpen(true)
-        }}
-        value={value}
-      />
-      <ModelPickerSheet
-        onOpenChange={setOpen}
-        onValueChange={onValueChange}
-        open={open}
-        value={value}
-      />
-    </>
-  )
-}
-
-export function SessionModelPickerSheet({
-  onOpenChange,
-  open,
-  sessionId,
-}: {
-  onOpenChange: (open: boolean) => void
-  open: boolean
-  sessionId: string
-}) {
-  const [modelId, setModelId] = typedTinybase.useCellState(
-    'sessionRunConfigs',
-    sessionId,
-    'modelId',
-  )
-
-  return (
-    <ModelPickerSheet
-      onOpenChange={onOpenChange}
-      onValueChange={(nextModelId) => {
-        setModelId(nextModelId)
-      }}
-      open={open}
-      value={modelId ?? ''}
-    />
   )
 }

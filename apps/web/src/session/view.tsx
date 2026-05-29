@@ -12,7 +12,7 @@ import { TetraConversationView } from './conversation-view'
 import { SessionExportButton } from './export-button'
 import { RunsTable } from './runs-table'
 import { SessionSettings } from './settings'
-import { SessionModelPickerSheet } from './settings/model-picker'
+import { ModelPickerSheet } from './settings/model-picker'
 import { PromptEditorSheet } from './settings/prompt-editor-sheet'
 import { SessionUsageMeter } from './usage-meter'
 
@@ -23,7 +23,7 @@ export function SessionView() {
   )
 
   if (activeSessionId === '') {
-    return null
+    return <NoSessionSelected />
   }
 
   return (
@@ -37,11 +37,26 @@ export function SessionView() {
   )
 }
 
+function NoSessionSelected() {
+  return (
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <header className="flex h-(--header-height) shrink-0 items-center border-b px-2">
+        <SidebarTrigger title="Open sidebar" />
+      </header>
+    </div>
+  )
+}
+
 /** Renders one session panel. Guards session existence — children can assume valid sessionId. */
 function ActiveSession({ onClose, sessionId }: { onClose: () => void; sessionId: string }) {
   const session = typedTinybase.useEntity('sessions', sessionId)
   const [detailOpen, setDetailOpen] = useState(false)
-  const [modelSheetOpen, setModelSheetOpen] = useState(false)
+  const [modelPickerOpen, setModelPickerOpen] = useState(false)
+  const [modelId, setModelId] = typedTinybase.useCellState(
+    'sessionRunConfigs',
+    sessionId,
+    'modelId',
+  )
   const [promptSheetOpen, setPromptSheetOpen] = useState(false)
   const { openJsonView } = useJsonViewSheet()
 
@@ -136,8 +151,9 @@ function ActiveSession({ onClose, sessionId }: { onClose: () => void; sessionId:
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto p-4">
             <SessionSettings
-              onOpenModelSheet={() => {
-                setModelSheetOpen(true)
+              modelId={modelId ?? ''}
+              onOpenModelPicker={() => {
+                setModelPickerOpen(true)
               }}
               onOpenPromptSheet={() => {
                 setPromptSheetOpen(true)
@@ -156,10 +172,13 @@ function ActiveSession({ onClose, sessionId }: { onClose: () => void; sessionId:
       />
 
       {/* Model sheet — sibling to settings sheet for the same stacked overlay behavior. */}
-      <SessionModelPickerSheet
-        onOpenChange={setModelSheetOpen}
-        open={modelSheetOpen}
-        sessionId={sessionId}
+      <ModelPickerSheet
+        onOpenChange={setModelPickerOpen}
+        onValueChange={(nextModelId) => {
+          setModelId(nextModelId)
+        }}
+        open={modelPickerOpen}
+        value={modelId ?? ''}
       />
     </div>
   )

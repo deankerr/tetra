@@ -21,7 +21,7 @@ import { ArrowUpFromDot, ImageIcon } from 'lucide-react'
 import { useState } from 'react'
 
 import { WEB_UI_STORE_ID, typedTinybase, webUiTinybase } from '@/lib/tinybase'
-import { ModelPicker } from '@/session/settings/model-picker'
+import { ModelPickerButton, ModelPickerSheet } from '@/session/settings/model-picker'
 import { useTetra } from '@/tetra-context'
 import { useCredential } from '@/use-credential'
 
@@ -39,6 +39,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
   const [openrouterApiKey] = useCredential('OPENROUTER_API_KEY')
   const [, setSettingsOpen] = webUiTinybase.useValueState('settingsOpen', WEB_UI_STORE_ID)
   const [draft, setDraft] = useState('')
+  const [modelPickerOpen, setModelPickerOpen] = useState(false)
 
   const handleSubmit: NonNullable<Parameters<typeof PromptInput>[0]['onSubmit']> = (
     message,
@@ -119,9 +120,9 @@ export function Composer({ sessionId }: { sessionId: string }) {
         </PromptInputBody>
         <PromptInputFooter>
           <PromptInputTools>
-            <ModelPicker
-              onValueChange={(nextModelId) => {
-                setModelId(nextModelId)
+            <ModelPickerButton
+              onClick={() => {
+                setModelPickerOpen(true)
               }}
               value={modelId ?? ''}
             />
@@ -135,6 +136,14 @@ export function Composer({ sessionId }: { sessionId: string }) {
           />
         </PromptInputFooter>
       </PromptInput>
+      <ModelPickerSheet
+        onOpenChange={setModelPickerOpen}
+        onValueChange={(nextModelId) => {
+          setModelId(nextModelId)
+        }}
+        open={modelPickerOpen}
+        value={modelId ?? ''}
+      />
     </div>
   )
 }

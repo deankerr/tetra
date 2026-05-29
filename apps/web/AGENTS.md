@@ -13,8 +13,10 @@
 
 ### Custom Components
 
-- Most components should use the passthrough props style, merging className with the `cn` helper.
-- Use component composition over monolithic prop heavy components.
+- Swallow the Tailwind, not the content: display components should own layout, spacing, typography, and state classes while accepting `children` for the actual rendered content.
+- Most custom components should use the passthrough props style, merging `className` with the `cn` helper like the shadcn `Button` component.
+- Prefer small reusable display shells over prop-heavy components. Keep labels, icons, values, and mapped data at the call site unless a prop encodes behavior.
+- Avoid dedicated per-item display components when a shared compositional component can express the same structure with children.
 
 ### Custom Theme Tokens
 
