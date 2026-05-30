@@ -8,7 +8,6 @@ import { Inspector } from 'tinybase/ui-react-inspector'
 import type { WebUiRawStore } from '@/lib/tinybase'
 import {
   TETRA_INDEXED_DB_NAME,
-  TinyBaseRuntimeContext,
   WEB_UI_STORE_ID,
   tinybase,
   webUiReact,
@@ -63,17 +62,15 @@ function TinyBasePersisterProvider({ children }: { children: React.ReactNode }) 
   )
 
   return (
-    <TinyBaseRuntimeContext value={{ catalogReady: persister !== undefined }}>
-      <tinybase.Provider
-        indexes={rawIndexes}
-        store={rawStore}
-        {...(persister === undefined ? {} : { persister })}
-      >
-        <webUiReact.Provider storesById={{ [WEB_UI_STORE_ID]: webUiStore }}>
-          {children}
-        </webUiReact.Provider>
-      </tinybase.Provider>
-    </TinyBaseRuntimeContext>
+    <tinybase.Provider
+      indexes={rawIndexes}
+      store={rawStore}
+      {...(persister === undefined ? {} : { persister })}
+    >
+      <webUiReact.Provider storesById={{ [WEB_UI_STORE_ID]: webUiStore }}>
+        {children}
+      </webUiReact.Provider>
+    </tinybase.Provider>
   )
 }
 
@@ -94,18 +91,16 @@ function TinyBaseSyncProvider({ children }: { children: React.ReactNode }) {
   )
 
   return (
-    <TinyBaseRuntimeContext value={{ catalogReady: synchronizer !== undefined }}>
-      <tinybase.Provider
-        indexes={rawIndexes}
-        store={rawStore}
-        {...(synchronizer === undefined ? {} : { synchronizer })}
-      >
-        <webUiReact.Provider storesById={{ [WEB_UI_STORE_ID]: webUiStore }}>
-          {children}
-        </webUiReact.Provider>
-        <Inspector />
-      </tinybase.Provider>
-    </TinyBaseRuntimeContext>
+    <tinybase.Provider
+      indexes={rawIndexes}
+      store={rawStore}
+      {...(synchronizer === undefined ? {} : { synchronizer })}
+    >
+      <webUiReact.Provider storesById={{ [WEB_UI_STORE_ID]: webUiStore }}>
+        {children}
+      </webUiReact.Provider>
+      <Inspector />
+    </tinybase.Provider>
   )
 }
 

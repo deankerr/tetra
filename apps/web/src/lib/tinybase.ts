@@ -2,19 +2,12 @@ import { tetraIndexIds, tetraStoreSchema } from '@tetra/store-schema'
 import { defineTypedStore } from '@tetra/tinybase-schema'
 import type { StoreSchemasFor } from '@tetra/tinybase-schema'
 import { createStoreHooks } from '@tetra/tinybase-schema/react'
-import { createContext, useContext } from 'react'
 import type { Store as RawStore } from 'tinybase/store/with-schemas'
 import * as UiReact from 'tinybase/ui-react/with-schemas'
 import { z } from 'zod'
 
 export const TETRA_INDEXED_DB_NAME = 'tetra-local'
 export const WEB_UI_STORE_ID = 'webUi'
-
-export const TinyBaseRuntimeContext = createContext({ catalogReady: false })
-
-export function useTinyBaseRuntime() {
-  return useContext(TinyBaseRuntimeContext)
-}
 
 // Tetra's main TinyBase store uses the persisted/synchronized application schema.
 // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- TinyBase's WithSchemas helper is exposed through a module cast.

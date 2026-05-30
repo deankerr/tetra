@@ -3,9 +3,9 @@ import { credentialStore } from '@tetra/credentials'
 import { tetraStoreSchema, tetraIndexIds } from '@tetra/store-schema'
 import type { TetraRawIndexes, TetraRawStore } from '@tetra/store-schema'
 import { bindIndexes, bindStore } from '@tetra/tinybase-schema'
-import { useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 
-import { tinybase, useTinyBaseRuntime } from '@/lib/tinybase'
+import { tinybase } from '@/lib/tinybase'
 import { TetraContext } from '@/tetra-context'
 
 function createTetraApp(rawStore: TetraRawStore, rawIndexes: TetraRawIndexes) {
@@ -23,8 +23,6 @@ function createTetraApp(rawStore: TetraRawStore, rawIndexes: TetraRawIndexes) {
 }
 
 export function TetraProvider({ children }: { children: React.ReactNode }) {
-  const { catalogReady } = useTinyBaseRuntime()
-
   // Tetra app modules depend on the outer TinyBase provider being ready.
   const rawStore = tinybase.useStore()
   const rawIndexes = tinybase.useIndexes()
@@ -37,12 +35,6 @@ export function TetraProvider({ children }: { children: React.ReactNode }) {
 
     return createTetraApp(rawStore, rawIndexes)
   }, [rawIndexes, rawStore])
-
-  useEffect(() => {
-    if (catalogReady && tetra !== null) {
-      void tetra.catalog.refresh()
-    }
-  }, [catalogReady, tetra])
 
   if (tetra === null) {
     return null
