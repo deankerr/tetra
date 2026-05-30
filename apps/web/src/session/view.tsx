@@ -9,6 +9,7 @@ import { useJsonViewSheet } from '@/components/json-view-sheet'
 import { WEB_UI_STORE_ID, typedTinybase, webUiTinybase } from '@/lib/tinybase'
 
 import { TetraConversationView } from './conversation-view'
+import { SessionPanelErrorBoundary } from './error-boundary'
 import { SessionExportButton } from './export-button'
 import { RunsTable } from './runs-table'
 import { SessionSettings } from './settings'
@@ -27,13 +28,20 @@ export function SessionView() {
   }
 
   return (
-    <ActiveSession
+    <SessionPanelErrorBoundary
       key={activeSessionId}
       onClose={() => {
         setActiveSessionId('')
       }}
       sessionId={activeSessionId}
-    />
+    >
+      <ActiveSession
+        onClose={() => {
+          setActiveSessionId('')
+        }}
+        sessionId={activeSessionId}
+      />
+    </SessionPanelErrorBoundary>
   )
 }
 

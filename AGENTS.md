@@ -18,6 +18,8 @@ Dev data is wiped and regenerated as needed. This app is not public. There are h
 - Prefer using existing libraries/solutions over writing our own.
 - Lockfile changes are acceptable even if they seem unrelated, do not edit manually.
 
+- Note: the `shiki` wasm warning emitted during build is a known non-issue, do not report it.
+
 ## Packages
 
 - `apps/cli` — Bun CLI frontend, should always track the feature set of the web frontend (within reason).
