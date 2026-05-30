@@ -1,3 +1,4 @@
+import type { Rows } from '@tetra/store-schema'
 import { ModelSelectorLogo } from '@tetra/ui/components/ai-elements/model-selector'
 import { Badge } from '@tetra/ui/components/ui/badge'
 import { Button } from '@tetra/ui/components/ui/button'
@@ -11,8 +12,6 @@ import {
   StarIcon,
 } from 'lucide-react'
 import type { ComponentProps } from 'react'
-
-import type { LanguageModel } from './types'
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   day: 'numeric',
@@ -73,7 +72,7 @@ export function ModelCard({
   selected,
 }: {
   favorite: boolean
-  model: LanguageModel
+  model: Rows['languageModels']
   onSelect: () => void
   onToggleFavorite: () => void
   selected: boolean

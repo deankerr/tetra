@@ -1,3 +1,4 @@
+import type { Rows } from '@tetra/store-schema'
 import { ModelSelectorLogo } from '@tetra/ui/components/ai-elements/model-selector'
 import { Button } from '@tetra/ui/components/ui/button'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@tetra/ui/components/ui/input-group'
@@ -11,7 +12,6 @@ import { typedTinybase } from '@/lib/tinybase'
 import { useTetra } from '@/tetra-context'
 
 import { ModelCard } from './model-card'
-import type { LanguageModel } from './types'
 
 type ModelFilter = 'all' | 'audio' | 'file' | 'image' | 'starred' | 'text' | 'video'
 type ModelSortMode = 'latest' | 'provider'
@@ -26,7 +26,7 @@ const MODEL_FILTERS = [
   { label: 'Files', value: 'file' },
 ] satisfies { label: string; value: ModelFilter }[]
 
-function compareByLatest(left: LanguageModel, right: LanguageModel) {
+function compareByLatest(left: Rows['languageModels'], right: Rows['languageModels']) {
   return (
     right.upstreamCreatedAt - left.upstreamCreatedAt ||
     left.providerName.localeCompare(right.providerName) ||
@@ -35,7 +35,7 @@ function compareByLatest(left: LanguageModel, right: LanguageModel) {
   )
 }
 
-function compareByProvider(left: LanguageModel, right: LanguageModel) {
+function compareByProvider(left: Rows['languageModels'], right: Rows['languageModels']) {
   return (
     normalizeProviderName(left).localeCompare(normalizeProviderName(right)) ||
     left.name.localeCompare(right.name) ||
@@ -43,7 +43,7 @@ function compareByProvider(left: LanguageModel, right: LanguageModel) {
   )
 }
 
-function matchesSearch(model: LanguageModel, query: string) {
+function matchesSearch(model: Rows['languageModels'], query: string) {
   if (query === '') {
     return true
   }
@@ -62,7 +62,11 @@ function matchesSearch(model: LanguageModel, query: string) {
   return searchable.includes(query)
 }
 
-function matchesFilter(model: LanguageModel, filter: ModelFilter, favoriteIds: Set<string>) {
+function matchesFilter(
+  model: Rows['languageModels'],
+  filter: ModelFilter,
+  favoriteIds: Set<string>,
+) {
   if (filter === 'all') {
     return true
   }
@@ -74,7 +78,7 @@ function matchesFilter(model: LanguageModel, filter: ModelFilter, favoriteIds: S
   return [...model.inputModalities, ...model.outputModalities].includes(filter)
 }
 
-function normalizeProviderName(model: LanguageModel) {
+function normalizeProviderName(model: Rows['languageModels']) {
   const providerName = model.providerName.toLowerCase()
   if (providerName.startsWith('~')) {
     return providerName.slice(1)
@@ -82,7 +86,7 @@ function normalizeProviderName(model: LanguageModel) {
   return providerName
 }
 
-function groupModelsByProvider(models: LanguageModel[]) {
+function groupModelsByProvider(models: Rows['languageModels'][]) {
   return [...Map.groupBy(models, normalizeProviderName).entries()]
     .map(([heading, groupedModels]) => ({
       heading,
