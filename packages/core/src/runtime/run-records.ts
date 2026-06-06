@@ -6,18 +6,18 @@ const nextId = createIdGenerator('run')
 
 export function createRunRecord(
   typedStore: TetraTypedStore,
-  args: { assistantMessageId: string; config: RunConfig; sessionId: string },
+  args: { config: RunConfig; sessionId: string; targetMessageId: string },
 ): string {
   const runId = nextId()
   const now = Date.now()
 
   typedStore.tables.runs.setRow(runId, {
-    assistantMessageId: args.assistantMessageId,
     config: args.config,
     createdAt: now,
     errorMessage: '',
     sessionId: args.sessionId,
     status: 'preparing',
+    targetMessageId: args.targetMessageId,
     terminalAt: 0,
     updatedAt: now,
   })

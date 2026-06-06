@@ -1,6 +1,8 @@
 export { Catalog } from '#catalog'
 export { Run, Runs } from '#runtime'
 export { Helpers } from '#helpers'
+export { Transcripts } from '#transcripts'
 export { toolIds, toolsRegistryMap } from '#tools'
 export { summarizeSteps } from '#usage'
+export type { LanguageModelResolver, RunsInit } from '#runtime'
 export type { UsageTotals } from '#usage'

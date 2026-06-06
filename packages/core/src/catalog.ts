@@ -70,7 +70,7 @@ export class Catalog {
 
     // Publish the catalog replacement and refresh timestamp as one TinyBase event.
     const incomingIds = new Set(models.map((m) => m.id))
-    this.rawStore.transaction(() => {
+    this.typedStore.transaction(() => {
       for (const existingId of this.typedStore.tables.languageModels.getRowIds()) {
         if (!incomingIds.has(existingId)) {
           this.typedStore.tables.languageModels.deleteRow(existingId)

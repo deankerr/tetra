@@ -4,13 +4,13 @@ import { DownloadIcon } from 'lucide-react'
 import { useTetra } from '@/tetra-context'
 
 export function SessionExportButton({ sessionId }: { sessionId: string }) {
-  const { helpers } = useTetra()
+  const { transcripts } = useTetra()
 
   return (
     <Button
       aria-label="Export session"
       onClick={() => {
-        const exported = helpers.exportSession(sessionId)
+        const exported = transcripts.exportSession(sessionId)
         const title = exported.session.title.trim() ?? sessionId
         const safeTitle = title.replaceAll(/[^a-z0-9_-]+/giu, '-').replaceAll(/^-|-$/gu, '')
         const blob = new Blob([JSON.stringify(exported, null, 2)], {

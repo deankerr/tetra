@@ -23,7 +23,7 @@ import { WEB_UI_STORE_ID, typedTinybase, webUiTinybase } from '@/lib/tinybase'
 import { useTetra } from '@/tetra-context'
 
 // Sessions sorted by updatedAt descending — most recently active first.
-// appendMessage touches updatedAt, so this order naturally tracks conversation activity.
+// Transcript writes touch updatedAt, so this order naturally tracks conversation activity.
 const useSessionIds = () => {
   const sessions = typedTinybase.useEntityList('sessions')
   return useMemo(
@@ -36,7 +36,7 @@ const useSessionIds = () => {
 }
 
 export function SessionGroup() {
-  const { helpers } = useTetra()
+  const { helpers, transcripts } = useTetra()
   const sessionIds = useSessionIds()
   const [activeSessionId, setActiveSessionId] = webUiTinybase.useValueState(
     'activeSessionId',
@@ -49,7 +49,7 @@ export function SessionGroup() {
       <SidebarGroupAction
         className="top-2.5"
         onClick={() => {
-          const newId = helpers.createSession()
+          const newId = transcripts.createSession()
           setActiveSessionId(newId)
         }}
       >
@@ -63,12 +63,12 @@ export function SessionGroup() {
               active={activeSessionId === sessionId}
               key={sessionId}
               onDelete={() => {
-                helpers.deleteSession(sessionId)
+                transcripts.deleteSession(sessionId)
 
                 // If the active session was deleted, move to the next available session.
                 if (activeSessionId === sessionId) {
                   const nextId = sessionIds.find((id) => id !== sessionId)
-                  setActiveSessionId(nextId ?? helpers.createSession())
+                  setActiveSessionId(nextId ?? transcripts.createSession())
                 }
               }}
               onRename={(title) => {

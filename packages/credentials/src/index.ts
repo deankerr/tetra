@@ -28,7 +28,7 @@ export const credentialRegistry = [
 
 export type CredentialId = (typeof credentialRegistry)[number]['id']
 
-class CredentialStore {
+export class CredentialsStore {
   readonly registry: Map<string, CredentialDefinition>
   private readonly listeners = new Map<string, Set<() => void>>()
 
@@ -95,4 +95,4 @@ class CredentialStore {
   }
 }
 
-export const credentialStore = new CredentialStore(credentialRegistry)
+export const credentialStore = new CredentialsStore(credentialRegistry)

@@ -63,6 +63,7 @@ interface ValueApi<Schema extends AnyZod> {
 
 export interface BoundStore<Tables extends TableDefinitions, Values extends ValueDefinitions> {
   tables: BoundTableApis<Tables>
+  transaction(fn: () => void): unknown
   values: BoundValueApis<Values>
 }
 
@@ -122,6 +123,9 @@ export function bindStore<
 
   return {
     tables: Object.assign(tablesApi, tableAccessors),
+    transaction(fn) {
+      return store.transaction(fn)
+    },
     values: Object.assign(valuesApi, valueAccessors),
   } as BoundStore<Tables, Values>
 }

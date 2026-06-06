@@ -1,4 +1,4 @@
-import { Catalog, Helpers, Runs } from '@tetra/core'
+import { Catalog, Helpers, Runs, Transcripts } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
 import { tetraStoreSchema, tetraIndexIds } from '@tetra/store-schema'
 import type { TetraRawIndexes, TetraRawStore } from '@tetra/store-schema'
@@ -16,10 +16,16 @@ function createTetraApp(rawStore: TetraRawStore, rawIndexes: TetraRawIndexes) {
 
   // Core modules share one typed TinyBase context.
   const helpers = new Helpers(context)
+  const transcripts = new Transcripts(context)
   const catalog = new Catalog(context)
-  const runs = new Runs(helpers, credentialStore)
+  const runs = new Runs({
+    credentials: credentialStore,
+    rawStore,
+    transcripts,
+    typedStore,
+  })
 
-  return { catalog, helpers, runs }
+  return { catalog, helpers, runs, transcripts }
 }
 
 export function TetraProvider({ children }: { children: React.ReactNode }) {
@@ -46,6 +52,7 @@ export function TetraProvider({ children }: { children: React.ReactNode }) {
         catalog: tetra.catalog,
         helpers: tetra.helpers,
         runs: tetra.runs,
+        transcripts: tetra.transcripts,
       }}
     >
       {children}

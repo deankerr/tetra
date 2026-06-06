@@ -1,12 +1,12 @@
-import { createOpenRouter } from '@openrouter/ai-sdk-provider'
+import type { CredentialsStore } from '@tetra/credentials'
 import { RunConfigSchema } from '@tetra/store-schema'
-import type { RunConfig as RunConfigType, Rows } from '@tetra/store-schema'
+import type { RunConfig as RunConfigType, Rows, TetraTypedStore } from '@tetra/store-schema'
 import { convertToModelMessages, readUIMessageStream, stepCountIs, streamText } from 'ai'
 import type { LanguageModel, ModelMessage, ToolSet, UIMessage } from 'ai'
 
-import type { Helpers } from '#helpers'
 import { resolveTools } from '#tools'
 
+import type { LanguageModelResolver } from './language-model-resolver.ts'
 import {
   cancelRunRecord,
   completeRunRecord,
@@ -19,52 +19,33 @@ const DURABLE_SNAPSHOT_INTERVAL_MS = 500
 
 type StepRecord = Rows['steps']
 
-export interface CredentialReader {
-  get(id: string): string
-}
-
-export interface LanguageModelResolver {
-  resolve(args: { config: RunConfigType; credentials: CredentialReader }): LanguageModel
-}
-
 export interface RunStart {
-  assistantMessageId: string
   config: RunConfigType
   runId: string
   session: Rows['sessions']
   system?: string
+  targetMessageId: string
   transcriptMessages: Rows['messages'][]
 }
 
 export type RunStatus = 'cancelled' | 'completed' | 'error' | 'preparing' | 'streaming'
 
 interface RunInit {
-  credentials: CredentialReader
-  modelResolver: LanguageModelResolver
+  credentials: CredentialsStore
   start: RunStart
-  helpers: Helpers
-}
-
-export const openRouterLanguageModelResolver: LanguageModelResolver = {
-  resolve: ({ config, credentials }) => {
-    const openrouterApiKey = credentials.get('OPENROUTER_API_KEY').trim()
-    if (openrouterApiKey === '') {
-      throw new Error('OPENROUTER_API_KEY is required for model inference')
-    }
-
-    return createOpenRouter({ apiKey: openrouterApiKey })(config.modelId)
-  },
+  modelResolver: LanguageModelResolver
+  typedStore: TetraTypedStore
 }
 
 export class Run extends EventTarget {
   readonly abortController = new AbortController()
-  readonly assistantMessageId: string
   readonly config: RunConfigType
   readonly done: Promise<void>
   readonly runId: string
   readonly session: Rows['sessions']
   readonly sessionId: string
   readonly system: string | undefined
+  readonly targetMessageId: string
   readonly transcriptMessages: Rows['messages'][]
 
   error: unknown = null
@@ -77,24 +58,24 @@ export class Run extends EventTarget {
   status: RunStatus = 'preparing'
   tools: ToolSet = {}
 
-  private readonly credentials: CredentialReader
-  private readonly helpers: Helpers
+  private readonly credentials: CredentialsStore
   private readonly doneController = Promise.withResolvers<undefined>()
   private readonly modelResolver: LanguageModelResolver
+  private readonly typedStore: TetraTypedStore
 
   constructor(init: RunInit) {
     super()
-    this.assistantMessageId = init.start.assistantMessageId
     this.config = init.start.config
     this.credentials = init.credentials
     this.done = this.doneController.promise
     this.modelResolver = init.modelResolver
-    this.helpers = init.helpers
     this.runId = init.start.runId
     this.session = init.start.session
     this.sessionId = init.start.session.id
     this.system = init.start.system
+    this.targetMessageId = init.start.targetMessageId
     this.transcriptMessages = init.start.transcriptMessages
+    this.typedStore = init.typedStore
   }
 
   cancel(): void {
@@ -111,7 +92,7 @@ export class Run extends EventTarget {
     this.finalParts = [...parts]
     this.writeStreamingPartsSnapshot(parts)
     this.commitStreamingParts()
-    completeRunRecord(this.helpers.typedStore, this.runId)
+    completeRunRecord(this.typedStore, this.runId)
     this.setStatus('completed')
     this.dispatchEvent(new Event('finish'))
     this.doneController.resolve()
@@ -122,7 +103,7 @@ export class Run extends EventTarget {
     if (this.abortController.signal.aborted) {
       this.writeStreamingPartsSnapshot(this.parts)
       this.commitStreamingParts()
-      cancelRunRecord(this.helpers.typedStore, this.runId, 'Run cancelled')
+      cancelRunRecord(this.typedStore, this.runId, 'Run cancelled')
       this.setStatus('cancelled')
       this.dispatchEvent(new Event('cancel'))
       this.doneController.resolve()
@@ -131,7 +112,7 @@ export class Run extends EventTarget {
 
     this.writeStreamingPartsSnapshot(this.parts)
     this.commitStreamingParts()
-    failRunRecord(this.helpers.typedStore, this.runId, error)
+    failRunRecord(this.typedStore, this.runId, error)
     this.setStatus('error')
     this.dispatchEvent(new Event('error'))
     this.doneController.resolve()
@@ -144,9 +125,9 @@ export class Run extends EventTarget {
 
   private recordStep(step: Omit<StepRecord, 'id' | 'messageId' | 'runId' | 'sessionId'>): void {
     const stepId = `${this.runId}_step_${step.stepNumber}`
-    this.helpers.typedStore.tables.steps.setRow(stepId, {
+    this.typedStore.tables.steps.setRow(stepId, {
       ...step,
-      messageId: this.assistantMessageId,
+      messageId: this.targetMessageId,
       runId: this.runId,
       sessionId: this.sessionId,
     })
@@ -176,7 +157,7 @@ export class Run extends EventTarget {
       this.model = model
       this.modelMessages = modelMessages
       this.tools = tools
-      startRunStreaming(this.helpers.typedStore, this.runId)
+      startRunStreaming(this.typedStore, this.runId)
       this.setStatus('streaming')
 
       const result = streamText({
@@ -218,28 +199,28 @@ export class Run extends EventTarget {
       messages.map((message) => ({
         id: message.id,
         parts: message.parts,
-        role: message.role,
+        role: toAiSdkUiMessageRole(message.role),
       })),
       { tools },
     )
   }
 
   private commitStreamingParts(): void {
-    const streamingParts = this.helpers.typedStore.tables.streamingMessageParts.requireEntity(
-      this.assistantMessageId,
+    const streamingParts = this.typedStore.tables.streamingMessageParts.requireEntity(
+      this.targetMessageId,
     )
 
-    this.helpers.typedStore.tables.messages.updateRow(this.assistantMessageId, {
+    this.typedStore.tables.messages.updateRow(this.targetMessageId, {
       parts: streamingParts.parts,
       updatedAt: Date.now(),
     })
-    this.helpers.typedStore.tables.streamingMessageParts.deleteRow(this.assistantMessageId)
+    this.typedStore.tables.streamingMessageParts.deleteRow(this.targetMessageId)
   }
 
   private createStreamingParts(): void {
     const now = Date.now()
 
-    this.helpers.typedStore.tables.streamingMessageParts.setRow(this.assistantMessageId, {
+    this.typedStore.tables.streamingMessageParts.setRow(this.targetMessageId, {
       createdAt: now,
       parts: [],
       runId: this.runId,
@@ -259,9 +240,17 @@ export class Run extends EventTarget {
   }
 
   private writeStreamingPartsSnapshot(parts: UIMessage['parts']): void {
-    this.helpers.typedStore.tables.streamingMessageParts.updateRow(this.assistantMessageId, {
+    this.typedStore.tables.streamingMessageParts.updateRow(this.targetMessageId, {
       parts,
       updatedAt: Date.now(),
     })
   }
+}
+
+function toAiSdkUiMessageRole(role: string): UIMessage['role'] {
+  if (role === 'assistant' || role === 'system' || role === 'user') {
+    return role
+  }
+
+  throw new Error(`Cannot project message role to AI SDK UIMessage role: ${role}`)
 }

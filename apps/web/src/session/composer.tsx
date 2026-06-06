@@ -60,7 +60,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
     const isAdd = submitter instanceof HTMLElement && submitter.dataset.action === 'add'
 
     if (isAdd) {
-      tetra.helpers.appendMessage(sessionId, { parts, role: 'user' })
+      tetra.transcripts.appendMessage(sessionId, { parts, role: 'user' })
       setDraft('')
       return
     }
@@ -82,12 +82,12 @@ export function Composer({ sessionId }: { sessionId: string }) {
 
     try {
       // Create user and assistant messages, then hand off to the run.
-      tetra.helpers.appendMessage(sessionId, { parts, role: 'user' })
-      const assistantMessageId = tetra.helpers.appendMessage(sessionId, {
+      tetra.transcripts.appendMessage(sessionId, { parts, role: 'user' })
+      const targetMessageId = tetra.transcripts.appendMessage(sessionId, {
         parts: [],
         role: 'assistant',
       })
-      tetra.runs.start({ assistantMessageId })
+      tetra.runs.generate({ targetMessageId })
       if (shouldSetTitle) {
         tetra.helpers.typedStore.tables.sessions.updateRow(sessionId, {
           title: text === '' ? 'Image' : text.slice(0, 60),
@@ -96,7 +96,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
       }
     } catch (error) {
       setDraft(text)
-      toast.error('Could not start run', {
+      toast.error('Could not generate response', {
         description: error instanceof Error ? error.message : String(error),
       })
       throw error

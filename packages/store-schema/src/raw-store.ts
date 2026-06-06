@@ -36,13 +36,13 @@ function createTetraIndexes(rawStore: TetraRawStore): TetraRawIndexes {
 }
 
 function applyTetraIndexDefinitions(rawIndexes: TetraRawIndexes): void {
-  // HLC row IDs are lexicographically sortable, giving creation-time order for free.
+  // Transcript order is explicit; row ids are identity only.
   rawIndexes
-    .setIndexDefinition('messagesBySession', 'messages', 'sessionId')
+    .setIndexDefinition('messagesByThread', 'messages', 'threadId', 'position')
     .setIndexDefinition(
-      'runsByAssistantMessageNewestFirst',
+      'runsByTargetMessageNewestFirst',
       'runs',
-      'assistantMessageId',
+      'targetMessageId',
       'createdAt',
       undefined,
       (a, b) => Number(b) - Number(a),
@@ -59,4 +59,5 @@ function applyTetraIndexDefinitions(rawIndexes: TetraRawIndexes): void {
     .setIndexDefinition('stepsByMessage', 'steps', 'messageId', 'createdAt')
     .setIndexDefinition('stepsByRun', 'steps', 'runId', 'stepNumber')
     .setIndexDefinition('stepsBySession', 'steps', 'sessionId', 'createdAt')
+    .setIndexDefinition('threadsBySession', 'threads', 'sessionId', 'createdAt')
 }

@@ -1,6 +1,6 @@
 import { Database } from 'bun:sqlite'
 
-import { Catalog, Helpers, Runs } from '@tetra/core'
+import { Catalog, Helpers, Runs, Transcripts } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
 import {
   createRawMergeableStore,
@@ -31,6 +31,7 @@ export const TABULAR_CONFIG = {
       sessions: { rowIdColumnName: 'id', tableId: 'sessions' },
       steps: { rowIdColumnName: 'id', tableId: 'steps' },
       streamingMessageParts: { rowIdColumnName: 'id', tableId: 'streamingMessageParts' },
+      threads: { rowIdColumnName: 'id', tableId: 'threads' },
     },
     save: {
       languageModels: { rowIdColumnName: 'id', tableName: 'languageModels' },
@@ -42,6 +43,7 @@ export const TABULAR_CONFIG = {
       sessions: { rowIdColumnName: 'id', tableName: 'sessions' },
       steps: { rowIdColumnName: 'id', tableName: 'steps' },
       streamingMessageParts: { rowIdColumnName: 'id', tableName: 'streamingMessageParts' },
+      threads: { rowIdColumnName: 'id', tableName: 'threads' },
     },
   },
   values: { load: true, save: true },
@@ -62,8 +64,14 @@ export async function bootstrap(mode: BootstrapMode) {
       typedStore,
     }
     const helpers = new Helpers(context)
+    const transcripts = new Transcripts(context)
     const catalog = new Catalog(context)
-    const runs = new Runs(helpers, credentialStore)
+    const runs = new Runs({
+      credentials: credentialStore,
+      rawStore,
+      transcripts,
+      typedStore,
+    })
 
     const { cliActiveSessionId } = typedStore.values
     const workspace = {
@@ -93,6 +101,7 @@ export async function bootstrap(mode: BootstrapMode) {
       },
       helpers,
       runs,
+      transcripts,
       workspace,
     }
   }
@@ -108,8 +117,14 @@ export async function bootstrap(mode: BootstrapMode) {
     typedStore,
   }
   const helpers = new Helpers(context)
+  const transcripts = new Transcripts(context)
   const catalog = new Catalog(context)
-  const runs = new Runs(helpers, credentialStore)
+  const runs = new Runs({
+    credentials: credentialStore,
+    rawStore,
+    transcripts,
+    typedStore,
+  })
   const { cliActiveSessionId } = typedStore.values
   const workspace = {
     clearActiveSessionId(): void {
@@ -143,6 +158,7 @@ export async function bootstrap(mode: BootstrapMode) {
     },
     helpers,
     runs,
+    transcripts,
     workspace,
   }
 }

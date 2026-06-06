@@ -64,15 +64,15 @@ function useTetraMessage(messageId: string) {
                   },
           }
         : null,
-      sessionId: message.sessionId,
       stepGroups: groupPartsByStep(parts, steps),
+      threadId: message.threadId,
       updatedAt: message.updatedAt,
     }
   }, [message, run, steps, streamingParts])
 }
 
 function useRunForMessage(messageId: string) {
-  const ids = typedTinybase.useSliceRowIds('runsByAssistantMessageNewestFirst', messageId)
+  const ids = typedTinybase.useSliceRowIds('runsByTargetMessageNewestFirst', messageId)
   return typedTinybase.useEntity('runs', ids[0] ?? '')
 }
 
@@ -273,7 +273,7 @@ function MessageFooter({
   isLastMessage: boolean
   message: NonNullable<ReturnType<typeof useTetraMessage>>
 }) {
-  const { helpers, runs } = useTetra()
+  const { helpers, runs, transcripts } = useTetra()
   const { openJsonView } = useJsonViewSheet()
 
   const messageText = message.stepGroups
@@ -282,7 +282,9 @@ function MessageFooter({
     .map((p) => p.text)
     .join('')
 
-  const canRegenerate = isLastMessage
+  const isStreaming = message.run?.status === 'preparing' || message.run?.status === 'streaming'
+  const canGenerate = isLastMessage && !isStreaming
+  const generateActionLabel = message.run === null ? 'Generate' : 'Regenerate'
 
   const totals = message.run?.totals
 
@@ -309,14 +311,31 @@ function MessageFooter({
       >
         <BracesIcon />
       </Button>
-      {canRegenerate && (
+      {canGenerate && (
         <Button
-          aria-label="Regenerate"
+          aria-label={generateActionLabel}
           onClick={() => {
-            runs.regenerate({ messageId: message.id })
+            const thread = helpers.typedStore.tables.threads.requireEntity(message.threadId)
+            if (message.run !== null) {
+              transcripts.deleteMessage(message.id)
+              const targetMessageId = transcripts.appendMessage(thread.sessionId, {
+                parts: [],
+                role: message.role,
+                threadId: message.threadId,
+              })
+              runs.generate({ targetMessageId })
+              return
+            }
+
+            const targetMessageId = transcripts.appendMessage(thread.sessionId, {
+              parts: [],
+              role: 'assistant',
+              threadId: message.threadId,
+            })
+            runs.generate({ targetMessageId })
           }}
           size="icon-sm"
-          title="Regenerate"
+          title={generateActionLabel}
           variant="ghost"
         >
           <RefreshCwIcon />
@@ -325,7 +344,7 @@ function MessageFooter({
       <Button
         aria-label="Delete"
         onClick={() => {
-          helpers.deleteMessage(message.id)
+          transcripts.deleteMessage(message.id)
         }}
         size="icon-sm"
         title="Delete"

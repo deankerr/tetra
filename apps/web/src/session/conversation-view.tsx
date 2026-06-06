@@ -17,7 +17,8 @@ export function TetraConversationView({
   className,
   ...props
 }: { sessionId: string } & React.ComponentProps<'div'>) {
-  const messageIds = typedTinybase.useSliceRowIds('messagesBySession', sessionId)
+  const activeThreadId = typedTinybase.useCell('sessions', sessionId, 'activeThreadId') ?? ''
+  const messageIds = typedTinybase.useSliceRowIds('messagesByThread', activeThreadId)
 
   return (
     <div className={cn('flex min-h-0 flex-1 flex-col', className)} {...props}>

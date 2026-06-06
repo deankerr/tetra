@@ -1,7 +1,10 @@
-import { getHlcFunctions } from 'tinybase/common'
+import { customAlphabet } from 'nanoid'
 
-const [getNextHlc] = getHlcFunctions()
+const alphanumericId = customAlphabet(
+  '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
+  12,
+)
 
 export function createIdGenerator(prefix: string): () => string {
-  return () => `${prefix}_${getNextHlc()}`
+  return () => `${prefix}_${alphanumericId()}`
 }

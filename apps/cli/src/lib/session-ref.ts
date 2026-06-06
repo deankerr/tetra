@@ -1,4 +1,4 @@
-import type { Helpers } from '@tetra/core'
+import type { Helpers, Transcripts } from '@tetra/core'
 
 export interface ResolveSessionArgs {
   forceNew?: boolean
@@ -9,6 +9,7 @@ export interface ResolveSessionArgs {
 
 export interface ResolveSessionContext {
   helpers: Helpers
+  transcripts: Transcripts
   workspace: {
     clearActiveSessionId(): void
     getActiveSessionId(): string | undefined
@@ -17,7 +18,7 @@ export interface ResolveSessionContext {
 }
 
 export function resolveSession(
-  { helpers, workspace }: ResolveSessionContext,
+  { helpers, transcripts, workspace }: ResolveSessionContext,
   { forceNew = false, sessionId, setActive = true, title }: ResolveSessionArgs,
 ): string {
   // Explicit session IDs always win, and also become active by default.
@@ -33,7 +34,7 @@ export function resolveSession(
 
   // Forced-new sessions intentionally bypass the currently active session.
   if (forceNew) {
-    const nextSessionId = helpers.createSession({ title })
+    const nextSessionId = transcripts.createSession({ title })
     if (setActive) {
       workspace.setActiveSessionId(nextSessionId)
     }
@@ -50,7 +51,7 @@ export function resolveSession(
   if (activeSessionId !== undefined) {
     workspace.clearActiveSessionId()
   }
-  const nextSessionId = helpers.createSession({ title })
+  const nextSessionId = transcripts.createSession({ title })
   if (setActive) {
     workspace.setActiveSessionId(nextSessionId)
   }

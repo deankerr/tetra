@@ -277,7 +277,7 @@ test('runs multiple typed mutations inside a caller-owned TinyBase transaction',
   const store = createTestStore(definition)
   const db = bindStore(store, definition.tables, definition.values)
 
-  store.transaction(() => {
+  db.transaction(() => {
     db.tables.sessions.setRow('sess_1', {
       config: {
         modelId: 'anthropic/claude-sonnet-4.5',

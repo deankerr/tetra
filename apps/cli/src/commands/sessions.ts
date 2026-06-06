@@ -45,7 +45,7 @@ export function registerSessionCommands(
         }
 
         if (content.trim() !== '') {
-          const sessionId = ctx.helpers.createSession({
+          const sessionId = ctx.transcripts.createSession({
             config,
             title: opts.title ?? titleFromMessage(content),
           })
@@ -60,7 +60,7 @@ export function registerSessionCommands(
           return
         }
 
-        const sessionId = ctx.helpers.createSession({
+        const sessionId = ctx.transcripts.createSession({
           config,
           title: opts.title ?? 'Untitled Session',
         })
@@ -132,7 +132,7 @@ export function registerSessionCommands(
     .description('Delete a session')
     .action(async (sessionId: string) => {
       const ctx = await getContext()
-      ctx.helpers.deleteSession(sessionId)
+      ctx.transcripts.deleteSession(sessionId)
       if (ctx.workspace.getActiveSessionId() === sessionId) {
         ctx.workspace.clearActiveSessionId()
       }
@@ -146,7 +146,7 @@ export function registerSessionCommands(
     .description('Delete a message')
     .action(async (messageId: string) => {
       const ctx = await getContext()
-      ctx.helpers.deleteMessage(messageId)
+      ctx.transcripts.deleteMessage(messageId)
       console.log(messageId)
     })
 
@@ -161,9 +161,7 @@ export function registerSessionCommands(
       if (resolvedSessionId === undefined) {
         throw new Error('No active session. Try: tetra "hello"')
       }
-      const messages = ctx.helpers.typedIndexes
-        .getSliceRowIds('messagesBySession', resolvedSessionId)
-        .map((id) => ctx.helpers.typedStore.tables.messages.requireEntity(id))
+      const messages = ctx.transcripts.listActiveThreadMessages(resolvedSessionId)
       if (messages.length === 0) {
         console.log('No messages in this session.')
         return

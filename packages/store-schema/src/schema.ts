@@ -18,19 +18,20 @@ const MessagePartSchema = z.custom<UIMessage['parts'][number]>(
   (value) => typeof value === 'object' && value !== null && 'type' in value,
 )
 
-// Enum schemas stay near the table cells that use them.
-const MessageRoleSchema = z.enum(['assistant', 'user'])
+// Message roles are caller-authored labels; provider-specific projection happens at run time.
+const MessageRoleSchema = z.string()
 const RunStatusSchema = z.enum(['cancelled', 'completed', 'error', 'preparing', 'streaming'])
 
 // Index ids are shared with typed TinyBase bindings at app and test boundaries.
 export const tetraIndexIds = [
-  'messagesBySession',
-  'runsByAssistantMessageNewestFirst',
+  'messagesByThread',
+  'runsByTargetMessageNewestFirst',
   'runsBySessionNewestFirst',
   'streamingPartsBySession',
   'stepsByMessage',
   'stepsByRun',
   'stepsBySession',
+  'threadsBySession',
 ] as const
 
 // The Tetra store schema owns durable TinyBase tables, values, and coarse cell schemas.
@@ -51,8 +52,9 @@ export const tetraStoreSchema = defineTypedStore({
     messages: z.object({
       createdAt: z.number(),
       parts: MessagePartSchema.array(),
+      position: z.number(),
       role: MessageRoleSchema,
-      sessionId: z.string(),
+      threadId: z.string(),
       updatedAt: z.number(),
     }),
     modelFavorites: z.object({
@@ -65,12 +67,12 @@ export const tetraStoreSchema = defineTypedStore({
       updatedAt: z.number(),
     }),
     runs: z.object({
-      assistantMessageId: z.string(),
       config: RunConfigSnapshotSchema,
       createdAt: z.number(),
       errorMessage: z.string(),
       sessionId: z.string(),
       status: RunStatusSchema,
+      targetMessageId: z.string(),
       terminalAt: z.number(),
       updatedAt: z.number(),
     }),
@@ -84,6 +86,7 @@ export const tetraStoreSchema = defineTypedStore({
       toolIds: z.array(z.string()),
     }),
     sessions: z.object({
+      activeThreadId: z.string(),
       createdAt: z.number(),
       title: z.string(),
       updatedAt: z.number(),
@@ -93,6 +96,11 @@ export const tetraStoreSchema = defineTypedStore({
       createdAt: z.number(),
       parts: z.array(MessagePartSchema),
       runId: z.string(),
+      sessionId: z.string(),
+      updatedAt: z.number(),
+    }),
+    threads: z.object({
+      createdAt: z.number(),
       sessionId: z.string(),
       updatedAt: z.number(),
     }),
