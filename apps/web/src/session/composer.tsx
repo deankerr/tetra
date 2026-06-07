@@ -60,7 +60,11 @@ export function Composer({ sessionId }: { sessionId: string }) {
     const isAdd = submitter instanceof HTMLElement && submitter.dataset.action === 'add'
 
     if (isAdd) {
-      tetra.transcripts.appendMessage(sessionId, { parts, role: 'user' })
+      const session = tetra.transcripts.getSession(sessionId)
+      const parentMessageId = session.getThread().message()?.id ?? null
+
+      // Add-only submits append committed content without starting model inference.
+      session.appendMessage({ parentMessageId, parts, role: 'user' })
       setDraft('')
       return
     }
@@ -82,8 +86,11 @@ export function Composer({ sessionId }: { sessionId: string }) {
 
     try {
       // Create user and assistant messages, then hand off to the run.
-      tetra.transcripts.appendMessage(sessionId, { parts, role: 'user' })
-      const targetMessageId = tetra.transcripts.appendMessage(sessionId, {
+      const session = tetra.transcripts.getSession(sessionId)
+      const parentMessageId = session.getThread().message()?.id ?? null
+      const userMessageId = session.appendMessage({ parentMessageId, parts, role: 'user' })
+      const targetMessageId = session.appendMessage({
+        parentMessageId: userMessageId,
         parts: [],
         role: 'assistant',
       })

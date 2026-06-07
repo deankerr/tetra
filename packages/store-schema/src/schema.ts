@@ -24,14 +24,13 @@ const RunStatusSchema = z.enum(['cancelled', 'completed', 'error', 'preparing', 
 
 // Index ids are shared with typed TinyBase bindings at app and test boundaries.
 export const tetraIndexIds = [
-  'messagesByThread',
+  'messagesBySession',
   'runsByTargetMessageNewestFirst',
   'runsBySessionNewestFirst',
   'streamingPartsBySession',
   'stepsByMessage',
   'stepsByRun',
   'stepsBySession',
-  'threadsBySession',
 ] as const
 
 // The Tetra store schema owns durable TinyBase tables, values, and coarse cell schemas.
@@ -51,10 +50,10 @@ export const tetraStoreSchema = defineTypedStore({
     }),
     messages: z.object({
       createdAt: z.number(),
+      parentMessageId: z.string().nullable(),
       parts: MessagePartSchema.array(),
-      position: z.number(),
       role: MessageRoleSchema,
-      threadId: z.string(),
+      sessionId: z.string(),
       updatedAt: z.number(),
     }),
     modelFavorites: z.object({
@@ -86,7 +85,6 @@ export const tetraStoreSchema = defineTypedStore({
       toolIds: z.array(z.string()),
     }),
     sessions: z.object({
-      activeThreadId: z.string(),
       createdAt: z.number(),
       title: z.string(),
       updatedAt: z.number(),
@@ -96,11 +94,6 @@ export const tetraStoreSchema = defineTypedStore({
       createdAt: z.number(),
       parts: z.array(MessagePartSchema),
       runId: z.string(),
-      sessionId: z.string(),
-      updatedAt: z.number(),
-    }),
-    threads: z.object({
-      createdAt: z.number(),
       sessionId: z.string(),
       updatedAt: z.number(),
     }),

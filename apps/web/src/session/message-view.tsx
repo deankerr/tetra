@@ -50,6 +50,7 @@ function useTetraMessage(messageId: string) {
     return {
       createdAt: message.createdAt,
       id: message.id,
+      parentMessageId: message.parentMessageId,
       role: message.role,
       run: run
         ? {
@@ -64,8 +65,8 @@ function useTetraMessage(messageId: string) {
                   },
           }
         : null,
+      sessionId: message.sessionId,
       stepGroups: groupPartsByStep(parts, steps),
-      threadId: message.threadId,
       updatedAt: message.updatedAt,
     }
   }, [message, run, steps, streamingParts])
@@ -273,7 +274,7 @@ function MessageFooter({
   isLastMessage: boolean
   message: NonNullable<ReturnType<typeof useTetraMessage>>
 }) {
-  const { helpers, runs, transcripts } = useTetra()
+  const { runs, transcripts } = useTetra()
   const { openJsonView } = useJsonViewSheet()
 
   const messageText = message.stepGroups
@@ -284,7 +285,9 @@ function MessageFooter({
 
   const isStreaming = message.run?.status === 'preparing' || message.run?.status === 'streaming'
   const canGenerate = isLastMessage && !isStreaming
+  const canDelete = isLastMessage && !isStreaming
   const generateActionLabel = message.run === null ? 'Generate' : 'Regenerate'
+  const deleteActionLabel = canDelete ? 'Delete' : 'Only leaf messages can be deleted'
 
   const totals = message.run?.totals
 
@@ -315,22 +318,21 @@ function MessageFooter({
         <Button
           aria-label={generateActionLabel}
           onClick={() => {
-            const thread = helpers.typedStore.tables.threads.requireEntity(message.threadId)
+            const session = transcripts.getSession(message.sessionId)
             if (message.run !== null) {
-              transcripts.deleteMessage(message.id)
-              const targetMessageId = transcripts.appendMessage(thread.sessionId, {
+              const targetMessageId = session.appendMessage({
+                parentMessageId: message.parentMessageId,
                 parts: [],
                 role: message.role,
-                threadId: message.threadId,
               })
               runs.generate({ targetMessageId })
               return
             }
 
-            const targetMessageId = transcripts.appendMessage(thread.sessionId, {
+            const targetMessageId = session.appendMessage({
+              parentMessageId: message.id,
               parts: [],
               role: 'assistant',
-              threadId: message.threadId,
             })
             runs.generate({ targetMessageId })
           }}
@@ -343,11 +345,17 @@ function MessageFooter({
       )}
       <Button
         aria-label="Delete"
+        disabled={!canDelete}
         onClick={() => {
-          transcripts.deleteMessage(message.id)
+          const session = transcripts.getSession(message.sessionId)
+          if (session.getThread({ messageId: message.id }).hasChildren()) {
+            return
+          }
+
+          session.deleteMessage(message.id)
         }}
         size="icon-sm"
-        title="Delete"
+        title={deleteActionLabel}
         variant="ghost"
       >
         <TrashIcon />

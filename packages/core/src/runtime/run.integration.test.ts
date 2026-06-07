@@ -3,6 +3,7 @@ import { expect, test } from 'bun:test'
 import type { LanguageModelV3StreamPart } from '@ai-sdk/provider'
 import { CredentialsStore } from '@tetra/credentials'
 import { createRawStore, tetraStoreSchema, tetraIndexIds } from '@tetra/store-schema'
+import type { Rows } from '@tetra/store-schema'
 import { bindIndexes, bindStore } from '@tetra/tinybase-schema'
 import { simulateReadableStream, tool } from 'ai'
 import { MockLanguageModelV3 } from 'ai/test'
@@ -68,6 +69,24 @@ function createTestRuntime() {
   return { core, model, runs }
 }
 
+type TestCore = ReturnType<typeof createTestRuntime>['core']
+
+function appendToDefaultThread(
+  core: TestCore,
+  sessionId: string,
+  args: { parts: Rows['messages']['parts']; role: Rows['messages']['role'] },
+): string {
+  const session = core.transcripts.getSession(sessionId)
+  const parentMessageId = session.getThread().message()?.id ?? null
+
+  // Tests model caller-owned continuation by choosing a parent before each append.
+  return session.appendMessage({ parentMessageId, ...args })
+}
+
+function listDefaultThreadMessages(core: TestCore, sessionId: string): Rows['messages'][] {
+  return core.transcripts.getSession(sessionId).getThread().messages()
+}
+
 async function withoutExpectedConsoleErrors<T>(
   args: { messages: string[] },
   fn: () => Promise<T>,
@@ -92,11 +111,11 @@ test('generate streams through the AI SDK into TinyBase rows', async () => {
   const { core, model, runs } = createTestRuntime()
   const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
 
-  core.transcripts.appendMessage(sessionId, {
+  appendToDefaultThread(core, sessionId, {
     parts: [{ text: 'hello', type: 'text' }],
     role: 'user',
   })
-  const targetMessageId = core.transcripts.appendMessage(sessionId, {
+  const targetMessageId = appendToDefaultThread(core, sessionId, {
     parts: [],
     role: 'assistant',
   })
@@ -106,12 +125,7 @@ test('generate streams through the AI SDK into TinyBase rows', async () => {
 
   await run.done
 
-  const messages = core.typedIndexes
-    .getSliceRowIds(
-      'messagesByThread',
-      core.typedStore.tables.sessions.requireEntity(sessionId).activeThreadId,
-    )
-    .map((id) => core.typedStore.tables.messages.requireEntity(id))
+  const messages = listDefaultThreadMessages(core, sessionId)
   const runRecord = core.typedStore.tables.runs.requireEntity(run.runId)
 
   expect(run.status).toBe('completed')
@@ -197,11 +211,11 @@ test('streaming snapshots persist to streamingMessageParts before message commit
   })
   const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
 
-  core.transcripts.appendMessage(sessionId, {
+  appendToDefaultThread(core, sessionId, {
     parts: [{ text: 'hello', type: 'text' }],
     role: 'user',
   })
-  const targetMessageId = core.transcripts.appendMessage(sessionId, {
+  const targetMessageId = appendToDefaultThread(core, sessionId, {
     parts: [],
     role: 'assistant',
   })
@@ -234,11 +248,11 @@ test('Pre-Run Invariants — throws before creating run when systemPromptId is m
     config: { modelId: 'mock-model', systemPromptId: 'non-existent-prompt' },
   })
 
-  core.transcripts.appendMessage(sessionId, {
+  appendToDefaultThread(core, sessionId, {
     parts: [{ text: 'hello', type: 'text' }],
     role: 'user',
   })
-  const targetMessageId = core.transcripts.appendMessage(sessionId, {
+  const targetMessageId = appendToDefaultThread(core, sessionId, {
     parts: [],
     role: 'assistant',
   })
@@ -260,19 +274,19 @@ test('History Reconstruction — prior messages appear in prompt, current placeh
   const { core, model, runs } = createTestRuntime()
   const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
 
-  core.transcripts.appendMessage(sessionId, {
+  appendToDefaultThread(core, sessionId, {
     parts: [{ text: 'prior user', type: 'text' }],
     role: 'user',
   })
-  core.transcripts.appendMessage(sessionId, {
+  appendToDefaultThread(core, sessionId, {
     parts: [{ text: 'prior assistant', type: 'text' }],
     role: 'assistant',
   })
-  core.transcripts.appendMessage(sessionId, {
+  appendToDefaultThread(core, sessionId, {
     parts: [{ text: 'new message', type: 'text' }],
     role: 'user',
   })
-  const targetMessageId = core.transcripts.appendMessage(sessionId, {
+  const targetMessageId = appendToDefaultThread(core, sessionId, {
     parts: [],
     role: 'assistant',
   })
@@ -294,27 +308,27 @@ test('History Reconstruction — maxMessages limits history at the execution bou
     config: { maxMessages: 2, modelId: 'mock-model' },
   })
 
-  core.transcripts.appendMessage(sessionId, {
+  appendToDefaultThread(core, sessionId, {
     parts: [{ text: 'oldest user', type: 'text' }],
     role: 'user',
   })
-  core.transcripts.appendMessage(sessionId, {
+  appendToDefaultThread(core, sessionId, {
     parts: [{ text: 'oldest assistant', type: 'text' }],
     role: 'assistant',
   })
-  core.transcripts.appendMessage(sessionId, {
+  appendToDefaultThread(core, sessionId, {
     parts: [{ text: 'recent user', type: 'text' }],
     role: 'user',
   })
-  core.transcripts.appendMessage(sessionId, {
+  appendToDefaultThread(core, sessionId, {
     parts: [{ text: 'recent assistant', type: 'text' }],
     role: 'assistant',
   })
-  core.transcripts.appendMessage(sessionId, {
+  appendToDefaultThread(core, sessionId, {
     parts: [{ text: 'latest', type: 'text' }],
     role: 'user',
   })
-  const targetMessageId = core.transcripts.appendMessage(sessionId, {
+  const targetMessageId = appendToDefaultThread(core, sessionId, {
     parts: [],
     role: 'assistant',
   })
@@ -332,11 +346,11 @@ test('Generate Invariants — refuses to write into a message with committed par
   const { core, runs } = createTestRuntime()
   const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
 
-  core.transcripts.appendMessage(sessionId, {
+  appendToDefaultThread(core, sessionId, {
     parts: [{ text: 'hello', type: 'text' }],
     role: 'user',
   })
-  const targetMessageId = core.transcripts.appendMessage(sessionId, {
+  const targetMessageId = appendToDefaultThread(core, sessionId, {
     parts: [{ text: 'existing output', type: 'text' }],
     role: 'assistant',
   })
@@ -358,11 +372,11 @@ test('Generate Invariants — target message role does not affect generation', a
   const { core, model, runs } = createTestRuntime()
   const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
 
-  core.transcripts.appendMessage(sessionId, {
+  appendToDefaultThread(core, sessionId, {
     parts: [{ text: 'review this', type: 'text' }],
     role: 'user',
   })
-  const targetMessageId = core.transcripts.appendMessage(sessionId, {
+  const targetMessageId = appendToDefaultThread(core, sessionId, {
     parts: [],
     role: 'critic',
   })
@@ -371,12 +385,7 @@ test('Generate Invariants — target message role does not affect generation', a
 
   await run.done
 
-  const messages = core.typedIndexes
-    .getSliceRowIds(
-      'messagesByThread',
-      core.typedStore.tables.sessions.requireEntity(sessionId).activeThreadId,
-    )
-    .map((id) => core.typedStore.tables.messages.requireEntity(id))
+  const messages = listDefaultThreadMessages(core, sessionId)
   expect(messages).toHaveLength(2)
   expect(messages[1]?.id).toBe(targetMessageId)
   expect(messages[1]?.role).toBe('critic')
@@ -390,15 +399,15 @@ test('Generate Invariants — target message role does not affect generation', a
   ])
 })
 
-test('Caller-Owned Regeneration — delete and append creates a new target before generate', async () => {
+test('Caller-Owned Regeneration — sibling target preserves the old output', async () => {
   const { core, model, runs } = createTestRuntime()
   const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
 
-  core.transcripts.appendMessage(sessionId, {
+  appendToDefaultThread(core, sessionId, {
     parts: [{ text: 'again', type: 'text' }],
     role: 'user',
   })
-  const oldTargetMessageId = core.transcripts.appendMessage(sessionId, {
+  const oldTargetMessageId = appendToDefaultThread(core, sessionId, {
     parts: [],
     role: 'assistant',
   })
@@ -408,29 +417,23 @@ test('Caller-Owned Regeneration — delete and append creates a new target befor
   expect(core.typedIndexes.getSliceRowIds('stepsByMessage', oldTargetMessageId)).toHaveLength(1)
 
   const oldTargetMessage = core.typedStore.tables.messages.requireEntity(oldTargetMessageId)
-  const thread = core.typedStore.tables.threads.requireEntity(oldTargetMessage.threadId)
-  core.transcripts.deleteMessage(oldTargetMessageId)
-  const newTargetMessageId = core.transcripts.appendMessage(thread.sessionId, {
+  const newTargetMessageId = core.transcripts.getSession(sessionId).appendMessage({
+    parentMessageId: oldTargetMessage.parentMessageId,
     parts: [],
     role: oldTargetMessage.role,
-    threadId: oldTargetMessage.threadId,
   })
 
-  expect(core.typedStore.tables.messages.getEntity(oldTargetMessageId)).toBeNull()
-  expect(core.typedIndexes.getSliceRowIds('stepsByMessage', oldTargetMessageId)).toEqual([])
-  expect(core.typedIndexes.getSliceRowIds('stepsByRun', firstRun.runId)).toEqual([])
+  expect(core.typedStore.tables.messages.getEntity(oldTargetMessageId)).not.toBeNull()
+  expect(core.typedIndexes.getSliceRowIds('stepsByMessage', oldTargetMessageId)).toHaveLength(1)
+  expect(core.typedIndexes.getSliceRowIds('stepsByRun', firstRun.runId)).toHaveLength(1)
 
   const run = runs.generate({ targetMessageId: newTargetMessageId })
   await run.done
 
-  const messages = core.typedIndexes
-    .getSliceRowIds(
-      'messagesByThread',
-      core.typedStore.tables.sessions.requireEntity(sessionId).activeThreadId,
-    )
-    .map((id) => core.typedStore.tables.messages.requireEntity(id))
+  const messages = listDefaultThreadMessages(core, sessionId)
   expect(messages).toHaveLength(2)
   expect(messages[1]?.id).toBe(newTargetMessageId)
+  expect(core.transcripts.getSession(sessionId).listMessages()).toHaveLength(3)
   expect(model.doStreamCalls[1]?.prompt).toEqual([
     { content: [{ text: 'again', type: 'text' }], role: 'user' },
   ])
@@ -523,11 +526,11 @@ test('Tool Loop — tool call executes and result appears in final parts', async
   })
 
   try {
-    core.transcripts.appendMessage(sessionId, {
+    appendToDefaultThread(core, sessionId, {
       parts: [{ text: 'what is the weather?', type: 'text' }],
       role: 'user',
     })
-    const targetMessageId = core.transcripts.appendMessage(sessionId, {
+    const targetMessageId = appendToDefaultThread(core, sessionId, {
       parts: [],
       role: 'assistant',
     })
@@ -571,11 +574,11 @@ test('Error Path — stream error sets run to error status', async () => {
   })
   const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
 
-  core.transcripts.appendMessage(sessionId, {
+  appendToDefaultThread(core, sessionId, {
     parts: [{ text: 'hello', type: 'text' }],
     role: 'user',
   })
-  const targetMessageId = core.transcripts.appendMessage(sessionId, {
+  const targetMessageId = appendToDefaultThread(core, sessionId, {
     parts: [],
     role: 'assistant',
   })
@@ -599,11 +602,11 @@ test('Recovery — interrupted runs commit partial streaming parts and clean hot
   const { core, runs } = createTestRuntime()
   const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
 
-  core.transcripts.appendMessage(sessionId, {
+  appendToDefaultThread(core, sessionId, {
     parts: [{ text: 'hello', type: 'text' }],
     role: 'user',
   })
-  const targetMessageId = core.transcripts.appendMessage(sessionId, {
+  const targetMessageId = appendToDefaultThread(core, sessionId, {
     parts: [],
     role: 'assistant',
   })
@@ -697,11 +700,11 @@ test('Error Path — later runs can still run after an error', async () => {
   })
   const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
 
-  core.transcripts.appendMessage(sessionId, {
+  appendToDefaultThread(core, sessionId, {
     parts: [{ text: 'fail', type: 'text' }],
     role: 'user',
   })
-  const failAssistantId = core.transcripts.appendMessage(sessionId, {
+  const failAssistantId = appendToDefaultThread(core, sessionId, {
     parts: [],
     role: 'assistant',
   })
@@ -715,11 +718,11 @@ test('Error Path — later runs can still run after an error', async () => {
   )
   expect(failedRun.status).toBe('error')
 
-  core.transcripts.appendMessage(sessionId, {
+  appendToDefaultThread(core, sessionId, {
     parts: [{ text: 'retry', type: 'text' }],
     role: 'user',
   })
-  const retryAssistantId = core.transcripts.appendMessage(sessionId, {
+  const retryAssistantId = appendToDefaultThread(core, sessionId, {
     parts: [],
     role: 'assistant',
   })

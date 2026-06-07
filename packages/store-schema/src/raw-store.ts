@@ -36,9 +36,9 @@ function createTetraIndexes(rawStore: TetraRawStore): TetraRawIndexes {
 }
 
 function applyTetraIndexDefinitions(rawIndexes: TetraRawIndexes): void {
-  // Transcript order is explicit; row ids are identity only.
+  // Session messages are shaped into derived thread paths in the Transcripts module.
   rawIndexes
-    .setIndexDefinition('messagesByThread', 'messages', 'threadId', 'position')
+    .setIndexDefinition('messagesBySession', 'messages', 'sessionId', 'createdAt')
     .setIndexDefinition(
       'runsByTargetMessageNewestFirst',
       'runs',
@@ -59,5 +59,4 @@ function applyTetraIndexDefinitions(rawIndexes: TetraRawIndexes): void {
     .setIndexDefinition('stepsByMessage', 'steps', 'messageId', 'createdAt')
     .setIndexDefinition('stepsByRun', 'steps', 'runId', 'stepNumber')
     .setIndexDefinition('stepsBySession', 'steps', 'sessionId', 'createdAt')
-    .setIndexDefinition('threadsBySession', 'threads', 'sessionId', 'createdAt')
 }
