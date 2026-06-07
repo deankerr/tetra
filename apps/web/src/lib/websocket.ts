@@ -2,17 +2,18 @@ import ReconnectingWebSocket from 'reconnecting-websocket'
 
 const WORKER_URL = import.meta.env.VITE_WORKER_URL
 
-export function hasSyncWorkerUrl(workerUrl = WORKER_URL): boolean {
-  return workerUrl !== undefined && workerUrl.trim() !== ''
-}
-
-export function getSyncResetUrl(workerUrl = WORKER_URL): string {
-  if (!hasSyncWorkerUrl(workerUrl)) {
-    throw new Error('VITE_WORKER_URL is required to reset synced worker data')
+function getSyncWorkerUrl(): string {
+  const workerUrl = WORKER_URL?.trim()
+  if (workerUrl === undefined || workerUrl === '') {
+    throw new Error('VITE_WORKER_URL is required for Cloudflare sync')
   }
 
+  return workerUrl
+}
+
+function getSyncResetUrl(): string {
   // Convert the configured Worker origin into the reset endpoint URL.
-  const url = new URL('/tetra/reset', workerUrl)
+  const url = new URL('/tetra/reset', getSyncWorkerUrl())
   if (url.protocol === 'ws:') {
     url.protocol = 'http:'
   }
@@ -28,23 +29,15 @@ export async function clearTetraSyncDataAndReload(): Promise<void> {
     method: 'DELETE',
   })
   if (!response.ok) {
-    const body = await response.text()
-    const detail = body.trim() === '' ? '' : `: ${body}`
-    throw new Error(
-      `Failed to clear synced worker data: ${response.status} ${response.statusText}${detail}`,
-    )
+    throw new Error(`Failed to clear synced worker data: ${response.status} ${response.statusText}`)
   }
 
   globalThis.location.reload()
 }
 
-export function createSyncWebSocket(workerUrl = WORKER_URL): WebSocket {
-  if (!hasSyncWorkerUrl(workerUrl)) {
-    throw new Error('VITE_WORKER_URL is required when VITE_TETRA_DATA_MODE=sync')
-  }
-
+export function createSyncWebSocket(): WebSocket {
   // Convert the configured Worker origin into the Durable Object websocket URL.
-  const url = new URL('/tetra', workerUrl)
+  const url = new URL('/tetra', getSyncWorkerUrl())
   if (url.protocol === 'http:') {
     url.protocol = 'ws:'
   }
