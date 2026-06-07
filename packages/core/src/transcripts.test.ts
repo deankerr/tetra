@@ -172,6 +172,26 @@ test('deleteMessage is leaf-only in the first slice', () => {
   expect(session.getThread({ messageId: parentMessageId }).children()).toEqual([])
 })
 
+test('default thread fails loudly when corrupt session state has no leaf message', () => {
+  const { transcripts, typedStore } = createTestTranscripts()
+  const sessionId = transcripts.createSession()
+  const now = Date.now()
+
+  // A self-parented row is impossible through appendMessage, but can exist in corrupt store state.
+  typedStore.tables.messages.setRow('msg_cycle', {
+    createdAt: now,
+    parentMessageId: 'msg_cycle',
+    parts: [],
+    role: 'user',
+    sessionId,
+    updatedAt: now,
+  })
+
+  expect(() => transcripts.getSession(sessionId).getThread()).toThrow(
+    `Cannot determine default thread for session ${sessionId}: no leaf message found`,
+  )
+})
+
 test('exportSession includes all messages, not only the default thread', async () => {
   const { transcripts } = createTestTranscripts()
   const sessionId = transcripts.createSession()

@@ -328,7 +328,14 @@ export class Transcripts {
         .map((message) => message.parentMessageId)
         .filter((parentMessageId): parentMessageId is string => parentMessageId !== null),
     )
-    return messages.findLast((message) => !parentIds.has(message.id))?.id ?? null
+    const leaf = messages.findLast((message) => !parentIds.has(message.id))
+    if (!leaf) {
+      throw new Error(
+        `Cannot determine default thread for session ${sessionId}: no leaf message found`,
+      )
+    }
+
+    return leaf.id
   }
 }
 

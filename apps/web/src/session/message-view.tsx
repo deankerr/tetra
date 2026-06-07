@@ -285,7 +285,9 @@ function MessageFooter({
 
   const isStreaming = message.run?.status === 'preparing' || message.run?.status === 'streaming'
   const canGenerate = isLastMessage && !isStreaming
+  const canDelete = isLastMessage && !isStreaming
   const generateActionLabel = message.run === null ? 'Generate' : 'Regenerate'
+  const deleteActionLabel = canDelete ? 'Delete' : 'Only leaf messages can be deleted'
 
   const totals = message.run?.totals
 
@@ -343,11 +345,17 @@ function MessageFooter({
       )}
       <Button
         aria-label="Delete"
+        disabled={!canDelete}
         onClick={() => {
-          transcripts.getSession(message.sessionId).deleteMessage(message.id)
+          const session = transcripts.getSession(message.sessionId)
+          if (session.getThread({ messageId: message.id }).hasChildren()) {
+            return
+          }
+
+          session.deleteMessage(message.id)
         }}
         size="icon-sm"
-        title="Delete"
+        title={deleteActionLabel}
         variant="ghost"
       >
         <TrashIcon />
