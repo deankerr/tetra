@@ -8,10 +8,8 @@ import {
 
 const SYNC_PATH = '/tetra'
 const RESET_PATH = '/tetra/reset'
-const RESET_TOKEN_HEADER = 'x-tetra-reset-token'
 
 export interface Env {
-  TETRA_RESET_TOKEN?: string
   TinyBaseDurableObjects: DurableObjectNamespace<TinyBaseDurableObject>
 }
 
@@ -20,35 +18,13 @@ type DurableObjectSqlStoragePersister = ReturnType<typeof createDurableObjectSql
 const persisters = new WeakMap<TinyBaseDurableObject, DurableObjectSqlStoragePersister>()
 const stores = new WeakMap<TinyBaseDurableObject, MergeableStore>()
 
-function getBearerToken(request: Request): string | undefined {
-  const authorization = request.headers.get('authorization')
-  if (authorization !== null && authorization.startsWith('Bearer ')) {
-    return authorization.slice('Bearer '.length)
-  }
-
-  return request.headers.get(RESET_TOKEN_HEADER) ?? undefined
-}
-
-function canReset(request: Request, env: Env): boolean {
-  const url = new URL(request.url)
-  const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1'
-  if (isLocalhost && env.TETRA_RESET_TOKEN === undefined) {
-    return true
-  }
-
-  return env.TETRA_RESET_TOKEN !== undefined && getBearerToken(request) === env.TETRA_RESET_TOKEN
-}
-
 function getResetResponse(request: Request, env: Env): Promise<Response> | Response | undefined {
   const url = new URL(request.url)
   if (url.pathname !== RESET_PATH) {
     return undefined
   }
-  if (request.method !== 'POST') {
+  if (request.method !== 'DELETE') {
     return new Response('Method not allowed', { status: 405 })
-  }
-  if (!canReset(request, env)) {
-    return new Response('Forbidden', { status: 403 })
   }
 
   return env.TinyBaseDurableObjects.getByName(SYNC_PATH.slice(1)).fetch(request)
@@ -65,7 +41,7 @@ export class TinyBaseDurableObject extends WsServerDurableObject<Env> {
     return persister
   }
 
-  override fetch(request: Request): Response {
+  override async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url)
     if (url.pathname !== RESET_PATH) {
       const response = WsServerDurableObject.prototype.fetch?.call(this, request)
@@ -85,7 +61,7 @@ export class TinyBaseDurableObject extends WsServerDurableObject<Env> {
 
     store.delTables()
     store.delValues()
-    this.ctx.waitUntil(persister.save())
+    await persister.save()
 
     return Response.json({ ok: true })
   }

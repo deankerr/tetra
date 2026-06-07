@@ -32,7 +32,8 @@
     "dev": "bun run --cwd apps/web dev --port 5148",
     "fix": "ultracite fix --type-aware --type-check",
     "knip": "knip",
-    "preview": "turbo run preview"
+    "preview": "turbo run preview",
+    "reset-sync": "bun run --cwd apps/cli start reset-sync --yes"
   },
   "devDependencies": {
     "@types/bun": "catalog:",

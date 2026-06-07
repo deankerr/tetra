@@ -25,17 +25,13 @@ Tetra does not rely on TinyBase native schema defaults or row-dropping validatio
 
 For web local data, use the bug menu's "Clear all data" action, or the same action on the root error screen. This deletes the `tetra-local` IndexedDB database and reloads the page.
 
-For synced Durable Object data, the worker exposes `POST /tetra/reset`. Remote resets require `TETRA_RESET_TOKEN`, accepted as either `Authorization: Bearer <token>` or `x-tetra-reset-token`. Localhost resets are allowed without a token only when the worker has no token configured.
+For synced Durable Object data, the worker exposes `DELETE /tetra/reset`. This sync Worker is currently a dev convenience and placeholder, so the reset endpoint deliberately has no auth beyond requiring the more explicit HTTP method.
 
 The CLI wraps the reset endpoint:
 
 ```bash
-TETRA_WORKER_URL=https://tetra-worker.example.workers.dev \
-TETRA_RESET_TOKEN=... \
-bun run --filter @tetra/cli start reset-sync --yes
+TETRA_WORKER_URL=https://tetra-worker.example.workers.dev bun run reset-sync
 ```
-
-Use `bunx wrangler secret put TETRA_RESET_TOKEN` from `apps/worker` when the deployed worker needs a new remote reset token.
 
 ## The Single-Store Problem
 

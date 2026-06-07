@@ -1,12 +1,25 @@
 import type { ErrorComponentProps } from '@tanstack/react-router'
 import { useRouter } from '@tanstack/react-router'
 import { Button } from '@tetra/ui/components/ui/button'
-import { AlertCircleIcon, Trash2Icon } from 'lucide-react'
+import { AlertCircleIcon, CloudIcon, Trash2Icon } from 'lucide-react'
+import { useState } from 'react'
 
 import { clearTetraIndexedDbAndReload } from '@/lib/tinybase'
+import { clearTetraSyncDataAndReload, hasSyncWorkerUrl } from '@/lib/websocket'
 
 export function RootErrorComponent({ error, reset }: ErrorComponentProps) {
   const router = useRouter()
+  const [syncResetError, setSyncResetError] = useState<string>()
+
+  async function handleClearTetraSyncData(): Promise<void> {
+    setSyncResetError(undefined)
+    try {
+      await clearTetraSyncDataAndReload()
+    } catch (resetError: unknown) {
+      console.error(resetError)
+      setSyncResetError(resetError instanceof Error ? resetError.message : String(resetError))
+    }
+  }
 
   return (
     <div className="bg-background flex min-h-svh flex-col items-center justify-center gap-4 p-8">
@@ -17,7 +30,7 @@ export function RootErrorComponent({ error, reset }: ErrorComponentProps) {
           {error instanceof Error ? error.message : 'An unexpected error occurred.'}
         </p>
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap justify-center gap-2">
         <Button
           onClick={() => {
             reset()
@@ -36,7 +49,21 @@ export function RootErrorComponent({ error, reset }: ErrorComponentProps) {
           <Trash2Icon />
           Clear all IndexedDB data
         </Button>
+        {hasSyncWorkerUrl() && (
+          <Button
+            onClick={() => {
+              void handleClearTetraSyncData()
+            }}
+            variant="outline"
+          >
+            <CloudIcon />
+            Clear Cloudflare sync data
+          </Button>
+        )}
       </div>
+      {syncResetError !== undefined && (
+        <p className="text-destructive max-w-md text-center text-sm">{syncResetError}</p>
+      )}
     </div>
   )
 }

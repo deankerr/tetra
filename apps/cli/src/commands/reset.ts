@@ -23,19 +23,13 @@ export function registerResetCommand(program: Command): void {
         throw new Error('Refusing to reset synced data without --yes')
       }
 
-      const headers = new Headers()
-      // oxlint-disable-next-line dot-notation -- env var name has underscores, bracket notation is clearer
-      const resetToken = process.env['TETRA_RESET_TOKEN']
-      if (resetToken !== undefined) {
-        headers.set('x-tetra-reset-token', resetToken)
-      }
-
       const response = await fetch(getResetUrl(), {
-        headers,
-        method: 'POST',
+        method: 'DELETE',
       })
       if (!response.ok) {
-        throw new Error(`Reset failed: ${response.status} ${response.statusText}`)
+        const body = await response.text()
+        const detail = body.trim() === '' ? '' : `: ${body}`
+        throw new Error(`Reset failed: ${response.status} ${response.statusText}${detail}`)
       }
 
       console.log(`Reset synced store at ${getResetUrl()}`)

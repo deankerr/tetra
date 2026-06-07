@@ -1,11 +1,13 @@
 import { Button } from '@tetra/ui/components/ui/button'
 import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
-import { AlertCircleIcon, Trash2Icon, XIcon } from 'lucide-react'
+import { AlertCircleIcon, CloudIcon, Trash2Icon, XIcon } from 'lucide-react'
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 import type { FallbackProps } from 'react-error-boundary'
 
 import { clearTetraIndexedDbAndReload } from '@/lib/tinybase'
+import { clearTetraSyncDataAndReload, hasSyncWorkerUrl } from '@/lib/websocket'
 
 export function SessionPanelErrorBoundary({
   children,
@@ -38,6 +40,17 @@ function SessionPanelErrorFallback({
 }) {
   const message =
     error instanceof Error ? error.message : 'An unexpected session view error occurred.'
+  const [syncResetError, setSyncResetError] = useState<string>()
+
+  async function handleClearTetraSyncData(): Promise<void> {
+    setSyncResetError(undefined)
+    try {
+      await clearTetraSyncDataAndReload()
+    } catch (resetError: unknown) {
+      console.error(resetError)
+      setSyncResetError(resetError instanceof Error ? resetError.message : String(resetError))
+    }
+  }
 
   return (
     <div className="flex min-h-0 min-w-[420px] flex-1 flex-col border-r last:border-r-0">
@@ -80,7 +93,21 @@ function SessionPanelErrorFallback({
             <Trash2Icon />
             Clear all IndexedDB data
           </Button>
+          {hasSyncWorkerUrl() && (
+            <Button
+              onClick={() => {
+                void handleClearTetraSyncData()
+              }}
+              variant="outline"
+            >
+              <CloudIcon />
+              Clear Cloudflare sync data
+            </Button>
+          )}
         </div>
+        {syncResetError !== undefined && (
+          <p className="text-destructive max-w-md text-sm">{syncResetError}</p>
+        )}
       </div>
     </div>
   )
