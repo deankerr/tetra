@@ -87,8 +87,7 @@ export class Runs {
   // The target message should have empty parts; all messages before it become the transcript.
   generate(args: GenerateArgs): Run {
     const targetMessage = this.typedStore.tables.messages.requireEntity(args.targetMessageId)
-    const thread = this.typedStore.tables.threads.requireEntity(targetMessage.threadId)
-    const session = this.typedStore.tables.sessions.requireEntity(thread.sessionId)
+    const session = this.typedStore.tables.sessions.requireEntity(targetMessage.sessionId)
     if (targetMessage.parts.length > 0) {
       throw new Error(
         `Cannot generate into a message with committed parts: ${args.targetMessageId}`,

@@ -161,7 +161,7 @@ export function registerSessionCommands(
       if (resolvedSessionId === undefined) {
         throw new Error('No active session. Try: tetra "hello"')
       }
-      const messages = ctx.transcripts.listActiveThreadMessages(resolvedSessionId)
+      const messages = ctx.transcripts.listDefaultThreadMessages(resolvedSessionId)
       if (messages.length === 0) {
         console.log('No messages in this session.')
         return

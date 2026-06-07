@@ -31,7 +31,6 @@ export const TABULAR_CONFIG = {
       sessions: { rowIdColumnName: 'id', tableId: 'sessions' },
       steps: { rowIdColumnName: 'id', tableId: 'steps' },
       streamingMessageParts: { rowIdColumnName: 'id', tableId: 'streamingMessageParts' },
-      threads: { rowIdColumnName: 'id', tableId: 'threads' },
     },
     save: {
       languageModels: { rowIdColumnName: 'id', tableName: 'languageModels' },
@@ -43,7 +42,6 @@ export const TABULAR_CONFIG = {
       sessions: { rowIdColumnName: 'id', tableName: 'sessions' },
       steps: { rowIdColumnName: 'id', tableName: 'steps' },
       streamingMessageParts: { rowIdColumnName: 'id', tableName: 'streamingMessageParts' },
-      threads: { rowIdColumnName: 'id', tableName: 'threads' },
     },
   },
   values: { load: true, save: true },
