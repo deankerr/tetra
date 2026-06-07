@@ -6,7 +6,6 @@ import { ThemeSwitcher } from '@/sidebar/footer/theme-switcher'
 import { SessionGroup } from '@/sidebar/session-group'
 
 import { DataModeIndicator } from './footer/data-mode-indicator'
-import { DebugMenu } from './footer/debug-menu'
 import { SettingsDialog } from './footer/settings-dialog'
 
 export function AppSidebar() {
@@ -26,9 +25,8 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex items-center justify-center gap-1">
           <DataModeIndicator />
-          <DebugMenu />
           <SettingsDialog />
           <ThemeSwitcher />
         </div>

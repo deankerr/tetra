@@ -1,8 +1,16 @@
 import { Button } from '@tetra/ui/components/ui/button'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@tetra/ui/components/ui/tooltip'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@tetra/ui/components/ui/dropdown-menu'
 import { CloudIcon, DatabaseIcon } from 'lucide-react'
 
-import { tinybase } from '@/lib/tinybase'
+import { clearTetraIndexedDbAndReload, tinybase } from '@/lib/tinybase'
+import { clearTetraSyncDataAndReload } from '@/lib/websocket'
 
 export function DataModeIndicator() {
   const persister = tinybase.usePersister()
@@ -11,30 +19,52 @@ export function DataModeIndicator() {
   return (
     <div className="flex items-center gap-1">
       {persister && (
-        <Tooltip>
-          <TooltipTrigger
+        <DropdownMenu>
+          <DropdownMenuTrigger
             render={
-              <Button aria-label="Local persistence active" size="icon" variant="ghost">
+              <Button aria-label="Open persister menu" size="icon" variant="ghost">
                 <DatabaseIcon />
               </Button>
             }
           />
-          <TooltipContent side="top">IndexedDB persister is active.</TooltipContent>
-        </Tooltip>
+          <DropdownMenuContent align="start" className="w-56" side="top">
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>IndexedDB Persister</DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={() => {
+                  void clearTetraIndexedDbAndReload()
+                }}
+              >
+                <DatabaseIcon />
+                Clear data
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
       {synchronizer && (
-        <Tooltip>
-          <TooltipTrigger
+        <DropdownMenu>
+          <DropdownMenuTrigger
             render={
-              <Button aria-label="Remote sync active" size="icon" variant="ghost">
+              <Button aria-label="Open sync menu" size="icon" variant="ghost">
                 <CloudIcon />
               </Button>
             }
           />
-          <TooltipContent side="top">
-            Cloudflare Durable Object synchronizer is active.
-          </TooltipContent>
-        </Tooltip>
+          <DropdownMenuContent align="start" className="w-56" side="top">
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>Cloudflare Sync</DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={() => {
+                  void clearTetraSyncDataAndReload()
+                }}
+              >
+                <CloudIcon />
+                Clear data
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
     </div>
   )
