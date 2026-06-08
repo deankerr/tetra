@@ -11,7 +11,7 @@ import { typedTinybase } from '@/lib/tinybase'
 import { useTetra } from '@/tetra-context'
 
 import { Composer } from './composer'
-import { TetraMessageView } from './message-view'
+import { MessageView } from './message/view'
 
 export function ConversationView({
   sessionId,
@@ -41,10 +41,10 @@ export function ConversationView({
             />
           ) : (
             messageIds.map((messageId, i) => (
-              <TetraMessageView
+              <MessageView
                 className="mx-auto w-full max-w-3xl"
                 key={messageId}
-                isLastMessage={i === messageIds.length - 1}
+                isThreadLeaf={i === messageIds.length - 1}
                 messageId={messageId}
               />
             ))

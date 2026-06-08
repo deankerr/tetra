@@ -7,7 +7,4 @@ Local changes made to vendored UI components.
 - `src/lib/utils.ts`: Teach `tailwind-merge` that `text-xxs` is a font-size utility, so it can coexist with text color classes like `text-emerald-100`.
 - `src/components/ui/{badge,button,command,dropdown-menu,input-group,toggle}.tsx`: Replace vendored `text-[0.625rem]` utilities with `text-xxs`.
 - `src/components/ai-elements/code-block.tsx`: change content `pre`/`code` classes from `text-sm` to `text-xs`
-
-## Maintenance Notes
-
-- Use `text-xxs` for 10px UI labels, badges, keyboard shortcuts, and compact controls. Do not reintroduce `text-[0.625rem]`; it omits the matching line-height and can make text look vertically misaligned.
+- `src/components/ai-elements/reasoning.tsx`: adjust text/icon/margin size
