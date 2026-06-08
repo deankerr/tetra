@@ -42,6 +42,7 @@ export function TetraConversationView({
           ) : (
             messageIds.map((messageId, i) => (
               <TetraMessageView
+                className="mx-auto w-full max-w-3xl"
                 key={messageId}
                 isLastMessage={i === messageIds.length - 1}
                 messageId={messageId}
@@ -52,7 +53,9 @@ export function TetraConversationView({
         <ConversationScrollButton />
       </Conversation>
 
-      <Composer sessionId={sessionId} />
+      <div className="shrink-0 px-2 pb-2">
+        <Composer className="mx-auto max-w-3xl" sessionId={sessionId} />
+      </div>
     </div>
   )
 }

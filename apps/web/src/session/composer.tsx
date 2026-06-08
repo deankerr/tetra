@@ -27,7 +27,7 @@ import { useCredential } from '@/use-credential'
 
 const activeStatuses = new Set(['preparing', 'streaming'])
 
-export function Composer({ sessionId }: { sessionId: string }) {
+export function Composer({ className, sessionId }: { className?: string; sessionId: string }) {
   const tetra = useTetra()
   const activeRun = useActiveRun(sessionId)
   const isStreaming = activeRun !== null
@@ -111,8 +111,8 @@ export function Composer({ sessionId }: { sessionId: string }) {
   }
 
   return (
-    <div className="shrink-0 border-t p-2">
-      <PromptInput accept="image/*" multiple onSubmit={handleSubmit}>
+    <>
+      <PromptInput accept="image/*" className={className} multiple onSubmit={handleSubmit}>
         <PromptInputBody>
           <ComposerAttachments />
           <PromptInputTextarea
@@ -151,7 +151,7 @@ export function Composer({ sessionId }: { sessionId: string }) {
         open={modelPickerOpen}
         value={modelId ?? ''}
       />
-    </div>
+    </>
   )
 }
 
