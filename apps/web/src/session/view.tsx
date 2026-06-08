@@ -1,17 +1,15 @@
 import { Button } from '@tetra/ui/components/ui/button'
 import { Sheet, SheetClose, SheetContent } from '@tetra/ui/components/ui/sheet'
 import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@tetra/ui/components/ui/tabs'
-import { BracesIcon, Settings2Icon, TableIcon, TriangleIcon, XIcon } from 'lucide-react'
+import { BracesIcon, Settings2Icon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 
 import { useJsonViewSheet } from '@/components/json-view-sheet'
 import { WEB_UI_STORE_ID, typedTinybase, webUiTinybase } from '@/lib/tinybase'
 
-import { TetraConversationView } from './conversation-view'
+import { ConversationView } from './conversation-view'
 import { SessionPanelErrorBoundary } from './error-boundary'
 import { SessionExportButton } from './export-button'
-import { RunsTable } from './runs-table'
 import { SessionSettings } from './settings'
 import { ModelPickerSheet } from './settings/model-picker'
 import { PromptEditorSheet } from './settings/prompt-editor-sheet'
@@ -75,25 +73,16 @@ function ActiveSession({ onClose, sessionId }: { onClose: () => void; sessionId:
   return (
     <div className="flex min-h-0 min-w-[420px] flex-1 flex-col border-r last:border-r-0">
       {/* Main content */}
-      <Tabs className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b px-2">
           <SidebarTrigger />
+
           <span className="min-w-0 flex-1 truncate text-xs font-medium">
             {session.title ?? 'New session'}
           </span>
+
           <SessionUsageMeter sessionId={sessionId} />
-          <TabsList className="h-7">
-            <TabsTrigger
-              aria-label="Show Tetra conversation view"
-              title="Show Tetra conversation view"
-              value="tetra"
-            >
-              <TriangleIcon />
-            </TabsTrigger>
-            <TabsTrigger aria-label="Show runs table" title="Show runs table" value="runs">
-              <TableIcon />
-            </TabsTrigger>
-          </TabsList>
+
           <Button
             aria-label="Inspect JSON"
             onClick={() => {
@@ -105,7 +94,9 @@ function ActiveSession({ onClose, sessionId }: { onClose: () => void; sessionId:
           >
             <BracesIcon />
           </Button>
+
           <SessionExportButton sessionId={sessionId} />
+
           <Button
             aria-label="Open session settings"
             onClick={() => {
@@ -118,6 +109,7 @@ function ActiveSession({ onClose, sessionId }: { onClose: () => void; sessionId:
           >
             <Settings2Icon />
           </Button>
+
           <Button
             aria-label="Close session"
             onClick={onClose}
@@ -130,14 +122,8 @@ function ActiveSession({ onClose, sessionId }: { onClose: () => void; sessionId:
           </Button>
         </header>
 
-        <TabsContent className="flex min-h-0 flex-1 flex-col" value="tetra">
-          <TetraConversationView sessionId={sessionId} />
-        </TabsContent>
-
-        <TabsContent className="flex min-h-0 flex-1 flex-col" value="runs">
-          <RunsTable sessionId={sessionId} />
-        </TabsContent>
-      </Tabs>
+        <ConversationView sessionId={sessionId} />
+      </div>
 
       {/* Settings sheet */}
       <Sheet onOpenChange={setDetailOpen} open={detailOpen}>
@@ -157,6 +143,7 @@ function ActiveSession({ onClose, sessionId }: { onClose: () => void; sessionId:
               <XIcon />
             </SheetClose>
           </div>
+
           <div className="min-h-0 flex-1 overflow-y-auto p-4">
             <SessionSettings
               modelId={modelId ?? ''}

@@ -13,7 +13,7 @@ import { useTetra } from '@/tetra-context'
 import { Composer } from './composer'
 import { TetraMessageView } from './message-view'
 
-export function TetraConversationView({
+export function ConversationView({
   sessionId,
   className,
   ...props

@@ -17,16 +17,18 @@ import {
   CheckCircle2Icon,
   CopyIcon,
   LoaderCircleIcon,
+  ListTreeIcon,
   RefreshCwIcon,
   TrashIcon,
   XCircleIcon,
 } from 'lucide-react'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 
 import { useJsonViewSheet } from '@/components/json-view-sheet'
 import { typedTinybase } from '@/lib/tinybase'
 import { useTetra } from '@/tetra-context'
 
+import { RunDetailSheet } from './run-detail-sheet'
 import { useRunSteps } from './usage-hooks'
 
 type UIMessagePart = Rows['messages']['parts'][number]
@@ -55,6 +57,7 @@ function useTetraMessage(messageId: string) {
       run: run
         ? {
             errorMessage: run.errorMessage ?? null,
+            id: run.id,
             status: run.status,
             totals:
               totalTokens === 0
@@ -276,6 +279,7 @@ function MessageFooter({
 }) {
   const { runs, transcripts } = useTetra()
   const { openJsonView } = useJsonViewSheet()
+  const [runDetailOpen, setRunDetailOpen] = useState(false)
 
   const messageText = message.stepGroups
     .flatMap((s) => s.parts)
@@ -314,6 +318,27 @@ function MessageFooter({
       >
         <BracesIcon />
       </Button>
+      {message.run && (
+        <>
+          <Button
+            aria-label="View run details"
+            onClick={() => {
+              setRunDetailOpen(true)
+            }}
+            size="icon-sm"
+            title="View run details"
+            type="button"
+            variant="ghost"
+          >
+            <ListTreeIcon />
+          </Button>
+          <RunDetailSheet
+            onOpenChange={setRunDetailOpen}
+            open={runDetailOpen}
+            runId={message.run.id}
+          />
+        </>
+      )}
       {canGenerate && (
         <Button
           aria-label={generateActionLabel}
