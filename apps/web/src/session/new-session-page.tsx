@@ -35,7 +35,7 @@ export function NewSessionPage() {
     setSettingsOpen(true)
   }, [setSettingsOpen])
 
-  const materializeDraftSession = () => {
+  const materializeDraftSession = useCallback(() => {
     if (draftSessionId === null) {
       return
     }
@@ -43,7 +43,7 @@ export function NewSessionPage() {
     // Clearing the pointer makes this session normal history before routing to it.
     helpers.typedStore.tables.draftSessions.deleteRow('current')
     void navigate({ params: { sessionId: draftSessionId }, to: '/sessions/$sessionId' })
-  }
+  }, [draftSessionId, helpers, navigate])
 
   const requireGenerateReady = useCallback(() => {
     if (apiKeyConfigured) {
@@ -162,6 +162,12 @@ function useDraftSessionId(): string | null {
 
   useEffect(() => {
     if (!storeReady) {
+      return
+    }
+
+    if (draftSessionId !== '' && draftSession === null) {
+      helpers.typedStore.tables.draftSessions.deleteRow('current')
+      creatingDraftSession.current = false
       return
     }
 
