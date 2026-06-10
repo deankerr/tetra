@@ -25,12 +25,15 @@ import { ModelPickerButton, ModelPickerSheet } from '@/session/settings/model-pi
 import { useTetra } from '@/tetra-context'
 import { useCredential } from '@/use-credential'
 
+import { useSessionThreadAppendTarget } from './thread-view'
+
 const activeStatuses = new Set(['preparing', 'streaming'])
 
 export function Composer({ className, sessionId }: { className?: string; sessionId: string }) {
   const tetra = useTetra()
   const activeRun = useActiveRun(sessionId)
   const isStreaming = activeRun !== null
+  const { selectThreadFromMessage, threadLeafMessageId } = useSessionThreadAppendTarget(sessionId)
   const [modelId, setModelId] = typedTinybase.useCellState(
     'sessionRunConfigs',
     sessionId,
@@ -61,10 +64,14 @@ export function Composer({ className, sessionId }: { className?: string; session
 
     if (isAdd) {
       const session = tetra.transcripts.getSession(sessionId)
-      const parentMessageId = session.getThread().message()?.id ?? null
 
       // Add-only submits append committed content without starting model inference.
-      session.appendMessage({ parentMessageId, parts, role: 'user' })
+      const messageId = session.appendMessage({
+        parentMessageId: threadLeafMessageId,
+        parts,
+        role: 'user',
+      })
+      selectThreadFromMessage(messageId)
       setDraft('')
       return
     }
@@ -87,14 +94,18 @@ export function Composer({ className, sessionId }: { className?: string; session
     try {
       // Create user and assistant messages, then hand off to the run.
       const session = tetra.transcripts.getSession(sessionId)
-      const parentMessageId = session.getThread().message()?.id ?? null
-      const userMessageId = session.appendMessage({ parentMessageId, parts, role: 'user' })
+      const userMessageId = session.appendMessage({
+        parentMessageId: threadLeafMessageId,
+        parts,
+        role: 'user',
+      })
       const targetMessageId = session.appendMessage({
         parentMessageId: userMessageId,
         parts: [],
         role: 'assistant',
       })
       tetra.runs.generate({ targetMessageId })
+      selectThreadFromMessage(targetMessageId)
       if (shouldSetTitle) {
         tetra.helpers.typedStore.tables.sessions.updateRow(sessionId, {
           title: text === '' ? 'Image' : text.slice(0, 60),

@@ -71,20 +71,30 @@ function createTestRuntime() {
 
 type TestCore = ReturnType<typeof createTestRuntime>['core']
 
-function appendToDefaultThread(
+function appendAfterNewestLeaf(
   core: TestCore,
   sessionId: string,
   args: { parts: Rows['messages']['parts']; role: Rows['messages']['role'] },
 ): string {
   const session = core.transcripts.getSession(sessionId)
-  const parentMessageId = session.getThread().message()?.id ?? null
+  const threadAnchorMessageId = session.getNewestLeafMessageId()
+  const parentMessageId =
+    threadAnchorMessageId === null
+      ? null
+      : session.resolveThread({ fromMessageId: threadAnchorMessageId }).leafMessageId
 
   // Tests model caller-owned continuation by choosing a parent before each append.
   return session.appendMessage({ parentMessageId, ...args })
 }
 
-function listDefaultThreadMessages(core: TestCore, sessionId: string): Rows['messages'][] {
-  return core.transcripts.getSession(sessionId).getThread().messages()
+function listThreadFromNewestLeaf(core: TestCore, sessionId: string): Rows['messages'][] {
+  const session = core.transcripts.getSession(sessionId)
+  const threadAnchorMessageId = session.getNewestLeafMessageId()
+  if (threadAnchorMessageId === null) {
+    return []
+  }
+
+  return session.resolveThread({ fromMessageId: threadAnchorMessageId }).messages()
 }
 
 async function withoutExpectedConsoleErrors<T>(
@@ -111,11 +121,11 @@ test('generate streams through the AI SDK into TinyBase rows', async () => {
   const { core, model, runs } = createTestRuntime()
   const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
 
-  appendToDefaultThread(core, sessionId, {
+  appendAfterNewestLeaf(core, sessionId, {
     parts: [{ text: 'hello', type: 'text' }],
     role: 'user',
   })
-  const targetMessageId = appendToDefaultThread(core, sessionId, {
+  const targetMessageId = appendAfterNewestLeaf(core, sessionId, {
     parts: [],
     role: 'assistant',
   })
@@ -125,7 +135,7 @@ test('generate streams through the AI SDK into TinyBase rows', async () => {
 
   await run.done
 
-  const messages = listDefaultThreadMessages(core, sessionId)
+  const messages = listThreadFromNewestLeaf(core, sessionId)
   const runRecord = core.typedStore.tables.runs.requireEntity(run.runId)
 
   expect(run.status).toBe('completed')
@@ -211,11 +221,11 @@ test('streaming snapshots persist to streamingMessageParts before message commit
   })
   const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
 
-  appendToDefaultThread(core, sessionId, {
+  appendAfterNewestLeaf(core, sessionId, {
     parts: [{ text: 'hello', type: 'text' }],
     role: 'user',
   })
-  const targetMessageId = appendToDefaultThread(core, sessionId, {
+  const targetMessageId = appendAfterNewestLeaf(core, sessionId, {
     parts: [],
     role: 'assistant',
   })
@@ -248,11 +258,11 @@ test('Pre-Run Invariants — throws before creating run when systemPromptId is m
     config: { modelId: 'mock-model', systemPromptId: 'non-existent-prompt' },
   })
 
-  appendToDefaultThread(core, sessionId, {
+  appendAfterNewestLeaf(core, sessionId, {
     parts: [{ text: 'hello', type: 'text' }],
     role: 'user',
   })
-  const targetMessageId = appendToDefaultThread(core, sessionId, {
+  const targetMessageId = appendAfterNewestLeaf(core, sessionId, {
     parts: [],
     role: 'assistant',
   })
@@ -274,19 +284,19 @@ test('History Reconstruction — prior messages appear in prompt, current placeh
   const { core, model, runs } = createTestRuntime()
   const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
 
-  appendToDefaultThread(core, sessionId, {
+  appendAfterNewestLeaf(core, sessionId, {
     parts: [{ text: 'prior user', type: 'text' }],
     role: 'user',
   })
-  appendToDefaultThread(core, sessionId, {
+  appendAfterNewestLeaf(core, sessionId, {
     parts: [{ text: 'prior assistant', type: 'text' }],
     role: 'assistant',
   })
-  appendToDefaultThread(core, sessionId, {
+  appendAfterNewestLeaf(core, sessionId, {
     parts: [{ text: 'new message', type: 'text' }],
     role: 'user',
   })
-  const targetMessageId = appendToDefaultThread(core, sessionId, {
+  const targetMessageId = appendAfterNewestLeaf(core, sessionId, {
     parts: [],
     role: 'assistant',
   })
@@ -308,27 +318,27 @@ test('History Reconstruction — maxMessages limits history at the execution bou
     config: { maxMessages: 2, modelId: 'mock-model' },
   })
 
-  appendToDefaultThread(core, sessionId, {
+  appendAfterNewestLeaf(core, sessionId, {
     parts: [{ text: 'oldest user', type: 'text' }],
     role: 'user',
   })
-  appendToDefaultThread(core, sessionId, {
+  appendAfterNewestLeaf(core, sessionId, {
     parts: [{ text: 'oldest assistant', type: 'text' }],
     role: 'assistant',
   })
-  appendToDefaultThread(core, sessionId, {
+  appendAfterNewestLeaf(core, sessionId, {
     parts: [{ text: 'recent user', type: 'text' }],
     role: 'user',
   })
-  appendToDefaultThread(core, sessionId, {
+  appendAfterNewestLeaf(core, sessionId, {
     parts: [{ text: 'recent assistant', type: 'text' }],
     role: 'assistant',
   })
-  appendToDefaultThread(core, sessionId, {
+  appendAfterNewestLeaf(core, sessionId, {
     parts: [{ text: 'latest', type: 'text' }],
     role: 'user',
   })
-  const targetMessageId = appendToDefaultThread(core, sessionId, {
+  const targetMessageId = appendAfterNewestLeaf(core, sessionId, {
     parts: [],
     role: 'assistant',
   })
@@ -346,11 +356,11 @@ test('Generate Invariants — refuses to write into a message with committed par
   const { core, runs } = createTestRuntime()
   const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
 
-  appendToDefaultThread(core, sessionId, {
+  appendAfterNewestLeaf(core, sessionId, {
     parts: [{ text: 'hello', type: 'text' }],
     role: 'user',
   })
-  const targetMessageId = appendToDefaultThread(core, sessionId, {
+  const targetMessageId = appendAfterNewestLeaf(core, sessionId, {
     parts: [{ text: 'existing output', type: 'text' }],
     role: 'assistant',
   })
@@ -372,11 +382,11 @@ test('Generate Invariants — target message role does not affect generation', a
   const { core, model, runs } = createTestRuntime()
   const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
 
-  appendToDefaultThread(core, sessionId, {
+  appendAfterNewestLeaf(core, sessionId, {
     parts: [{ text: 'review this', type: 'text' }],
     role: 'user',
   })
-  const targetMessageId = appendToDefaultThread(core, sessionId, {
+  const targetMessageId = appendAfterNewestLeaf(core, sessionId, {
     parts: [],
     role: 'critic',
   })
@@ -385,7 +395,7 @@ test('Generate Invariants — target message role does not affect generation', a
 
   await run.done
 
-  const messages = listDefaultThreadMessages(core, sessionId)
+  const messages = listThreadFromNewestLeaf(core, sessionId)
   expect(messages).toHaveLength(2)
   expect(messages[1]?.id).toBe(targetMessageId)
   expect(messages[1]?.role).toBe('critic')
@@ -403,11 +413,11 @@ test('Caller-Owned Regeneration — sibling target preserves the old output', as
   const { core, model, runs } = createTestRuntime()
   const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
 
-  appendToDefaultThread(core, sessionId, {
+  appendAfterNewestLeaf(core, sessionId, {
     parts: [{ text: 'again', type: 'text' }],
     role: 'user',
   })
-  const oldTargetMessageId = appendToDefaultThread(core, sessionId, {
+  const oldTargetMessageId = appendAfterNewestLeaf(core, sessionId, {
     parts: [],
     role: 'assistant',
   })
@@ -430,7 +440,7 @@ test('Caller-Owned Regeneration — sibling target preserves the old output', as
   const run = runs.generate({ targetMessageId: newTargetMessageId })
   await run.done
 
-  const messages = listDefaultThreadMessages(core, sessionId)
+  const messages = listThreadFromNewestLeaf(core, sessionId)
   expect(messages).toHaveLength(2)
   expect(messages[1]?.id).toBe(newTargetMessageId)
   expect(core.transcripts.getSession(sessionId).listMessages()).toHaveLength(3)
@@ -526,11 +536,11 @@ test('Tool Loop — tool call executes and result appears in final parts', async
   })
 
   try {
-    appendToDefaultThread(core, sessionId, {
+    appendAfterNewestLeaf(core, sessionId, {
       parts: [{ text: 'what is the weather?', type: 'text' }],
       role: 'user',
     })
-    const targetMessageId = appendToDefaultThread(core, sessionId, {
+    const targetMessageId = appendAfterNewestLeaf(core, sessionId, {
       parts: [],
       role: 'assistant',
     })
@@ -574,11 +584,11 @@ test('Error Path — stream error sets run to error status', async () => {
   })
   const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
 
-  appendToDefaultThread(core, sessionId, {
+  appendAfterNewestLeaf(core, sessionId, {
     parts: [{ text: 'hello', type: 'text' }],
     role: 'user',
   })
-  const targetMessageId = appendToDefaultThread(core, sessionId, {
+  const targetMessageId = appendAfterNewestLeaf(core, sessionId, {
     parts: [],
     role: 'assistant',
   })
@@ -602,11 +612,11 @@ test('Recovery — interrupted runs commit partial streaming parts and clean hot
   const { core, runs } = createTestRuntime()
   const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
 
-  appendToDefaultThread(core, sessionId, {
+  appendAfterNewestLeaf(core, sessionId, {
     parts: [{ text: 'hello', type: 'text' }],
     role: 'user',
   })
-  const targetMessageId = appendToDefaultThread(core, sessionId, {
+  const targetMessageId = appendAfterNewestLeaf(core, sessionId, {
     parts: [],
     role: 'assistant',
   })
@@ -700,11 +710,11 @@ test('Error Path — later runs can still run after an error', async () => {
   })
   const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
 
-  appendToDefaultThread(core, sessionId, {
+  appendAfterNewestLeaf(core, sessionId, {
     parts: [{ text: 'fail', type: 'text' }],
     role: 'user',
   })
-  const failAssistantId = appendToDefaultThread(core, sessionId, {
+  const failAssistantId = appendAfterNewestLeaf(core, sessionId, {
     parts: [],
     role: 'assistant',
   })
@@ -718,11 +728,11 @@ test('Error Path — later runs can still run after an error', async () => {
   )
   expect(failedRun.status).toBe('error')
 
-  appendToDefaultThread(core, sessionId, {
+  appendAfterNewestLeaf(core, sessionId, {
     parts: [{ text: 'retry', type: 'text' }],
     role: 'user',
   })
-  const retryAssistantId = appendToDefaultThread(core, sessionId, {
+  const retryAssistantId = appendAfterNewestLeaf(core, sessionId, {
     parts: [],
     role: 'assistant',
   })
