@@ -61,11 +61,7 @@ export async function runChatContent(
 
   // Create the user and assistant messages, then hand off to the run.
   const session = ctx.transcripts.getSession(sessionId)
-  const threadAnchorMessageId = session.getNewestLeafMessageId()
-  const parentMessageId =
-    threadAnchorMessageId === null
-      ? null
-      : session.resolveThread({ fromMessageId: threadAnchorMessageId }).leafMessageId
+  const parentMessageId = session.getNewestLeafMessageId()
   const userMessageId = session.appendMessage({
     parentMessageId,
     parts: [{ text: content, type: 'text' }],

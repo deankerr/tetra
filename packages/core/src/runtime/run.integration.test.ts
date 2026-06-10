@@ -77,11 +77,7 @@ function appendAfterNewestLeaf(
   args: { parts: Rows['messages']['parts']; role: Rows['messages']['role'] },
 ): string {
   const session = core.transcripts.getSession(sessionId)
-  const threadAnchorMessageId = session.getNewestLeafMessageId()
-  const parentMessageId =
-    threadAnchorMessageId === null
-      ? null
-      : session.resolveThread({ fromMessageId: threadAnchorMessageId }).leafMessageId
+  const parentMessageId = session.getNewestLeafMessageId()
 
   // Tests model caller-owned continuation by choosing a parent before each append.
   return session.appendMessage({ parentMessageId, ...args })
