@@ -26,6 +26,7 @@ import { useTetra } from '@/tetra-context'
 import { useCredential } from '@/use-credential'
 
 import { useSessionThreadAppendTarget } from './thread-view'
+import { SessionUsageMeter } from './usage-meter'
 
 const activeStatuses = new Set(['preparing', 'streaming'])
 
@@ -151,6 +152,7 @@ export function Composer({ className, sessionId }: { className?: string; session
             activeRunId={activeRun?.id ?? null}
             draft={draft}
             isStreaming={isStreaming}
+            sessionId={sessionId}
           />
         </PromptInputFooter>
       </PromptInput>
@@ -223,10 +225,12 @@ function ComposerSubmitControls({
   activeRunId,
   draft,
   isStreaming,
+  sessionId,
 }: {
   activeRunId: string | null
   draft: string
   isStreaming: boolean
+  sessionId: string
 }) {
   const tetra = useTetra()
   const attachments = usePromptInputAttachments()
@@ -234,6 +238,8 @@ function ComposerSubmitControls({
 
   return (
     <div className="flex items-center gap-1">
+      <SessionUsageMeter sessionId={sessionId} />
+
       <PromptInputButton
         aria-label="Add"
         data-action="add"

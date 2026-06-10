@@ -1,19 +1,16 @@
 import { Button } from '@tetra/ui/components/ui/button'
 import { Sheet, SheetClose, SheetContent } from '@tetra/ui/components/ui/sheet'
 import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
-import { BracesIcon, Settings2Icon, XIcon } from 'lucide-react'
+import { Settings2Icon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 
-import { useJsonViewSheet } from '@/components/json-view-sheet'
 import { WEB_UI_STORE_ID, typedTinybase, webUiTinybase } from '@/lib/tinybase'
 
 import { ConversationView } from './conversation-view'
 import { SessionPanelErrorBoundary } from './error-boundary'
-import { SessionExportButton } from './export-button'
 import { SessionSettings } from './settings'
 import { ModelPickerSheet } from './settings/model-picker'
 import { PromptEditorSheet } from './settings/prompt-editor-sheet'
-import { SessionUsageMeter } from './usage-meter'
 
 export function SessionView() {
   const [activeSessionId, setActiveSessionId] = webUiTinybase.useValueState(
@@ -64,7 +61,6 @@ function ActiveSession({ onClose, sessionId }: { onClose: () => void; sessionId:
     'modelId',
   )
   const [promptSheetOpen, setPromptSheetOpen] = useState(false)
-  const { openJsonView } = useJsonViewSheet()
 
   if (session === null) {
     return null
@@ -80,22 +76,6 @@ function ActiveSession({ onClose, sessionId }: { onClose: () => void; sessionId:
           <span className="min-w-0 flex-1 truncate text-xs font-medium">
             {session.title ?? 'New session'}
           </span>
-
-          <SessionUsageMeter sessionId={sessionId} />
-
-          <Button
-            aria-label="Inspect JSON"
-            onClick={() => {
-              openJsonView({ title: `Session: ${session.id}`, value: session })
-            }}
-            size="icon-sm"
-            title="Inspect JSON"
-            variant="ghost"
-          >
-            <BracesIcon />
-          </Button>
-
-          <SessionExportButton sessionId={sessionId} />
 
           <Button
             aria-label="Open session settings"
