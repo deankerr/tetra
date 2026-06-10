@@ -1,6 +1,7 @@
+import { Link } from '@tanstack/react-router'
 import { Button } from '@tetra/ui/components/ui/button'
 import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
-import { AlertCircleIcon, CloudIcon, Trash2Icon, XIcon } from 'lucide-react'
+import { AlertCircleIcon, CloudIcon, HomeIcon, Trash2Icon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 import type { FallbackProps } from 'react-error-boundary'
@@ -10,16 +11,14 @@ import { clearTetraSyncDataAndReload } from '@/lib/websocket'
 
 export function SessionPanelErrorBoundary({
   children,
-  onClose,
   sessionId,
 }: {
   children: ReactNode
-  onClose: () => void
   sessionId: string
 }) {
   return (
     <ErrorBoundary
-      fallbackRender={(props) => <SessionPanelErrorFallback {...props} onClose={onClose} />}
+      fallbackRender={(props) => <SessionPanelErrorFallback {...props} />}
       onError={(error) => {
         console.error('Session view crashed', { error, sessionId })
       }}
@@ -30,13 +29,7 @@ export function SessionPanelErrorBoundary({
   )
 }
 
-function SessionPanelErrorFallback({
-  error,
-  onClose,
-  resetErrorBoundary,
-}: FallbackProps & {
-  onClose: () => void
-}) {
+function SessionPanelErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   const message =
     error instanceof Error ? error.message : 'An unexpected session view error occurred.'
 
@@ -46,16 +39,6 @@ function SessionPanelErrorFallback({
       <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b px-2">
         <SidebarTrigger title="Open sidebar" />
         <span className="min-w-0 flex-1 truncate text-xs font-medium">Session crashed</span>
-        <Button
-          aria-label="Close session"
-          onClick={onClose}
-          size="icon-sm"
-          title="Close session"
-          type="button"
-          variant="ghost"
-        >
-          <XIcon />
-        </Button>
       </header>
 
       {/* Recovery actions */}
@@ -69,8 +52,9 @@ function SessionPanelErrorFallback({
           <Button onClick={resetErrorBoundary} variant="outline">
             Try again
           </Button>
-          <Button onClick={onClose} variant="outline">
-            Close session
+          <Button render={<Link to="/" />} variant="outline">
+            <HomeIcon />
+            New session
           </Button>
           <Button
             onClick={() => {

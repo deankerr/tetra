@@ -31,7 +31,13 @@ export class Transcripts {
     this.typedStore = typedStore
   }
 
-  createSession(args: { config?: Partial<RunConfig>; title?: string } = {}): string {
+  createSession(
+    args: {
+      config?: Partial<RunConfig>
+      onCreate?: (sessionId: string) => void
+      title?: string
+    } = {},
+  ): string {
     const sessionId = this.nextSessionId()
     const storedDefaultConfig = this.rawStore.hasValue('defaultRunConfig')
       ? this.rawStore.getValue('defaultRunConfig')
@@ -50,6 +56,7 @@ export class Transcripts {
         updatedAt: now,
       })
       this.typedStore.tables.sessionRunConfigs.setRow(sessionId, config)
+      args.onCreate?.(sessionId)
     })
 
     return sessionId

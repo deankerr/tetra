@@ -1,3 +1,4 @@
+import { Link, useMatch, useNavigate } from '@tanstack/react-router'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,40 +20,38 @@ import {
 import { MoreHorizontalIcon, PlusIcon } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 
-import { WEB_UI_STORE_ID, typedTinybase, webUiTinybase } from '@/lib/tinybase'
+import { typedTinybase } from '@/lib/tinybase'
 import { useTetra } from '@/tetra-context'
 
 // Sessions sorted by updatedAt descending — most recently active first.
 // Transcript writes touch updatedAt, so this order naturally tracks conversation activity.
-const useSessionIds = () => {
+const useSessionIds = (draftSessionId: string) => {
   const sessions = typedTinybase.useEntityList('sessions')
   return useMemo(
     () =>
       sessions
+        .filter((session) => session.id !== draftSessionId)
         .toSorted((left, right) => right.updatedAt - left.updatedAt)
         .map((session) => session.id),
-    [sessions],
+    [draftSessionId, sessions],
   )
 }
 
 export function SessionGroup() {
   const { helpers, transcripts } = useTetra()
-  const sessionIds = useSessionIds()
-  const [activeSessionId, setActiveSessionId] = webUiTinybase.useValueState(
-    'activeSessionId',
-    WEB_UI_STORE_ID,
-  )
+  const activeSessionMatch = useMatch({
+    from: '/sessions/$sessionId',
+    shouldThrow: false,
+  })
+  const draftSessionId = typedTinybase.useEntity('draftSessions', 'current')?.sessionId ?? ''
+  const navigate = useNavigate()
+  const sessionIds = useSessionIds(draftSessionId)
+  const activeSessionId = activeSessionMatch?.params.sessionId ?? ''
 
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Sessions</SidebarGroupLabel>
-      <SidebarGroupAction
-        className="top-2.5"
-        onClick={() => {
-          const newId = transcripts.createSession()
-          setActiveSessionId(newId)
-        }}
-      >
+      <SidebarGroupAction className="top-2.5" render={<Link to="/" />} title="New session">
         <PlusIcon />
         <span className="sr-only">New session</span>
       </SidebarGroupAction>
@@ -65,10 +64,9 @@ export function SessionGroup() {
               onDelete={() => {
                 transcripts.deleteSession(sessionId)
 
-                // If the active session was deleted, move to the next available session.
+                // Deleting the visible session returns to the unsaved composer.
                 if (activeSessionId === sessionId) {
-                  const nextId = sessionIds.find((id) => id !== sessionId)
-                  setActiveSessionId(nextId ?? transcripts.createSession())
+                  void navigate({ to: '/' })
                 }
               }}
               onRename={(title) => {
@@ -76,13 +74,6 @@ export function SessionGroup() {
                   title,
                   updatedAt: Date.now(),
                 })
-              }}
-              onSelect={() => {
-                if (activeSessionId === sessionId) {
-                  setActiveSessionId('')
-                } else {
-                  setActiveSessionId(sessionId)
-                }
               }}
               sessionId={sessionId}
             />
@@ -97,13 +88,11 @@ function SessionListItem({
   active,
   onDelete,
   onRename,
-  onSelect,
   sessionId,
 }: {
   active: boolean
   onDelete: () => void
   onRename: (title: string) => void
-  onSelect: () => void
   sessionId: string
 }) {
   const session = typedTinybase.useEntity('sessions', sessionId)
@@ -153,7 +142,11 @@ function SessionListItem({
           value={draft}
         />
       ) : (
-        <SidebarMenuButton aria-pressed={active} isActive={active} onClick={onSelect}>
+        <SidebarMenuButton
+          aria-current={active ? 'page' : undefined}
+          isActive={active}
+          render={<Link params={{ sessionId }} to="/sessions/$sessionId" />}
+        >
           {session.title ? (
             <span>{session.title}</span>
           ) : (

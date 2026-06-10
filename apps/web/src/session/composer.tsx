@@ -18,109 +18,46 @@ import {
 import { toast } from '@tetra/ui/components/ui/sonner'
 import type { UIMessage } from 'ai'
 import { ArrowUpFromDot, ImageIcon } from 'lucide-react'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 
-import { WEB_UI_STORE_ID, typedTinybase, webUiTinybase } from '@/lib/tinybase'
+import { typedTinybase } from '@/lib/tinybase'
 import { ModelPickerButton, ModelPickerSheet } from '@/session/settings/model-picker'
 import { useTetra } from '@/tetra-context'
-import { useCredential } from '@/use-credential'
 
 import { useSessionThreadAppendTarget } from './thread-view'
 import { SessionUsageMeter } from './usage-meter'
 
 const activeStatuses = new Set(['preparing', 'streaming'])
 
-export function Composer({ className, sessionId }: { className?: string; sessionId: string }) {
-  const tetra = useTetra()
+type ComposerSubmitHandler = NonNullable<Parameters<typeof PromptInput>[0]['onSubmit']>
+
+export function Composer({
+  className,
+  onSessionMaterialized,
+  requireGenerateReady,
+  sessionId,
+}: {
+  className?: string
+  onSessionMaterialized?: (args: { sessionId: string }) => void
+  requireGenerateReady?: () => void
+  sessionId: string
+}) {
   const activeRun = useActiveRun(sessionId)
   const isStreaming = activeRun !== null
-  const { selectThreadFromMessage, threadLeafMessageId } = useSessionThreadAppendTarget(sessionId)
   const [modelId, setModelId] = typedTinybase.useCellState(
     'sessionRunConfigs',
     sessionId,
     'modelId',
   )
-  const [openrouterApiKey] = useCredential('OPENROUTER_API_KEY')
-  const [, setSettingsOpen] = webUiTinybase.useValueState('settingsOpen', WEB_UI_STORE_ID)
   const [draft, setDraft] = useState('')
   const [modelPickerOpen, setModelPickerOpen] = useState(false)
-
-  const handleSubmit: NonNullable<Parameters<typeof PromptInput>[0]['onSubmit']> = (
-    message,
-    event,
-  ) => {
-    const text = message.text.trim()
-
-    const parts: UIMessage['parts'] = [
-      ...(text === '' ? [] : [{ text, type: 'text' } satisfies UIMessage['parts'][number]]),
-      ...message.files,
-    ]
-
-    if (isStreaming || parts.length === 0) {
-      return
-    }
-
-    const submitter = event.nativeEvent instanceof SubmitEvent ? event.nativeEvent.submitter : null
-    const isAdd = submitter instanceof HTMLElement && submitter.dataset.action === 'add'
-
-    if (isAdd) {
-      const session = tetra.transcripts.getSession(sessionId)
-
-      // Add-only submits append committed content without starting model inference.
-      const messageId = session.appendMessage({
-        parentMessageId: threadLeafMessageId,
-        parts,
-        role: 'user',
-      })
-      selectThreadFromMessage(messageId)
-      setDraft('')
-      return
-    }
-
-    // Inference happens in-browser, so surface missing credentials before creating rows.
-    if (openrouterApiKey.trim() === '') {
-      toast.error('OpenRouter API key required', {
-        description: 'Add an OpenRouter API key before running model inference.',
-      })
-      setSettingsOpen(true)
-      throw new Error('OpenRouter API key required')
-    }
-
-    const shouldSetTitle =
-      tetra.helpers.typedStore.tables.sessions.requireEntity(sessionId).title === ''
-
-    // Clear draft before execute so any TinyBase-triggered re-render sees the empty value
-    setDraft('')
-
-    try {
-      // Create user and assistant messages, then hand off to the run.
-      const session = tetra.transcripts.getSession(sessionId)
-      const userMessageId = session.appendMessage({
-        parentMessageId: threadLeafMessageId,
-        parts,
-        role: 'user',
-      })
-      const targetMessageId = session.appendMessage({
-        parentMessageId: userMessageId,
-        parts: [],
-        role: 'assistant',
-      })
-      tetra.runs.generate({ targetMessageId })
-      selectThreadFromMessage(targetMessageId)
-      if (shouldSetTitle) {
-        tetra.helpers.typedStore.tables.sessions.updateRow(sessionId, {
-          title: text === '' ? 'Image' : text.slice(0, 60),
-          updatedAt: Date.now(),
-        })
-      }
-    } catch (error) {
-      setDraft(text)
-      toast.error('Could not generate response', {
-        description: error instanceof Error ? error.message : String(error),
-      })
-      throw error
-    }
-  }
+  const handleSubmit = useComposerSubmit({
+    isStreaming,
+    onSessionMaterialized,
+    requireGenerateReady,
+    sessionId,
+    setDraft,
+  })
 
   return (
     <>
@@ -165,6 +102,105 @@ export function Composer({ className, sessionId }: { className?: string; session
         value={modelId ?? ''}
       />
     </>
+  )
+}
+
+function useComposerSubmit({
+  isStreaming,
+  onSessionMaterialized,
+  requireGenerateReady,
+  sessionId,
+  setDraft,
+}: {
+  isStreaming: boolean
+  onSessionMaterialized: ((args: { sessionId: string }) => void) | undefined
+  requireGenerateReady: (() => void) | undefined
+  sessionId: string
+  setDraft: (draft: string) => void
+}): ComposerSubmitHandler {
+  const tetra = useTetra()
+  const { selectThreadFromMessage, threadLeafMessageId } = useSessionThreadAppendTarget(sessionId)
+
+  return useCallback<ComposerSubmitHandler>(
+    (message, event) => {
+      const text = message.text.trim()
+      const parts: UIMessage['parts'] = [
+        ...(text === '' ? [] : [{ text, type: 'text' } satisfies UIMessage['parts'][number]]),
+        ...message.files,
+      ]
+
+      if (isStreaming || parts.length === 0) {
+        return
+      }
+
+      const submitter =
+        event.nativeEvent instanceof SubmitEvent ? event.nativeEvent.submitter : null
+      const isAdd = submitter instanceof HTMLElement && submitter.dataset.action === 'add'
+      const session = tetra.transcripts.getSession(sessionId)
+      const shouldSetTitle =
+        tetra.helpers.typedStore.tables.sessions.requireEntity(sessionId).title === ''
+
+      if (isAdd) {
+        // Add-only submits append committed content without starting model inference.
+        const messageId = session.appendMessage({
+          parentMessageId: threadLeafMessageId,
+          parts,
+          role: 'user',
+        })
+        selectThreadFromMessage(messageId)
+        if (shouldSetTitle) {
+          tetra.helpers.typedStore.tables.sessions.updateRow(sessionId, {
+            title: text === '' ? 'Image' : text.slice(0, 60),
+            updatedAt: Date.now(),
+          })
+        }
+        setDraft('')
+        onSessionMaterialized?.({ sessionId })
+        return
+      }
+
+      // Send can be preflighted by the surrounding view before any transcript rows exist.
+      requireGenerateReady?.()
+
+      try {
+        // Create user and assistant messages, then hand off to the run.
+        const userMessageId = session.appendMessage({
+          parentMessageId: threadLeafMessageId,
+          parts,
+          role: 'user',
+        })
+        const targetMessageId = session.appendMessage({
+          parentMessageId: userMessageId,
+          parts: [],
+          role: 'assistant',
+        })
+        tetra.runs.generate({ targetMessageId })
+        selectThreadFromMessage(targetMessageId)
+        if (shouldSetTitle) {
+          tetra.helpers.typedStore.tables.sessions.updateRow(sessionId, {
+            title: text === '' ? 'Image' : text.slice(0, 60),
+            updatedAt: Date.now(),
+          })
+        }
+        setDraft('')
+        onSessionMaterialized?.({ sessionId })
+      } catch (error) {
+        toast.error('Could not generate response', {
+          description: error instanceof Error ? error.message : String(error),
+        })
+        throw error
+      }
+    },
+    [
+      isStreaming,
+      onSessionMaterialized,
+      requireGenerateReady,
+      selectThreadFromMessage,
+      sessionId,
+      setDraft,
+      tetra,
+      threadLeafMessageId,
+    ],
   )
 }
 
