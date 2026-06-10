@@ -102,7 +102,7 @@ export class Runs {
       ...args.config,
     })
     const system = this.requireSystemPrompt(config)
-    const transcriptMessages = this.collectMessagesBefore(args.targetMessageId, config)
+    const transcriptMessages = this.collectMessagesBefore(targetMessage, config)
 
     let runId = ''
     this.typedStore.transaction(() => {
@@ -124,8 +124,14 @@ export class Runs {
     })
   }
 
-  private collectMessagesBefore(messageId: string, config: RunConfigType): Rows['messages'][] {
-    const transcriptMessages = this.transcripts.getMessagesBefore(messageId)
+  private collectMessagesBefore(
+    targetMessage: Rows['messages'],
+    config: RunConfigType,
+  ): Rows['messages'][] {
+    const transcriptMessages = this.transcripts
+      .getSession(targetMessage.sessionId)
+      .getMessagePath({ messageId: targetMessage.parentMessageId })
+      .messages()
     if (config.maxMessages === 0) {
       return transcriptMessages
     }

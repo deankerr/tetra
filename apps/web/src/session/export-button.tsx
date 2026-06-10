@@ -10,7 +10,7 @@ export function SessionExportButton({ sessionId }: { sessionId: string }) {
     <Button
       aria-label="Export session"
       onClick={() => {
-        const exported = transcripts.exportSession(sessionId)
+        const exported = transcripts.getSession(sessionId).export()
         const title = exported.session.title.trim() ?? sessionId
         const safeTitle = title.replaceAll(/[^a-z0-9_-]+/giu, '-').replaceAll(/^-|-$/gu, '')
         const blob = new Blob([JSON.stringify(exported, null, 2)], {

@@ -11,33 +11,37 @@ import { typedTinybase } from '@/lib/tinybase'
 import { useTetra } from '@/tetra-context'
 
 import { RunDetailSheet } from '../run-detail-sheet'
+import { useSessionThreadSelection } from '../thread-view'
 import { isMessageRunStreaming } from './data'
 import type { MessagePart } from './data'
+import { MessageForkControl } from './fork-control'
 
 export function MessageActionsView({
-  isThreadLeaf,
+  isThreadLeafMessage,
   message,
   run,
 }: {
-  isThreadLeaf: boolean
+  isThreadLeafMessage: boolean
   message: Rows['messages']
   run: Rows['runs'] | null
 }) {
   const { runs, transcripts } = useTetra()
   const { openJsonView } = useJsonViewSheet()
+  const { selectThreadFromMessage } = useSessionThreadSelection(message.sessionId)
   const [runDetailOpen, setRunDetailOpen] = useState(false)
-  const hasChildren = useMessageHasChildren(message)
+  const hasContinuations = useMessageHasContinuations(message)
   const messageText = getTextContent(message.parts)
   const isStreaming = isMessageRunStreaming(run)
 
-  const canDelete = !hasChildren && !isStreaming
-  const canGenerate = isThreadLeaf && !isStreaming
+  const canDelete = !hasContinuations && !isStreaming
+  const canGenerate = isThreadLeafMessage && !isStreaming
   const deleteActionLabel = canDelete ? 'Delete' : 'Only leaf messages can be deleted'
   const generateActionLabel = run === null ? 'Generate' : 'Regenerate'
 
   return (
     <MessageToolbar className="mt-1">
       <MessageActions>
+        <MessageForkControl message={message} />
         <MessageIconAction
           disabled={messageText === ''}
           label="Copy"
@@ -84,6 +88,7 @@ export function MessageActionsView({
                   role: message.role,
                 })
                 runs.generate({ targetMessageId })
+                selectThreadFromMessage(targetMessageId)
                 return
               }
 
@@ -93,6 +98,7 @@ export function MessageActionsView({
                 role: 'assistant',
               })
               runs.generate({ targetMessageId })
+              selectThreadFromMessage(targetMessageId)
             }}
             tooltip={generateActionLabel}
           >
@@ -104,7 +110,7 @@ export function MessageActionsView({
           disabled={!canDelete}
           label="Delete"
           onClick={() => {
-            if (hasChildren) {
+            if (hasContinuations) {
               return
             }
 
@@ -166,7 +172,7 @@ function MessageMetadata({ message }: { message: Rows['messages'] }) {
   )
 }
 
-function useMessageHasChildren(message: Rows['messages']): boolean {
+function useMessageHasContinuations(message: Rows['messages']): boolean {
   const tetra = useTetra()
   const messageIds = typedTinybase.useSliceRowIds('messagesBySession', message.sessionId)
 

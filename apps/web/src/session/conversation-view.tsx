@@ -7,27 +7,17 @@ import {
 import { cn } from '@tetra/ui/lib/utils'
 
 import { TetraLogo } from '@/components/tetra-logo'
-import { typedTinybase } from '@/lib/tinybase'
-import { useTetra } from '@/tetra-context'
 
 import { Composer } from './composer'
 import { MessageView } from './message/view'
+import { useSessionThreadView } from './thread-view'
 
 export function ConversationView({
   sessionId,
   className,
   ...props
 }: { sessionId: string } & React.ComponentProps<'div'>) {
-  const { transcripts } = useTetra()
-  const sessionMessageIds = typedTinybase.useSliceRowIds('messagesBySession', sessionId)
-  const messageIds =
-    sessionMessageIds.length === 0
-      ? []
-      : transcripts
-          .getSession(sessionId)
-          .getThread()
-          .messages()
-          .map((message) => message.id)
+  const { messageIds } = useSessionThreadView(sessionId)
 
   return (
     <div className={cn('flex min-h-0 flex-1 flex-col', className)} {...props}>
@@ -44,7 +34,7 @@ export function ConversationView({
               <MessageView
                 className="mx-auto w-full max-w-3xl"
                 key={messageId}
-                isThreadLeaf={i === messageIds.length - 1}
+                isThreadLeafMessage={i === messageIds.length - 1}
                 messageId={messageId}
               />
             ))

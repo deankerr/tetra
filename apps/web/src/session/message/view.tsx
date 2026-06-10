@@ -14,11 +14,11 @@ type MessageRow = Rows['messages']
 
 export function MessageView({
   className,
-  isThreadLeaf,
+  isThreadLeafMessage,
   messageId,
   ...props
 }: {
-  isThreadLeaf: boolean
+  isThreadLeafMessage: boolean
   messageId: string
 } & React.ComponentProps<'div'>) {
   const message = typedTinybase.useEntity('messages', messageId)
@@ -40,7 +40,7 @@ export function MessageView({
       <MessageContentView message={message} run={run} />
 
       {!isStreaming && (
-        <MessageActionsView isThreadLeaf={isThreadLeaf} message={message} run={run} />
+        <MessageActionsView isThreadLeafMessage={isThreadLeafMessage} message={message} run={run} />
       )}
     </AiMessage>
   )

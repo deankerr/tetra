@@ -7,7 +7,7 @@
     "#helpers": "./src/helpers.ts",
     "#ids": "./src/ids.ts",
     "#runtime": "./src/runtime/index.ts",
-    "#transcripts": "./src/transcripts.ts",
+    "#transcripts": "./src/transcripts/index.ts",
     "#tools": "./src/tools/tools.ts",
     "#usage": "./src/usage.ts"
   },

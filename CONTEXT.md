@@ -32,13 +32,37 @@ _Avoid_: Edit, rerun last assistant
 The immediate predecessor of a message within the same session's message tree. Root-level messages have no parent.
 _Avoid_: Previous message
 
+**Message Tree**:
+The full topology of a session's messages, formed by `parentMessageId` links. The tree is durable, but it is not stored as a separate thread or branch entity.
+_Avoid_: Branch, conversation
+
+**Message Path**:
+An exact root-to-message path through a session's message tree. A message path may end at a non-leaf message; runs use message paths to assemble context before a target message.
+_Avoid_: Thread, history
+
+**Leaf Message**:
+A message with no children in its session's message tree.
+_Avoid_: Final response
+
 **Thread**:
-A focused path view through a session's message tree, formed by choosing a message and walking its parent chain to the root. Tetra threads are not durable entities, subtrees, or Git branches.
+A root-to-leaf message path. A thread can be resolved from any message by treating that message as an anchor and walking to the newest-created descendant leaf. Tetra threads are derived views, not durable entities, subtrees, or Git branches.
 _Avoid_: Branch, subtree, durable thread
 
-**Default Thread**:
-The thread a surface derives for a session when no caller-owned focus is supplied. It ends at the newest created leaf message, or is empty when the session has no messages.
-_Avoid_: Active thread
+**Thread Anchor**:
+A caller-owned message id used to resolve a thread. A thread anchor may have been a leaf when selected, but later become an ancestor after local append or sync.
+_Avoid_: Active thread, default thread
+
+**Fork Point**:
+A message with multiple child continuations.
+_Avoid_: Branch point
+
+**Fork Choice**:
+A surface-visible choice at a fork point, represented by one child message id. Choosing a fork choice selects a thread anchor so the surface resolves a thread through that message and onward to a leaf.
+_Avoid_: Active continuation, branch option
+
+**Continuation**:
+A child message that continues from a parent message. Multiple continuations from one parent are alternatives at the same fork point.
+_Avoid_: Branch, sibling branch
 
 **Transcripts**:
 The core module that owns durable session and message control. It stays neutral about why callers create messages; runs, web, CLI, and tools use it without making it responsible for model execution.

@@ -146,7 +146,8 @@ export function registerSessionCommands(
     .description('Delete a message')
     .action(async (messageId: string) => {
       const ctx = await getContext()
-      ctx.transcripts.deleteMessage(messageId)
+      const message = ctx.helpers.typedStore.tables.messages.requireEntity(messageId)
+      ctx.transcripts.getSession(message.sessionId).deleteMessage(messageId)
       console.log(messageId)
     })
 
@@ -161,11 +162,13 @@ export function registerSessionCommands(
       if (resolvedSessionId === undefined) {
         throw new Error('No active session. Try: tetra "hello"')
       }
-      const messages = ctx.transcripts.listDefaultThreadMessages(resolvedSessionId)
-      if (messages.length === 0) {
+      const session = ctx.transcripts.getSession(resolvedSessionId)
+      const threadAnchorMessageId = session.getNewestLeafMessageId()
+      if (threadAnchorMessageId === null) {
         console.log('No messages in this session.')
         return
       }
+      const messages = session.resolveThread({ fromMessageId: threadAnchorMessageId }).messages()
       printMessages(messages)
     })
 

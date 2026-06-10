@@ -18,7 +18,11 @@ export const typedTinybase = createStoreHooks(tetraStoreSchema, tetraIndexIds)
 
 // Web UI state is tab-local runtime state, separate from Tetra's persisted/synchronized data.
 export const webUiStoreSchema = defineTypedStore({
-  tables: {},
+  tables: {
+    sessionThreadViews: z.object({
+      threadAnchorMessageId: z.string().nullable(),
+    }),
+  },
   values: {
     activeSessionId: z.string(),
     jsonView: z.object({
