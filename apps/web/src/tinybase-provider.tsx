@@ -3,7 +3,6 @@ import { useMemo } from 'react'
 import { createIndexedDbPersister } from 'tinybase/persisters/persister-indexed-db/with-schemas'
 import { createStore } from 'tinybase/store/with-schemas'
 import { createWsSynchronizer } from 'tinybase/synchronizers/synchronizer-ws-client/with-schemas'
-import { Inspector } from 'tinybase/ui-react-inspector'
 
 import type { WebUiRawStore } from '@/lib/tinybase'
 import {
@@ -98,7 +97,6 @@ function TinyBaseSyncProvider({ children }: { children: React.ReactNode }) {
       <webUiReact.Provider storesById={{ [WEB_UI_STORE_ID]: webUiStore }}>
         {children}
       </webUiReact.Provider>
-      <Inspector />
     </tinybase.Provider>
   )
 }

@@ -69,7 +69,7 @@ export function Composer({
             onChange={(e) => {
               setDraft(e.currentTarget.value)
             }}
-            placeholder="Where would you like to go today?"
+            placeholder="Where do you want to go today?"
             value={draft}
             className="min-h-14 md:text-sm"
           />

@@ -193,7 +193,7 @@ export function PromptEditorSheet({
       <SheetContent
         className="flex flex-col"
         showCloseButton={false}
-        style={{ maxWidth: '480px', width: '480px' }}
+        style={{ maxWidth: 'none', width: 'min(90vw, 1120px)' }}
       >
         <div className="flex h-(--header-height) shrink-0 items-center justify-between border-b px-2">
           <span className="px-2 text-xs font-medium">System Prompt</span>
