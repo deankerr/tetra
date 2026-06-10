@@ -36,6 +36,10 @@ export const tetraIndexIds = [
 // The Tetra store schema owns durable TinyBase tables, values, and coarse cell schemas.
 export const tetraStoreSchema = defineTypedStore({
   tables: {
+    // Single real session hidden from history while it backs the new-session page.
+    draftSessions: z.object({
+      sessionId: z.string(),
+    }),
     languageModels: z.object({
       contextLength: z.number(),
       createdAt: z.number(),

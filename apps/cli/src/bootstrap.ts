@@ -22,6 +22,7 @@ export const TABULAR_CONFIG = {
   mode: 'tabular' as const,
   tables: {
     load: {
+      draftSessions: { rowIdColumnName: 'id', tableId: 'draftSessions' },
       languageModels: { rowIdColumnName: 'id', tableId: 'languageModels' },
       messages: { rowIdColumnName: 'id', tableId: 'messages' },
       modelFavorites: { rowIdColumnName: 'id', tableId: 'modelFavorites' },
@@ -33,6 +34,7 @@ export const TABULAR_CONFIG = {
       streamingMessageParts: { rowIdColumnName: 'id', tableId: 'streamingMessageParts' },
     },
     save: {
+      draftSessions: { rowIdColumnName: 'id', tableName: 'draftSessions' },
       languageModels: { rowIdColumnName: 'id', tableName: 'languageModels' },
       messages: { rowIdColumnName: 'id', tableName: 'messages' },
       modelFavorites: { rowIdColumnName: 'id', tableName: 'modelFavorites' },

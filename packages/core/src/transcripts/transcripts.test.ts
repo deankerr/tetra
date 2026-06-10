@@ -122,6 +122,26 @@ test('empty sessions have no synthetic root or thread', () => {
   expect(rootPath.messages()).toEqual([])
 })
 
+test('session creation can attach colocated state in the same transaction', () => {
+  const { rawStore, transcripts, typedStore } = createTranscriptHarness()
+  let finishedTransactions = 0
+  const listenerId = rawStore.addDidFinishTransactionListener(() => {
+    finishedTransactions += 1
+  })
+
+  const sessionId = transcripts.createSession({
+    onCreate(id) {
+      typedStore.tables.draftSessions.setRow('current', { sessionId: id })
+    },
+  })
+
+  // Draft state is web-owned, but it must persist atomically with its backing session.
+  rawStore.delListener(listenerId)
+  expect(typedStore.tables.sessions.getEntity(sessionId)).not.toBeNull()
+  expect(typedStore.tables.draftSessions.requireEntity('current').sessionId).toBe(sessionId)
+  expect(finishedTransactions).toBe(1)
+})
+
 test('message paths are exact cursors and continuations are fork-point choices', () => {
   const { followUpUserId, newerLeafId, olderAssistantId, olderLeafId, rootUserId, session } =
     createForkedTree()

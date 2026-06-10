@@ -57,7 +57,7 @@ function RootAppLayout() {
           </Sidebar>
 
           <SidebarInset className="h-svh min-w-0 overflow-hidden">
-            <div className="flex h-full overflow-x-auto">
+            <div className="flex h-full min-w-0">
               <Outlet />
             </div>
           </SidebarInset>

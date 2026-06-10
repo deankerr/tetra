@@ -1,60 +1,54 @@
+import { Link } from '@tanstack/react-router'
 import { Button } from '@tetra/ui/components/ui/button'
 import { Sheet, SheetClose, SheetContent } from '@tetra/ui/components/ui/sheet'
 import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
-import { BracesIcon, Settings2Icon, XIcon } from 'lucide-react'
+import { HomeIcon, Settings2Icon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 
-import { useJsonViewSheet } from '@/components/json-view-sheet'
-import { WEB_UI_STORE_ID, typedTinybase, webUiTinybase } from '@/lib/tinybase'
+import { typedTinybase } from '@/lib/tinybase'
 
 import { ConversationView } from './conversation-view'
 import { SessionPanelErrorBoundary } from './error-boundary'
-import { SessionExportButton } from './export-button'
 import { SessionSettings } from './settings'
 import { ModelPickerSheet } from './settings/model-picker'
 import { PromptEditorSheet } from './settings/prompt-editor-sheet'
-import { SessionUsageMeter } from './usage-meter'
 
-export function SessionView() {
-  const [activeSessionId, setActiveSessionId] = webUiTinybase.useValueState(
-    'activeSessionId',
-    WEB_UI_STORE_ID,
-  )
-
-  if (activeSessionId === '') {
-    return <NoSessionSelected />
-  }
-
+export function SessionView({ sessionId }: { sessionId: string }) {
   return (
-    <SessionPanelErrorBoundary
-      key={activeSessionId}
-      onClose={() => {
-        setActiveSessionId('')
-      }}
-      sessionId={activeSessionId}
-    >
-      <ActiveSession
-        onClose={() => {
-          setActiveSessionId('')
-        }}
-        sessionId={activeSessionId}
-      />
+    <SessionPanelErrorBoundary key={sessionId} sessionId={sessionId}>
+      <ActiveSession sessionId={sessionId} />
     </SessionPanelErrorBoundary>
   )
 }
 
-function NoSessionSelected() {
+function MissingSession() {
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-      <header className="flex h-(--header-height) shrink-0 items-center border-b px-2">
+      {/* Header */}
+      <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b px-2">
         <SidebarTrigger title="Open sidebar" />
+        <span className="min-w-0 flex-1 truncate text-xs font-medium">Session not found</span>
       </header>
+
+      {/* Empty state */}
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
+        <div className="flex max-w-md flex-col gap-1">
+          <h1 className="text-lg font-medium">Session not found</h1>
+          <p className="text-muted-foreground text-sm">
+            This session no longer exists in the local store.
+          </p>
+        </div>
+        <Button render={<Link to="/" />} variant="outline">
+          <HomeIcon />
+          New session
+        </Button>
+      </div>
     </div>
   )
 }
 
 /** Renders one session panel. Guards session existence — children can assume valid sessionId. */
-function ActiveSession({ onClose, sessionId }: { onClose: () => void; sessionId: string }) {
+function ActiveSession({ sessionId }: { sessionId: string }) {
   const session = typedTinybase.useEntity('sessions', sessionId)
   const [detailOpen, setDetailOpen] = useState(false)
   const [modelPickerOpen, setModelPickerOpen] = useState(false)
@@ -64,10 +58,9 @@ function ActiveSession({ onClose, sessionId }: { onClose: () => void; sessionId:
     'modelId',
   )
   const [promptSheetOpen, setPromptSheetOpen] = useState(false)
-  const { openJsonView } = useJsonViewSheet()
 
   if (session === null) {
-    return null
+    return <MissingSession />
   }
 
   return (
@@ -81,22 +74,6 @@ function ActiveSession({ onClose, sessionId }: { onClose: () => void; sessionId:
             {session.title ?? 'New session'}
           </span>
 
-          <SessionUsageMeter sessionId={sessionId} />
-
-          <Button
-            aria-label="Inspect JSON"
-            onClick={() => {
-              openJsonView({ title: `Session: ${session.id}`, value: session })
-            }}
-            size="icon-sm"
-            title="Inspect JSON"
-            variant="ghost"
-          >
-            <BracesIcon />
-          </Button>
-
-          <SessionExportButton sessionId={sessionId} />
-
           <Button
             aria-label="Open session settings"
             onClick={() => {
@@ -108,17 +85,6 @@ function ActiveSession({ onClose, sessionId }: { onClose: () => void; sessionId:
             variant="ghost"
           >
             <Settings2Icon />
-          </Button>
-
-          <Button
-            aria-label="Close session"
-            onClick={onClose}
-            size="icon-sm"
-            title="Close session"
-            type="button"
-            variant="ghost"
-          >
-            <XIcon />
           </Button>
         </header>
 

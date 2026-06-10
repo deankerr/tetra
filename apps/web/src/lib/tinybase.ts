@@ -24,7 +24,6 @@ export const webUiStoreSchema = defineTypedStore({
     }),
   },
   values: {
-    activeSessionId: z.string(),
     jsonView: z.object({
       json: z.string(),
       title: z.string(),
