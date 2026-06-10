@@ -2,13 +2,10 @@ import { Button } from '@tetra/ui/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@tetra/ui/components/ui/card'
 import { Field, FieldGroup, FieldTitle } from '@tetra/ui/components/ui/field'
 import { Input } from '@tetra/ui/components/ui/input'
-import { BracesIcon, DownloadIcon } from 'lucide-react'
 
-import { useJsonViewSheet } from '@/components/json-view-sheet'
 import { typedTinybase } from '@/lib/tinybase'
 import { useTetra } from '@/tetra-context'
 
-import { SessionExportButton } from './export-button'
 import { ModelPickerButton } from './settings/model-picker'
 import { PromptPreviewButton } from './settings/prompt-editor-sheet'
 import { ProviderOptionsEditor } from './settings/provider-options-editor'
@@ -87,7 +84,7 @@ export function SessionSettings({
 
       <UseAsDefaultButton sessionId={sessionId} />
 
-      <SessionSettingsActions sessionId={sessionId} />
+      <div className="text-muted-foreground">sessionId: {sessionId}</div>
     </FieldGroup>
   )
 }
@@ -108,40 +105,5 @@ function UseAsDefaultButton({ sessionId }: { sessionId: string }) {
     >
       Use as default for new sessions
     </Button>
-  )
-}
-
-function SessionSettingsActions({ sessionId }: { sessionId: string }) {
-  const session = typedTinybase.useEntity('sessions', sessionId)
-  const { openJsonView } = useJsonViewSheet()
-
-  if (session === null) {
-    return null
-  }
-
-  return (
-    <div className="grid grid-cols-2 gap-2 pt-1">
-      <Button
-        className="w-full"
-        onClick={() => {
-          openJsonView({ title: `Session: ${session.id}`, value: session })
-        }}
-        type="button"
-        variant="outline"
-      >
-        <BracesIcon />
-        Inspect JSON
-      </Button>
-
-      <SessionExportButton
-        className="w-full"
-        sessionId={sessionId}
-        size="default"
-        variant="outline"
-      >
-        <DownloadIcon />
-        Export
-      </SessionExportButton>
-    </div>
   )
 }

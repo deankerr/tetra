@@ -1,29 +1,14 @@
 import { Button } from '@tetra/ui/components/ui/button'
 import { DownloadIcon } from 'lucide-react'
-import type { ComponentProps } from 'react'
 
 import { useTetra } from '@/tetra-context'
 
-type SessionExportButtonProps = Pick<
-  ComponentProps<typeof Button>,
-  'children' | 'className' | 'size' | 'variant'
-> & {
-  sessionId: string
-}
-
-export function SessionExportButton({
-  children,
-  className,
-  sessionId,
-  size = 'icon-sm',
-  variant = 'ghost',
-}: SessionExportButtonProps) {
+export function SessionExportButton({ sessionId }: { sessionId: string }) {
   const { transcripts } = useTetra()
 
   return (
     <Button
       aria-label="Export session"
-      className={className}
       onClick={() => {
         const exported = transcripts.getSession(sessionId).export()
         const title = exported.session.title.trim() ?? sessionId
@@ -38,12 +23,12 @@ export function SessionExportButton({
         link.click()
         URL.revokeObjectURL(url)
       }}
-      size={size}
+      size="icon-sm"
       title="Export session"
       type="button"
-      variant={variant}
+      variant="ghost"
     >
-      {children ?? <DownloadIcon />}
+      <DownloadIcon />
     </Button>
   )
 }
