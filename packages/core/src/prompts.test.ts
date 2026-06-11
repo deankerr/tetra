@@ -4,6 +4,7 @@ import { createRawStore, tetraIndexIds, tetraStoreSchema } from '@tetra/store-sc
 import { bindIndexes, bindStore } from '@tetra/tinybase-schema'
 
 import { Prompts } from './prompts.ts'
+import { RunConfigs } from './run-configs.ts'
 import { Transcripts } from './transcripts/index.ts'
 
 function createPromptHarness() {
@@ -36,7 +37,8 @@ test('createPrompt stores a prompt row with defaults and provided fields', () =>
 
 test('deletePrompt removes the row and unlinks it from session configs', () => {
   const { prompts, rawStore, typedIndexes, typedStore } = createPromptHarness()
-  const transcripts = new Transcripts({ rawStore, typedIndexes, typedStore })
+  const runConfigs = new RunConfigs({ rawStore, typedStore })
+  const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
   const promptId = prompts.createPrompt({ content: 'Be terse.' })
 
   // One session references the prompt, another references a different prompt.

@@ -4,6 +4,7 @@ import { createRawStore, tetraIndexIds, tetraStoreSchema } from '@tetra/store-sc
 import type { Rows } from '@tetra/store-schema'
 import { bindIndexes, bindStore } from '@tetra/tinybase-schema'
 
+import { RunConfigs } from '../run-configs.ts'
 import { Transcripts } from './index.ts'
 import type { TranscriptSession } from './index.ts'
 
@@ -12,7 +13,8 @@ function createTranscriptHarness() {
   const { rawIndexes, rawStore } = createRawStore()
   const typedStore = bindStore(rawStore, tetraStoreSchema.tables, tetraStoreSchema.values)
   const typedIndexes = bindIndexes(rawIndexes, tetraIndexIds)
-  const transcripts = new Transcripts({ rawStore, typedIndexes, typedStore })
+  const runConfigs = new RunConfigs({ rawStore, typedStore })
+  const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
 
   return { rawStore, transcripts, typedIndexes, typedStore }
 }

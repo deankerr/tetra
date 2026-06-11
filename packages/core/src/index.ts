@@ -1,6 +1,7 @@
 export { Catalog } from '#catalog'
 export { Run, Runs } from '#runtime'
 export { Prompts } from '#prompts'
+export { RunConfigs } from '#run-configs'
 export { Transcripts } from '#transcripts'
 export { toolIds, toolsRegistryMap } from '#tools'
 export { summarizeSteps } from '#usage'

@@ -6,6 +6,7 @@
     "#catalog": "./src/catalog.ts",
     "#ids": "./src/ids.ts",
     "#prompts": "./src/prompts.ts",
+    "#run-configs": "./src/run-configs.ts",
     "#runtime": "./src/runtime/index.ts",
     "#tools": "./src/tools/tools.ts",
     "#transcripts": "./src/transcripts/index.ts",

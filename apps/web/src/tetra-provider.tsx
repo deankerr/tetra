@@ -1,4 +1,4 @@
-import { Catalog, Prompts, Runs, Transcripts } from '@tetra/core'
+import { Catalog, Prompts, RunConfigs, Runs, Transcripts } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
 import { tetraStoreSchema, tetraIndexIds } from '@tetra/store-schema'
 import type { TetraRawIndexes, TetraRawStore } from '@tetra/store-schema'
@@ -15,13 +15,14 @@ function createTetraApp(rawStore: TetraRawStore, rawIndexes: TetraRawIndexes) {
   const context = { rawIndexes, rawStore, typedIndexes, typedStore }
 
   // Core modules share one typed TinyBase context.
+  const runConfigs = new RunConfigs(context)
   const prompts = new Prompts(context)
-  const transcripts = new Transcripts(context)
+  const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
   const catalog = new Catalog(context)
   const runs = new Runs({
     credentials: credentialStore,
     prompts,
-    rawStore,
+    runConfigs,
     transcripts,
     typedStore,
   })

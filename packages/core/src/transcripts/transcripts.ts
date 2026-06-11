@@ -1,32 +1,27 @@
-import { DEFAULT_RUN_CONFIG, RunConfigSchema } from '@tetra/store-schema'
-import type {
-  RunConfig,
-  TetraRawStore,
-  TetraTypedIndexes,
-  TetraTypedStore,
-} from '@tetra/store-schema'
+import type { RunConfig, TetraTypedIndexes, TetraTypedStore } from '@tetra/store-schema'
 
 import { createIdGenerator } from '#ids'
+import type { RunConfigs } from '#run-configs'
 
 import { TranscriptSession } from './session.ts'
 
 export class Transcripts {
   private readonly nextMessageId = createIdGenerator('msg')
   private readonly nextSessionId = createIdGenerator('sess')
-  private readonly rawStore: TetraRawStore
+  private readonly runConfigs: RunConfigs
   private readonly typedIndexes: TetraTypedIndexes
   private readonly typedStore: TetraTypedStore
 
   constructor({
-    rawStore,
+    runConfigs,
     typedIndexes,
     typedStore,
   }: {
-    rawStore: TetraRawStore
+    runConfigs: RunConfigs
     typedIndexes: TetraTypedIndexes
     typedStore: TetraTypedStore
   }) {
-    this.rawStore = rawStore
+    this.runConfigs = runConfigs
     this.typedIndexes = typedIndexes
     this.typedStore = typedStore
   }
@@ -39,23 +34,18 @@ export class Transcripts {
     } = {},
   ): string {
     const sessionId = this.nextSessionId()
-    const storedDefaultConfig = this.rawStore.hasValue('defaultRunConfig')
-      ? this.rawStore.getValue('defaultRunConfig')
-      : DEFAULT_RUN_CONFIG
-    const config = RunConfigSchema.parse({
-      ...toConfigObject(storedDefaultConfig),
-      ...args.config,
-    })
     const now = Date.now()
 
     // Create an empty session; only real caller-created messages enter the transcript.
+    // RunConfigs parses the birth merge before writing, so it runs first and a bad
+    // config leaves nothing behind. The nested transaction keeps session+config atomic.
     this.typedStore.transaction(() => {
+      this.runConfigs.createForSession(sessionId, args.config)
       this.typedStore.tables.sessions.setRow(sessionId, {
         createdAt: now,
         title: args.title ?? '',
         updatedAt: now,
       })
-      this.typedStore.tables.sessionRunConfigs.setRow(sessionId, config)
       args.onCreate?.(sessionId)
     })
 
@@ -102,12 +92,4 @@ export class Transcripts {
       typedStore: this.typedStore,
     })
   }
-}
-
-function toConfigObject(value: unknown): Record<string, unknown> {
-  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-    return Object.fromEntries(Object.entries(value))
-  }
-
-  return {}
 }

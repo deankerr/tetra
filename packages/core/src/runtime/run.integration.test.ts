@@ -9,7 +9,7 @@ import { simulateReadableStream, tool } from 'ai'
 import { MockLanguageModelV3 } from 'ai/test'
 import { z } from 'zod'
 
-import { Prompts, Runs, Transcripts, summarizeSteps } from '../index.ts'
+import { Prompts, RunConfigs, Runs, Transcripts, summarizeSteps } from '../index.ts'
 import { toolsRegistryMap } from '../tools/tools.ts'
 import type { LanguageModelResolver } from './language-model-resolver.ts'
 
@@ -30,8 +30,9 @@ function createTestRuntime() {
   const context = createTestDb()
   const prompts = new Prompts(context)
   const { rawStore, typedIndexes, typedStore } = context
-  const transcripts = new Transcripts(context)
-  const core = { prompts, rawStore, transcripts, typedIndexes, typedStore }
+  const runConfigs = new RunConfigs({ rawStore, typedStore })
+  const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
+  const core = { prompts, transcripts, typedIndexes, typedStore }
   const credentials = new CredentialsStore([])
   const streamChunks: LanguageModelV3StreamPart[] = [
     { type: 'stream-start', warnings: [] },
@@ -62,7 +63,7 @@ function createTestRuntime() {
     credentials,
     modelResolver,
     prompts,
-    rawStore,
+    runConfigs,
     transcripts,
     typedStore,
   })
@@ -183,8 +184,9 @@ test('streaming snapshots persist to streamingMessageParts before message commit
   const context = createTestDb()
   const prompts = new Prompts(context)
   const { rawStore, typedIndexes, typedStore } = context
-  const transcripts = new Transcripts(context)
-  const core = { prompts, rawStore, transcripts, typedIndexes, typedStore }
+  const runConfigs = new RunConfigs({ rawStore, typedStore })
+  const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
+  const core = { prompts, transcripts, typedIndexes, typedStore }
   const credentials = new CredentialsStore([])
   const model = new MockLanguageModelV3({
     doStream: {
@@ -213,7 +215,7 @@ test('streaming snapshots persist to streamingMessageParts before message commit
     credentials,
     modelResolver: { resolve: () => model },
     prompts,
-    rawStore,
+    runConfigs,
     transcripts,
     typedStore,
   })
@@ -451,8 +453,9 @@ test('Tool Loop — tool call executes and result appears in final parts', async
   const context = createTestDb()
   const prompts = new Prompts(context)
   const { rawStore, typedIndexes, typedStore } = context
-  const transcripts = new Transcripts(context)
-  const core = { prompts, rawStore, transcripts, typedIndexes, typedStore }
+  const runConfigs = new RunConfigs({ rawStore, typedStore })
+  const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
+  const core = { prompts, transcripts, typedIndexes, typedStore }
   const credentials = new CredentialsStore([])
 
   const toolCallChunks: LanguageModelV3StreamPart[] = [
@@ -512,7 +515,7 @@ test('Tool Loop — tool call executes and result appears in final parts', async
     credentials,
     modelResolver,
     prompts,
-    rawStore,
+    runConfigs,
     transcripts,
     typedStore,
   })
@@ -563,8 +566,9 @@ test('Error Path — stream error sets run to error status', async () => {
   const context = createTestDb()
   const prompts = new Prompts(context)
   const { rawStore, typedIndexes, typedStore } = context
-  const transcripts = new Transcripts(context)
-  const core = { prompts, rawStore, transcripts, typedIndexes, typedStore }
+  const runConfigs = new RunConfigs({ rawStore, typedStore })
+  const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
+  const core = { prompts, transcripts, typedIndexes, typedStore }
   const credentials = new CredentialsStore([])
 
   const model = new MockLanguageModelV3({
@@ -578,7 +582,7 @@ test('Error Path — stream error sets run to error status', async () => {
     credentials,
     modelResolver,
     prompts,
-    rawStore,
+    runConfigs,
     transcripts,
     typedStore,
   })
@@ -665,8 +669,9 @@ test('Error Path — later runs can still run after an error', async () => {
   const context = createTestDb()
   const prompts = new Prompts(context)
   const { rawStore, typedIndexes, typedStore } = context
-  const transcripts = new Transcripts(context)
-  const core = { prompts, rawStore, transcripts, typedIndexes, typedStore }
+  const runConfigs = new RunConfigs({ rawStore, typedStore })
+  const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
+  const core = { prompts, transcripts, typedIndexes, typedStore }
   const credentials = new CredentialsStore([])
 
   let callCount = 0
@@ -705,7 +710,7 @@ test('Error Path — later runs can still run after an error', async () => {
     credentials,
     modelResolver,
     prompts,
-    rawStore,
+    runConfigs,
     transcripts,
     typedStore,
   })
