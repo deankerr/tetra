@@ -12,6 +12,10 @@ _Avoid_: Conversation, chat
 A recipe for starting a run: model, system prompt, selected tools, provider-specific options, and message selection. It is shared by app surfaces and core execution rather than owned by one UI.
 _Avoid_: Settings, one-off overrides
 
+**RunConfigs**:
+The core module that owns the run config lifecycle: session config creation, structured updates, the new-session default, prompt unlinking, and resolving the effective config when a run starts. Typed per-cell writes to a session's config row are part of its interface; RunConfigs owns every merge, multi-cell, or cross-table operation.
+_Avoid_: Helpers, settings service
+
 **Message**:
 A committed content record with caller-authored role-like metadata and parts, anchored either at the start of a session path or after another message. Core message control must not enforce a "user message in, assistant message out" workflow; provider-specific role projection belongs at run/context assembly boundaries.
 _Avoid_: Assistant response, chat turn
@@ -67,3 +71,7 @@ _Avoid_: Branch, sibling branch
 **Transcripts**:
 The core module that owns durable session and message control. It stays neutral about why callers create messages; runs, web, CLI, and tools use it without making it responsible for model execution.
 _Avoid_: Chat service, runner
+
+**Prompts**:
+The core module that owns stored prompt records and resolving a system prompt id to prompt content. Deleting a prompt asks RunConfigs to unlink it from session configs.
+_Avoid_: Helpers, prompt library
