@@ -7,6 +7,7 @@ import type {
   TetraTypedStore,
 } from '@tetra/store-schema'
 
+import type { Prompts } from '#prompts'
 import type { Transcripts } from '#transcripts'
 
 import { openRouterLanguageModelResolver } from './language-model-resolver.ts'
@@ -23,6 +24,7 @@ export interface GenerateArgs {
 export interface RunsInit {
   credentials: CredentialsStore
   modelResolver?: LanguageModelResolver
+  prompts: Prompts
   rawStore: TetraRawStore
   transcripts: Transcripts
   typedStore: TetraTypedStore
@@ -32,6 +34,7 @@ export class Runs {
   private readonly active = new Map<string, Run>()
   private readonly credentials: CredentialsStore
   private readonly modelResolver: LanguageModelResolver
+  private readonly prompts: Prompts
   private readonly rawStore: TetraRawStore
   private readonly transcripts: Transcripts
   private readonly typedStore: TetraTypedStore
@@ -39,12 +42,14 @@ export class Runs {
   constructor({
     credentials,
     modelResolver = openRouterLanguageModelResolver,
+    prompts,
     rawStore,
     transcripts,
     typedStore,
   }: RunsInit) {
     this.credentials = credentials
     this.modelResolver = modelResolver
+    this.prompts = prompts
     this.rawStore = rawStore
     this.transcripts = transcripts
     this.typedStore = typedStore
@@ -101,7 +106,7 @@ export class Runs {
       ...sessionRunConfig,
       ...args.config,
     })
-    const system = this.requireSystemPrompt(config)
+    const system = this.prompts.resolveContent(config.systemPromptId)
     const transcriptMessages = this.collectMessagesBefore(targetMessage, config)
 
     let runId = ''
@@ -178,14 +183,5 @@ export class Runs {
   private async removeWhenDone(run: Run): Promise<void> {
     await run.done
     this.active.delete(run.runId)
-  }
-
-  private requireSystemPrompt(config: RunConfigType): string | undefined {
-    if (config.systemPromptId === '') {
-      return undefined
-    }
-
-    const prompt = this.typedStore.tables.prompts.requireEntity(config.systemPromptId)
-    return prompt.content
   }
 }

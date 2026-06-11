@@ -218,7 +218,7 @@ export function ModelPickerSheet({
   open: boolean
   value: string
 }) {
-  const { helpers } = useTetra()
+  const { typedStore } = useTetra()
   const [filter, setFilter] = useState<ModelFilter>('all')
   const [query, setQuery] = useState('')
   const [sortMode, setSortMode] = useState<ModelSortMode>('latest')
@@ -313,10 +313,10 @@ export function ModelPickerSheet({
                       }}
                       onToggleFavorite={() => {
                         if (favoriteIds.has(model.id)) {
-                          helpers.typedStore.tables.modelFavorites.deleteRow(model.id)
+                          typedStore.tables.modelFavorites.deleteRow(model.id)
                           return
                         }
-                        helpers.typedStore.tables.modelFavorites.setRow(model.id, {
+                        typedStore.tables.modelFavorites.setRow(model.id, {
                           createdAt: Date.now(),
                         })
                       }}

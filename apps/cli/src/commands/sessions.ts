@@ -78,7 +78,7 @@ export function registerSessionCommands(
     .description('List sessions')
     .action(async () => {
       const ctx = await getContext()
-      const sessions = ctx.helpers.typedStore.tables.sessions
+      const sessions = ctx.typedStore.tables.sessions
         .listEntities()
         .toSorted((a, b) => a.createdAt - b.createdAt)
       const activeSessionId = ctx.workspace.getActiveSessionId()
@@ -102,7 +102,7 @@ export function registerSessionCommands(
       const ctx = await getContext()
 
       if (sessionId !== undefined) {
-        if (!ctx.helpers.typedStore.tables.sessions.hasRow(sessionId)) {
+        if (!ctx.typedStore.tables.sessions.hasRow(sessionId)) {
           throw new Error(`Session not found: ${sessionId}`)
         }
         ctx.workspace.setActiveSessionId(sessionId)
@@ -118,7 +118,7 @@ export function registerSessionCommands(
     .description('Set the active session')
     .action(async (sessionId: string) => {
       const ctx = await getContext()
-      if (!ctx.helpers.typedStore.tables.sessions.hasRow(sessionId)) {
+      if (!ctx.typedStore.tables.sessions.hasRow(sessionId)) {
         throw new Error(`Session not found: ${sessionId}`)
       }
       ctx.workspace.setActiveSessionId(sessionId)
@@ -146,7 +146,7 @@ export function registerSessionCommands(
     .description('Delete a message')
     .action(async (messageId: string) => {
       const ctx = await getContext()
-      const message = ctx.helpers.typedStore.tables.messages.requireEntity(messageId)
+      const message = ctx.typedStore.tables.messages.requireEntity(messageId)
       ctx.transcripts.getSession(message.sessionId).deleteMessage(messageId)
       console.log(messageId)
     })
@@ -184,13 +184,11 @@ export function registerSessionCommands(
         throw new Error('No active session. Try: tetra "hello"')
       }
       if (title !== undefined) {
-        ctx.helpers.typedStore.tables.sessions.updateRow(sessionId, {
+        ctx.typedStore.tables.sessions.updateRow(sessionId, {
           title,
           updatedAt: Date.now(),
         })
       }
-      console.log(
-        ctx.helpers.typedStore.tables.sessions.requireEntity(sessionId).title ?? '(untitled)',
-      )
+      console.log(ctx.typedStore.tables.sessions.requireEntity(sessionId).title ?? '(untitled)')
     })
 }

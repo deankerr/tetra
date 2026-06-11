@@ -51,9 +51,8 @@ export async function runChatContent(
     config.systemPromptId = ''
   }
   if (Object.keys(config).length > 0) {
-    const sessionRunConfig =
-      ctx.helpers.typedStore.tables.sessionRunConfigs.requireEntity(sessionId)
-    ctx.helpers.typedStore.tables.sessionRunConfigs.setRow(sessionId, {
+    const sessionRunConfig = ctx.typedStore.tables.sessionRunConfigs.requireEntity(sessionId)
+    ctx.typedStore.tables.sessionRunConfigs.setRow(sessionId, {
       ...sessionRunConfig,
       ...config,
     })

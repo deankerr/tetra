@@ -1,6 +1,6 @@
 import { Database } from 'bun:sqlite'
 
-import { Catalog, Helpers, Runs, Transcripts } from '@tetra/core'
+import { Catalog, Prompts, Runs, Transcripts } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
 import {
   createRawMergeableStore,
@@ -63,11 +63,12 @@ export async function bootstrap(mode: BootstrapMode) {
       typedIndexes,
       typedStore,
     }
-    const helpers = new Helpers(context)
+    const prompts = new Prompts(context)
     const transcripts = new Transcripts(context)
     const catalog = new Catalog(context)
     const runs = new Runs({
       credentials: credentialStore,
+      prompts,
       rawStore,
       transcripts,
       typedStore,
@@ -99,9 +100,10 @@ export async function bootstrap(mode: BootstrapMode) {
         await persister.destroy()
         sqlite.close()
       },
-      helpers,
+      prompts,
       runs,
       transcripts,
+      typedStore,
       workspace,
     }
   }
@@ -116,11 +118,12 @@ export async function bootstrap(mode: BootstrapMode) {
     typedIndexes,
     typedStore,
   }
-  const helpers = new Helpers(context)
+  const prompts = new Prompts(context)
   const transcripts = new Transcripts(context)
   const catalog = new Catalog(context)
   const runs = new Runs({
     credentials: credentialStore,
+    prompts,
     rawStore,
     transcripts,
     typedStore,
@@ -156,9 +159,10 @@ export async function bootstrap(mode: BootstrapMode) {
       await synchronizer.destroy()
       sqlite.close()
     },
-    helpers,
+    prompts,
     runs,
     transcripts,
+    typedStore,
     workspace,
   }
 }

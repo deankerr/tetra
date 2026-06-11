@@ -177,7 +177,7 @@ function useMessageHasContinuations(message: Rows['messages']): boolean {
   const messageIds = typedTinybase.useSliceRowIds('messagesBySession', message.sessionId)
 
   return messageIds.some((messageId) => {
-    const candidate = tetra.helpers.typedStore.tables.messages.requireEntity(messageId)
+    const candidate = tetra.typedStore.tables.messages.requireEntity(messageId)
     return candidate.parentMessageId === message.id
   })
 }

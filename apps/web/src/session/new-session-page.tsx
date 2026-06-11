@@ -28,7 +28,7 @@ export function NewSessionPage() {
   const [promptSheetOpen, setPromptSheetOpen] = useState(false)
   const [openrouterApiKey] = useCredential('OPENROUTER_API_KEY')
   const [, setSettingsOpen] = webUiTinybase.useValueState('settingsOpen', WEB_UI_STORE_ID)
-  const { helpers } = useTetra()
+  const { typedStore } = useTetra()
   const apiKeyConfigured = openrouterApiKey.trim() !== ''
 
   const openSettings = useCallback(() => {
@@ -41,9 +41,9 @@ export function NewSessionPage() {
     }
 
     // Clearing the pointer makes this session normal history before routing to it.
-    helpers.typedStore.tables.draftSessions.deleteRow('current')
+    typedStore.tables.draftSessions.deleteRow('current')
     void navigate({ params: { sessionId: draftSessionId }, to: '/sessions/$sessionId' })
-  }, [draftSessionId, helpers, navigate])
+  }, [draftSessionId, typedStore, navigate])
 
   const requireGenerateReady = useCallback(() => {
     if (apiKeyConfigured) {
@@ -151,7 +151,7 @@ export function NewSessionPage() {
 }
 
 function useDraftSessionId(): string | null {
-  const { helpers, transcripts } = useTetra()
+  const { transcripts, typedStore } = useTetra()
   const persister = tinybase.usePersister()
   const synchronizer = tinybase.useSynchronizer()
   const draftSessionPointer = typedTinybase.useEntity('draftSessions', 'current')
@@ -166,7 +166,7 @@ function useDraftSessionId(): string | null {
     }
 
     if (draftSessionId !== '' && draftSession === null) {
-      helpers.typedStore.tables.draftSessions.deleteRow('current')
+      typedStore.tables.draftSessions.deleteRow('current')
       creatingDraftSession.current = false
       return
     }
@@ -184,10 +184,10 @@ function useDraftSessionId(): string | null {
     creatingDraftSession.current = true
     transcripts.createSession({
       onCreate(sessionId) {
-        helpers.typedStore.tables.draftSessions.setRow('current', { sessionId })
+        typedStore.tables.draftSessions.setRow('current', { sessionId })
       },
     })
-  }, [draftSession, draftSessionId, helpers, storeReady, transcripts])
+  }, [draftSession, draftSessionId, storeReady, transcripts, typedStore])
 
   if (!storeReady || draftSessionId === '' || draftSession === null) {
     return null

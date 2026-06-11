@@ -2,16 +2,15 @@ import type { TetraTypedStore } from '@tetra/store-schema'
 
 import { createIdGenerator } from '#ids'
 
-export class Helpers {
-  readonly typedStore: TetraTypedStore
-
+// Prompts owns stored prompt records: creation, deletion, and resolving a
+// system prompt id to prompt content at run start.
+export class Prompts {
   private readonly nextPromptId = createIdGenerator('prpt')
+  private readonly typedStore: TetraTypedStore
 
   constructor({ typedStore }: { typedStore: TetraTypedStore }) {
     this.typedStore = typedStore
   }
-
-  // ——— Prompts ———
 
   createPrompt(args: { content?: string; label?: string } = {}): string {
     const promptId = this.nextPromptId()
@@ -28,6 +27,7 @@ export class Helpers {
   }
 
   // Removes the prompt and unlinks it from any sessions that reference it.
+  // The sessionRunConfigs sweep lives here temporarily; #22 moves it behind the RunConfigs module.
   deletePrompt(promptId: string): void {
     this.typedStore.tables.prompts.requireEntity(promptId)
 
@@ -42,5 +42,14 @@ export class Helpers {
 
       this.typedStore.tables.prompts.deleteRow(promptId)
     })
+  }
+
+  // Resolves a system prompt id to its content; '' is the "no prompt" sentinel.
+  resolveContent(systemPromptId: string): string | undefined {
+    if (systemPromptId === '') {
+      return undefined
+    }
+
+    return this.typedStore.tables.prompts.requireEntity(systemPromptId).content
   }
 }
