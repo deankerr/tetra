@@ -92,6 +92,56 @@ test('update throws when the session config row does not exist', () => {
   expect(typedStore.tables.sessionRunConfigs.getEntity('sess_missing')).toBeNull()
 })
 
+test('setAsDefault stores a session config that later createForSession calls pick up', () => {
+  const { runConfigs, typedStore } = createRunConfigHarness()
+
+  // Roundtrip: one session's config becomes the stored default for the next session.
+  runConfigs.createForSession('sess_1', { maxMessages: 7, modelId: 'model-a' })
+  runConfigs.setAsDefault('sess_1')
+
+  expect(typedStore.values.defaultRunConfig.get()).toMatchObject({
+    maxMessages: 7,
+    modelId: 'model-a',
+  })
+  expect(runConfigs.createForSession('sess_2')).toMatchObject({
+    maxMessages: 7,
+    modelId: 'model-a',
+  })
+})
+
+test('setAsDefault throws when the session config row does not exist', () => {
+  const { rawStore, runConfigs } = createRunConfigHarness()
+
+  expect(() => {
+    runConfigs.setAsDefault('sess_missing')
+  }).toThrow()
+  expect(rawStore.hasValue('defaultRunConfig')).toBe(false)
+})
+
+test('unlinkPrompt clears the prompt id only from session configs that reference it', () => {
+  const { runConfigs, typedStore } = createRunConfigHarness()
+
+  runConfigs.createForSession('sess_linked', { systemPromptId: 'prompt-a' })
+  runConfigs.createForSession('sess_other', { systemPromptId: 'prompt-b' })
+
+  runConfigs.unlinkPrompt('prompt-a')
+
+  // Only the matching session falls back to the '' sentinel.
+  expect(typedStore.tables.sessionRunConfigs.requireEntity('sess_linked').systemPromptId).toBe('')
+  expect(typedStore.tables.sessionRunConfigs.requireEntity('sess_other').systemPromptId).toBe(
+    'prompt-b',
+  )
+})
+
+test('deleteForSession removes the session config row', () => {
+  const { runConfigs, typedStore } = createRunConfigHarness()
+
+  runConfigs.createForSession('sess_1')
+  runConfigs.deleteForSession('sess_1')
+
+  expect(typedStore.tables.sessionRunConfigs.getEntity('sess_1')).toBeNull()
+})
+
 test('resolveForRun returns a complete stored row as-is', () => {
   const { runConfigs, typedStore } = createRunConfigHarness()
   const stored = {

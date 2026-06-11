@@ -14,9 +14,10 @@ function createTetraApp(rawStore: TetraRawStore, rawIndexes: TetraRawIndexes) {
   const typedIndexes = bindIndexes(rawIndexes, tetraIndexIds)
   const context = { rawIndexes, rawStore, typedIndexes, typedStore }
 
-  // Core modules share one typed TinyBase context.
+  // Core modules share one typed TinyBase context. RunConfigs comes first so
+  // Prompts can delegate prompt unlinking to it.
   const runConfigs = new RunConfigs(context)
-  const prompts = new Prompts(context)
+  const prompts = new Prompts({ runConfigs, typedStore })
   const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
   const catalog = new Catalog(context)
   const runs = new Runs({
@@ -27,7 +28,7 @@ function createTetraApp(rawStore: TetraRawStore, rawIndexes: TetraRawIndexes) {
     typedStore,
   })
 
-  return { catalog, prompts, runs, transcripts, typedStore }
+  return { catalog, prompts, runConfigs, runs, transcripts, typedStore }
 }
 
 export function TetraProvider({ children }: { children: React.ReactNode }) {
@@ -53,6 +54,7 @@ export function TetraProvider({ children }: { children: React.ReactNode }) {
       value={{
         catalog: tetra.catalog,
         prompts: tetra.prompts,
+        runConfigs: tetra.runConfigs,
         runs: tetra.runs,
         transcripts: tetra.transcripts,
         typedStore: tetra.typedStore,
