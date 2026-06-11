@@ -1,13 +1,8 @@
 import type { CredentialsStore } from '@tetra/credentials'
-import { DEFAULT_RUN_CONFIG, RunConfigSchema } from '@tetra/store-schema'
-import type {
-  RunConfig as RunConfigType,
-  Rows,
-  TetraRawStore,
-  TetraTypedStore,
-} from '@tetra/store-schema'
+import type { RunConfig as RunConfigType, Rows, TetraTypedStore } from '@tetra/store-schema'
 
 import type { Prompts } from '#prompts'
+import type { RunConfigs } from '#run-configs'
 import type { Transcripts } from '#transcripts'
 
 import { openRouterLanguageModelResolver } from './language-model-resolver.ts'
@@ -17,7 +12,6 @@ import { Run } from './run.ts'
 import type { RunStart } from './run.ts'
 
 export interface GenerateArgs {
-  config?: Partial<RunConfigType>
   targetMessageId: string
 }
 
@@ -25,7 +19,7 @@ export interface RunsInit {
   credentials: CredentialsStore
   modelResolver?: LanguageModelResolver
   prompts: Prompts
-  rawStore: TetraRawStore
+  runConfigs: RunConfigs
   transcripts: Transcripts
   typedStore: TetraTypedStore
 }
@@ -35,7 +29,7 @@ export class Runs {
   private readonly credentials: CredentialsStore
   private readonly modelResolver: LanguageModelResolver
   private readonly prompts: Prompts
-  private readonly rawStore: TetraRawStore
+  private readonly runConfigs: RunConfigs
   private readonly transcripts: Transcripts
   private readonly typedStore: TetraTypedStore
 
@@ -43,14 +37,14 @@ export class Runs {
     credentials,
     modelResolver = openRouterLanguageModelResolver,
     prompts,
-    rawStore,
+    runConfigs,
     transcripts,
     typedStore,
   }: RunsInit) {
     this.credentials = credentials
     this.modelResolver = modelResolver
     this.prompts = prompts
-    this.rawStore = rawStore
+    this.runConfigs = runConfigs
     this.transcripts = transcripts
     this.typedStore = typedStore
   }
@@ -99,13 +93,8 @@ export class Runs {
       )
     }
 
-    // Read the raw config row so the default merge remains tolerant of missing cells.
-    const sessionRunConfig = this.rawStore.getRow('sessionRunConfigs', session.id)
-    const config = RunConfigSchema.parse({
-      ...DEFAULT_RUN_CONFIG,
-      ...sessionRunConfig,
-      ...args.config,
-    })
+    // RunConfigs resolves the effective config from the session row (ADR-0008).
+    const config = this.runConfigs.resolveForRun(session.id)
     const system = this.prompts.resolveContent(config.systemPromptId)
     const transcriptMessages = this.collectMessagesBefore(targetMessage, config)
 
