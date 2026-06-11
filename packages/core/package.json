@@ -4,11 +4,11 @@
   "type": "module",
   "imports": {
     "#catalog": "./src/catalog.ts",
-    "#helpers": "./src/helpers.ts",
     "#ids": "./src/ids.ts",
+    "#prompts": "./src/prompts.ts",
     "#runtime": "./src/runtime/index.ts",
-    "#transcripts": "./src/transcripts/index.ts",
     "#tools": "./src/tools/tools.ts",
+    "#transcripts": "./src/transcripts/index.ts",
     "#usage": "./src/usage.ts"
   },
   "exports": {

@@ -1,11 +1,13 @@
-import type { Catalog, Helpers, Runs, Transcripts } from '@tetra/core'
+import type { Catalog, Prompts, Runs, Transcripts } from '@tetra/core'
+import type { TetraTypedStore } from '@tetra/store-schema'
 import { createContext, useContext } from 'react'
 
 export interface TetraAppContext {
   catalog: Catalog
-  helpers: Helpers
+  prompts: Prompts
   runs: Runs
   transcripts: Transcripts
+  typedStore: TetraTypedStore
 }
 
 export const TetraContext = createContext<TetraAppContext | null>(null)

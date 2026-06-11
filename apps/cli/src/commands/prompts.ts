@@ -14,7 +14,7 @@ export function registerPromptCommands(
     .description('List stored prompts')
     .action(async () => {
       const ctx = await getContext()
-      const prompts = ctx.helpers.typedStore.tables.prompts
+      const prompts = ctx.typedStore.tables.prompts
         .listEntities()
         .toSorted((a, b) => a.id.localeCompare(b.id))
 
@@ -39,7 +39,7 @@ export function registerPromptCommands(
     .description('Create a stored prompt')
     .action(async (content: string | undefined, opts: { label?: string }) => {
       const ctx = await getContext()
-      console.log(ctx.helpers.createPrompt({ content: content ?? '', label: opts.label ?? '' }))
+      console.log(ctx.prompts.createPrompt({ content: content ?? '', label: opts.label ?? '' }))
     })
 
   prompt
@@ -47,7 +47,7 @@ export function registerPromptCommands(
     .description('Show a stored prompt')
     .action(async (promptId: string) => {
       const ctx = await getContext()
-      const row = ctx.helpers.typedStore.tables.prompts.requireEntity(promptId)
+      const row = ctx.typedStore.tables.prompts.requireEntity(promptId)
       console.log(`id:      ${row.id}`)
       console.log(`label:   ${row.label ?? '(none)'}`)
       console.log(`content:\n${row.content}`)
@@ -60,7 +60,7 @@ export function registerPromptCommands(
     .description('Update a stored prompt')
     .action(async (promptId: string, content: string | undefined, opts: { label?: string }) => {
       const ctx = await getContext()
-      ctx.helpers.typedStore.tables.prompts.updateRow(promptId, {
+      ctx.typedStore.tables.prompts.updateRow(promptId, {
         ...(content !== undefined && { content }),
         ...(opts.label !== undefined && { label: opts.label }),
       })
@@ -72,7 +72,7 @@ export function registerPromptCommands(
     .description('Delete a stored prompt')
     .action(async (promptId: string) => {
       const ctx = await getContext()
-      ctx.helpers.deletePrompt(promptId)
+      ctx.prompts.deletePrompt(promptId)
       console.log(promptId)
     })
 }

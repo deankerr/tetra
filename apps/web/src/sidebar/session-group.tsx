@@ -38,7 +38,7 @@ const useSessionIds = (draftSessionId: string) => {
 }
 
 export function SessionGroup() {
-  const { helpers, transcripts } = useTetra()
+  const { transcripts, typedStore } = useTetra()
   const activeSessionMatch = useMatch({
     from: '/sessions/$sessionId',
     shouldThrow: false,
@@ -70,7 +70,7 @@ export function SessionGroup() {
                 }
               }}
               onRename={(title) => {
-                helpers.typedStore.tables.sessions.updateRow(sessionId, {
+                typedStore.tables.sessions.updateRow(sessionId, {
                   title,
                   updatedAt: Date.now(),
                 })

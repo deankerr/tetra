@@ -1,4 +1,5 @@
-import type { Helpers, Transcripts } from '@tetra/core'
+import type { Transcripts } from '@tetra/core'
+import type { TetraTypedStore } from '@tetra/store-schema'
 
 export interface ResolveSessionArgs {
   forceNew?: boolean
@@ -8,8 +9,8 @@ export interface ResolveSessionArgs {
 }
 
 export interface ResolveSessionContext {
-  helpers: Helpers
   transcripts: Transcripts
+  typedStore: TetraTypedStore
   workspace: {
     clearActiveSessionId(): void
     getActiveSessionId(): string | undefined
@@ -18,12 +19,12 @@ export interface ResolveSessionContext {
 }
 
 export function resolveSession(
-  { helpers, transcripts, workspace }: ResolveSessionContext,
+  { transcripts, typedStore, workspace }: ResolveSessionContext,
   { forceNew = false, sessionId, setActive = true, title }: ResolveSessionArgs,
 ): string {
   // Explicit session IDs always win, and also become active by default.
   if (sessionId !== undefined) {
-    if (!helpers.typedStore.tables.sessions.hasRow(sessionId)) {
+    if (!typedStore.tables.sessions.hasRow(sessionId)) {
       throw new Error(`Session not found: ${sessionId}`)
     }
     if (setActive) {
@@ -43,7 +44,7 @@ export function resolveSession(
 
   // Reuse the active session when it still points at a real session.
   const activeSessionId = workspace.getActiveSessionId()
-  if (activeSessionId !== undefined && helpers.typedStore.tables.sessions.hasRow(activeSessionId)) {
+  if (activeSessionId !== undefined && typedStore.tables.sessions.hasRow(activeSessionId)) {
     return activeSessionId
   }
 
