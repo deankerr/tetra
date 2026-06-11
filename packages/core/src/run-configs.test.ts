@@ -53,6 +53,45 @@ test('createForSession parses before writing, so an invalid merge lands no row',
   expect(typedStore.tables.sessionRunConfigs.getEntity('sess_1')).toBeNull()
 })
 
+test('update merges the partial over the existing session config row', () => {
+  const { runConfigs, typedStore } = createRunConfigHarness()
+
+  runConfigs.createForSession('sess_1', { maxMessages: 5, modelId: 'first-model' })
+  const config = runConfigs.update('sess_1', { systemPromptId: 'prompt-a' })
+
+  // Untouched cells survive the merge; the partial wins where provided.
+  expect(config).toMatchObject({
+    maxMessages: 5,
+    modelId: 'first-model',
+    systemPromptId: 'prompt-a',
+  })
+  expect(typedStore.tables.sessionRunConfigs.requireEntity('sess_1')).toMatchObject({
+    maxMessages: 5,
+    modelId: 'first-model',
+    systemPromptId: 'prompt-a',
+  })
+})
+
+test('update parses before writing, so an invalid partial lands no write', () => {
+  const { runConfigs, typedStore } = createRunConfigHarness()
+
+  runConfigs.createForSession('sess_1', { modelId: 'first-model' })
+
+  // The invalid cell must fail loudly and leave the stored row untouched.
+  expect(() => runConfigs.update('sess_1', { maxMessages: -1 })).toThrow()
+  expect(typedStore.tables.sessionRunConfigs.requireEntity('sess_1')).toMatchObject({
+    maxMessages: 0,
+    modelId: 'first-model',
+  })
+})
+
+test('update throws when the session config row does not exist', () => {
+  const { runConfigs, typedStore } = createRunConfigHarness()
+
+  expect(() => runConfigs.update('sess_missing', { modelId: 'model-a' })).toThrow()
+  expect(typedStore.tables.sessionRunConfigs.getEntity('sess_missing')).toBeNull()
+})
+
 test('resolveForRun returns a complete stored row as-is', () => {
   const { runConfigs, typedStore } = createRunConfigHarness()
   const stored = {

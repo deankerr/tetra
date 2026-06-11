@@ -102,6 +102,7 @@ export async function bootstrap(mode: BootstrapMode) {
         sqlite.close()
       },
       prompts,
+      runConfigs,
       runs,
       transcripts,
       typedStore,
@@ -162,6 +163,7 @@ export async function bootstrap(mode: BootstrapMode) {
       sqlite.close()
     },
     prompts,
+    runConfigs,
     runs,
     transcripts,
     typedStore,

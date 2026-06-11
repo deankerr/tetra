@@ -1,4 +1,3 @@
-import { RunConfigSchema } from '@tetra/store-schema'
 import type { RunConfig } from '@tetra/store-schema'
 import type { Command } from 'commander'
 
@@ -30,23 +29,15 @@ export function registerConfigCommand(
           throw new Error('No active session. Try: tetra "hello"')
         }
 
+        // Apply any flag-derived fields through the validated config merge.
         const overrides: Partial<RunConfig> = {
           ...(opts.maxMessages !== undefined && { maxMessages: opts.maxMessages }),
           ...(opts.model !== undefined && { modelId: opts.model }),
           ...(typeof opts.prompt === 'string' && { systemPromptId: opts.prompt }),
+          ...(opts.prompt === false && { systemPromptId: '' }),
         }
-
-        const config = ctx.typedStore.tables.sessionRunConfigs.requireEntity(resolvedSessionId)
-
-        if (Object.keys(overrides).length > 0 || opts.prompt === false) {
-          const next = { ...config, ...overrides }
-          if (opts.prompt === false) {
-            next.systemPromptId = ''
-          }
-          ctx.typedStore.tables.sessionRunConfigs.setRow(
-            resolvedSessionId,
-            RunConfigSchema.parse(next),
-          )
+        if (Object.keys(overrides).length > 0) {
+          ctx.runConfigs.update(resolvedSessionId, overrides)
         }
 
         const latestConfig =
