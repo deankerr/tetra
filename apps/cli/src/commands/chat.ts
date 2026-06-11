@@ -42,20 +42,14 @@ export async function runChatContent(
     title: titleFromMessage(content),
   })
 
-  // Persist any CLI-provided run config fields onto the session before starting.
+  // Persist any CLI-provided run config fields onto the session before starting (ADR-0008).
   const config: Partial<RunConfig> = {
     ...(opts.model !== undefined && { modelId: opts.model }),
     ...(typeof opts.prompt === 'string' && { systemPromptId: opts.prompt }),
-  }
-  if (opts.prompt === false) {
-    config.systemPromptId = ''
+    ...(opts.prompt === false && { systemPromptId: '' }),
   }
   if (Object.keys(config).length > 0) {
-    const sessionRunConfig = ctx.typedStore.tables.sessionRunConfigs.requireEntity(sessionId)
-    ctx.typedStore.tables.sessionRunConfigs.setRow(sessionId, {
-      ...sessionRunConfig,
-      ...config,
-    })
+    ctx.runConfigs.update(sessionId, config)
   }
 
   // Create the user and assistant messages, then hand off to the run.

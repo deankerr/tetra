@@ -31,6 +31,17 @@ export class RunConfigs {
     return config
   }
 
+  // Structured update: merge the partial over the required existing row and
+  // parse before any write so an invalid partial never lands a partial write.
+  update(sessionId: string, partial: Partial<RunConfig>): RunConfig {
+    const existing = this.typedStore.tables.sessionRunConfigs.requireEntity(sessionId)
+    const config = RunConfigSchema.parse({ ...existing, ...partial })
+
+    this.typedStore.tables.sessionRunConfigs.setRow(sessionId, config)
+
+    return config
+  }
+
   // Run-start resolution: raw-read the session config row so the merge stays
   // tolerant of missing cells, then parse into the effective RunConfig.
   resolveForRun(sessionId: string): RunConfig {
