@@ -52,11 +52,11 @@ function RootAppLayout() {
     <TinyBaseProvider>
       <TetraProvider>
         <SidebarProvider>
-          <Sidebar>
+          <Sidebar variant='inset'>
             <AppSidebar />
           </Sidebar>
 
-          <SidebarInset className="h-svh min-w-0 overflow-hidden">
+          <SidebarInset className="h-svh min-w-0 overflow-hidden md:h-[calc(100svh-1rem)]">
             <div className="flex h-full min-w-0">
               <Outlet />
             </div>
