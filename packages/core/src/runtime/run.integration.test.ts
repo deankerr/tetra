@@ -28,9 +28,9 @@ function createTestDb() {
 
 function createTestRuntime() {
   const context = createTestDb()
-  const prompts = new Prompts(context)
   const { rawStore, typedIndexes, typedStore } = context
   const runConfigs = new RunConfigs({ rawStore, typedStore })
+  const prompts = new Prompts({ runConfigs, typedStore })
   const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
   const core = { prompts, transcripts, typedIndexes, typedStore }
   const credentials = new CredentialsStore([])
@@ -182,9 +182,9 @@ test('generate streams through the AI SDK into TinyBase rows', async () => {
 
 test('streaming snapshots persist to streamingMessageParts before message commit', async () => {
   const context = createTestDb()
-  const prompts = new Prompts(context)
   const { rawStore, typedIndexes, typedStore } = context
   const runConfigs = new RunConfigs({ rawStore, typedStore })
+  const prompts = new Prompts({ runConfigs, typedStore })
   const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
   const core = { prompts, transcripts, typedIndexes, typedStore }
   const credentials = new CredentialsStore([])
@@ -451,9 +451,9 @@ test('Caller-Owned Regeneration — sibling target preserves the old output', as
 
 test('Tool Loop — tool call executes and result appears in final parts', async () => {
   const context = createTestDb()
-  const prompts = new Prompts(context)
   const { rawStore, typedIndexes, typedStore } = context
   const runConfigs = new RunConfigs({ rawStore, typedStore })
+  const prompts = new Prompts({ runConfigs, typedStore })
   const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
   const core = { prompts, transcripts, typedIndexes, typedStore }
   const credentials = new CredentialsStore([])
@@ -564,9 +564,9 @@ test('Tool Loop — tool call executes and result appears in final parts', async
 
 test('Error Path — stream error sets run to error status', async () => {
   const context = createTestDb()
-  const prompts = new Prompts(context)
   const { rawStore, typedIndexes, typedStore } = context
   const runConfigs = new RunConfigs({ rawStore, typedStore })
+  const prompts = new Prompts({ runConfigs, typedStore })
   const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
   const core = { prompts, transcripts, typedIndexes, typedStore }
   const credentials = new CredentialsStore([])
@@ -667,9 +667,9 @@ test('Recovery — interrupted runs commit partial streaming parts and clean hot
 
 test('Error Path — later runs can still run after an error', async () => {
   const context = createTestDb()
-  const prompts = new Prompts(context)
   const { rawStore, typedIndexes, typedStore } = context
   const runConfigs = new RunConfigs({ rawStore, typedStore })
+  const prompts = new Prompts({ runConfigs, typedStore })
   const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
   const core = { prompts, transcripts, typedIndexes, typedStore }
   const credentials = new CredentialsStore([])

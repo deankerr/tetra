@@ -93,16 +93,13 @@ export function SessionSettings({
 }
 
 function UseAsDefaultButton({ sessionId }: { sessionId: string }) {
-  const { typedStore } = useTetra()
+  const { runConfigs } = useTetra()
 
   return (
     <Button
       className="w-full"
       onClick={() => {
-        const config = typedStore.tables.sessionRunConfigs.getRow(sessionId)
-        if (config !== null) {
-          typedStore.values.defaultRunConfig.set(config)
-        }
+        runConfigs.setAsDefault(sessionId)
       }}
       variant="outline"
     >

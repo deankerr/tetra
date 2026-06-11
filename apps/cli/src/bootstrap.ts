@@ -63,8 +63,9 @@ export async function bootstrap(mode: BootstrapMode) {
       typedIndexes,
       typedStore,
     }
+    // RunConfigs comes first so Prompts can delegate prompt unlinking to it.
     const runConfigs = new RunConfigs(context)
-    const prompts = new Prompts(context)
+    const prompts = new Prompts({ runConfigs, typedStore })
     const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
     const catalog = new Catalog(context)
     const runs = new Runs({
@@ -120,8 +121,9 @@ export async function bootstrap(mode: BootstrapMode) {
     typedIndexes,
     typedStore,
   }
+  // RunConfigs comes first so Prompts can delegate prompt unlinking to it.
   const runConfigs = new RunConfigs(context)
-  const prompts = new Prompts(context)
+  const prompts = new Prompts({ runConfigs, typedStore })
   const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
   const catalog = new Catalog(context)
   const runs = new Runs({

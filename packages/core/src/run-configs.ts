@@ -42,6 +42,37 @@ export class RunConfigs {
     return config
   }
 
+  // Stored new-session default: copy the required session config row into the
+  // defaultRunConfig value so later createForSession calls layer it over built-ins.
+  setAsDefault(sessionId: string): void {
+    const config = this.typedStore.tables.sessionRunConfigs.getRow(sessionId)
+    if (config === null) {
+      throw new Error(`Missing row: sessionRunConfigs/${sessionId}`)
+    }
+
+    this.typedStore.values.defaultRunConfig.set(config)
+  }
+
+  // Prompt unlink: clear a deleted prompt id from every session config that
+  // references it. TinyBase transactions nest, so callers may wrap this with
+  // their own table writes.
+  unlinkPrompt(promptId: string): void {
+    this.typedStore.transaction(() => {
+      for (const sessionId of this.typedStore.tables.sessionRunConfigs.getRowIds()) {
+        if (
+          this.typedStore.tables.sessionRunConfigs.getCell(sessionId, 'systemPromptId') === promptId
+        ) {
+          this.typedStore.tables.sessionRunConfigs.setCell(sessionId, 'systemPromptId', '')
+        }
+      }
+    })
+  }
+
+  // Session cascade: remove the session's config row when the owning session goes.
+  deleteForSession(sessionId: string): void {
+    this.typedStore.tables.sessionRunConfigs.deleteRow(sessionId)
+  }
+
   // Run-start resolution: raw-read the session config row so the merge stays
   // tolerant of missing cells, then parse into the effective RunConfig.
   resolveForRun(sessionId: string): RunConfig {

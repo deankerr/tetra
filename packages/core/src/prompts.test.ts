@@ -12,9 +12,10 @@ function createPromptHarness() {
   const { rawIndexes, rawStore } = createRawStore()
   const typedStore = bindStore(rawStore, tetraStoreSchema.tables, tetraStoreSchema.values)
   const typedIndexes = bindIndexes(rawIndexes, tetraIndexIds)
-  const prompts = new Prompts({ typedStore })
+  const runConfigs = new RunConfigs({ rawStore, typedStore })
+  const prompts = new Prompts({ runConfigs, typedStore })
 
-  return { prompts, rawStore, typedIndexes, typedStore }
+  return { prompts, rawStore, runConfigs, typedIndexes, typedStore }
 }
 
 test('createPrompt stores a prompt row with defaults and provided fields', () => {
@@ -36,8 +37,7 @@ test('createPrompt stores a prompt row with defaults and provided fields', () =>
 })
 
 test('deletePrompt removes the row and unlinks it from session configs', () => {
-  const { prompts, rawStore, typedIndexes, typedStore } = createPromptHarness()
-  const runConfigs = new RunConfigs({ rawStore, typedStore })
+  const { prompts, runConfigs, typedIndexes, typedStore } = createPromptHarness()
   const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
   const promptId = prompts.createPrompt({ content: 'Be terse.' })
 

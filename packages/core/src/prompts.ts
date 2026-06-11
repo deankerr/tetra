@@ -1,14 +1,17 @@
 import type { TetraTypedStore } from '@tetra/store-schema'
 
 import { createIdGenerator } from '#ids'
+import type { RunConfigs } from '#run-configs'
 
 // Prompts owns stored prompt records: creation, deletion, and resolving a
 // system prompt id to prompt content at run start.
 export class Prompts {
   private readonly nextPromptId = createIdGenerator('prpt')
+  private readonly runConfigs: RunConfigs
   private readonly typedStore: TetraTypedStore
 
-  constructor({ typedStore }: { typedStore: TetraTypedStore }) {
+  constructor({ runConfigs, typedStore }: { runConfigs: RunConfigs; typedStore: TetraTypedStore }) {
+    this.runConfigs = runConfigs
     this.typedStore = typedStore
   }
 
@@ -26,20 +29,13 @@ export class Prompts {
     return promptId
   }
 
-  // Removes the prompt and unlinks it from any sessions that reference it.
-  // The sessionRunConfigs sweep lives here temporarily; #22 moves it behind the RunConfigs module.
+  // Removes the prompt and asks RunConfigs to unlink it from session configs.
+  // TinyBase transactions nest, so the unlink merges into this transaction.
   deletePrompt(promptId: string): void {
     this.typedStore.tables.prompts.requireEntity(promptId)
 
     this.typedStore.transaction(() => {
-      for (const sessionId of this.typedStore.tables.sessions.getRowIds()) {
-        if (
-          this.typedStore.tables.sessionRunConfigs.getCell(sessionId, 'systemPromptId') === promptId
-        ) {
-          this.typedStore.tables.sessionRunConfigs.setCell(sessionId, 'systemPromptId', '')
-        }
-      }
-
+      this.runConfigs.unlinkPrompt(promptId)
       this.typedStore.tables.prompts.deleteRow(promptId)
     })
   }

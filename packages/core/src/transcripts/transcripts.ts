@@ -76,7 +76,7 @@ export class Transcripts {
         this.typedStore.tables.messages.deleteRow(messageId)
       }
 
-      this.typedStore.tables.sessionRunConfigs.deleteRow(sessionId)
+      this.runConfigs.deleteForSession(sessionId)
       this.typedStore.tables.sessions.deleteRow(sessionId)
     })
   }
