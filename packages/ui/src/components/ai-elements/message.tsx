@@ -17,7 +17,20 @@ import { code } from "@streamdown/code";
 import { math } from "@streamdown/math";
 import { mermaid } from "@streamdown/mermaid";
 import type { UIMessage } from "ai";
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import {
+  CheckIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CopyIcon,
+  DownloadIcon,
+  ExternalLinkIcon,
+  Loader2Icon,
+  Maximize2Icon,
+  RotateCcwIcon,
+  XIcon,
+  ZoomInIcon,
+  ZoomOutIcon,
+} from "lucide-react";
 import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
 import {
   createContext,
@@ -29,6 +42,7 @@ import {
   useState,
 } from "react";
 import { Streamdown } from "streamdown";
+import type { IconMap } from "streamdown";
 
 import { customMarkdownComponents } from "./markdown-components";
 
@@ -325,14 +339,37 @@ export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
 const streamdownPlugins = { cjk, code, math, mermaid };
 
+// Streamdown controls accept an icon map, so route them through the app's lucide set.
+const streamdownIcons = {
+  CheckIcon,
+  CopyIcon,
+  DownloadIcon,
+  ExternalLinkIcon,
+  Loader2Icon,
+  Maximize2Icon,
+  RotateCcwIcon,
+  XIcon,
+  ZoomInIcon,
+  ZoomOutIcon,
+} satisfies Partial<IconMap>;
+
+// Streamdown owns fenced code markup; these selectors keep that generated UI compact.
+const streamdownMessageClassName = cn(
+  "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
+  "[&_[data-streamdown=code-block]]:my-3 [&_[data-streamdown=code-block]]:gap-1 [&_[data-streamdown=code-block]]:rounded-md [&_[data-streamdown=code-block]]:p-1.5",
+  "[&_[data-streamdown=code-block-header]]:h-6 [&_[data-streamdown=code-block-header]]:text-xxs",
+  "[&_[data-streamdown=code-block]>div:has([data-streamdown=code-block-actions])]:-mt-7 [&_[data-streamdown=code-block]>div:has([data-streamdown=code-block-actions])]:h-6 [&_[data-streamdown=code-block]>div:has([data-streamdown=code-block-actions])]:top-1.5",
+  "[&_[data-streamdown=code-block-actions]]:gap-1 [&_[data-streamdown=code-block-actions]]:border-transparent [&_[data-streamdown=code-block-actions]]:bg-transparent [&_[data-streamdown=code-block-actions]]:p-0",
+  "[&_[data-streamdown=code-block-actions]_button]:size-5 [&_[data-streamdown=code-block-actions]_button]:rounded-sm [&_[data-streamdown=code-block-actions]_button]:p-0 [&_[data-streamdown=code-block-actions]_button:hover]:bg-muted [&_[data-streamdown=code-block-actions]_button:hover]:text-foreground [&_[data-streamdown=code-block-actions]_svg]:size-3",
+  "[&_[data-streamdown=code-block-body]]:p-3 [&_[data-streamdown=code-block-body]]:text-xs/relaxed [&_[data-streamdown=code-block-body]_span]:before:text-xs/relaxed"
+);
+
 export const MessageResponse = memo(
   ({ className, components, ...props }: MessageResponseProps) => (
     <Streamdown
-      className={cn(
-        "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
-        className
-      )}
+      className={cn(streamdownMessageClassName, className)}
       components={{ ...customMarkdownComponents, ...components }}
+      icons={streamdownIcons}
       plugins={streamdownPlugins}
       {...props}
     />
