@@ -1,16 +1,20 @@
 import type { Rows } from '@tetra/store-schema'
-import { Message as AiMessage } from '@tetra/ui/components/ai-elements/message'
+import {
+  Message as AiMessage,
+  MessageContent as AiMessageContent,
+} from '@tetra/ui/components/ai-elements/message'
 import { cn } from '@tetra/ui/lib/utils'
 import type { UIMessage } from 'ai'
 
 import { typedTinybase } from '@/lib/tinybase'
 
 import { MessageActionsView } from './actions'
-import { MessageContentView } from './content'
-import { isMessageRunStreaming, useMessageRun } from './data'
+import { getRunErrorMessage, isMessageRunStreaming, useMessageRun } from './data'
 import { MessageHeader } from './header'
+import { MessageParts } from './parts'
 
 type MessageRow = Rows['messages']
+type RunRow = Rows['runs']
 
 export function MessageView({
   className,
@@ -37,12 +41,32 @@ export function MessageView({
       {...props}
     >
       <MessageHeader message={message} run={run} />
-      <MessageContentView message={message} run={run} />
+      <AiMessageContent className="group-[.is-assistant]:w-full">
+        <MessageParts messageId={message.id} parts={message.parts} />
+        <MessageRunError run={run} />
+      </AiMessageContent>
 
       {!isStreaming && (
         <MessageActionsView isThreadLeafMessage={isThreadLeafMessage} message={message} run={run} />
       )}
     </AiMessage>
+  )
+}
+
+function MessageRunError({ run }: { run: RunRow | null }) {
+  const errorMessage = getRunErrorMessage(run)
+
+  if (errorMessage === null) {
+    return null
+  }
+
+  return (
+    <div
+      className="border-destructive/30 text-destructive text-xxs rounded-md border p-2 font-mono"
+      role="alert"
+    >
+      {errorMessage}
+    </div>
   )
 }
 

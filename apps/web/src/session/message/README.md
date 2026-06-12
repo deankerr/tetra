@@ -29,11 +29,9 @@ choices resolve to complete root-to-leaf threads.
 
 Current slices:
 
-- `view.tsx` owns the TinyBase message/run lookup and the outer ai-elements
-  `Message` frame.
+- `view.tsx` owns the TinyBase message/run lookup, the outer ai-elements
+  `Message` frame, the ai-elements `MessageContent` frame, and run error display.
 - `header.tsx` owns role, model, and coarse run status badges.
-- `content.tsx` owns the ai-elements `MessageContent` frame, persisted-versus-
-  streaming part selection, and run error display.
 - `parts.tsx` owns UIMessage part rendering with explicit persisted and streaming
   variants; only the streaming variant subscribes to `streamingMessageParts`.
 - `fork-control.tsx` owns local fork-choice navigation for regenerated messages

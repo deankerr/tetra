@@ -18,27 +18,11 @@ import { typedTinybase } from '@/lib/tinybase'
 
 import type { MessagePart } from './data'
 
-export function PersistedMessagePartList({
-  messageId,
-  parts,
-}: {
-  messageId: string
-  parts: MessagePart[]
-}) {
-  return <PartList messageId={messageId} parts={parts} />
-}
+export function MessageParts(props: { messageId: string; parts: MessagePart[] }) {
+  const streamingParts = typedTinybase.useEntity('streamingMessageParts', props.messageId)
+  const parts = streamingParts?.parts ?? props.parts
 
-export function StreamingMessagePartList({
-  messageId,
-  persistedParts,
-}: {
-  messageId: string
-  persistedParts: MessagePart[]
-}) {
-  const streamingParts = typedTinybase.useEntity('streamingMessageParts', messageId)
-  const parts = streamingParts?.parts ?? persistedParts
-
-  return <PartList isStreaming messageId={messageId} parts={parts} />
+  return <PartList isStreaming messageId={props.messageId} parts={parts} />
 }
 
 function PartList({
