@@ -17,7 +17,7 @@ export const WORKER_URL = process.env['TETRA_WORKER_URL'] ?? 'ws://localhost:878
 export const SYNC_URL = `${WORKER_URL}/tetra`
 
 // Tabular persister config — maps each TinyBase table to a SQL table with an 'id' row key column.
-// Used in local mode and by the dump command.
+// Used by local mode for the tetra-redesign.db SQLite store.
 export const TABULAR_CONFIG = {
   mode: 'tabular' as const,
   tables: {

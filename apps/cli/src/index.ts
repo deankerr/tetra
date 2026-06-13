@@ -4,7 +4,6 @@ import type { BootstrapMode } from './bootstrap'
 import { bootstrap } from './bootstrap'
 import { registerChatCommands } from './commands/chat'
 import { registerConfigCommand } from './commands/config'
-import { registerDumpCommand } from './commands/dump'
 import { registerModelsCommand } from './commands/models'
 import { registerPromptCommands } from './commands/prompts'
 import { registerResetCommand } from './commands/reset'
@@ -54,7 +53,6 @@ registerSessionCommands(program, getContext)
 registerConfigCommand(program, getContext)
 registerModelsCommand(program, getContext)
 registerPromptCommands(program, getContext)
-registerDumpCommand(program)
 registerResetCommand(program)
 
 let exitCode = 0
