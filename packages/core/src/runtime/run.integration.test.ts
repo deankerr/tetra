@@ -230,13 +230,15 @@ test('streaming snapshots persist to the target message before terminal status',
   })
   const run = runs.generate({ targetMessageId })
   const firstSnapshot = Promise.withResolvers<undefined>()
-  run.addEventListener('snapshot', () => {
+  const handleSnapshot = () => {
     if (run.parts.length === 0) {
       return
     }
 
+    run.removeEventListener('snapshot', handleSnapshot)
     firstSnapshot.resolve()
-  })
+  }
+  run.addEventListener('snapshot', handleSnapshot)
   const messageBeforeSnapshot = core.typedStore.tables.messages.requireEntity(targetMessageId)
   const sessionAfterGenerate = core.typedStore.tables.sessions.requireEntity(sessionId)
 
