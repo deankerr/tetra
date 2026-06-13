@@ -79,18 +79,15 @@ export class Runs {
 
   recover(): void {
     this.failInterruptedRuns()
-    this.commitInterruptedStreamingParts()
   }
 
   // Callers are responsible for creating transcript messages before calling generate.
-  // The target message should have empty parts; all messages before it become the transcript.
+  // The target starts empty and receives streaming snapshots until the run is terminal.
   generate(args: GenerateArgs): Run {
     const targetMessage = this.typedStore.tables.messages.requireEntity(args.targetMessageId)
     const session = this.typedStore.tables.sessions.requireEntity(targetMessage.sessionId)
     if (targetMessage.parts.length > 0) {
-      throw new Error(
-        `Cannot generate into a message with committed parts: ${args.targetMessageId}`,
-      )
+      throw new Error(`Cannot generate into a message with existing parts: ${args.targetMessageId}`)
     }
 
     // RunConfigs resolves the effective config from the session row (ADR-0008).
@@ -131,18 +128,6 @@ export class Runs {
     }
 
     return transcriptMessages.slice(-config.maxMessages)
-  }
-
-  private commitInterruptedStreamingParts(): void {
-    for (const messageId of this.typedStore.tables.streamingMessageParts.getRowIds()) {
-      const streamingParts = this.typedStore.tables.streamingMessageParts.requireEntity(messageId)
-
-      this.typedStore.tables.messages.updateRow(messageId, {
-        parts: streamingParts.parts,
-        updatedAt: Date.now(),
-      })
-      this.typedStore.tables.streamingMessageParts.deleteRow(messageId)
-    }
   }
 
   private failInterruptedRuns(message = 'Run interrupted'): void {

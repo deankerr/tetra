@@ -14,23 +14,24 @@ import {
 import type { ToolPart as ToolPartType } from '@tetra/ui/components/ai-elements/tool'
 import { Badge } from '@tetra/ui/components/ui/badge'
 
-import { typedTinybase } from '@/lib/tinybase'
-
 import type { MessagePart } from './data'
 
-export function MessageParts(props: { messageId: string; parts: MessagePart[] }) {
-  const streamingParts = typedTinybase.useEntity('streamingMessageParts', props.messageId)
-  const parts = streamingParts?.parts ?? props.parts
-
-  return <PartList isStreaming messageId={props.messageId} parts={parts} />
+export function MessageParts(props: {
+  isStreaming: boolean
+  messageId: string
+  parts: MessagePart[]
+}) {
+  return (
+    <PartList isStreaming={props.isStreaming} messageId={props.messageId} parts={props.parts} />
+  )
 }
 
 function PartList({
-  isStreaming = false,
+  isStreaming,
   messageId,
   parts,
 }: {
-  isStreaming?: boolean
+  isStreaming: boolean
   messageId: string
   parts: MessagePart[]
 }) {

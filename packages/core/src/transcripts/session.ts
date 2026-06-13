@@ -85,7 +85,6 @@ export class TranscriptSession {
         this.typedStore.tables.steps.deleteRow(stepId)
       }
 
-      this.typedStore.tables.streamingMessageParts.deleteRow(message.id)
       this.typedStore.tables.messages.deleteRow(message.id)
       this.typedStore.tables.sessions.setCell(this.id, 'updatedAt', now)
     })

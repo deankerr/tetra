@@ -55,7 +55,6 @@ function applyTetraIndexDefinitions(rawIndexes: TetraRawIndexes): void {
       undefined,
       (a, b) => Number(b) - Number(a),
     )
-    .setIndexDefinition('streamingPartsBySession', 'streamingMessageParts', 'sessionId')
     .setIndexDefinition('stepsByMessage', 'steps', 'messageId', 'createdAt')
     .setIndexDefinition('stepsByRun', 'steps', 'runId', 'stepNumber')
     .setIndexDefinition('stepsBySession', 'steps', 'sessionId', 'createdAt')

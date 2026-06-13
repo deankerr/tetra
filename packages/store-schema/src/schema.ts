@@ -27,7 +27,6 @@ export const tetraIndexIds = [
   'messagesBySession',
   'runsByTargetMessageNewestFirst',
   'runsBySessionNewestFirst',
-  'streamingPartsBySession',
   'stepsByMessage',
   'stepsByRun',
   'stepsBySession',
@@ -94,13 +93,6 @@ export const tetraStoreSchema = defineTypedStore({
       updatedAt: z.number(),
     }),
     steps: StepRecordSchema,
-    streamingMessageParts: z.object({
-      createdAt: z.number(),
-      parts: z.array(MessagePartSchema),
-      runId: z.string(),
-      sessionId: z.string(),
-      updatedAt: z.number(),
-    }),
   },
   values: {
     catalogLastRefreshed: z.number(),

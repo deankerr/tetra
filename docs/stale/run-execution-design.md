@@ -317,9 +317,9 @@ During a run:
 - user message should exist durably before streaming starts
 - assistant placeholder should exist durably before streaming starts
 - run row should exist durably before streaming starts
-- stream-time parts are persisted to `streamingMessageParts`
+- stream-time parts are persisted to the target message row
 - completed model-call accounting is persisted to `steps`
-- committed assistant parts are written back to `messages` at terminal status
+- run status determines whether target message parts are provisional or terminal
 - run rows stay focused on lifecycle/config/status
 - usage totals are derived from step rows at the read sites that need them
 - terminal status must always be written for completed, failed, and cancelled runs
@@ -330,8 +330,8 @@ Open question: whether the run row should begin as `preparing` instead of `strea
 
 These are not bugs yet; they are design pressure to revisit when long sessions or richer editing make them visible.
 
-- Every rendered message currently subscribes to its own `streamingMessageParts` row. Keep it while transcripts are modest; revisit if large sessions make subscription count noticeable.
-- Cancelled/error assistant messages currently commit partial generation content into the transcript. Keep this explicit in UI semantics as editing/retry behavior grows.
+- Streaming snapshots now update the target message row directly. Keep this explicit in UI semantics as editing/retry behavior grows.
+- Cancelled/error assistant messages currently keep partial generation content in the transcript.
 - Session-level usage currently derives from `stepsBySession`. Add stored summaries only if session sizes make that visibly expensive.
 
 ## Failure Boundary
