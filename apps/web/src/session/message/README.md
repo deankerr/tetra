@@ -32,8 +32,8 @@ Current slices:
 - `view.tsx` owns the TinyBase message/run lookup, the outer ai-elements
   `Message` frame, the ai-elements `MessageContent` frame, and run error display.
 - `header.tsx` owns role, model, and coarse run status badges.
-- `parts.tsx` owns UIMessage part rendering with explicit persisted and streaming
-  variants; only the streaming variant subscribes to `streamingMessageParts`.
+- `parts.tsx` owns UIMessage part rendering; `view.tsx` passes the current message
+  parts plus the run-derived streaming flag.
 - `fork-control.tsx` owns local fork-choice navigation for regenerated messages
   and other fork-point alternatives.
 - `actions.tsx` owns the message toolbar, metadata, run details sheet trigger, and

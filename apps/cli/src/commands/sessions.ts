@@ -125,7 +125,7 @@ export function registerSessionCommands(
       console.log(sessionId)
     })
 
-  // Delete a full session cascade: messages, runs, config, steps, and hot streaming parts.
+  // Delete a full session cascade: messages, runs, config, and steps.
   program
     .command('delete-session <id>')
     .alias('rm-session')

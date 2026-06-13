@@ -61,13 +61,6 @@ export class Transcripts {
         this.typedStore.tables.runs.deleteRow(runId)
       }
 
-      for (const messageId of this.typedIndexes.getSliceRowIds(
-        'streamingPartsBySession',
-        sessionId,
-      )) {
-        this.typedStore.tables.streamingMessageParts.deleteRow(messageId)
-      }
-
       for (const stepId of this.typedIndexes.getSliceRowIds('stepsBySession', sessionId)) {
         this.typedStore.tables.steps.deleteRow(stepId)
       }

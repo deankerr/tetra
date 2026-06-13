@@ -54,27 +54,24 @@ Scratch notes captured from recent discussion. This is a brain dump, not a plan.
 
 ## Messages
 
-- Messages are committed transcript content.
+- Messages are durable transcript content.
 - User and assistant messages should be created outside Runs where appropriate.
 - Creating messages outside Runs keeps core runtime responsibilities honest.
 - Assistant messages represent outcomes of runs.
+- During a run, the target assistant message owns the current streaming parts.
+- Run status determines whether those parts are provisional or terminal.
 - Future transcript editing is not settled.
 - Avoid designing as if transcript order and message IDs are final forever.
 - Proper regeneration is probably best expressed as branching.
 
 ## Streaming Message Parts
 
-- This exists mostly because of React and durability during streaming.
-- Streaming parts should be persisted in TinyBase so a crash/tab issue does not lose everything.
-- Streaming parts should stay out of the committed message row while hot.
-- This keeps conversation rendering stable and localized.
-- Once a run finishes, streaming parts should be swept into the target message and removed.
-- Streaming parts should be a dumb, minimal buffer.
-- It should not own status, helpers, clearing messages, or run orchestration.
-- Run owns lifecycle and cleanup decisions.
-- Message rendering can stay dumb:
-  - first check for streaming parts,
-  - otherwise use committed message parts.
+- Streaming parts persist directly to the target message row.
+- This keeps crash/tab recovery tied to the durable transcript artifact.
+- Updating message parts also updates `messages.updatedAt`.
+- Streaming snapshots should not touch `sessions.updatedAt`.
+- Run owns lifecycle, status, cancellation, and failure decisions.
+- Message rendering stays dumb: render `messages.parts`; use run status for streaming UI.
 
 ## Steps / Usage
 

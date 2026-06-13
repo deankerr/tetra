@@ -173,14 +173,13 @@ test('generate streams through the AI SDK into TinyBase rows', async () => {
     },
   })
   expect(summarizeSteps(steps)).toEqual({ inputTokens: 1, outputTokens: 2, totalTokens: 3 })
-  expect(core.typedStore.tables.streamingMessageParts.getEntity(targetMessageId)).toBeNull()
   expect(model.doStreamCalls).toHaveLength(1)
   expect(model.doStreamCalls[0]?.prompt).toEqual([
     { content: [{ text: 'hello', type: 'text' }], role: 'user' },
   ])
 })
 
-test('streaming snapshots persist to streamingMessageParts before message commit', async () => {
+test('streaming snapshots persist to the target message before terminal status', async () => {
   const context = createTestDb()
   const { rawStore, typedIndexes, typedStore } = context
   const runConfigs = new RunConfigs({ rawStore, typedStore })
@@ -231,22 +230,29 @@ test('streaming snapshots persist to streamingMessageParts before message commit
   })
   const run = runs.generate({ targetMessageId })
   const firstSnapshot = Promise.withResolvers<undefined>()
-  run.addEventListener(
-    'snapshot',
-    () => {
-      firstSnapshot.resolve()
-    },
-    { once: true },
-  )
+  const handleSnapshot = () => {
+    if (run.parts.length === 0) {
+      return
+    }
+
+    run.removeEventListener('snapshot', handleSnapshot)
+    firstSnapshot.resolve()
+  }
+  run.addEventListener('snapshot', handleSnapshot)
+  const messageBeforeSnapshot = core.typedStore.tables.messages.requireEntity(targetMessageId)
+  const sessionAfterGenerate = core.typedStore.tables.sessions.requireEntity(sessionId)
 
   await firstSnapshot.promise
 
-  const streamingParts = core.typedStore.tables.streamingMessageParts.requireEntity(targetMessageId)
-  expect(core.typedStore.tables.messages.requireEntity(targetMessageId).parts).toEqual([])
-  expect(streamingParts.parts.length).toBeGreaterThan(0)
+  const messageAfterSnapshot = core.typedStore.tables.messages.requireEntity(targetMessageId)
+  const sessionAfterSnapshot = core.typedStore.tables.sessions.requireEntity(sessionId)
+
+  expect(messageAfterSnapshot.parts.length).toBeGreaterThan(0)
+  expect(messageAfterSnapshot.updatedAt).toBeGreaterThan(messageBeforeSnapshot.updatedAt)
+  expect(sessionAfterSnapshot.updatedAt).toBe(sessionAfterGenerate.updatedAt)
+  expect(core.typedStore.tables.runs.requireEntity(run.runId).status).toBe('streaming')
 
   await run.done
-  expect(core.typedStore.tables.streamingMessageParts.getEntity(targetMessageId)).toBeNull()
   expect(
     core.typedStore.tables.messages.requireEntity(targetMessageId).parts.length,
   ).toBeGreaterThan(0)
@@ -352,7 +358,7 @@ test('History Reconstruction — maxMessages limits history at the execution bou
   ])
 })
 
-test('Generate Invariants — refuses to write into a message with committed parts', () => {
+test('Generate Invariants — refuses to write into a message with existing parts', () => {
   const { core, runs } = createTestRuntime()
   const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
 
@@ -367,7 +373,7 @@ test('Generate Invariants — refuses to write into a message with committed par
   const runsBefore = core.typedIndexes.getSliceRowIds('runsBySessionNewestFirst', sessionId)
 
   expect(() => runs.generate({ targetMessageId })).toThrow(
-    `Cannot generate into a message with committed parts: ${targetMessageId}`,
+    `Cannot generate into a message with existing parts: ${targetMessageId}`,
   )
 
   expect(core.typedStore.tables.messages.requireEntity(targetMessageId).parts).toEqual([
@@ -607,12 +613,11 @@ test('Error Path — stream error sets run to error status', async () => {
   expect(run.status).toBe('error')
   expect(runRecord.status).toBe('error')
   expect(runRecord.errorMessage).toContain('Provider API error')
-  expect(core.typedStore.tables.streamingMessageParts.getEntity(targetMessageId)).toBeNull()
   expect(run.error).toBeDefined()
   expect(String(run.error)).toContain('Provider API error')
 })
 
-test('Recovery — interrupted runs commit partial streaming parts and clean hot rows', () => {
+test('Recovery — interrupted runs fail and preserve partial message parts', () => {
   const { core, runs } = createTestRuntime()
   const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
 
@@ -643,23 +648,14 @@ test('Recovery — interrupted runs commit partial streaming parts and clean hot
       terminalAt: 0,
       updatedAt: now,
     }).id
-    core.typedStore.tables.streamingMessageParts.setRow(targetMessageId, {
-      createdAt: now,
-      parts: [],
-      runId,
-      sessionId,
-      updatedAt: now,
+    core.typedStore.tables.messages.updateRow(targetMessageId, {
+      parts: [{ text: 'partial', type: 'text' }],
+      updatedAt: Date.now(),
     })
-  })
-
-  core.typedStore.tables.streamingMessageParts.updateRow(targetMessageId, {
-    parts: [{ text: 'partial', type: 'text' }],
-    updatedAt: Date.now(),
   })
   runs.recover()
 
   expect(core.typedStore.tables.runs.requireEntity(runId).status).toBe('error')
-  expect(core.typedStore.tables.streamingMessageParts.getEntity(targetMessageId)).toBeNull()
   expect(core.typedStore.tables.messages.requireEntity(targetMessageId).parts).toEqual([
     { text: 'partial', type: 'text' },
   ])

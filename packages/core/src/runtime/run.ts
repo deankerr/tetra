@@ -83,15 +83,13 @@ export class Run extends EventTarget {
   }
 
   start(): void {
-    this.createStreamingParts()
     void this.stream()
   }
 
   private complete(parts: UIMessage['parts']): void {
     this.parts = [...parts]
     this.finalParts = [...parts]
-    this.writeStreamingPartsSnapshot(parts)
-    this.commitStreamingParts()
+    this.writeMessagePartsSnapshot(parts)
     completeRunRecord(this.typedStore, this.runId)
     this.setStatus('completed')
     this.dispatchEvent(new Event('finish'))
@@ -101,8 +99,7 @@ export class Run extends EventTarget {
   private fail(error: unknown): void {
     this.error = error
     if (this.abortController.signal.aborted) {
-      this.writeStreamingPartsSnapshot(this.parts)
-      this.commitStreamingParts()
+      this.writeMessagePartsSnapshot(this.parts)
       cancelRunRecord(this.typedStore, this.runId, 'Run cancelled')
       this.setStatus('cancelled')
       this.dispatchEvent(new Event('cancel'))
@@ -110,8 +107,7 @@ export class Run extends EventTarget {
       return
     }
 
-    this.writeStreamingPartsSnapshot(this.parts)
-    this.commitStreamingParts()
+    this.writeMessagePartsSnapshot(this.parts)
     failRunRecord(this.typedStore, this.runId, error)
     this.setStatus('error')
     this.dispatchEvent(new Event('error'))
@@ -205,44 +201,20 @@ export class Run extends EventTarget {
     )
   }
 
-  private commitStreamingParts(): void {
-    const streamingParts = this.typedStore.tables.streamingMessageParts.requireEntity(
-      this.targetMessageId,
-    )
-
-    this.typedStore.tables.messages.updateRow(this.targetMessageId, {
-      parts: streamingParts.parts,
-      updatedAt: Date.now(),
-    })
-    this.typedStore.tables.streamingMessageParts.deleteRow(this.targetMessageId)
-  }
-
-  private createStreamingParts(): void {
-    const now = Date.now()
-
-    this.typedStore.tables.streamingMessageParts.setRow(this.targetMessageId, {
-      createdAt: now,
-      parts: [],
-      runId: this.runId,
-      sessionId: this.sessionId,
-      updatedAt: now,
-    })
-  }
-
   private writeDurableSnapshot(message: UIMessage): void {
     const now = Date.now()
     if (now - this.lastDurableWriteAt < DURABLE_SNAPSHOT_INTERVAL_MS) {
       return
     }
 
-    this.writeStreamingPartsSnapshot(message.parts)
+    this.writeMessagePartsSnapshot(message.parts, now)
     this.lastDurableWriteAt = now
   }
 
-  private writeStreamingPartsSnapshot(parts: UIMessage['parts']): void {
-    this.typedStore.tables.streamingMessageParts.updateRow(this.targetMessageId, {
+  private writeMessagePartsSnapshot(parts: UIMessage['parts'], now = Date.now()): void {
+    this.typedStore.tables.messages.updateRow(this.targetMessageId, {
       parts,
-      updatedAt: Date.now(),
+      updatedAt: now,
     })
   }
 }
