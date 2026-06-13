@@ -617,50 +617,6 @@ test('Error Path — stream error sets run to error status', async () => {
   expect(String(run.error)).toContain('Provider API error')
 })
 
-test('Recovery — interrupted runs fail and preserve partial message parts', () => {
-  const { core, runs } = createTestRuntime()
-  const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
-
-  appendAfterNewestLeaf(core, sessionId, {
-    parts: [{ text: 'hello', type: 'text' }],
-    role: 'user',
-  })
-  const targetMessageId = appendAfterNewestLeaf(core, sessionId, {
-    parts: [],
-    role: 'assistant',
-  })
-  let runId = ''
-  const now = Date.now()
-  core.typedStore.transaction(() => {
-    runId = core.typedStore.tables.runs.setRow('run_test', {
-      config: {
-        maxMessages: 0,
-        modelId: 'mock-model',
-        providerOptions: {},
-        systemPromptId: '',
-        toolIds: [],
-      },
-      createdAt: now,
-      errorMessage: '',
-      sessionId,
-      status: 'streaming',
-      targetMessageId,
-      terminalAt: 0,
-      updatedAt: now,
-    }).id
-    core.typedStore.tables.messages.updateRow(targetMessageId, {
-      parts: [{ text: 'partial', type: 'text' }],
-      updatedAt: Date.now(),
-    })
-  })
-  runs.recover()
-
-  expect(core.typedStore.tables.runs.requireEntity(runId).status).toBe('error')
-  expect(core.typedStore.tables.messages.requireEntity(targetMessageId).parts).toEqual([
-    { text: 'partial', type: 'text' },
-  ])
-})
-
 test('Error Path — later runs can still run after an error', async () => {
   const context = createTestDb()
   const { rawStore, typedIndexes, typedStore } = context

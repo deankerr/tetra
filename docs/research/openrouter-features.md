@@ -4,7 +4,7 @@ Research compiled 2026-06-13 from https://openrouter.ai/docs. Catalog of OpenRou
 
 Annotated 2026-06-13 against the current codebase. Legend: ✅ implemented · 🟡 partial · ⬜ not implemented · ➖ nothing to build.
 
-A cross-cutting note on status: the `providerOptions` cell on run configs ([run-config.ts](../../packages/store-schema/src/run-config.ts)) is passed verbatim as `providerOptions.openrouter` to `streamText` ([run.ts](../../packages/core/src/runtime/run.ts)), and the web app has a free-form key/value editor for it ([provider-options-editor.tsx](../../apps/web/src/session/settings/provider-options-editor.tsx)). So most request-body features below are *reachable today* by hand-authoring JSON — "⬜" for those means "no dedicated schema/UI/behavior", not "impossible".
+A cross-cutting note on status: the `providerOptions` cell on run configs ([run-config.ts](../../packages/store-schema/src/run-config.ts)) is passed verbatim as `providerOptions.openrouter` to `streamText` ([run.ts](../../packages/core/src/runtime/run.ts)), and the web app has a free-form key/value editor for it ([provider-options-editor.tsx](../../apps/web/src/session/settings/provider-options-editor.tsx)). So most request-body features below are _reachable today_ by hand-authoring JSON — "⬜" for those means "no dedicated schema/UI/behavior", not "impossible".
 
 Out of scope by decision: enterprise features (orgs, workspaces, guardrails admin, broadcast/observability destinations, sovereign AI), account management (key management API, credits, analytics), and manual protocol selection (chat completions vs responses vs anthropic messages — we stay on whatever the AI SDK provider uses).
 
@@ -144,7 +144,7 @@ Plugin `{ id: "context-compression" }` middle-out truncates oversized prompts to
 
 Named server-side configs (`@preset/slug`) bundling model/fallbacks, system prompt, params, provider routing, with version history. Referenced via model slug or `preset` field; request params shallow-merge over the preset.
 
-- Tetra: philosophically overlaps with our local RunConfigs — we probably keep config local-first. Still worth supporting *referencing* a preset slug as a model id for users who already maintain presets on OpenRouter.
+- Tetra: philosophically overlaps with our local RunConfigs — we probably keep config local-first. Still worth supporting _referencing_ a preset slug as a model id for users who already maintain presets on OpenRouter.
 - **Status: 🟡 incidental.** `@preset/slug` typed into `modelId` should pass through unimpeded (it's just a string); untested, and the picker/catalog has no preset awareness.
 - Ref: https://openrouter.ai/docs/guides/features/presets
 
@@ -164,16 +164,16 @@ Named server-side configs (`@preset/slug`) bundling model/fallbacks, system prom
 
 OpenRouter executes these server-side mid-request — no client implementation, and they mix freely with our own function tools:
 
-| Tool | What it does |
-| --- | --- |
-| `openrouter:web_search` | Model-initiated web search. Engines: auto/native/Exa/Parallel/Perplexity/Firecrawl(BYOK). Options: `max_results` (1–25), `max_total_results`, `search_context_size`, domain allow/exclude lists. Results return as `url_citation` annotations. ~$0.005/request for Exa/Parallel/Perplexity. Replaces the deprecated `:online` variant / web plugin. |
-| `openrouter:web_fetch` | Fetch URL content. |
-| `openrouter:datetime` | Current date/time awareness. |
-| `openrouter:image_generation` | On-demand image gen inside a text conversation. |
-| `openrouter:apply_patch` | Model proposes file edits as diffs. |
-| `openrouter:fusion` | Panel-of-models + judge consultation (see Fusion Router). |
-| `openrouter:advisor` | Mid-generation consultation of a stronger model; optional sub-agent tools, transcript forwarding, multiple named advisors, cross-request memory via transcript replay. |
-| `openrouter:subagent` | Delegate a self-contained task to a cheaper/faster worker model (`model`, `instructions`, `max_tool_calls` 1–25; no conversation history; only server tools nestable). |
+| Tool                          | What it does                                                                                                                                                                                                                                                                                                                                        |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `openrouter:web_search`       | Model-initiated web search. Engines: auto/native/Exa/Parallel/Perplexity/Firecrawl(BYOK). Options: `max_results` (1–25), `max_total_results`, `search_context_size`, domain allow/exclude lists. Results return as `url_citation` annotations. ~$0.005/request for Exa/Parallel/Perplexity. Replaces the deprecated `:online` variant / web plugin. |
+| `openrouter:web_fetch`        | Fetch URL content.                                                                                                                                                                                                                                                                                                                                  |
+| `openrouter:datetime`         | Current date/time awareness.                                                                                                                                                                                                                                                                                                                        |
+| `openrouter:image_generation` | On-demand image gen inside a text conversation.                                                                                                                                                                                                                                                                                                     |
+| `openrouter:apply_patch`      | Model proposes file edits as diffs.                                                                                                                                                                                                                                                                                                                 |
+| `openrouter:fusion`           | Panel-of-models + judge consultation (see Fusion Router).                                                                                                                                                                                                                                                                                           |
+| `openrouter:advisor`          | Mid-generation consultation of a stronger model; optional sub-agent tools, transcript forwarding, multiple named advisors, cross-request memory via transcript replay.                                                                                                                                                                              |
+| `openrouter:subagent`         | Delegate a self-contained task to a cheaper/faster worker model (`model`, `instructions`, `max_tool_calls` 1–25; no conversation history; only server tools nestable).                                                                                                                                                                              |
 
 Server tool usage is reported in the `usage` object (e.g. `web_search_requests`).
 
@@ -204,7 +204,7 @@ Already supported in Tetra. Additional surface: `image_config` (aspect ratio 1:1
 
 ### PDF inputs
 
-`file` content part, URL or base64, works with *all* models. Parsing engines via plugin config: `native` (models with file support, billed as input tokens; default), `pdf-text` / Cloudflare AI (free markdown conversion fallback), `mistral-ocr` (scanned/image-heavy, per-1k-pages pricing, ≤8 images forwarded). Responses include **file annotations** (hash + parsed content) that can be resent on follow-ups to skip re-parsing — annotations even survive in error metadata for retries.
+`file` content part, URL or base64, works with _all_ models. Parsing engines via plugin config: `native` (models with file support, billed as input tokens; default), `pdf-text` / Cloudflare AI (free markdown conversion fallback), `mistral-ocr` (scanned/image-heavy, per-1k-pages pricing, ≤8 images forwarded). Responses include **file annotations** (hash + parsed content) that can be resent on follow-ups to skip re-parsing — annotations even survive in error metadata for retries.
 
 - Tetra: strong candidate for the media/file-support goal. Data-model note: persist file annotations alongside messages to avoid re-parse costs in multi-turn.
 - **Status: ⬜ not implemented.** Composer accepts images only; the file-part renderer has a generic branch but nothing produces PDF parts, and no annotation persistence exists.
@@ -243,7 +243,7 @@ Input: `input_audio` content part, base64 only (no URLs), WAV/MP3/OGG/FLAC/etc. 
 Every response now includes full usage automatically: prompt/completion/total tokens (native tokenizer), reasoning tokens, cached + cache-write tokens, and **cost** (account charge). Streaming: arrives in the final SSE chunk. The old `usage: { include: true }` opt-in is deprecated.
 
 - Tetra: aligns directly with "requests are a first-class, persisted entity" — persist the whole usage object per request, show cost in the UI, aggregate per session.
-- **Status: ✅ implemented — the strongest area.** Per-step capture in [steps.ts](../../packages/core/src/runtime/steps.ts) parses SDK-normalized usage *and* raw OpenRouter fields (cost, `cost_details` incl. BYOK upstream costs, cached/cache-write/reasoning/audio/image tokens), stores sparse normalized rows plus the full raw usage blob, and [usage.ts](../../packages/core/src/usage.ts) aggregates per run. Run detail sheet renders tokens, cache, and cost with per-step breakdown and JSON export. Session-level aggregation is the main gap.
+- **Status: ✅ implemented — the strongest area.** Per-step capture in [steps.ts](../../packages/core/src/runtime/steps.ts) parses SDK-normalized usage _and_ raw OpenRouter fields (cost, `cost_details` incl. BYOK upstream costs, cached/cache-write/reasoning/audio/image tokens), stores sparse normalized rows plus the full raw usage blob, and [usage.ts](../../packages/core/src/usage.ts) aggregates per run. Run detail sheet renders tokens, cache, and cost with per-step breakdown and JSON export. Session-level aggregation is the main gap.
 - Ref: https://openrouter.ai/docs/cookbook/administration/usage-accounting
 
 ### Generation endpoint
@@ -321,6 +321,6 @@ Where Tetra stands today, condensed:
 
 - **Strong**: usage/cost accounting per step (best-in-class capture incl. raw payloads), client tool-calling loop, reasoning display, image in/out, run config snapshots, run inspector.
 - **Half-built**: catalog (drops pricing/deprecation at parse time), `supported_parameters` persisted but unused, generationId persisted but generation endpoint unqueried, errors flattened to strings, reasoning round-trip unverified.
-- **Unstructured**: everything reachable only through the free-form providerOptions editor — provider routing, fallbacks, sampling params, reasoning config, plugins, service tiers, privacy knobs. The doc's recurring theme: the passthrough exists; the power-user *controls* don't yet.
+- **Unstructured**: everything reachable only through the free-form providerOptions editor — provider routing, fallbacks, sampling params, reasoning config, plugins, service tiers, privacy knobs. The doc's recurring theme: the passthrough exists; the power-user _controls_ don't yet.
 - **Absent**: all headers (app attribution, router metadata, response caching), `session_id` for cache stickiness, server tools, structured outputs, PDF/audio/video, dedicated endpoints, OAuth PKCE.
 - **Cheapest wins available**: app attribution headers, `session_id` per session, keep pricing in the catalog, stop dropping the structured error object.

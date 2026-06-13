@@ -91,7 +91,6 @@ export async function bootstrap(mode: BootstrapMode) {
     const sqlite = new Database('./tetra-redesign.db')
     const persister = createSqliteBunPersister(rawStore, sqlite, TABULAR_CONFIG)
     await persister.load()
-    runs.recover()
 
     return {
       catalog,
@@ -152,7 +151,6 @@ export async function bootstrap(mode: BootstrapMode) {
 
   await persister.load()
   await synchronizer.startSync()
-  runs.recover()
 
   return {
     catalog,

@@ -7,7 +7,7 @@ import type { Transcripts } from '#transcripts'
 
 import { openRouterLanguageModelResolver } from './language-model-resolver.ts'
 import type { LanguageModelResolver } from './language-model-resolver.ts'
-import { createRunRecord, failRunRecord } from './run-records.ts'
+import { createRunRecord } from './run-records.ts'
 import { Run } from './run.ts'
 import type { RunStart } from './run.ts'
 
@@ -77,10 +77,6 @@ export class Runs {
     return null
   }
 
-  recover(): void {
-    this.failInterruptedRuns()
-  }
-
   // Callers are responsible for creating transcript messages before calling generate.
   // The target starts empty and receives streaming snapshots until the run is terminal.
   generate(args: GenerateArgs): Run {
@@ -128,15 +124,6 @@ export class Runs {
     }
 
     return transcriptMessages.slice(-config.maxMessages)
-  }
-
-  private failInterruptedRuns(message = 'Run interrupted'): void {
-    for (const runId of this.typedStore.tables.runs.getRowIds()) {
-      const status = this.typedStore.tables.runs.getCell(runId, 'status')
-      if (status === 'preparing' || status === 'streaming') {
-        failRunRecord(this.typedStore, runId, message)
-      }
-    }
   }
 
   private launchRun(runStart: RunStart): Run {
