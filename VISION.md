@@ -25,7 +25,7 @@ This decoupling strategy natively allows for active requests to survive navigati
 
 ## Feature Goals
 
-- Chat with OpenRouter's extensivve LLM catalog.
+- Chat with OpenRouter's extensive LLM catalog.
 - Manual transcript editing.
 - Agent/Assistant profiles: named collections of model/parameter/tool/prompt configurations.
 - Requests are a first-class, persisted entity, with config snapshots.
