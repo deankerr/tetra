@@ -11,6 +11,7 @@ function expectTetraRawStorePair(pair: ReturnType<typeof createRawStore>): void 
   // Creation helpers apply the Tetra store schema before any data is loaded.
   expect(JSON.parse(rawStore.getTablesSchemaJson())).toEqual(tetraStoreSchema.tablesSchema)
   expect(JSON.parse(rawStore.getValuesSchemaJson())).toEqual(tetraStoreSchema.valuesSchema)
+  expect(typedStore.values.catalogLastRefreshed.get()).toBeNull()
 
   // Insert enough rows to prove consumer-visible index slices are already defined.
   typedStore.tables.messages.setRow('m1', {

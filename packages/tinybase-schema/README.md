@@ -105,6 +105,24 @@ React hooks currently include:
 - `useValueState`
 - `useSliceRowIds`
 
+## Default Semantics
+
+Zod defaults and TinyBase defaults are related but not identical:
+
+- A zod default is a parser fallback. It applies when zod receives `undefined`
+  input, and the parsed output is then written to TinyBase by the bound APIs.
+- A TinyBase default is a store fallback. For values, a defaulted value is
+  present immediately after the schema is applied. For row cells, defaulted
+  cells are filled when a row exists; a missing row remains missing.
+- Raw TinyBase writes do not throw when a cell or value has the wrong type. If
+  the schema has a default, TinyBase writes the default instead. If the schema
+  has no default, TinyBase omits the invalid cell or value and reports it
+  through invalid-cell or invalid-value listeners.
+- The bound typed APIs parse mutation inputs with zod before calling TinyBase.
+  Invalid non-`undefined` inputs therefore throw before TinyBase can repair
+  them with a default. Missing or `undefined` inputs may still become zod
+  defaults if the schema says so.
+
 ## Intentional Deviations From TinyBase
 
 These are deliberate project-shaped choices, not accidental API drift:
@@ -119,7 +137,8 @@ These are deliberate project-shaped choices, not accidental API drift:
   still plain strings.
 - TinyBase native `default` values are derived from zod defaults. Tetra core
   still generally avoids schema defaults in its real schema so missing values
-  fail loudly unless the read site has an explicit fallback.
+  fail loudly unless the read site has an explicit fallback or the default is
+  deliberately part of the stored state model.
 
 ## Escape Hatches
 

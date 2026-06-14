@@ -6,8 +6,8 @@ export type RowZod = z.ZodObject<Record<string, AnyZod>>
 export type FieldKind = 'array' | 'boolean' | 'number' | 'object' | 'string'
 
 export type TinyCellSchema =
-  | { allowNull?: boolean; default?: AnyArray; type: 'array' }
-  | { allowNull?: boolean; default?: boolean; type: 'boolean' }
-  | { allowNull?: boolean; default?: number; type: 'number' }
-  | { allowNull?: boolean; default?: AnyObject; type: 'object' }
-  | { allowNull?: boolean; default?: string; type: 'string' }
+  | { allowNull?: boolean; default?: AnyArray | null; type: 'array' }
+  | { allowNull?: boolean; default?: boolean | null; type: 'boolean' }
+  | { allowNull?: boolean; default?: number | null; type: 'number' }
+  | { allowNull?: boolean; default?: AnyObject | null; type: 'object' }
+  | { allowNull?: boolean; default?: string | null; type: 'string' }

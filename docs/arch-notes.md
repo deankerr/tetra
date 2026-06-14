@@ -107,6 +107,8 @@ Scratch notes captured from recent discussion. This is a brain dump, not a plan.
 - Reject optional cells in schema definitions.
 - `delCell`/absence behavior is too weird for the core schema model.
 - Null is the explicit absence value.
+- Raw TinyBase defaults repair invalid writes instead of throwing; typed APIs
+  must parse with zod before writing when invalid input should fail loudly.
 - Keep less of the massive TinyBase API in play where possible.
 - Avoid type-level gymnastics if a runtime guard is enough.
 

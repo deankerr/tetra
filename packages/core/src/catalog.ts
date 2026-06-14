@@ -1,4 +1,4 @@
-import type { Rows, TetraRawStore, TetraTypedStore } from '@tetra/store-schema'
+import type { Rows, TetraTypedStore } from '@tetra/store-schema'
 import { z } from 'zod'
 
 const STALE_MS = 60 * 60 * 1000
@@ -21,20 +21,16 @@ const OpenRouterModelsResponse = z.object({
 })
 
 export class Catalog {
-  private readonly rawStore: TetraRawStore
   private readonly typedStore: TetraTypedStore
 
-  constructor({ rawStore, typedStore }: { rawStore: TetraRawStore; typedStore: TetraTypedStore }) {
-    this.rawStore = rawStore
+  constructor({ typedStore }: { typedStore: TetraTypedStore }) {
     this.typedStore = typedStore
   }
 
   async refresh(args: { force?: boolean } = {}): Promise<void> {
     const { catalogLastRefreshed } = this.typedStore.values
-    const lastRefreshed = this.rawStore.hasValue('catalogLastRefreshed')
-      ? catalogLastRefreshed.get()
-      : 0
-    const isStale = lastRefreshed === 0 || Date.now() - lastRefreshed > STALE_MS
+    const lastRefreshed = catalogLastRefreshed.get()
+    const isStale = lastRefreshed === null || Date.now() - lastRefreshed > STALE_MS
     if (args.force !== true && !isStale) {
       return
     }

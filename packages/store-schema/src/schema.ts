@@ -99,7 +99,7 @@ export const tetraStoreSchema = defineTypedStore({
     steps: StepRecordSchema,
   },
   values: {
-    catalogLastRefreshed: z.number(),
+    catalogLastRefreshed: z.number().nullable().default(null),
     cliActiveSessionId: z.string(),
     // Mutable workspace-level default applied when creating a new session. Stored as a blob
     // since it is a cold path (read once at session creation, not on every render).

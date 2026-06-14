@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test'
 
 import { createIndexes } from 'tinybase/indexes/with-schemas'
+import { createStore as createRawStore } from 'tinybase/store'
 import { createStore } from 'tinybase/store/with-schemas'
 import { z } from 'zod'
 
@@ -81,21 +82,29 @@ test('derives nullable, record, array, enum, and default cell schemas from zod',
       examples: z.object({
         count: z.number().default(1),
         enabled: z.boolean(),
+        lastSeenAt: z.number().nullable().default(null),
         metadata: z.record(z.string(), z.json()),
         mode: z.enum(['draft', 'final']),
         name: z.string().nullable(),
         tags: z.array(z.string()),
       }),
     },
+    values: {
+      lastSyncedAt: z.number().nullable().default(null),
+    },
   })
 
   expect(definition.tablesSchema.examples).toEqual({
     count: { default: 1, type: 'number' },
     enabled: { type: 'boolean' },
+    lastSeenAt: { allowNull: true, default: null, type: 'number' },
     metadata: { type: 'object' },
     mode: { type: 'string' },
     name: { allowNull: true, type: 'string' },
     tags: { type: 'array' },
+  })
+  expect(definition.valuesSchema as unknown).toEqual({
+    lastSyncedAt: { allowNull: true, default: null, type: 'number' },
   })
 })
 
@@ -228,6 +237,44 @@ test('keeps table query methods precise around missing rows and raw TinyBase def
   })
 })
 
+test('confirms raw TinyBase defaults repair invalid raw writes', () => {
+  const store = createRawStore().setSchema(
+    {
+      examples: {
+        count: { default: 1, type: 'number' },
+        label: { type: 'string' },
+        nullableCount: { allowNull: true, default: null, type: 'number' },
+      },
+    },
+    {
+      defaultedCount: { default: 2, type: 'number' },
+      nullableCount: { allowNull: true, default: null, type: 'number' },
+      requiredCount: { type: 'number' },
+    },
+  )
+
+  // Raw TinyBase repairs invalid cells with defaults and omits invalid cells without defaults.
+  store.setRow('examples', 'row_1', {
+    count: 'not-a-number',
+    label: 42,
+    nullableCount: 'also-not-a-number',
+  })
+  expect(store.getRow('examples', 'row_1')).toEqual({
+    count: 1,
+    nullableCount: null,
+  })
+
+  // Raw TinyBase applies the same default-or-omit behavior to invalid values.
+  store.setValue('defaultedCount', 'not-a-number')
+  store.setValue('nullableCount', 'also-not-a-number')
+  store.setValue('requiredCount', 'no-default')
+  expect(store.getValues()).toEqual({
+    defaultedCount: 2,
+    nullableCount: null,
+  })
+  expect(store.hasValue('requiredCount')).toBe(false)
+})
+
 test('parses table mutation inputs before writing to TinyBase', () => {
   const definition = createTestDefinition()
   const db = bindTestStore(definition)
@@ -242,7 +289,7 @@ test('parses table mutation inputs before writing to TinyBase', () => {
     updatedAt: 0,
   }
 
-  // @ts-expect-error - Runtime validation should reject invalid rows that bypass types.
+  // @ts-expect-error - Zod validation rejects invalid typed rows before TinyBase can default them.
   expect(() => db.tables.sessions.setRow('sess_1', invalidSessionRow)).toThrow()
   expect(db.tables.sessions.hasRow('sess_1')).toBe(false)
 
@@ -257,7 +304,7 @@ test('parses table mutation inputs before writing to TinyBase', () => {
     updatedAt: 0,
   })
 
-  // @ts-expect-error - Runtime validation should reject invalid cell values that bypass types.
+  // @ts-expect-error - Zod validation rejects invalid typed cells before TinyBase can default them.
   expect(() => db.tables.sessions.setCell('sess_1', 'title', 42)).toThrow()
   expect(db.tables.sessions.getCell('sess_1', 'title')).toBe('Valid')
   expect(() =>
@@ -309,11 +356,31 @@ test('binds typed value methods separately from table row methods', () => {
   expect(db.values.activeSessionId.get()).toBe('')
 })
 
+test('binds nullable default values as explicit nulls', () => {
+  const definition = defineTypedStore({
+    tables: {},
+    values: {
+      lastSeenAt: z.number().nullable().default(null),
+    },
+  })
+  const store = createRawStore().setSchema(
+    structuredClone(definition.tablesSchema),
+    structuredClone(definition.valuesSchema),
+  )
+  const db = bindStore(store, definition.tables, definition.values)
+
+  expect(db.values.lastSeenAt.get()).toBeNull()
+  db.values.lastSeenAt.set(123)
+  expect(db.values.lastSeenAt.get()).toBe(123)
+  db.values.lastSeenAt.delete()
+  expect(db.values.lastSeenAt.get()).toBeNull()
+})
+
 test('parses value mutation inputs before writing to TinyBase', () => {
   const definition = createTestDefinition()
   const db = bindTestStore(definition)
 
-  // @ts-expect-error - Runtime validation should reject invalid value inputs that bypass types.
+  // @ts-expect-error - Zod validation rejects invalid typed values before TinyBase can default them.
   expect(() => db.values.activeSessionId.set(42)).toThrow()
   expect(db.values.activeSessionId.get()).toBe('')
 

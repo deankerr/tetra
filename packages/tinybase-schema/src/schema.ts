@@ -23,10 +23,10 @@ export type NativeStoreSchemasOf<
 
 export function toTinybaseTablesSchema(tables: TableDefinitions): TablesSchema {
   // TinyBase only needs the coarse cell schema nested by table and cell id.
-  const tablesSchema: TablesSchema = {}
+  const tablesSchema: Record<string, Record<string, TinyCellSchema>> = {}
 
   for (const [tableId, table] of Object.entries(tables)) {
-    const tableSchema: TablesSchema[string] = {}
+    const tableSchema: Record<string, TinyCellSchema> = {}
 
     for (const [cellId, schema] of Object.entries(table.shape)) {
       tableSchema[cellId] = zodToTinybaseCellSchema(schema, `${tableId}.${cellId}`)
@@ -35,18 +35,22 @@ export function toTinybaseTablesSchema(tables: TableDefinitions): TablesSchema {
     tablesSchema[tableId] = tableSchema
   }
 
-  return tablesSchema
+  // TinyBase's runtime accepts allowNull/default:null, but with-schemas types lag behind.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The emitted runtime schema is valid TinyBase schema; only the with-schemas type omits nullable defaults.
+  return tablesSchema as unknown as TablesSchema
 }
 
 export function toTinybaseValuesSchema(values: ValueDefinitions): ValuesSchema {
   // Values use the same coarse TinyBase cell schema shape without a row wrapper.
-  const valuesSchema: ValuesSchema = {}
+  const valuesSchema: Record<string, TinyCellSchema> = {}
 
   for (const [valueId, schema] of Object.entries(values)) {
     valuesSchema[valueId] = zodToTinybaseCellSchema(schema, valueId)
   }
 
-  return valuesSchema
+  // TinyBase's runtime accepts allowNull/default:null, but with-schemas types lag behind.
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The emitted runtime schema is valid TinyBase schema; only the with-schemas type omits nullable defaults.
+  return valuesSchema as unknown as ValuesSchema
 }
 
 interface StandardJsonSchemaProps {
@@ -144,51 +148,10 @@ function createTinybaseCellSchema(
   allowNull: boolean,
   path: string,
 ): TinyCellSchema {
-  if (type === 'array') {
-    if (defaultValue !== undefined && !Array.isArray(defaultValue)) {
-      throw new Error(`Invalid array default for ${path}`)
-    }
-    return withOptionalNull(
-      { type, ...(defaultValue !== undefined && { default: defaultValue }) },
-      allowNull,
-    )
-  }
-
-  if (type === 'boolean') {
-    if (defaultValue !== undefined && typeof defaultValue !== 'boolean') {
-      throw new Error(`Invalid boolean default for ${path}`)
-    }
-    return withOptionalNull(
-      { type, ...(defaultValue !== undefined && { default: defaultValue }) },
-      allowNull,
-    )
-  }
-
-  if (type === 'number') {
-    if (defaultValue !== undefined && typeof defaultValue !== 'number') {
-      throw new Error(`Invalid number default for ${path}`)
-    }
-    return withOptionalNull(
-      { type, ...(defaultValue !== undefined && { default: defaultValue }) },
-      allowNull,
-    )
-  }
-
-  if (type === 'object') {
-    if (defaultValue !== undefined && !isTinybaseObject(defaultValue)) {
-      throw new Error(`Invalid object default for ${path}`)
-    }
-    return withOptionalNull(
-      { type, ...(defaultValue !== undefined && { default: defaultValue }) },
-      allowNull,
-    )
-  }
-
-  if (defaultValue !== undefined && typeof defaultValue !== 'string') {
-    throw new Error(`Invalid string default for ${path}`)
-  }
+  validateDefault(type, defaultValue, allowNull, path)
   return withOptionalNull(
-    { type, ...(defaultValue !== undefined && { default: defaultValue }) },
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- validateDefault checks the default value against the selected TinyBase cell type above.
+    { type, ...(defaultValue !== undefined && { default: defaultValue }) } as TinyCellSchema,
     allowNull,
   )
 }
@@ -210,4 +173,33 @@ function isJsonSchema(value: unknown): value is JsonSchema {
 
 function isTinybaseObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function validateDefault(
+  type: FieldKind,
+  defaultValue: unknown,
+  allowNull: boolean,
+  path: string,
+): void {
+  if (defaultValue === undefined) {
+    return
+  }
+  if (defaultValue === null && allowNull) {
+    return
+  }
+  if (type === 'array' && Array.isArray(defaultValue)) {
+    return
+  }
+  if (type === 'object' && isTinybaseObject(defaultValue)) {
+    return
+  }
+  if (
+    (type === 'boolean' && typeof defaultValue === 'boolean') ||
+    (type === 'number' && typeof defaultValue === 'number') ||
+    (type === 'string' && typeof defaultValue === 'string')
+  ) {
+    return
+  }
+
+  throw new Error(`Invalid ${type} default for ${path}`)
 }
