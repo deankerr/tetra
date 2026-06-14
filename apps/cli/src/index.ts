@@ -14,7 +14,7 @@ program
   .name('tetra')
   .description('Tetra CLI')
   .version('0.1.0')
-  .option('--local', 'Use local tabular SQLite instead of DO sync')
+  .option('--local', 'Use local SQLite instead of DO sync')
 
 // Lazily bootstrap so pure help/version output does not open the database.
 let context: Awaited<ReturnType<typeof bootstrap>> | undefined

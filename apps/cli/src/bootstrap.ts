@@ -16,37 +16,6 @@ import { createWsSynchronizer } from 'tinybase/synchronizers/synchronizer-ws-cli
 export const WORKER_URL = process.env['TETRA_WORKER_URL'] ?? 'ws://localhost:8787'
 export const SYNC_URL = `${WORKER_URL}/tetra`
 
-// Tabular persister config — maps each TinyBase table to a SQL table with an 'id' row key column.
-// Used by local mode for the tetra-redesign.db SQLite store.
-export const TABULAR_CONFIG = {
-  mode: 'tabular' as const,
-  tables: {
-    load: {
-      draftSessions: { rowIdColumnName: 'id', tableId: 'draftSessions' },
-      languageModels: { rowIdColumnName: 'id', tableId: 'languageModels' },
-      messages: { rowIdColumnName: 'id', tableId: 'messages' },
-      modelFavorites: { rowIdColumnName: 'id', tableId: 'modelFavorites' },
-      prompts: { rowIdColumnName: 'id', tableId: 'prompts' },
-      runs: { rowIdColumnName: 'id', tableId: 'runs' },
-      sessionRunConfigs: { rowIdColumnName: 'id', tableId: 'sessionRunConfigs' },
-      sessions: { rowIdColumnName: 'id', tableId: 'sessions' },
-      steps: { rowIdColumnName: 'id', tableId: 'steps' },
-    },
-    save: {
-      draftSessions: { rowIdColumnName: 'id', tableName: 'draftSessions' },
-      languageModels: { rowIdColumnName: 'id', tableName: 'languageModels' },
-      messages: { rowIdColumnName: 'id', tableName: 'messages' },
-      modelFavorites: { rowIdColumnName: 'id', tableName: 'modelFavorites' },
-      prompts: { rowIdColumnName: 'id', tableName: 'prompts' },
-      runs: { rowIdColumnName: 'id', tableName: 'runs' },
-      sessionRunConfigs: { rowIdColumnName: 'id', tableName: 'sessionRunConfigs' },
-      sessions: { rowIdColumnName: 'id', tableName: 'sessions' },
-      steps: { rowIdColumnName: 'id', tableName: 'steps' },
-    },
-  },
-  values: { load: true, save: true },
-}
-
 export type BootstrapMode = 'local' | 'sync'
 
 export async function bootstrap(mode: BootstrapMode) {
@@ -84,7 +53,7 @@ export async function bootstrap(mode: BootstrapMode) {
     }
 
     const sqlite = new Database('./tetra-redesign.db')
-    const persister = createSqliteBunPersister(rawStore, sqlite, TABULAR_CONFIG)
+    const persister = createSqliteBunPersister(rawStore, sqlite)
     await persister.load()
 
     return {
