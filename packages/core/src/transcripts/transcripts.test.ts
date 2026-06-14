@@ -13,7 +13,7 @@ function createTranscriptHarness() {
   const { rawIndexes, rawStore } = createRawStore()
   const typedStore = bindStore(rawStore, tetraStoreSchema.tables, tetraStoreSchema.values)
   const typedIndexes = bindIndexes(rawIndexes, tetraIndexIds)
-  const runConfigs = new RunConfigs({ rawStore, typedStore })
+  const runConfigs = new RunConfigs({ typedStore })
   const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
 
   return { rawStore, transcripts, typedIndexes, typedStore }

@@ -12,7 +12,7 @@ function createPromptHarness() {
   const { rawIndexes, rawStore } = createRawStore()
   const typedStore = bindStore(rawStore, tetraStoreSchema.tables, tetraStoreSchema.values)
   const typedIndexes = bindIndexes(rawIndexes, tetraIndexIds)
-  const runConfigs = new RunConfigs({ rawStore, typedStore })
+  const runConfigs = new RunConfigs({ typedStore })
   const prompts = new Prompts({ runConfigs, typedStore })
 
   return { prompts, rawStore, runConfigs, typedIndexes, typedStore }

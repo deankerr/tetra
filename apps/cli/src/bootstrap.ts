@@ -55,17 +55,12 @@ export async function bootstrap(mode: BootstrapMode) {
     const { rawIndexes, rawStore } = createRawStore()
     const typedStore = bindStore(rawStore, tetraStoreSchema.tables, tetraStoreSchema.values)
     const typedIndexes = bindIndexes(rawIndexes, tetraIndexIds)
-    const context = {
-      rawIndexes,
-      rawStore,
-      typedIndexes,
-      typedStore,
-    }
+
     // RunConfigs comes first so Prompts can delegate prompt unlinking to it.
-    const runConfigs = new RunConfigs(context)
+    const runConfigs = new RunConfigs({ typedStore })
     const prompts = new Prompts({ runConfigs, typedStore })
     const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
-    const catalog = new Catalog(context)
+    const catalog = new Catalog({ typedStore })
     const runs = new Runs({
       credentials: credentialStore,
       prompts,
@@ -112,17 +107,12 @@ export async function bootstrap(mode: BootstrapMode) {
   const { rawIndexes, rawStore } = createRawMergeableStore()
   const typedStore = bindStore(rawStore, tetraStoreSchema.tables, tetraStoreSchema.values)
   const typedIndexes = bindIndexes(rawIndexes, tetraIndexIds)
-  const context = {
-    rawIndexes,
-    rawStore,
-    typedIndexes,
-    typedStore,
-  }
+
   // RunConfigs comes first so Prompts can delegate prompt unlinking to it.
-  const runConfigs = new RunConfigs(context)
+  const runConfigs = new RunConfigs({ typedStore })
   const prompts = new Prompts({ runConfigs, typedStore })
   const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
-  const catalog = new Catalog(context)
+  const catalog = new Catalog({ typedStore })
   const runs = new Runs({
     credentials: credentialStore,
     prompts,

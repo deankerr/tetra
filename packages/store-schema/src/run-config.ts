@@ -16,11 +16,11 @@ export type RunConfig = z.infer<typeof RunConfigSchema>
 // Run snapshots are stored as object cells so historical runs keep their original settings.
 export const RunConfigSnapshotSchema = z.record(z.string(), z.json())
 
-// Empty defaults keep session creation parseable before the user picks settings.
-export const DEFAULT_RUN_CONFIG: RunConfig = {
-  maxMessages: 0,
-  modelId: '',
-  providerOptions: {},
-  systemPromptId: '',
-  toolIds: [],
-}
+// Session config rows are durable, editable in-place defaults for future runs.
+export const SessionRunConfigSchema = z.object({
+  maxMessages: RunConfigSchema.shape.maxMessages.default(0),
+  modelId: RunConfigSchema.shape.modelId.default(''),
+  providerOptions: RunConfigSchema.shape.providerOptions.default({}),
+  systemPromptId: RunConfigSchema.shape.systemPromptId.default(''),
+  toolIds: RunConfigSchema.shape.toolIds.default([]),
+})

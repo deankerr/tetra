@@ -10,7 +10,7 @@ import type { Indexes as RawIndexes } from 'tinybase/indexes/with-schemas'
 import type { Store as RawStore } from 'tinybase/store/with-schemas'
 import { z } from 'zod'
 
-import { ProviderOptionsSchema, RunConfigSnapshotSchema } from './run-config.ts'
+import { RunConfigSnapshotSchema, SessionRunConfigSchema } from './run-config.ts'
 import { StepRecordSchema } from './steps.ts'
 
 // UI message parts are owned by the AI SDK, so Tetra only verifies their object-like shape.
@@ -84,13 +84,7 @@ export const tetraStoreSchema = defineTypedStore({
     }),
     // Execution parameters for a session. Keyed by the same ID as the sessions table (1:1).
     // Stored separately so sidebar reactive reads on sessions are not triggered by config edits.
-    sessionRunConfigs: z.object({
-      maxMessages: z.number(),
-      modelId: z.string(),
-      providerOptions: ProviderOptionsSchema,
-      systemPromptId: z.string(),
-      toolIds: z.array(z.string()),
-    }),
+    sessionRunConfigs: SessionRunConfigSchema,
     sessions: z.object({
       createdAt: z.number(),
       title: z.string(),

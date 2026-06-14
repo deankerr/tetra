@@ -1,5 +1,5 @@
 export { createRawMergeableStore, createRawStore } from './raw-store.ts'
-export { DEFAULT_RUN_CONFIG, ProviderOptionsSchema, RunConfigSchema } from './run-config.ts'
+export { ProviderOptionsSchema, RunConfigSchema, SessionRunConfigSchema } from './run-config.ts'
 export { tetraIndexIds, tetraStoreSchema } from './schema.ts'
 export { StepWarningSchema } from './steps.ts'
 export type { RunConfig } from './run-config.ts'

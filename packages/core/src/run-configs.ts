@@ -1,25 +1,22 @@
-import { DEFAULT_RUN_CONFIG, RunConfigSchema } from '@tetra/store-schema'
-import type { RunConfig, TetraRawStore, TetraTypedStore } from '@tetra/store-schema'
+import { RunConfigSchema, SessionRunConfigSchema } from '@tetra/store-schema'
+import type { RunConfig, TetraTypedStore } from '@tetra/store-schema'
 
 // RunConfigs owns the run config operations a single cell write cannot express:
 // the session config birth merge and run-start resolution (ADR-0008). Typed
 // per-cell writes to sessionRunConfigs remain first-class for surfaces.
 export class RunConfigs {
-  private readonly rawStore: TetraRawStore
   private readonly typedStore: TetraTypedStore
 
-  constructor({ rawStore, typedStore }: { rawStore: TetraRawStore; typedStore: TetraTypedStore }) {
-    this.rawStore = rawStore
+  constructor({ typedStore }: { typedStore: TetraTypedStore }) {
     this.typedStore = typedStore
   }
 
-  // Birth merge: built-in defaults under the stored new-session default under the
-  // caller partial. Parse happens before any store write so an invalid merge
-  // never lands a row.
+  // Birth merge: session schema defaults under the stored new-session default
+  // under the caller partial. Parse happens before any store write so an invalid
+  // merge never lands a row.
   createForSession(sessionId: string, partial?: Partial<RunConfig>): RunConfig {
     const storedDefault = this.typedStore.values.defaultRunConfig.get()
-    const config = RunConfigSchema.parse({
-      ...DEFAULT_RUN_CONFIG,
+    const config = SessionRunConfigSchema.parse({
       ...toConfigObject(storedDefault),
       ...partial,
     })
@@ -41,7 +38,7 @@ export class RunConfigs {
   }
 
   // Stored new-session default: copy the required session config row into the
-  // defaultRunConfig value so later createForSession calls layer it over built-ins.
+  // defaultRunConfig value so later createForSession calls layer it over schema defaults.
   setAsDefault(sessionId: string): void {
     const config = this.typedStore.tables.sessionRunConfigs.getRow(sessionId)
     if (config === null) {
@@ -71,15 +68,15 @@ export class RunConfigs {
     this.typedStore.tables.sessionRunConfigs.deleteRow(sessionId)
   }
 
-  // Run-start resolution: raw-read the session config row so the merge stays
-  // tolerant of missing cells, then parse into the effective RunConfig.
+  // Run-start resolution: require the session config row, then parse the typed row
+  // into the effective RunConfig snapshot.
   resolveForRun(sessionId: string): RunConfig {
-    const sessionRunConfig = this.rawStore.getRow('sessionRunConfigs', sessionId)
+    const sessionRunConfig = this.typedStore.tables.sessionRunConfigs.getRow(sessionId)
+    if (sessionRunConfig === null) {
+      throw new Error(`Missing row: sessionRunConfigs/${sessionId}`)
+    }
 
-    return RunConfigSchema.parse({
-      ...DEFAULT_RUN_CONFIG,
-      ...sessionRunConfig,
-    })
+    return RunConfigSchema.parse(sessionRunConfig)
   }
 }
 

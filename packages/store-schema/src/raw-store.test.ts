@@ -2,18 +2,31 @@ import { expect, test } from 'bun:test'
 
 import { bindStore } from '@tetra/tinybase-schema'
 
-import { createRawMergeableStore, createRawStore, tetraStoreSchema } from './index.ts'
+import {
+  createRawMergeableStore,
+  createRawStore,
+  SessionRunConfigSchema,
+  tetraStoreSchema,
+} from './index.ts'
 
 function expectTetraRawStorePair(pair: ReturnType<typeof createRawStore>): void {
   const { rawIndexes, rawStore } = pair
   const typedStore = bindStore(rawStore, tetraStoreSchema.tables, tetraStoreSchema.values)
 
   // Creation helpers apply the Tetra store schema before any data is loaded.
-  expect(JSON.parse(rawStore.getTablesSchemaJson())).toEqual(tetraStoreSchema.tablesSchema)
-  expect(JSON.parse(rawStore.getValuesSchemaJson())).toEqual(tetraStoreSchema.valuesSchema)
+  expect(parseTinyBaseSchemaJson(rawStore.getTablesSchemaJson())).toEqual(
+    tetraStoreSchema.tablesSchema,
+  )
+  expect(parseTinyBaseSchemaJson(rawStore.getValuesSchemaJson())).toEqual(
+    tetraStoreSchema.valuesSchema,
+  )
   expect(typedStore.values.catalogLastRefreshed.get()).toBeNull()
   expect(typedStore.values.cliActiveSessionId.get()).toBeNull()
   expect(typedStore.values.defaultRunConfig.get()).toBeNull()
+  rawStore.setRow('sessionRunConfigs', 's1', { modelId: 'model-a' })
+  expect(typedStore.tables.sessionRunConfigs.requireEntity('s1')).toMatchObject(
+    SessionRunConfigSchema.parse({ modelId: 'model-a' }),
+  )
 
   // Insert enough rows to prove consumer-visible index slices are already defined.
   typedStore.tables.messages.setRow('m1', {
@@ -99,3 +112,35 @@ test('createRawStore returns a schema-bound Store with Tetra indexes', () => {
 test('createRawMergeableStore returns a schema-bound MergeableStore with Tetra indexes', () => {
   expectTetraRawStorePair(createRawMergeableStore())
 })
+
+function parseTinyBaseSchemaJson(schemaJson: string): unknown {
+  // TinyBase schema JSON encodes array/object defaults with an internal prefix.
+  return decodeTinyBaseSchemaValue(JSON.parse(schemaJson) as unknown)
+}
+
+function decodeTinyBaseSchemaValue(value: unknown): unknown {
+  const jsonPrefix = String.fromCodePoint(0xff_fd)
+  if (typeof value === 'string' && value.startsWith(jsonPrefix)) {
+    const decoded: unknown = JSON.parse(value.slice(jsonPrefix.length))
+    return decoded
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => decodeTinyBaseSchemaValue(item))
+  }
+
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, nestedValue]) => [
+        key,
+        decodeTinyBaseSchemaValue(nestedValue),
+      ]),
+    )
+  }
+
+  return value
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}

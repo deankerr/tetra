@@ -12,14 +12,13 @@ function createTetraApp(rawStore: TetraRawStore, rawIndexes: TetraRawIndexes) {
   // Bind the raw TinyBase objects to Tetra's typed APIs at the app boundary.
   const typedStore = bindStore(rawStore, tetraStoreSchema.tables, tetraStoreSchema.values)
   const typedIndexes = bindIndexes(rawIndexes, tetraIndexIds)
-  const context = { rawIndexes, rawStore, typedIndexes, typedStore }
 
   // Core modules share one typed TinyBase context. RunConfigs comes first so
   // Prompts can delegate prompt unlinking to it.
-  const runConfigs = new RunConfigs(context)
+  const runConfigs = new RunConfigs({ typedStore })
   const prompts = new Prompts({ runConfigs, typedStore })
   const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
-  const catalog = new Catalog(context)
+  const catalog = new Catalog({ typedStore })
   const runs = new Runs({
     credentials: credentialStore,
     prompts,

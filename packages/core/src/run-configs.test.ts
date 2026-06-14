@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
 
-import { createRawStore, DEFAULT_RUN_CONFIG, tetraStoreSchema } from '@tetra/store-schema'
+import { createRawStore, SessionRunConfigSchema, tetraStoreSchema } from '@tetra/store-schema'
 import { bindStore } from '@tetra/tinybase-schema'
 
 import { RunConfigs } from './run-configs.ts'
@@ -9,26 +9,25 @@ function createRunConfigHarness() {
   // Tests bind the same raw TinyBase objects used by app composition roots.
   const { rawStore } = createRawStore()
   const typedStore = bindStore(rawStore, tetraStoreSchema.tables, tetraStoreSchema.values)
-  const runConfigs = new RunConfigs({ rawStore, typedStore })
+  const runConfigs = new RunConfigs({ typedStore })
 
   return { rawStore, runConfigs, typedStore }
 }
 
-test('createForSession writes built-in defaults when nothing else is provided', () => {
+test('createForSession writes session schema defaults when nothing else is provided', () => {
   const { runConfigs, typedStore } = createRunConfigHarness()
+  const emptyConfig = SessionRunConfigSchema.parse({})
 
   const config = runConfigs.createForSession('sess_1')
 
-  expect(config).toEqual(DEFAULT_RUN_CONFIG)
-  expect(typedStore.tables.sessionRunConfigs.requireEntity('sess_1')).toMatchObject(
-    DEFAULT_RUN_CONFIG,
-  )
+  expect(config).toEqual(emptyConfig)
+  expect(typedStore.tables.sessionRunConfigs.requireEntity('sess_1')).toMatchObject(emptyConfig)
 })
 
-test('createForSession layers stored default over built-ins and caller partial over both', () => {
+test('createForSession layers stored default over schema defaults and caller partial over both', () => {
   const { runConfigs, typedStore } = createRunConfigHarness()
 
-  // The stored new-session default beats built-ins; the caller partial beats both.
+  // The stored new-session default beats schema defaults; the caller partial beats both.
   typedStore.values.defaultRunConfig.set({ maxMessages: 5, modelId: 'stored-model' })
   const config = runConfigs.createForSession('sess_1', { modelId: 'caller-model' })
 
@@ -157,16 +156,23 @@ test('resolveForRun returns a complete stored row as-is', () => {
   expect(runConfigs.resolveForRun('sess_1')).toEqual(stored)
 })
 
-test('resolveForRun fills missing cells from built-in defaults', () => {
+test('resolveForRun fills missing cells from schema defaults', () => {
   const { rawStore, runConfigs } = createRunConfigHarness()
 
-  // Sparse rows can exist via sync or partial writes; resolution stays tolerant.
+  // Schema defaults repair sparse raw rows while preserving row existence.
   rawStore.setRow('sessionRunConfigs', 'sess_1', { modelId: 'model-a' })
 
-  expect(runConfigs.resolveForRun('sess_1')).toEqual({
-    ...DEFAULT_RUN_CONFIG,
-    modelId: 'model-a',
-  })
+  expect(runConfigs.resolveForRun('sess_1')).toEqual(
+    SessionRunConfigSchema.parse({ modelId: 'model-a' }),
+  )
+})
+
+test('resolveForRun throws when the session config row does not exist', () => {
+  const { runConfigs } = createRunConfigHarness()
+
+  expect(() => runConfigs.resolveForRun('sess_missing')).toThrow(
+    'Missing row: sessionRunConfigs/sess_missing',
+  )
 })
 
 test('resolveForRun reflects later per-cell edits to the session config row', () => {
