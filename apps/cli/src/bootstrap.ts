@@ -14,7 +14,7 @@ import { createWsSynchronizer } from 'tinybase/synchronizers/synchronizer-ws-cli
 
 // oxlint-disable-next-line dot-notation -- env var name has underscores, bracket notation is clearer
 export const WORKER_URL = process.env['TETRA_WORKER_URL'] ?? 'ws://localhost:8787'
-export const SYNC_URL = `${WORKER_URL}/tetra`
+const SYNC_URL = `${WORKER_URL}/tetra`
 
 export type BootstrapMode = 'local' | 'sync'
 

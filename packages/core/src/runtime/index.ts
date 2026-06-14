@@ -1,5 +1,2 @@
-export { openRouterLanguageModelResolver } from './language-model-resolver.ts'
 export { Run } from './run.ts'
 export { Runs } from './runs.ts'
-export type { LanguageModelResolver } from './language-model-resolver.ts'
-export type { RunsInit } from './runs.ts'

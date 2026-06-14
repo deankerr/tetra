@@ -90,7 +90,6 @@
         "ai": "catalog:",
         "nanoid": "^5.1.11",
         "remeda": "^2.34.1",
-        "tinybase": "catalog:",
         "zod": "catalog:",
       },
       "devDependencies": {
