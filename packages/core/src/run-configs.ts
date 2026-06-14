@@ -17,9 +17,7 @@ export class RunConfigs {
   // caller partial. Parse happens before any store write so an invalid merge
   // never lands a row.
   createForSession(sessionId: string, partial?: Partial<RunConfig>): RunConfig {
-    const storedDefault = this.rawStore.hasValue('defaultRunConfig')
-      ? this.rawStore.getValue('defaultRunConfig')
-      : undefined
+    const storedDefault = this.typedStore.values.defaultRunConfig.get()
     const config = RunConfigSchema.parse({
       ...DEFAULT_RUN_CONFIG,
       ...toConfigObject(storedDefault),

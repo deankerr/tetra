@@ -12,6 +12,8 @@ function expectTetraRawStorePair(pair: ReturnType<typeof createRawStore>): void 
   expect(JSON.parse(rawStore.getTablesSchemaJson())).toEqual(tetraStoreSchema.tablesSchema)
   expect(JSON.parse(rawStore.getValuesSchemaJson())).toEqual(tetraStoreSchema.valuesSchema)
   expect(typedStore.values.catalogLastRefreshed.get()).toBeNull()
+  expect(typedStore.values.cliActiveSessionId.get()).toBeNull()
+  expect(typedStore.values.defaultRunConfig.get()).toBeNull()
 
   // Insert enough rows to prove consumer-visible index slices are already defined.
   typedStore.tables.messages.setRow('m1', {

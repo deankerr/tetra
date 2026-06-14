@@ -110,12 +110,12 @@ test('setAsDefault stores a session config that later createForSession calls pic
 })
 
 test('setAsDefault throws when the session config row does not exist', () => {
-  const { rawStore, runConfigs } = createRunConfigHarness()
+  const { runConfigs, typedStore } = createRunConfigHarness()
 
   expect(() => {
     runConfigs.setAsDefault('sess_missing')
   }).toThrow()
-  expect(rawStore.hasValue('defaultRunConfig')).toBe(false)
+  expect(typedStore.values.defaultRunConfig.get()).toBeNull()
 })
 
 test('unlinkPrompt clears the prompt id only from session configs that reference it', () => {

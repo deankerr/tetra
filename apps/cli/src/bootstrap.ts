@@ -77,11 +77,11 @@ export async function bootstrap(mode: BootstrapMode) {
     const { cliActiveSessionId } = typedStore.values
     const workspace = {
       clearActiveSessionId(): void {
-        cliActiveSessionId.set('')
+        cliActiveSessionId.set(null)
       },
       getActiveSessionId(): string | undefined {
-        const sessionId = rawStore.hasValue('cliActiveSessionId') ? cliActiveSessionId.get() : ''
-        return sessionId.trim() === '' ? undefined : sessionId
+        const sessionId = cliActiveSessionId.get()
+        return sessionId === null || sessionId.trim() === '' ? undefined : sessionId
       },
       setActiveSessionId(sessionId: string): void {
         cliActiveSessionId.set(sessionId)
@@ -133,11 +133,11 @@ export async function bootstrap(mode: BootstrapMode) {
   const { cliActiveSessionId } = typedStore.values
   const workspace = {
     clearActiveSessionId(): void {
-      cliActiveSessionId.set('')
+      cliActiveSessionId.set(null)
     },
     getActiveSessionId(): string | undefined {
-      const sessionId = rawStore.hasValue('cliActiveSessionId') ? cliActiveSessionId.get() : ''
-      return sessionId.trim() === '' ? undefined : sessionId
+      const sessionId = cliActiveSessionId.get()
+      return sessionId === null || sessionId.trim() === '' ? undefined : sessionId
     },
     setActiveSessionId(sessionId: string): void {
       cliActiveSessionId.set(sessionId)

@@ -100,10 +100,11 @@ export const tetraStoreSchema = defineTypedStore({
   },
   values: {
     catalogLastRefreshed: z.number().nullable().default(null),
-    cliActiveSessionId: z.string(),
+    cliActiveSessionId: z.string().nullable().default(null),
     // Mutable workspace-level default applied when creating a new session. Stored as a blob
     // since it is a cold path (read once at session creation, not on every render).
-    defaultRunConfig: RunConfigSnapshotSchema,
+    // Null means there is no stored override beyond built-in defaults.
+    defaultRunConfig: RunConfigSnapshotSchema.nullable().default(null),
   },
 })
 
