@@ -8,7 +8,15 @@ type MessageRow = Rows['messages']
 type RunRow = Rows['runs']
 type RunStatus = RunRow['status']
 
-export function MessageHeader({ message, run }: { message: MessageRow; run: RunRow | null }) {
+export function MessageHeader({
+  isActive,
+  message,
+  run,
+}: {
+  isActive: boolean
+  message: MessageRow
+  run: RunRow | null
+}) {
   const modelId = run === null ? '' : getRunModelId(run)
 
   return (
@@ -21,12 +29,12 @@ export function MessageHeader({ message, run }: { message: MessageRow; run: RunR
           <span className="truncate">{modelId}</span>
         </Badge>
       )}
-      {run && <RunStatusBadge status={run.status} />}
+      {run && <RunStatusBadge isActive={isActive} status={run.status} />}
     </div>
   )
 }
 
-function RunStatusBadge({ status }: { status: RunStatus }) {
+function RunStatusBadge({ isActive, status }: { isActive: boolean; status: RunStatus }) {
   if (status === 'completed') {
     return (
       <Badge className="text-muted-foreground" title="Run completed" variant="secondary">
@@ -54,10 +62,14 @@ function RunStatusBadge({ status }: { status: RunStatus }) {
     )
   }
 
+  // A non-terminal row only spins/claims "active" when a live Run backs it. A stale
+  // non-terminal row (crash, reload, another client) shows a static, inactive badge.
+  const label = isActive ? 'Run active' : 'Run inactive'
+
   return (
-    <Badge className="text-muted-foreground" title="Run active" variant="secondary">
-      <LoaderCircleIcon className="animate-spin" />
-      <span className="sr-only">Run active</span>
+    <Badge className="text-muted-foreground" title={label} variant="secondary">
+      <LoaderCircleIcon className={isActive ? 'animate-spin' : undefined} />
+      <span className="sr-only">{label}</span>
     </Badge>
   )
 }

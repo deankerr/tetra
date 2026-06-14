@@ -5,6 +5,7 @@ export { StepWarningSchema } from './steps.ts'
 export type { RunConfig } from './run-config.ts'
 export type {
   Rows,
+  RunStatus,
   TetraRawIndexes,
   TetraRawStore,
   TetraTypedIndexes,

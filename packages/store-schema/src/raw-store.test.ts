@@ -44,7 +44,7 @@ function expectTetraRawStorePair(pair: ReturnType<typeof createRawStore>): void 
     createdAt: 2,
     errorMessage: '',
     sessionId: 's1',
-    status: 'streaming',
+    status: 'active',
     targetMessageId: 'm2',
     terminalAt: 0,
     updatedAt: 2,

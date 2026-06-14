@@ -9,7 +9,7 @@ import type { UIMessage } from 'ai'
 import { typedTinybase } from '@/lib/tinybase'
 
 import { MessageActionsView } from './actions'
-import { getRunErrorMessage, isMessageRunStreaming, useMessageRun } from './data'
+import { getRunErrorMessage, useMessageRun, useMessageRunActive } from './data'
 import { MessageHeader } from './header'
 import { MessageParts } from './parts'
 
@@ -32,7 +32,7 @@ export function MessageView({
     throw new Error(`MessageView expected message ${messageId} to exist`)
   }
 
-  const isStreaming = isMessageRunStreaming(run)
+  const isActive = useMessageRunActive(run)
 
   return (
     <AiMessage
@@ -40,13 +40,13 @@ export function MessageView({
       from={getAiMessageRole(message.role)}
       {...props}
     >
-      <MessageHeader message={message} run={run} />
+      <MessageHeader isActive={isActive} message={message} run={run} />
       <AiMessageContent className="group-[.is-assistant]:w-full">
-        <MessageParts isStreaming={isStreaming} messageId={message.id} parts={message.parts} />
+        <MessageParts isStreaming={isActive} messageId={message.id} parts={message.parts} />
         <MessageRunError run={run} />
       </AiMessageContent>
 
-      {!isStreaming && (
+      {!isActive && (
         <MessageActionsView isThreadLeafMessage={isThreadLeafMessage} message={message} run={run} />
       )}
     </AiMessage>

@@ -16,21 +16,13 @@ export function createRunRecord(
     createdAt: now,
     errorMessage: '',
     sessionId: args.sessionId,
-    status: 'preparing',
+    status: 'active',
     targetMessageId: args.targetMessageId,
     terminalAt: 0,
     updatedAt: now,
   })
 
   return runId
-}
-
-export function startRunStreaming(typedStore: TetraTypedStore, runId: string): void {
-  typedStore.tables.runs.updateRow(runId, {
-    errorMessage: '',
-    status: 'streaming',
-    updatedAt: Date.now(),
-  })
 }
 
 export function completeRunRecord(typedStore: TetraTypedStore, runId: string): void {

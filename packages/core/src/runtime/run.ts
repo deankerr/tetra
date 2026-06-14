@@ -1,18 +1,18 @@
 import type { CredentialsStore } from '@tetra/credentials'
 import { RunConfigSchema } from '@tetra/store-schema'
-import type { RunConfig as RunConfigType, Rows, TetraTypedStore } from '@tetra/store-schema'
+import type {
+  RunConfig as RunConfigType,
+  Rows,
+  RunStatus,
+  TetraTypedStore,
+} from '@tetra/store-schema'
 import { convertToModelMessages, readUIMessageStream, stepCountIs, streamText } from 'ai'
 import type { LanguageModel, ModelMessage, ToolSet, UIMessage } from 'ai'
 
 import { resolveTools } from '#tools'
 
 import type { LanguageModelResolver } from './language-model-resolver.ts'
-import {
-  cancelRunRecord,
-  completeRunRecord,
-  failRunRecord,
-  startRunStreaming,
-} from './run-records.ts'
+import { cancelRunRecord, completeRunRecord, failRunRecord } from './run-records.ts'
 import { StepEvent } from './steps.ts'
 
 const DURABLE_SNAPSHOT_INTERVAL_MS = 500
@@ -27,8 +27,6 @@ export interface RunStart {
   targetMessageId: string
   transcriptMessages: Rows['messages'][]
 }
-
-export type RunStatus = 'cancelled' | 'completed' | 'error' | 'preparing' | 'streaming'
 
 interface RunInit {
   credentials: CredentialsStore
@@ -55,7 +53,7 @@ export class Run extends EventTarget {
   modelMessages: ModelMessage[] = []
   parts: UIMessage['parts'] = []
   result: ReturnType<typeof streamText> | null = null
-  status: RunStatus = 'preparing'
+  status: RunStatus = 'active'
   tools: ToolSet = {}
 
   private readonly credentials: CredentialsStore
@@ -153,8 +151,6 @@ export class Run extends EventTarget {
       this.model = model
       this.modelMessages = modelMessages
       this.tools = tools
-      startRunStreaming(this.typedStore, this.runId)
-      this.setStatus('streaming')
 
       const result = streamText({
         abortSignal: this.abortController.signal,

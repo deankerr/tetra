@@ -376,7 +376,7 @@ function formatDateTime(value: number): string {
   return new Date(value).toLocaleString()
 }
 
-// Terminal time is absent until a run leaves preparing/streaming.
+// Terminal time is absent until a run leaves the active status.
 function formatTerminalTime(value: number): string {
   if (value === 0) {
     return 'n/a'

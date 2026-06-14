@@ -27,8 +27,6 @@ import { useTetra } from '@/tetra-context'
 import { useSessionThreadAppendTarget } from './thread-view'
 import { SessionUsageMeter } from './usage-meter'
 
-const activeStatuses = new Set(['preparing', 'streaming'])
-
 type ComposerSubmitHandler = NonNullable<Parameters<typeof PromptInput>[0]['onSubmit']>
 
 export function Composer({
@@ -43,7 +41,7 @@ export function Composer({
   sessionId: string
 }) {
   const activeRun = useActiveRun(sessionId)
-  const isStreaming = activeRun !== null
+  const isActive = activeRun !== null
   const [modelId, setModelId] = typedTinybase.useCellState(
     'sessionRunConfigs',
     sessionId,
@@ -52,7 +50,7 @@ export function Composer({
   const [draft, setDraft] = useState('')
   const [modelPickerOpen, setModelPickerOpen] = useState(false)
   const handleSubmit = useComposerSubmit({
-    isStreaming,
+    isActive,
     onSessionMaterialized,
     requireGenerateReady,
     sessionId,
@@ -65,7 +63,7 @@ export function Composer({
         <PromptInputBody>
           <ComposerAttachments />
           <PromptInputTextarea
-            disabled={isStreaming}
+            disabled={isActive}
             onChange={(e) => {
               setDraft(e.currentTarget.value)
             }}
@@ -82,13 +80,13 @@ export function Composer({
               }}
               value={modelId ?? ''}
             />
-            <ImageInputButton disabled={isStreaming} />
+            <ImageInputButton disabled={isActive} />
           </PromptInputTools>
 
           <ComposerSubmitControls
             activeRunId={activeRun?.id ?? null}
             draft={draft}
-            isStreaming={isStreaming}
+            isActive={isActive}
             sessionId={sessionId}
           />
         </PromptInputFooter>
@@ -106,13 +104,13 @@ export function Composer({
 }
 
 function useComposerSubmit({
-  isStreaming,
+  isActive,
   onSessionMaterialized,
   requireGenerateReady,
   sessionId,
   setDraft,
 }: {
-  isStreaming: boolean
+  isActive: boolean
   onSessionMaterialized: ((args: { sessionId: string }) => void) | undefined
   requireGenerateReady: (() => void) | undefined
   sessionId: string
@@ -129,7 +127,7 @@ function useComposerSubmit({
         ...message.files,
       ]
 
-      if (isStreaming || parts.length === 0) {
+      if (isActive || parts.length === 0) {
         return
       }
 
@@ -191,7 +189,7 @@ function useComposerSubmit({
       }
     },
     [
-      isStreaming,
+      isActive,
       onSessionMaterialized,
       requireGenerateReady,
       selectThreadFromMessage,
@@ -204,10 +202,17 @@ function useComposerSubmit({
 }
 
 // Returns the current active run for this composer so submit controls stay in sync.
+// The newest run row provides reactivity; the live Run object is the authority on
+// liveness, so a stale non-terminal row (crash, reload, another client) never locks
+// the composer.
 const useActiveRun = (sessionId: string) => {
+  const tetra = useTetra()
   const ids = typedTinybase.useSliceRowIds('runsBySessionNewestFirst', sessionId)
   const run = typedTinybase.useEntity('runs', ids[0] ?? '')
-  if (run === null || !activeStatuses.has(run.status)) {
+  if (run === null || run.status !== 'active') {
+    return null
+  }
+  if (tetra.runs.getBySession(sessionId) === null) {
     return null
   }
   return run
@@ -259,12 +264,12 @@ function ImageInputButton({ disabled }: { disabled: boolean }) {
 function ComposerSubmitControls({
   activeRunId,
   draft,
-  isStreaming,
+  isActive,
   sessionId,
 }: {
   activeRunId: string | null
   draft: string
-  isStreaming: boolean
+  isActive: boolean
   sessionId: string
 }) {
   const tetra = useTetra()
@@ -278,7 +283,7 @@ function ComposerSubmitControls({
       <PromptInputButton
         aria-label="Add"
         data-action="add"
-        disabled={!isStreaming && isEmpty}
+        disabled={!isActive && isEmpty}
         size="icon-sm"
         title="Add"
         type="submit"
@@ -288,13 +293,13 @@ function ComposerSubmitControls({
       </PromptInputButton>
 
       <PromptInputSubmit
-        disabled={!isStreaming && isEmpty}
+        disabled={!isActive && isEmpty}
         onStop={() => {
           if (activeRunId !== null) {
             tetra.runs.cancel(activeRunId)
           }
         }}
-        status={isStreaming ? 'streaming' : 'ready'}
+        status={isActive ? 'streaming' : 'ready'}
       />
     </div>
   )

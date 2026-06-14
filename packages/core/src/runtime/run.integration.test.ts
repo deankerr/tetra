@@ -129,7 +129,7 @@ test('generate streams through the AI SDK into TinyBase rows', async () => {
   })
 
   const run = runs.generate({ targetMessageId })
-  expect(core.typedStore.tables.runs.requireEntity(run.runId).status).toBe('preparing')
+  expect(core.typedStore.tables.runs.requireEntity(run.runId).status).toBe('active')
 
   await run.done
 
@@ -250,7 +250,7 @@ test('streaming snapshots persist to the target message before terminal status',
   expect(messageAfterSnapshot.parts.length).toBeGreaterThan(0)
   expect(messageAfterSnapshot.updatedAt).toBeGreaterThan(messageBeforeSnapshot.updatedAt)
   expect(sessionAfterSnapshot.updatedAt).toBe(sessionAfterGenerate.updatedAt)
-  expect(core.typedStore.tables.runs.requireEntity(run.runId).status).toBe('streaming')
+  expect(core.typedStore.tables.runs.requireEntity(run.runId).status).toBe('active')
 
   await run.done
   expect(

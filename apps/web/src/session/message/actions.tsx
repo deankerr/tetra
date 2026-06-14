@@ -12,7 +12,7 @@ import { useTetra } from '@/tetra-context'
 
 import { RunDetailSheet } from '../run-detail-sheet'
 import { useSessionThreadSelection } from '../thread-view'
-import { isMessageRunStreaming } from './data'
+import { useMessageRunActive } from './data'
 import type { MessagePart } from './data'
 import { MessageForkControl } from './fork-control'
 
@@ -31,10 +31,10 @@ export function MessageActionsView({
   const [runDetailOpen, setRunDetailOpen] = useState(false)
   const hasContinuations = useMessageHasContinuations(message)
   const messageText = getTextContent(message.parts)
-  const isStreaming = isMessageRunStreaming(run)
+  const isActive = useMessageRunActive(run)
 
-  const canDelete = !hasContinuations && !isStreaming
-  const canGenerate = isThreadLeafMessage && !isStreaming
+  const canDelete = !hasContinuations && !isActive
+  const canGenerate = isThreadLeafMessage && !isActive
   const deleteActionLabel = canDelete ? 'Delete' : 'Only leaf messages can be deleted'
   const generateActionLabel = run === null ? 'Generate' : 'Regenerate'
 

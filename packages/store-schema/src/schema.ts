@@ -20,7 +20,11 @@ const MessagePartSchema = z.custom<UIMessage['parts'][number]>(
 
 // Message roles are caller-authored labels; provider-specific projection happens at run time.
 const MessageRoleSchema = z.string()
-const RunStatusSchema = z.enum(['cancelled', 'completed', 'error', 'preparing', 'streaming'])
+// A run is `active` until it reaches a terminal status (`completed`/`error`/`cancelled`).
+// `active` is only a claim by the synced row; confirming a run is actually live requires
+// the in-process Run object, so no consumer should treat `active` alone as proof of liveness.
+const RunStatusSchema = z.enum(['active', 'cancelled', 'completed', 'error'])
+export type RunStatus = z.infer<typeof RunStatusSchema>
 
 // Index ids are shared with typed TinyBase bindings at app and test boundaries.
 export const tetraIndexIds = [
