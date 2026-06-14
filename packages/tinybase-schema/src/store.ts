@@ -36,6 +36,7 @@ export type CellOutputOf<
 
 interface TableApi<Schema extends RowZod> {
   deleteRow(rowId: string): void
+  getEntities(rowIds: string[]): EntityOf<Schema>[]
   getEntity(rowId: string): EntityOf<Schema> | null
   getRow(rowId: string): OutputRowOf<Schema> | null
   getRowIds(): string[]
@@ -150,6 +151,18 @@ function createTableApi<Schema extends RowZod>(
 
       const cellSchema = schema.shape[cellId]
       return cellSchema.parse(store.getCell(tableId, rowId, cellId)) as CellOutputOf<Schema, CellId>
+    },
+
+    getEntities(rowIds) {
+      // Selected reads skip missing rows so stale caller-owned row ids do not poison the result.
+      return rowIds.flatMap((rowId) => {
+        if (!store.hasRow(tableId, rowId)) {
+          return []
+        }
+
+        const parsed = schema.parse(store.getRow(tableId, rowId))
+        return [{ ...parsed, id: rowId }]
+      })
     },
 
     getEntity(rowId) {

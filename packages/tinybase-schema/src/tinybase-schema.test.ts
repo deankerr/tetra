@@ -199,6 +199,19 @@ test('binds a TinyBase store with explicit typed row CRUD methods', () => {
     updatedAt: 0,
   })
   expect(db.tables.sessions.getEntity('sess_1')?.id).toBe('sess_1')
+  expect(db.tables.sessions.getEntities(['sess_1', 'missing_session'])).toEqual([
+    {
+      config: {
+        modelId: 'openai/gpt-5.1',
+        providerOptions: { effort: 'low' },
+        toolIds: [],
+      },
+      createdAt: 0,
+      id: 'sess_1',
+      title: 'Typed TinyBase',
+      updatedAt: 0,
+    },
+  ])
   expect(db.tables.sessions.getRowIds()).toEqual(['sess_1'])
   expect(db.tables.messages.requireEntity('msg_1').parts[0]).toEqual({
     text: 'hello from a typed TinyBase row',
@@ -226,6 +239,7 @@ test('keeps table query methods precise around missing rows and raw TinyBase def
 
   expect(db.tables.sessions.getRow('missing_session')).toBeNull()
   expect(db.tables.sessions.getEntity('missing_session')).toBeNull()
+  expect(db.tables.sessions.getEntities(['missing_session'])).toEqual([])
   expect(db.tables.sessions.getCell('missing_session', 'title')).toBeUndefined()
   expect(db.tables.sessions.getRow('sess_1')).toEqual({
     config: {

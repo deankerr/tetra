@@ -1,10 +1,9 @@
 import { summarizeSteps } from '@tetra/core'
 import type { UsageTotals } from '@tetra/core'
-import { tetraStoreSchema } from '@tetra/store-schema'
 import type { Rows } from '@tetra/store-schema'
 import { useMemo } from 'react'
 
-import { tinybase, typedTinybase } from '@/lib/tinybase'
+import { typedTinybase } from '@/lib/tinybase'
 
 type StepIndexId = 'stepsByRun' | 'stepsBySession'
 
@@ -19,22 +18,5 @@ export function useSessionUsageTotals(sessionId: string): UsageTotals {
 }
 
 function useStepsBySlice(indexId: StepIndexId, sliceId: string): Rows['steps'][] {
-  const rawStore = tinybase.useStore()
-  const stepIds = typedTinybase.useSliceRowIds(indexId, sliceId)
-
-  return useMemo(() => {
-    if (rawStore === undefined) {
-      return []
-    }
-
-    return stepIds
-      .map((stepId) => {
-        if (!rawStore.hasRow('steps', stepId)) {
-          return null
-        }
-
-        return tetraStoreSchema.parseEntity('steps', stepId, rawStore.getRow('steps', stepId))
-      })
-      .filter((step): step is Rows['steps'] => step !== null)
-  }, [rawStore, stepIds])
+  return typedTinybase.useSliceEntities(indexId, sliceId, 'steps')
 }

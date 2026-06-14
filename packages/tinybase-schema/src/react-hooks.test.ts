@@ -8,8 +8,10 @@ interface HookState {
   cell: unknown
   hasRow: boolean
   row: Record<string, unknown>
+  rowIds: string[]
   setCell: ReturnType<typeof mock>
   setValue: ReturnType<typeof mock>
+  sliceIds: string[]
   sliceRowIds: string[]
   table: Record<string, Record<string, unknown>>
   value: unknown
@@ -19,8 +21,10 @@ const hookState: HookState = {
   cell: undefined,
   hasRow: false,
   row: {},
+  rowIds: [],
   setCell: mock(),
   setValue: mock(),
+  sliceIds: [],
   sliceRowIds: [],
   table: {},
   value: undefined,
@@ -36,6 +40,8 @@ const tinybaseHooks = {
   useCellState: mock(() => [hookState.cell, hookState.setCell]),
   useHasRow: mock(() => hookState.hasRow),
   useRow: mock(() => hookState.row),
+  useRowIds: mock(() => hookState.rowIds),
+  useSliceIds: mock(() => hookState.sliceIds),
   useSliceRowIds: mock(() => hookState.sliceRowIds),
   useTable: mock(() => hookState.table),
   useValue: mock(() => hookState.value),
@@ -66,8 +72,10 @@ beforeEach(() => {
   hookState.cell = undefined
   hookState.hasRow = false
   hookState.row = {}
+  hookState.rowIds = []
   hookState.setCell = mock()
   hookState.setValue = mock()
+  hookState.sliceIds = []
   hookState.sliceRowIds = []
   hookState.table = {}
   hookState.value = undefined
@@ -83,7 +91,9 @@ test('parses hook query results through the typed definition without rendering R
   hookState.cell = '  Hook title  '
   hookState.hasRow = true
   hookState.row = { messageCount: '3', title: '  Row title  ' }
-  hookState.sliceRowIds = ['sess_1']
+  hookState.rowIds = ['sess_1', 'sess_2']
+  hookState.sliceIds = ['First']
+  hookState.sliceRowIds = ['sess_1', 'missing_session']
   hookState.table = {
     sess_1: { messageCount: '1', title: ' First ' },
     sess_2: { messageCount: '2', title: ' Second ' },
@@ -102,7 +112,12 @@ test('parses hook query results through the typed definition without rendering R
     { id: 'sess_2', messageCount: 2, title: 'Second' },
   ])
   expect(hooks.useHasRow('sessions', 'sess_1')).toBe(true)
-  expect(hooks.useSliceRowIds('sessionsByTitle', 'First')).toEqual(['sess_1'])
+  expect(hooks.useRowIds('sessions')).toEqual(['sess_1', 'sess_2'])
+  expect(hooks.useSliceIds('sessionsByTitle')).toEqual(['First'])
+  expect(hooks.useSliceRowIds('sessionsByTitle', 'First')).toEqual(['sess_1', 'missing_session'])
+  expect(hooks.useSliceEntities('sessionsByTitle', 'First', 'sessions')).toEqual([
+    { id: 'sess_1', messageCount: 1, title: 'First' },
+  ])
   expect(hooks.useValue('activeSessionId')).toBe('sess_1')
 })
 
@@ -112,6 +127,8 @@ test('forwards named TinyBase objects to underlying hooks', () => {
   hookState.cell = '  Hook title  '
   hookState.hasRow = true
   hookState.row = { messageCount: '3', title: '  Row title  ' }
+  hookState.rowIds = ['sess_1']
+  hookState.sliceIds = ['First']
   hookState.sliceRowIds = ['sess_1']
   hookState.table = {
     sess_1: { messageCount: '1', title: ' First ' },
@@ -124,6 +141,9 @@ test('forwards named TinyBase objects to underlying hooks', () => {
   hooks.useEntityList('sessions', 'webUi')
   hooks.useHasRow('sessions', 'sess_1', 'webUi')
   hooks.useRow('sessions', 'sess_1', 'webUi')
+  hooks.useRowIds('sessions', 'webUi')
+  hooks.useSliceEntities('sessionsByTitle', 'First', 'sessions', 'webUiIndexes', 'webUi')
+  hooks.useSliceIds('sessionsByTitle', 'webUiIndexes')
   hooks.useSliceRowIds('sessionsByTitle', 'First', 'webUiIndexes')
   hooks.useValue('activeSessionId', 'webUi')
   hooks.useValueState('activeSessionId', 'webUi')
@@ -131,8 +151,10 @@ test('forwards named TinyBase objects to underlying hooks', () => {
   expect(tinybaseHooks.useCell).toHaveBeenCalledWith('sessions', 'sess_1', 'title', 'webUi')
   expect(tinybaseHooks.useCellState).toHaveBeenCalledWith('sessions', 'sess_1', 'title', 'webUi')
   expect(tinybaseHooks.useHasRow).toHaveBeenCalledWith('sessions', 'sess_1', 'webUi')
+  expect(tinybaseHooks.useRowIds).toHaveBeenCalledWith('sessions', 'webUi')
   expect(tinybaseHooks.useTable).toHaveBeenCalledWith('sessions', 'webUi')
   expect(tinybaseHooks.useRow).toHaveBeenCalledWith('sessions', 'sess_1', 'webUi')
+  expect(tinybaseHooks.useSliceIds).toHaveBeenCalledWith('sessionsByTitle', 'webUiIndexes')
   expect(tinybaseHooks.useSliceRowIds).toHaveBeenCalledWith(
     'sessionsByTitle',
     'First',

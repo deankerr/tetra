@@ -72,7 +72,7 @@ runtime methods they call.
 Bound table APIs currently include:
 
 - `getRow`, `setRow`, `updateRow`, `deleteRow`
-- `getEntity`, `requireEntity`, `listEntities`
+- `getEntity`, `getEntities`, `requireEntity`, `listEntities`
 - `getRowIds`, `hasRow`
 - `getCell`, `setCell`
 
@@ -96,6 +96,7 @@ Bound index APIs currently include:
 React hooks currently include:
 
 - `useRow`
+- `useRowIds`
 - `useEntity`
 - `useEntityList`
 - `useHasRow`
@@ -103,7 +104,24 @@ React hooks currently include:
 - `useCellState`
 - `useValue`
 - `useValueState`
+- `useSliceIds`
+- `useSliceEntities`
 - `useSliceRowIds`
+
+## Typed Surface Parity
+
+The regular and React typed surfaces should stay in parity for table, value,
+and index read coverage. When a typed read helper is useful outside React, add
+the equivalent hook when React can subscribe to the same TinyBase data. When a
+hook composes multiple TinyBase sources, keep the regular API as explicit
+building blocks unless this package also owns the runtime relationship.
+
+For example, the regular API exposes `table.getEntities(rowIds)` and typed
+indexes expose `getSliceRowIds(indexId, sliceId)`. The React API can then offer
+`useSliceEntities(indexId, sliceId, tableId)` because the hook can subscribe to
+both the index slice and the table. Mutations and lifecycle wiring do not need
+forced parity; they should follow TinyBase ownership boundaries and real app
+usage.
 
 ## Default Semantics
 
@@ -172,7 +190,6 @@ Hold off on these until the app needs them:
 - Wrapping `useStore` / `addCellListener`.
 - Wrapping wider state hooks such as `useRowState`, `useTableState`, and
   `useValuesState`.
-- Entity-returning index helpers such as `getSliceEntities`.
 - Opinionated batch helpers such as `replaceRows`, `deleteRowsWhere`, or
   insert-only APIs.
 - Domain-specific error message mapping for every missing row.

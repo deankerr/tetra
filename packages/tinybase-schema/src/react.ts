@@ -162,6 +162,41 @@ export function createStoreHooks<
       }, [hasRow, row, tableId])
     },
 
+    useRowIds(tableId: keyof Tables & string, storeOrStoreId?: LooseStoreOrStoreId): string[] {
+      return tinyHooks.useRowIds(tableId, storeOrStoreId)
+    },
+
+    useSliceEntities<TableId extends keyof Tables & string>(
+      indexId: IndexIdList[number],
+      sliceId: string,
+      tableId: TableId,
+      indexesOrIndexesId?: LooseIndexesOrIndexesId,
+      storeOrStoreId?: LooseStoreOrStoreId,
+    ): EntityOf<TableSchemaOf<Tables[TableId]>>[] {
+      const rowIds = tinyHooks.useSliceRowIds(indexId, sliceId, indexesOrIndexesId)
+      const table = tinyHooks.useTable(tableId, storeOrStoreId)
+
+      // Slice entity reads compose index membership with table content subscriptions.
+      return useMemo(
+        () =>
+          rowIds.flatMap((rowId) => {
+            if (!(rowId in table)) {
+              return []
+            }
+
+            return [storeSchema.parseEntity(tableId, rowId, table[rowId])]
+          }),
+        [rowIds, table, tableId],
+      )
+    },
+
+    useSliceIds(
+      indexId: IndexIdList[number],
+      indexesOrIndexesId?: LooseIndexesOrIndexesId,
+    ): string[] {
+      return tinyHooks.useSliceIds(indexId, indexesOrIndexesId)
+    },
+
     useSliceRowIds(
       indexId: IndexIdList[number],
       sliceId: string,
