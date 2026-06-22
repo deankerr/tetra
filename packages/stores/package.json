@@ -1,0 +1,31 @@
+{
+  "name": "@tetra/stores",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./cli": "./src/cli.ts",
+    "./host": "./src/host/definition.ts",
+    "./host/runtime": "./src/host/runtime.ts",
+    "./prototype": "./src/prototype.ts",
+    "./react": "./src/host/react.ts",
+    "./web": "./src/web.ts",
+    "./worker": "./src/worker.ts"
+  },
+  "scripts": {
+    "prototype": "bun src/prototype.ts",
+    "test": "bun test ./src"
+  },
+  "dependencies": {
+    "@tetra/tinybase-schema": "workspace:*",
+    "ai": "catalog:",
+    "react": "catalog:",
+    "tinybase": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "@types/react": "catalog:",
+    "typescript": "catalog:"
+  }
+}

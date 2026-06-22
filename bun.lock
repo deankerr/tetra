@@ -116,6 +116,21 @@
         "typescript": "catalog:",
       },
     },
+    "packages/stores": {
+      "name": "@tetra/stores",
+      "dependencies": {
+        "@tetra/tinybase-schema": "workspace:*",
+        "ai": "catalog:",
+        "react": "catalog:",
+        "tinybase": "catalog:",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@types/bun": "catalog:",
+        "@types/react": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
     "packages/tinybase-schema": {
       "name": "@tetra/tinybase-schema",
       "dependencies": {
@@ -896,6 +911,8 @@
     "@tetra/credentials": ["@tetra/credentials@workspace:packages/credentials"],
 
     "@tetra/store-schema": ["@tetra/store-schema@workspace:packages/store-schema"],
+
+    "@tetra/stores": ["@tetra/stores@workspace:packages/stores"],
 
     "@tetra/tinybase-schema": ["@tetra/tinybase-schema@workspace:packages/tinybase-schema"],
 
