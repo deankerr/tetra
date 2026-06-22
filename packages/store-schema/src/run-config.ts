@@ -11,7 +11,6 @@ export const RunConfigSchema = z.object({
   systemPromptId: z.string(),
   toolIds: z.array(z.string()),
 })
-export type RunConfig = z.infer<typeof RunConfigSchema>
 
 // Run snapshots are stored as object cells so historical runs keep their original settings.
 export const RunConfigSnapshotSchema = z.record(z.string(), z.json())

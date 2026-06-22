@@ -1,9 +1,9 @@
-import type { Rows } from '@tetra/store-schema'
+import type { LibraryRows as Rows } from '@tetra/stores'
 
 export function formatSession(session: Rows['sessions'], activeSessionId?: string): string {
   // Keep the list scan-friendly: active marker, stable short id, title, and update time.
   const marker = session.id === activeSessionId ? '*' : ' '
-  const title = session.title.trim() || '(untitled)'
+  const title = session.title.trim() ?? '(untitled)'
   const updated = new Date(session.updatedAt).toLocaleString()
   return `${marker} ${session.id}  ${title}  ${updated}`
 }

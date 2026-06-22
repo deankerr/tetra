@@ -1,4 +1,4 @@
-import type { StoreRowsFor } from '@tetra/tinybase-schema'
+import type { StoreApiFor, StoreRowsFor } from '@tetra/tinybase-schema'
 import { defineTypedStore } from '@tetra/tinybase-schema'
 import { z } from 'zod'
 
@@ -32,3 +32,4 @@ export const catalogStoreDefinition = defineTetraStore({
 })
 
 export type CatalogRows = StoreRowsFor<typeof catalogStoreSchema>
+export type CatalogTypedStore = StoreApiFor<typeof catalogStoreSchema>

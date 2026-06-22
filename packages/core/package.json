@@ -20,6 +20,7 @@
     "@openrouter/ai-sdk-provider": "catalog:",
     "@tetra/credentials": "workspace:*",
     "@tetra/store-schema": "workspace:*",
+    "@tetra/stores": "workspace:*",
     "@tetra/tinybase-schema": "workspace:*",
     "@tetra/tools-exa": "workspace:*",
     "ai": "catalog:",

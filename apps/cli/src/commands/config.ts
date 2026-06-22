@@ -1,4 +1,4 @@
-import type { RunConfig } from '@tetra/store-schema'
+import type { RunConfig } from '@tetra/core'
 import type { Command } from 'commander'
 
 import type { bootstrap } from '../bootstrap'

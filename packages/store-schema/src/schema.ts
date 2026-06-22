@@ -1,9 +1,4 @@
-import type {
-  BoundIndexes,
-  StoreApiFor,
-  StoreRowsFor,
-  StoreSchemasFor,
-} from '@tetra/tinybase-schema'
+import type { StoreApiFor, StoreRowsFor, StoreSchemasFor } from '@tetra/tinybase-schema'
 import { defineTypedStore } from '@tetra/tinybase-schema'
 import type { UIMessage } from 'ai'
 import type { Indexes as RawIndexes } from 'tinybase/indexes/with-schemas'
@@ -24,7 +19,6 @@ const MessageRoleSchema = z.string()
 // `active` is only a claim by the synced row; confirming a run is actually live requires
 // the in-process Run object, so no consumer should treat `active` alone as proof of liveness.
 const RunStatusSchema = z.enum(['active', 'cancelled', 'completed', 'error'])
-export type RunStatus = z.infer<typeof RunStatusSchema>
 
 // Index ids are shared with typed TinyBase bindings at app and test boundaries.
 export const tetraIndexIds = [
@@ -105,7 +99,6 @@ export const tetraStoreSchema = defineTypedStore({
 // These aliases are kept while app boundaries still pass raw and typed TinyBase objects explicitly.
 export type TetraRawIndexes = RawIndexes<StoreSchemasFor<typeof tetraStoreSchema>>
 export type TetraRawStore = RawStore<StoreSchemasFor<typeof tetraStoreSchema>>
-export type TetraTypedIndexes = BoundIndexes<typeof tetraIndexIds>
 export type TetraTypedStore = StoreApiFor<typeof tetraStoreSchema>
 
 // Persisted table row types are addressed through the schema-derived Rows map.

@@ -1,11 +1,11 @@
-import type { RunConfig, TetraTypedStore } from '@tetra/store-schema'
+import type { LibraryTypedStore, RunConfig } from '@tetra/stores'
 
 import { createIdGenerator } from '#ids'
 
 const nextId = createIdGenerator('run')
 
 export function createRunRecord(
-  typedStore: TetraTypedStore,
+  typedStore: LibraryTypedStore,
   args: { config: RunConfig; sessionId: string; targetMessageId: string },
 ): string {
   const runId = nextId()
@@ -25,7 +25,7 @@ export function createRunRecord(
   return runId
 }
 
-export function completeRunRecord(typedStore: TetraTypedStore, runId: string): void {
+export function completeRunRecord(typedStore: LibraryTypedStore, runId: string): void {
   const now = Date.now()
   typedStore.tables.runs.updateRow(runId, {
     status: 'completed',
@@ -34,7 +34,7 @@ export function completeRunRecord(typedStore: TetraTypedStore, runId: string): v
   })
 }
 
-export function cancelRunRecord(typedStore: TetraTypedStore, runId: string, message = ''): void {
+export function cancelRunRecord(typedStore: LibraryTypedStore, runId: string, message = ''): void {
   const now = Date.now()
   typedStore.tables.runs.updateRow(runId, {
     errorMessage: message,
@@ -44,7 +44,7 @@ export function cancelRunRecord(typedStore: TetraTypedStore, runId: string, mess
   })
 }
 
-export function failRunRecord(typedStore: TetraTypedStore, runId: string, error: unknown): void {
+export function failRunRecord(typedStore: LibraryTypedStore, runId: string, error: unknown): void {
   const now = Date.now()
   typedStore.tables.runs.updateRow(runId, {
     errorMessage: String(error),

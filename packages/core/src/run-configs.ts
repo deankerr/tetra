@@ -1,13 +1,13 @@
-import { RunConfigSchema, SessionRunConfigSchema } from '@tetra/store-schema'
-import type { RunConfig, TetraTypedStore } from '@tetra/store-schema'
+import { RunConfigSchema, SessionRunConfigSchema } from '@tetra/stores'
+import type { LibraryTypedStore, RunConfig } from '@tetra/stores'
 
 // RunConfigs owns the run config operations a single cell write cannot express:
 // the session config birth merge and run-start resolution (ADR-0008). Typed
 // per-cell writes to sessionRunConfigs remain first-class for surfaces.
 export class RunConfigs {
-  private readonly typedStore: TetraTypedStore
+  private readonly typedStore: LibraryTypedStore
 
-  constructor({ typedStore }: { typedStore: TetraTypedStore }) {
+  constructor({ typedStore }: { typedStore: LibraryTypedStore }) {
     this.typedStore = typedStore
   }
 

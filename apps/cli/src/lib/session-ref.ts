@@ -1,5 +1,5 @@
 import type { Transcripts } from '@tetra/core'
-import type { TetraTypedStore } from '@tetra/store-schema'
+import type { LibraryTypedStore } from '@tetra/stores'
 
 export interface ResolveSessionArgs {
   forceNew?: boolean
@@ -10,7 +10,7 @@ export interface ResolveSessionArgs {
 
 export interface ResolveSessionContext {
   transcripts: Transcripts
-  typedStore: TetraTypedStore
+  typedStore: LibraryTypedStore
   workspace: {
     clearActiveSessionId(): void
     getActiveSessionId(): string | undefined

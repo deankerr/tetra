@@ -36,8 +36,23 @@ export {
   getWorkerLifecyclePlans,
 } from './worker.ts'
 export type { WorkerStoreHost, WorkerStoreHostOptions } from './worker.ts'
-export { libraryIndexIds, libraryStoreDefinition, libraryStoreSchema } from './library/index.ts'
-export type { CatalogRows } from './catalog/index.ts'
-export type { LibraryRows } from './library/index.ts'
+export {
+  libraryIndexIds,
+  libraryStoreDefinition,
+  libraryStoreSchema,
+  ProviderOptionsSchema,
+  RunConfigSchema,
+  RunConfigSnapshotSchema,
+  SessionRunConfigSchema,
+  StepWarningSchema,
+} from './library/index.ts'
+export type { CatalogRows, CatalogTypedStore } from './catalog/index.ts'
+export type {
+  LibraryRows,
+  LibraryRunStatus,
+  LibraryTypedIndexes,
+  LibraryTypedStore,
+  RunConfig,
+} from './library/index.ts'
 export type { WebRows } from './web/index.ts'
 export { webStoreDefinition, webStoreSchema } from './web/index.ts'

@@ -7,17 +7,26 @@ const MessagePartSchema = z.custom<UIMessage['parts'][number]>(
 )
 
 const MessageRoleSchema = z.string()
-const ProviderOptionsSchema = z.record(z.string(), z.json())
-const RunConfigSnapshotSchema = z.record(z.string(), z.json())
+export const ProviderOptionsSchema = z.record(z.string(), z.json())
+export const RunConfigSchema = z.object({
+  maxMessages: z.number().int().nonnegative(),
+  modelId: z.string(),
+  providerOptions: ProviderOptionsSchema,
+  systemPromptId: z.string(),
+  toolIds: z.array(z.string()),
+})
+export const RunConfigSnapshotSchema = z.record(z.string(), z.json())
 const RunStatusSchema = z.enum(['active', 'cancelled', 'completed', 'error'])
 
-const SessionRunConfigSchema = z.object({
+export const SessionRunConfigSchema = z.object({
   maxMessages: z.number().int().nonnegative().default(0),
   modelId: z.string().default(''),
   providerOptions: ProviderOptionsSchema.default({}),
   systemPromptId: z.string().default(''),
   toolIds: z.array(z.string()).default([]),
 })
+
+export type RunConfig = z.infer<typeof RunConfigSchema>
 
 const StepUsageSchema = z.object({
   input: z.object({
@@ -46,7 +55,7 @@ const StepRawSchema = z.object({
   usage: z.record(z.string(), z.json()).optional(),
 })
 
-const StepWarningSchema = z.looseObject({
+export const StepWarningSchema = z.looseObject({
   details: z.string().optional(),
   feature: z.string().optional(),
   message: z.string().optional(),

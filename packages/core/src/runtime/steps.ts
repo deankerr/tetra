@@ -1,5 +1,5 @@
-import { StepWarningSchema } from '@tetra/store-schema'
-import type { Rows } from '@tetra/store-schema'
+import { StepWarningSchema } from '@tetra/stores'
+import type { LibraryRows as Rows } from '@tetra/stores'
 import { pickBy } from 'remeda'
 import { z } from 'zod'
 

@@ -1,5 +1,9 @@
 import type { CredentialsStore } from '@tetra/credentials'
-import type { RunConfig as RunConfigType, Rows, TetraTypedStore } from '@tetra/store-schema'
+import type {
+  LibraryRows as Rows,
+  LibraryTypedStore,
+  RunConfig as RunConfigType,
+} from '@tetra/stores'
 
 import type { Prompts } from '#prompts'
 import type { RunConfigs } from '#run-configs'
@@ -21,7 +25,7 @@ export interface RunsInit {
   prompts: Prompts
   runConfigs: RunConfigs
   transcripts: Transcripts
-  typedStore: TetraTypedStore
+  typedStore: LibraryTypedStore
 }
 
 export class Runs {
@@ -31,7 +35,7 @@ export class Runs {
   private readonly prompts: Prompts
   private readonly runConfigs: RunConfigs
   private readonly transcripts: Transcripts
-  private readonly typedStore: TetraTypedStore
+  private readonly typedStore: LibraryTypedStore
 
   constructor({
     credentials,

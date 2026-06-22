@@ -31,7 +31,7 @@ const StepRawSchema = z.object({
 })
 
 // Warnings stay loose so future AI SDK fields remain visible instead of being dropped.
-export const StepWarningSchema = z.looseObject({
+const StepWarningSchema = z.looseObject({
   details: z.string().optional(),
   feature: z.string().optional(),
   message: z.string().optional(),

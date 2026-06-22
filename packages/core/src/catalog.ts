@@ -1,4 +1,4 @@
-import type { Rows, TetraTypedStore } from '@tetra/store-schema'
+import type { CatalogRows, CatalogTypedStore } from '@tetra/stores'
 import { z } from 'zod'
 
 const STALE_MS = 60 * 60 * 1000
@@ -21,16 +21,16 @@ const OpenRouterModelsResponse = z.object({
 })
 
 export class Catalog {
-  private readonly typedStore: TetraTypedStore
+  private readonly typedStore: CatalogTypedStore
 
-  constructor({ typedStore }: { typedStore: TetraTypedStore }) {
+  constructor({ typedStore }: { typedStore: CatalogTypedStore }) {
     this.typedStore = typedStore
   }
 
   async refresh(args: { force?: boolean } = {}): Promise<void> {
-    const { catalogLastRefreshed } = this.typedStore.values
-    const lastRefreshed = catalogLastRefreshed.get()
-    const isStale = lastRefreshed === null || Date.now() - lastRefreshed > STALE_MS
+    const { lastRefreshed } = this.typedStore.values
+    const refreshedAt = lastRefreshed.get()
+    const isStale = refreshedAt === null || Date.now() - refreshedAt > STALE_MS
     if (args.force !== true && !isStale) {
       return
     }
@@ -43,7 +43,7 @@ export class Catalog {
 
     const { data } = OpenRouterModelsResponse.parse(await response.json())
     const now = Date.now()
-    const models: Rows['languageModels'][] = data.map((model) => {
+    const models: CatalogRows['languageModels'][] = data.map((model) => {
       const [provider = ''] = model.id.split('/')
       const colonIndex = model.name.indexOf(':')
       const rawProviderName = colonIndex > 0 ? model.name.slice(0, colonIndex).trim() : ''
@@ -79,7 +79,7 @@ export class Catalog {
           createdAt: existing?.createdAt ?? record.createdAt,
         })
       }
-      catalogLastRefreshed.set(now)
+      lastRefreshed.set(now)
     })
   }
 }
