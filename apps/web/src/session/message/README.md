@@ -23,7 +23,7 @@ state boundary, so we are not adding a message-level React context until repeate
 cross-slice prop pressure proves that it pays for itself.
 
 Thread view focus belongs outside the message component itself. The surrounding
-session surface stores a local thread anchor in the unsynced `webUiStore`, while
+session surface stores a local thread anchor in the unsynced `web` store, while
 message controls pass selected messages to core transcript APIs so fork-point
 choices resolve to complete root-to-leaf threads.
 

@@ -3,7 +3,7 @@ import type {
   LibraryRows as Rows,
   LibraryTypedStore,
   RunConfig as RunConfigType,
-} from '@tetra/stores'
+} from '@tetra/stores/library'
 
 import type { Prompts } from '#prompts'
 import type { RunConfigs } from '#run-configs'

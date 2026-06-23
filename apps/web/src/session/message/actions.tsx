@@ -1,4 +1,4 @@
-import type { Rows } from '@tetra/store-schema'
+import type { LibraryRows } from '@tetra/stores/web'
 import { MessageActions, MessageToolbar } from '@tetra/ui/components/ai-elements/message'
 import { Button } from '@tetra/ui/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@tetra/ui/components/ui/tooltip'
@@ -7,7 +7,7 @@ import type { ReactNode } from 'react'
 import { useState } from 'react'
 
 import { useJsonViewSheet } from '@/components/json-view-sheet'
-import { typedTinybase } from '@/lib/tinybase'
+import { libraryTinybase } from '@/lib/tinybase'
 import { useTetra } from '@/tetra-context'
 
 import { RunDetailSheet } from '../run-detail-sheet'
@@ -22,8 +22,8 @@ export function MessageActionsView({
   run,
 }: {
   isThreadLeafMessage: boolean
-  message: Rows['messages']
-  run: Rows['runs'] | null
+  message: LibraryRows['messages']
+  run: LibraryRows['runs'] | null
 }) {
   const { runs, transcripts } = useTetra()
   const { openJsonView } = useJsonViewSheet()
@@ -164,7 +164,7 @@ function MessageIconAction({
   )
 }
 
-function MessageMetadata({ message }: { message: Rows['messages'] }) {
+function MessageMetadata({ message }: { message: LibraryRows['messages'] }) {
   return (
     <div className="text-muted-foreground text-xxs flex min-w-0 flex-wrap items-center justify-end gap-x-2.5 gap-y-1">
       <span>{formatDateTime(message.updatedAt)}</span>
@@ -172,12 +172,12 @@ function MessageMetadata({ message }: { message: Rows['messages'] }) {
   )
 }
 
-function useMessageHasContinuations(message: Rows['messages']): boolean {
+function useMessageHasContinuations(message: LibraryRows['messages']): boolean {
   const tetra = useTetra()
-  const messageIds = typedTinybase.useSliceRowIds('messagesBySession', message.sessionId)
+  const messageIds = libraryTinybase.useSliceRowIds('messagesBySession', message.sessionId)
 
   return messageIds.some((messageId) => {
-    const candidate = tetra.typedStore.tables.messages.requireEntity(messageId)
+    const candidate = tetra.libraryStore.tables.messages.requireEntity(messageId)
     return candidate.parentMessageId === message.id
   })
 }

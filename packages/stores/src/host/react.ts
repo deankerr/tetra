@@ -10,24 +10,19 @@ import type {
   ValueDefinitions,
 } from '@tetra/tinybase-schema'
 import { createStoreHooks } from '@tetra/tinybase-schema/react'
+import type { DependencyList, ReactNode } from 'react'
 import * as UiReact from 'tinybase/ui-react/with-schemas'
 import type { z } from 'zod'
 
 import type { AnyStoreDefinition, DefinedStore, RawIndexesFor, RawStoreFor } from './definition.ts'
+import type { RuntimePersister, RuntimeStoreInstance, RuntimeSynchronizer } from './runtime.ts'
 
 // oxlint-disable no-unsafe-return, no-unsafe-type-assertion -- This file adapts TinyBase's generic React hooks to store-bound Tetra hooks.
 
 type DefinitionSchema<Definition extends AnyStoreDefinition> =
   Definition extends DefinedStore<string, infer Schema, IndexIds> ? Schema : never
 
-type DefinitionIndexIds<Definition extends AnyStoreDefinition> =
-  Definition extends DefinedStore<
-    string,
-    TypedStoreSchema<TableDefinitions, ValueDefinitions>,
-    infer IndexIdList
-  >
-    ? IndexIdList
-    : never
+type DefinitionIndexIds<Definition extends AnyStoreDefinition> = Definition['indexIds']
 
 type TablesOf<Schema> =
   Schema extends TypedStoreSchema<infer Tables, ValueDefinitions> ? Tables : never
@@ -54,6 +49,40 @@ type ValueInput<Values extends ValueDefinitions, ValueId extends keyof Values & 
 type ValueOutput<Values extends ValueDefinitions, ValueId extends keyof Values & string> = z.output<
   Values[ValueId]
 >
+
+interface StoreHostProviderProps {
+  children: ReactNode
+  indexesById?: Record<string, unknown>
+  persistersById?: Record<string, RuntimePersister | undefined>
+  storesById?: Record<string, unknown>
+  synchronizersById?: Record<string, RuntimeSynchronizer | undefined>
+}
+
+interface StoreHostReact {
+  Provider(props: StoreHostProviderProps): ReactNode
+  useCreatePersister(
+    store: unknown,
+    create: (
+      store: unknown,
+    ) => Promise<RuntimePersister | undefined> | RuntimePersister | undefined,
+    createDeps?: DependencyList,
+    then?: (persister: RuntimePersister) => Promise<unknown>,
+    thenDeps?: DependencyList,
+    destroy?: (persister: RuntimePersister) => void,
+    destroyDeps?: DependencyList,
+  ): RuntimePersister | undefined
+  useCreateSynchronizer(
+    store: unknown,
+    create: (
+      store: unknown,
+    ) => Promise<RuntimeSynchronizer | undefined> | RuntimeSynchronizer | undefined,
+    createDeps?: DependencyList,
+    destroy?: (synchronizer: RuntimeSynchronizer) => void,
+    destroyDeps?: DependencyList,
+  ): RuntimeSynchronizer | undefined
+}
+
+const storeHostReact = UiReact as unknown as StoreHostReact
 
 export interface StoreReactApi<
   Definition extends AnyStoreDefinition,
@@ -93,9 +122,9 @@ export interface StoreReactApi<
   ): EntityOf<TableSchemaOf<Tables[TableId]>>[]
   useHasRow(tableId: keyof Tables & string, rowId: string): boolean
   useRawIndexes(): RawIndexesFor<Schema> | undefined
-  useRawPersister(): unknown
+  useRawPersister(): RuntimePersister | undefined
   useRawStore(): RawStoreFor<Schema> | undefined
-  useRawSynchronizer(): unknown
+  useRawSynchronizer(): RuntimeSynchronizer | undefined
   useRow<TableId extends keyof Tables & string>(
     tableId: TableId,
     rowId: string,
@@ -112,6 +141,38 @@ export interface StoreReactApi<
   useValueState<ValueId extends keyof Values & string>(
     valueId: ValueId,
   ): [ValueOutput<Values, ValueId>, (value: ValueInput<Values, ValueId>) => void]
+}
+
+export function StoreHostProvider(props: StoreHostProviderProps): ReactNode {
+  return storeHostReact.Provider(props)
+}
+
+export function useCreateRuntimePersister(
+  instance: RuntimeStoreInstance,
+  create: (
+    instance: RuntimeStoreInstance,
+  ) => Promise<RuntimePersister | undefined> | RuntimePersister | undefined,
+  createDeps: DependencyList = [],
+): RuntimePersister | undefined {
+  return storeHostReact.useCreatePersister(
+    instance.rawStore,
+    async () => await create(instance),
+    createDeps,
+  )
+}
+
+export function useCreateRuntimeSynchronizer(
+  instance: RuntimeStoreInstance,
+  create: (
+    instance: RuntimeStoreInstance,
+  ) => Promise<RuntimeSynchronizer | undefined> | RuntimeSynchronizer | undefined,
+  createDeps: DependencyList = [],
+): RuntimeSynchronizer | undefined {
+  return storeHostReact.useCreateSynchronizer(
+    instance.rawStore,
+    async () => await create(instance),
+    createDeps,
+  )
 }
 
 export function createStoreReactApi<const Definition extends AnyStoreDefinition>(

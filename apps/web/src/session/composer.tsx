@@ -20,7 +20,7 @@ import type { UIMessage } from 'ai'
 import { ArrowUpFromDot, ImageIcon } from 'lucide-react'
 import { useCallback, useState } from 'react'
 
-import { typedTinybase } from '@/lib/tinybase'
+import { libraryTinybase } from '@/lib/tinybase'
 import { ModelPickerButton, ModelPickerSheet } from '@/session/settings/model-picker'
 import { useTetra } from '@/tetra-context'
 
@@ -42,7 +42,7 @@ export function Composer({
 }) {
   const activeRun = useActiveRun(sessionId)
   const isActive = activeRun !== null
-  const [modelId, setModelId] = typedTinybase.useCellState(
+  const [modelId, setModelId] = libraryTinybase.useCellState(
     'sessionRunConfigs',
     sessionId,
     'modelId',
@@ -135,7 +135,8 @@ function useComposerSubmit({
         event.nativeEvent instanceof SubmitEvent ? event.nativeEvent.submitter : null
       const isAdd = submitter instanceof HTMLElement && submitter.dataset.action === 'add'
       const session = tetra.transcripts.getSession(sessionId)
-      const shouldSetTitle = tetra.typedStore.tables.sessions.requireEntity(sessionId).title === ''
+      const shouldSetTitle =
+        tetra.libraryStore.tables.sessions.requireEntity(sessionId).title === ''
 
       if (isAdd) {
         // Add-only submits append committed content without starting model inference.
@@ -146,7 +147,7 @@ function useComposerSubmit({
         })
         selectThreadFromMessage(messageId)
         if (shouldSetTitle) {
-          tetra.typedStore.tables.sessions.updateRow(sessionId, {
+          tetra.libraryStore.tables.sessions.updateRow(sessionId, {
             title: text === '' ? 'Image' : text.slice(0, 60),
             updatedAt: Date.now(),
           })
@@ -174,7 +175,7 @@ function useComposerSubmit({
         tetra.runs.generate({ targetMessageId })
         selectThreadFromMessage(targetMessageId)
         if (shouldSetTitle) {
-          tetra.typedStore.tables.sessions.updateRow(sessionId, {
+          tetra.libraryStore.tables.sessions.updateRow(sessionId, {
             title: text === '' ? 'Image' : text.slice(0, 60),
             updatedAt: Date.now(),
           })
@@ -207,8 +208,8 @@ function useComposerSubmit({
 // the composer.
 const useActiveRun = (sessionId: string) => {
   const tetra = useTetra()
-  const ids = typedTinybase.useSliceRowIds('runsBySessionNewestFirst', sessionId)
-  const run = typedTinybase.useEntity('runs', ids[0] ?? '')
+  const ids = libraryTinybase.useSliceRowIds('runsBySessionNewestFirst', sessionId)
+  const run = libraryTinybase.useEntity('runs', ids[0] ?? '')
   if (run === null || run.status !== 'active') {
     return null
   }

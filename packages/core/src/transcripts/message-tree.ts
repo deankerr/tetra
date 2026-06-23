@@ -1,4 +1,8 @@
-import type { LibraryRows as Rows, LibraryTypedIndexes, LibraryTypedStore } from '@tetra/stores'
+import type {
+  LibraryRows as Rows,
+  LibraryTypedIndexes,
+  LibraryTypedStore,
+} from '@tetra/stores/library'
 
 export class TranscriptMessageTree {
   readonly sessionId: string

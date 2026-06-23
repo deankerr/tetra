@@ -1,10 +1,10 @@
 import { z } from 'zod'
 
 // Provider options are JSON object cells passed through to model provider adapters.
-export const ProviderOptionsSchema = z.record(z.string(), z.json())
+const ProviderOptionsSchema = z.record(z.string(), z.json())
 
 // Run config is the shared run-starting contract across web, CLI, and core.
-export const RunConfigSchema = z.object({
+const RunConfigSchema = z.object({
   maxMessages: z.number().int().nonnegative(),
   modelId: z.string(),
   providerOptions: ProviderOptionsSchema,

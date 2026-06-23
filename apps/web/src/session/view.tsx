@@ -5,7 +5,7 @@ import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
 import { HomeIcon, Settings2Icon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 
-import { typedTinybase } from '@/lib/tinybase'
+import { libraryTinybase } from '@/lib/tinybase'
 
 import { ConversationView } from './conversation-view'
 import { SessionPanelErrorBoundary } from './error-boundary'
@@ -49,10 +49,10 @@ function MissingSession() {
 
 /** Renders one session panel. Guards session existence — children can assume valid sessionId. */
 function ActiveSession({ sessionId }: { sessionId: string }) {
-  const session = typedTinybase.useEntity('sessions', sessionId)
+  const session = libraryTinybase.useEntity('sessions', sessionId)
   const [detailOpen, setDetailOpen] = useState(false)
   const [modelPickerOpen, setModelPickerOpen] = useState(false)
-  const [modelId, setModelId] = typedTinybase.useCellState(
+  const [modelId, setModelId] = libraryTinybase.useCellState(
     'sessionRunConfigs',
     sessionId,
     'modelId',

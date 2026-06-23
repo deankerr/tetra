@@ -9,16 +9,20 @@ import {
 } from '@tetra/ui/components/ui/dropdown-menu'
 import { CloudIcon, DatabaseIcon } from 'lucide-react'
 
-import { clearTetraIndexedDbAndReload, tinybase } from '@/lib/tinybase'
+import { catalogTinybase, clearTetraIndexedDbAndReload, libraryTinybase } from '@/lib/tinybase'
 import { clearTetraSyncDataAndReload } from '@/lib/websocket'
 
 export function DataModeIndicator() {
-  const persister = tinybase.usePersister()
-  const synchronizer = tinybase.useSynchronizer()
+  const catalogPersister = catalogTinybase.useRawPersister()
+  const libraryPersister = libraryTinybase.useRawPersister()
+  const synchronizer = libraryTinybase.useRawSynchronizer()
+  const persister = catalogPersister ?? libraryPersister
+  const hasPersister = persister !== undefined
+  const hasSynchronizer = synchronizer !== undefined
 
   return (
     <div className="flex items-center gap-1">
-      {persister && (
+      {hasPersister && (
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
@@ -42,7 +46,7 @@ export function DataModeIndicator() {
           </DropdownMenuContent>
         </DropdownMenu>
       )}
-      {synchronizer && (
+      {hasSynchronizer && (
         <DropdownMenu>
           <DropdownMenuTrigger
             render={

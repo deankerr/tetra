@@ -1,14 +1,14 @@
-import type { Rows } from '@tetra/store-schema'
+import type { LibraryRows } from '@tetra/stores/web'
 import { Button } from '@tetra/ui/components/ui/button'
 import { ButtonGroup, ButtonGroupText } from '@tetra/ui/components/ui/button-group'
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
 
-import { typedTinybase } from '@/lib/tinybase'
+import { libraryTinybase } from '@/lib/tinybase'
 import { useTetra } from '@/tetra-context'
 
 import { useSessionThreadSelection } from '../thread-view'
 
-export function MessageForkControl({ message }: { message: Rows['messages'] }) {
+export function MessageForkControl({ message }: { message: LibraryRows['messages'] }) {
   const { selectThreadFromMessage } = useSessionThreadSelection(message.sessionId)
   const forkChoices = useForkChoices(message)
   const currentIndex = forkChoices.findIndex((forkChoice) => forkChoice.id === message.id)
@@ -57,9 +57,9 @@ export function MessageForkControl({ message }: { message: Rows['messages'] }) {
   )
 }
 
-function useForkChoices(message: Rows['messages']): Rows['messages'][] {
+function useForkChoices(message: LibraryRows['messages']): LibraryRows['messages'][] {
   const { transcripts } = useTetra()
-  typedTinybase.useSliceRowIds('messagesBySession', message.sessionId)
+  libraryTinybase.useSliceRowIds('messagesBySession', message.sessionId)
 
   // Fork choices are ordinary child messages of the current message's parent.
   return transcripts.getSession(message.sessionId).listContinuations(message.parentMessageId)

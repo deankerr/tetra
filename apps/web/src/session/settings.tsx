@@ -5,7 +5,7 @@ import { Input } from '@tetra/ui/components/ui/input'
 import { BracesIcon, DownloadIcon } from 'lucide-react'
 
 import { useJsonViewSheet } from '@/components/json-view-sheet'
-import { typedTinybase } from '@/lib/tinybase'
+import { libraryTinybase } from '@/lib/tinybase'
 import { useTetra } from '@/tetra-context'
 
 import { SessionExportButton } from './export-button'
@@ -25,12 +25,12 @@ export function SessionSettings({
   onOpenPromptSheet: () => void
   sessionId: string
 }) {
-  const [maxMessages, setMaxMessages] = typedTinybase.useCellState(
+  const [maxMessages, setMaxMessages] = libraryTinybase.useCellState(
     'sessionRunConfigs',
     sessionId,
     'maxMessages',
   )
-  const [toolIds, setToolIds] = typedTinybase.useCellState(
+  const [toolIds, setToolIds] = libraryTinybase.useCellState(
     'sessionRunConfigs',
     sessionId,
     'toolIds',
@@ -109,7 +109,7 @@ function UseAsDefaultButton({ sessionId }: { sessionId: string }) {
 }
 
 function SessionSettingsActions({ sessionId }: { sessionId: string }) {
-  const session = typedTinybase.useEntity('sessions', sessionId)
+  const session = libraryTinybase.useEntity('sessions', sessionId)
   const { openJsonView } = useJsonViewSheet()
 
   if (session === null) {

@@ -17,8 +17,7 @@
     "@tanstack/react-start": "^1.168.10",
     "@tetra/core": "workspace:*",
     "@tetra/credentials": "workspace:*",
-    "@tetra/store-schema": "workspace:*",
-    "@tetra/tinybase-schema": "workspace:*",
+    "@tetra/stores": "workspace:*",
     "@tetra/ui": "workspace:*",
     "ai": "catalog:",
     "lucide-react": "catalog:",
@@ -27,7 +26,6 @@
     "react-dom": "catalog:",
     "react-error-boundary": "^6.1.2",
     "reconnecting-websocket": "4.4.0",
-    "tinybase": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

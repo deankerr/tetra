@@ -12,11 +12,11 @@ import { Textarea } from '@tetra/ui/components/ui/textarea'
 import { Trash2Icon, XIcon } from 'lucide-react'
 import { useMemo } from 'react'
 
-import { typedTinybase } from '@/lib/tinybase'
+import { libraryTinybase } from '@/lib/tinybase'
 import { useTetra } from '@/tetra-context'
 
 const usePromptIds = () => {
-  const prompts = typedTinybase.useEntityList('prompts')
+  const prompts = libraryTinybase.useEntityList('prompts')
   return useMemo(
     () =>
       prompts.toSorted((left, right) => left.id.localeCompare(right.id)).map((prompt) => prompt.id),
@@ -42,7 +42,7 @@ function PromptDisplayLabel({ prompt }: { prompt: { content: string; label: stri
 }
 
 function PromptOption({ promptId }: { promptId: string }) {
-  const prompt = typedTinybase.useEntity('prompts', promptId)
+  const prompt = libraryTinybase.useEntity('prompts', promptId)
   if (prompt === null) {
     return null
   }
@@ -85,8 +85,8 @@ function SelectedPromptFields({
 }
 
 function PromptCellFields({ onDelete, promptId }: { onDelete: () => void; promptId: string }) {
-  const [content, setContent] = typedTinybase.useCellState('prompts', promptId, 'content')
-  const [label, setLabel] = typedTinybase.useCellState('prompts', promptId, 'label')
+  const [content, setContent] = libraryTinybase.useCellState('prompts', promptId, 'content')
+  const [label, setLabel] = libraryTinybase.useCellState('prompts', promptId, 'label')
 
   return (
     <>
@@ -121,7 +121,7 @@ function PromptCellFields({ onDelete, promptId }: { onDelete: () => void; prompt
 }
 
 function PromptLabel({ promptId }: { promptId: string }) {
-  const prompt = typedTinybase.useEntity('prompts', promptId)
+  const prompt = libraryTinybase.useEntity('prompts', promptId)
   return prompt === null ? (
     <span className="text-muted-foreground">None</span>
   ) : (
@@ -138,13 +138,13 @@ export function PromptPreviewButton({
   sessionId: string
 }) {
   const promptIds = usePromptIds()
-  const systemPromptId = typedTinybase.useCell('sessionRunConfigs', sessionId, 'systemPromptId')
+  const systemPromptId = libraryTinybase.useCell('sessionRunConfigs', sessionId, 'systemPromptId')
   const selectedPromptId =
     systemPromptId !== undefined && systemPromptId !== '' && promptIds.includes(systemPromptId)
       ? systemPromptId
       : undefined
 
-  const selectedPrompt = typedTinybase.useEntity('prompts', selectedPromptId ?? '')
+  const selectedPrompt = libraryTinybase.useEntity('prompts', selectedPromptId ?? '')
   const previewContent = selectedPrompt?.content?.trim() ?? ''
 
   return (
@@ -177,7 +177,7 @@ export function PromptEditorSheet({
   sessionId: string
 }) {
   const { prompts } = useTetra()
-  const [systemPromptId, setSystemPromptId] = typedTinybase.useCellState(
+  const [systemPromptId, setSystemPromptId] = libraryTinybase.useCellState(
     'sessionRunConfigs',
     sessionId,
     'systemPromptId',

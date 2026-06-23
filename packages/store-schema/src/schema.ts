@@ -1,4 +1,4 @@
-import type { StoreApiFor, StoreRowsFor, StoreSchemasFor } from '@tetra/tinybase-schema'
+import type { StoreRowsFor, StoreSchemasFor } from '@tetra/tinybase-schema'
 import { defineTypedStore } from '@tetra/tinybase-schema'
 import type { UIMessage } from 'ai'
 import type { Indexes as RawIndexes } from 'tinybase/indexes/with-schemas'
@@ -96,10 +96,9 @@ export const tetraStoreSchema = defineTypedStore({
   },
 })
 
-// These aliases are kept while app boundaries still pass raw and typed TinyBase objects explicitly.
+// These aliases are used by the raw-store harnesses while store-schema remains in place.
 export type TetraRawIndexes = RawIndexes<StoreSchemasFor<typeof tetraStoreSchema>>
 export type TetraRawStore = RawStore<StoreSchemasFor<typeof tetraStoreSchema>>
-export type TetraTypedStore = StoreApiFor<typeof tetraStoreSchema>
 
 // Persisted table row types are addressed through the schema-derived Rows map.
 export type Rows = StoreRowsFor<typeof tetraStoreSchema>

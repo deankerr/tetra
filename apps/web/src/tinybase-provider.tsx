@@ -1,110 +1,123 @@
-import { createRawMergeableStore, createRawStore } from '@tetra/store-schema'
-import { useMemo } from 'react'
-import { createIndexedDbPersister } from 'tinybase/persisters/persister-indexed-db/with-schemas'
-import { createStore } from 'tinybase/store/with-schemas'
-import { createWsSynchronizer } from 'tinybase/synchronizers/synchronizer-ws-client/with-schemas'
-
-import type { WebUiRawStore } from '@/lib/tinybase'
 import {
-  TETRA_INDEXED_DB_NAME,
-  WEB_UI_STORE_ID,
-  tinybase,
-  webUiReact,
-  webUiStoreSchema,
-} from '@/lib/tinybase'
+  StoreHostProvider,
+  useCreateRuntimePersister,
+  useCreateRuntimeSynchronizer,
+} from '@tetra/stores/react'
+import {
+  assertMergeableStore,
+  createTinyBaseProviderProps,
+  createWebIndexedDbPersister,
+  createWebStoreHost,
+  createWebWsSynchronizer,
+  WEB_CATALOG_INDEXED_DB_NAME,
+  WEB_LIBRARY_INDEXED_DB_NAME,
+} from '@tetra/stores/web'
+import type {
+  RuntimePersister,
+  RuntimeSynchronizer,
+  WebDataMode,
+  WebStoreHost,
+} from '@tetra/stores/web'
+import { createContext, useContext, useMemo } from 'react'
+
 import { createSyncWebSocket } from '@/lib/websocket'
 
-const DATA_MODE = import.meta.env.VITE_TETRA_DATA_MODE ?? 'persist'
+const DATA_MODE: WebDataMode = import.meta.env.VITE_TETRA_DATA_MODE === 'sync' ? 'sync' : 'persist'
+const WebStoreHostContext = createContext<WebStoreHost | null>(null)
 
-function useCreateTetraStore() {
-  return useMemo(() => createRawStore(), [])
-}
-
-function useCreateTetraMergeableStore() {
-  return useMemo(() => createRawMergeableStore(), [])
-}
-
-function useCreateWebUiStore(): WebUiRawStore {
-  return useMemo(() => {
-    // Web UI state is intentionally tab-local: no persister, no synchronizer.
-    const rawStore = createStore().setSchema(
-      structuredClone(webUiStoreSchema.tablesSchema),
-      structuredClone(webUiStoreSchema.valuesSchema),
-    )
-
-    rawStore.setValues({
-      jsonView: { json: '', title: '' },
-      settingsOpen: false,
-    })
-
-    // oxlint-disable-next-line no-unsafe-type-assertion -- The schema is applied immediately above.
-    return rawStore as WebUiRawStore
-  }, [])
-}
-
-function TinyBasePersisterProvider({ children }: { children: React.ReactNode }) {
-  // Plain web modes create their rawStore/rawIndexes synchronously.
-  const { rawIndexes, rawStore } = useCreateTetraStore()
-  const webUiStore = useCreateWebUiStore()
-
-  // Local mode persists the plain Store to IndexedDB without blocking initial render.
-  const persister = tinybase.useCreatePersister(
-    rawStore,
-    async (store) => {
-      const indexedDbPersister = createIndexedDbPersister(store, TETRA_INDEXED_DB_NAME)
-      await indexedDbPersister.startAutoLoad()
-      await indexedDbPersister.startAutoSave()
-      return indexedDbPersister
-    },
-    [],
-  )
-
-  return (
-    <tinybase.Provider
-      indexes={rawIndexes}
-      store={rawStore}
-      {...(persister === undefined ? {} : { persister })}
-    >
-      <webUiReact.Provider storesById={{ [WEB_UI_STORE_ID]: webUiStore }}>
-        {children}
-      </webUiReact.Provider>
-    </tinybase.Provider>
-  )
-}
-
-function TinyBaseSyncProvider({ children }: { children: React.ReactNode }) {
-  // Sync mode creates its MergeableStore rawStore/rawIndexes synchronously.
-  const { rawIndexes, rawStore } = useCreateTetraMergeableStore()
-  const webUiStore = useCreateWebUiStore()
-
-  const synchronizer = tinybase.useCreateSynchronizer(
-    rawStore,
-    async (store) => {
-      const webSocket = createSyncWebSocket()
-      const wsSynchronizer = await createWsSynchronizer(store, webSocket)
-      await wsSynchronizer.startSync()
-      return wsSynchronizer
-    },
-    [],
-  )
-
-  return (
-    <tinybase.Provider
-      indexes={rawIndexes}
-      store={rawStore}
-      {...(synchronizer === undefined ? {} : { synchronizer })}
-    >
-      <webUiReact.Provider storesById={{ [WEB_UI_STORE_ID]: webUiStore }}>
-        {children}
-      </webUiReact.Provider>
-    </tinybase.Provider>
-  )
+interface WebStoreLifecycle {
+  persistersById: Record<string, RuntimePersister>
+  synchronizersById: Record<string, RuntimeSynchronizer>
 }
 
 export function TinyBaseProvider({ children }: { children: React.ReactNode }) {
-  if (DATA_MODE === 'sync') {
-    return <TinyBaseSyncProvider>{children}</TinyBaseSyncProvider>
+  // Browser stores are created synchronously; persistence and sync attach after render.
+  const host = useMemo(() => createWebStoreHost(DATA_MODE), [])
+  const providerProps = useMemo(() => createTinyBaseProviderProps(host), [host])
+  const lifecycle = useWebStoreLifecycle(host, DATA_MODE)
+
+  return (
+    <WebStoreHostContext value={host}>
+      <StoreHostProvider
+        indexesById={providerProps.indexesById}
+        persistersById={lifecycle.persistersById}
+        storesById={providerProps.storesById}
+        synchronizersById={lifecycle.synchronizersById}
+      >
+        {children}
+      </StoreHostProvider>
+    </WebStoreHostContext>
+  )
+}
+
+export function useWebStoreHost(): WebStoreHost {
+  const host = useContext(WebStoreHostContext)
+  if (host === null) {
+    throw new Error('useWebStoreHost must be used within TinyBaseProvider')
   }
 
-  return <TinyBasePersisterProvider>{children}</TinyBasePersisterProvider>
+  return host
+}
+
+function useWebStoreLifecycle(host: WebStoreHost, mode: WebDataMode): WebStoreLifecycle {
+  const libraryPersister = useCreateRuntimePersister(
+    host.library,
+    async (instance): Promise<RuntimePersister | undefined> => {
+      if (mode !== 'persist') {
+        return undefined
+      }
+
+      // In persisted mode, the shared library store is durable but not synchronized.
+      const persister = await createWebIndexedDbPersister(instance, WEB_LIBRARY_INDEXED_DB_NAME)
+      await persister.startAutoLoad()
+      await persister.startAutoSave()
+      return persister
+    },
+    [mode],
+  )
+  const catalogPersister = useCreateRuntimePersister(host.catalog, async (instance) => {
+    // Catalog is always a browser-local durable cache.
+    const persister = await createWebIndexedDbPersister(instance, WEB_CATALOG_INDEXED_DB_NAME)
+    await persister.startAutoLoad()
+    await persister.startAutoSave()
+    return persister
+  })
+  const librarySynchronizer = useCreateRuntimeSynchronizer(
+    host.library,
+    async (instance): Promise<RuntimeSynchronizer | undefined> => {
+      if (mode !== 'sync') {
+        return undefined
+      }
+
+      // Sync mode shares only the library store with the Worker.
+      assertMergeableStore(instance)
+      const synchronizer = await createWebWsSynchronizer(instance, createSyncWebSocket())
+      await synchronizer.startSync()
+      return synchronizer
+    },
+    [mode],
+  )
+
+  return {
+    persistersById: compactLifecycleEntries([
+      [host.catalog.definition.persisterId, catalogPersister],
+      [host.library.definition.persisterId, libraryPersister],
+    ]),
+    synchronizersById: compactLifecycleEntries([
+      [host.library.definition.synchronizerId, librarySynchronizer],
+    ]),
+  }
+}
+
+function compactLifecycleEntries<Item>(
+  entries: readonly (readonly [string, Item | undefined])[],
+): Record<string, Item> {
+  const result: Record<string, Item> = {}
+  for (const [id, item] of entries) {
+    if (item !== undefined) {
+      result[id] = item
+    }
+  }
+
+  return result
 }

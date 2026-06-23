@@ -4,9 +4,11 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./catalog": "./src/catalog/index.ts",
     "./cli": "./src/cli.ts",
     "./host": "./src/host/definition.ts",
     "./host/runtime": "./src/host/runtime.ts",
+    "./library": "./src/library/index.ts",
     "./prototype": "./src/prototype.ts",
     "./react": "./src/host/react.ts",
     "./web": "./src/web.ts",

@@ -1,6 +1,6 @@
 # Stores Prototype
 
-Question: can Tetra move from one monolithic TinyBase store plus an ad hoc `webUi`
+Question: can Tetra move from one monolithic TinyBase store plus an ad hoc `web`
 store to a small set of store definitions with shared host initialization?
 
 This package is a prototype. It is intentionally parallel to the current app wiring

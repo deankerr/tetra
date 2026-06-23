@@ -13,11 +13,11 @@ import { Input } from '@tetra/ui/components/ui/input'
 import { Label } from '@tetra/ui/components/ui/label'
 import { SettingsIcon } from 'lucide-react'
 
-import { WEB_UI_STORE_ID, webUiTinybase } from '@/lib/tinybase'
+import { webTinybase } from '@/lib/tinybase'
 import { useCredential } from '@/use-credential'
 
 export function SettingsDialog() {
-  const [open, setOpen] = webUiTinybase.useValueState('settingsOpen', WEB_UI_STORE_ID)
+  const [open, setOpen] = webTinybase.useValueState('settingsOpen')
 
   return (
     <Dialog onOpenChange={setOpen} open={open}>

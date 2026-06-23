@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from 'react'
 
-import { WEB_UI_STORE_ID, typedTinybase, webUiTinybase } from '@/lib/tinybase'
+import { libraryTinybase, webTinybase } from '@/lib/tinybase'
 import { useTetra } from '@/tetra-context'
 
 export function useSessionThreadView(sessionId: string) {
@@ -19,11 +19,10 @@ export function useSessionThreadAppendTarget(sessionId: string) {
 
 export function useSessionThreadSelection(sessionId: string) {
   const { transcripts } = useTetra()
-  const [, setThreadAnchorMessageId] = webUiTinybase.useCellState(
+  const [, setThreadAnchorMessageId] = webTinybase.useCellState(
     'sessionThreadViews',
     sessionId,
     'threadAnchorMessageId',
-    WEB_UI_STORE_ID,
   )
 
   const selectThreadFromMessage = useCallback(
@@ -39,12 +38,11 @@ export function useSessionThreadSelection(sessionId: string) {
 
 function useResolvedSessionThread(sessionId: string) {
   const { transcripts } = useTetra()
-  const sessionMessageIds = typedTinybase.useSliceRowIds('messagesBySession', sessionId)
-  const [storedThreadAnchorMessageId, setThreadAnchorMessageId] = webUiTinybase.useCellState(
+  const sessionMessageIds = libraryTinybase.useSliceRowIds('messagesBySession', sessionId)
+  const [storedThreadAnchorMessageId, setThreadAnchorMessageId] = webTinybase.useCellState(
     'sessionThreadViews',
     sessionId,
     'threadAnchorMessageId',
-    WEB_UI_STORE_ID,
   )
   const session = transcripts.getSession(sessionId)
   const validStoredAnchor =

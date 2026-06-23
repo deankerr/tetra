@@ -1,6 +1,6 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 import type { CredentialsStore } from '@tetra/credentials'
-import type { RunConfig } from '@tetra/stores'
+import type { RunConfig } from '@tetra/stores/library'
 import type { LanguageModel } from 'ai'
 
 export interface LanguageModelResolver {

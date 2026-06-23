@@ -15,8 +15,32 @@ import { webStoreDefinition } from './web/index.ts'
 
 export type WebDataMode = 'persist' | 'sync'
 
-const WEB_LIBRARY_INDEXED_DB_NAME = 'tetra-library'
-const WEB_CATALOG_INDEXED_DB_NAME = 'tetra-catalog'
+export { catalogStoreDefinition, catalogStoreSchema } from './catalog/index.ts'
+export type { CatalogRows, CatalogTypedStore } from './catalog/index.ts'
+export { createTinyBaseProviderProps } from './host/definition.ts'
+export type { RuntimePersister, RuntimeSynchronizer } from './host/runtime.ts'
+export {
+  libraryIndexIds,
+  libraryStoreDefinition,
+  libraryStoreSchema,
+  ProviderOptionsSchema,
+  RunConfigSchema,
+  RunConfigSnapshotSchema,
+  SessionRunConfigSchema,
+  StepWarningSchema,
+} from './library/index.ts'
+export type {
+  LibraryRows,
+  LibraryRunStatus,
+  LibraryTypedIndexes,
+  LibraryTypedStore,
+  RunConfig,
+} from './library/index.ts'
+export { webStoreDefinition, webStoreSchema } from './web/index.ts'
+export type { WebRows, WebTypedStore } from './web/index.ts'
+
+export const WEB_CATALOG_INDEXED_DB_NAME = 'tetra-catalog'
+export const WEB_LIBRARY_INDEXED_DB_NAME = 'tetra-library'
 
 const webStoreDefinitions = [
   libraryStoreDefinition,
@@ -128,7 +152,7 @@ export async function startWebStoreHost(
   })
 }
 
-async function createDefaultIndexedDbPersister(
+export async function createWebIndexedDbPersister(
   instance: RuntimeStoreInstance,
   databaseName: string,
 ): Promise<RuntimePersister> {
@@ -137,11 +161,11 @@ async function createDefaultIndexedDbPersister(
   return createIndexedDbPersister(instance.rawStore as never, databaseName) as RuntimePersister
 }
 
-function createDefaultWebSocket(url: string): WebSocket {
+export function createWebSocketClient(url: string): WebSocket {
   return new WebSocket(url)
 }
 
-async function createDefaultWsSynchronizer(
+export async function createWebWsSynchronizer(
   instance: RuntimeStoreInstance,
   webSocket: unknown,
 ): Promise<RuntimeSynchronizer> {
@@ -154,8 +178,12 @@ async function createDefaultWsSynchronizer(
   )) as RuntimeSynchronizer
 }
 
-function assertMergeableStore(instance: RuntimeStoreInstance): void {
+export function assertMergeableStore(instance: RuntimeStoreInstance): void {
   if (!instance.isMergeable) {
     throw new Error(`Store is not mergeable: ${instance.id}`)
   }
 }
+
+const createDefaultIndexedDbPersister = createWebIndexedDbPersister
+const createDefaultWebSocket = createWebSocketClient
+const createDefaultWsSynchronizer = createWebWsSynchronizer

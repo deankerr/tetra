@@ -4,7 +4,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from '@tetra/ui/compone
 import { Progress } from '@tetra/ui/components/ui/progress'
 import { useMemo } from 'react'
 
-import { typedTinybase } from '@/lib/tinybase'
+import { catalogTinybase, libraryTinybase } from '@/lib/tinybase'
 
 import { useSessionUsageTotals } from './usage-hooks'
 
@@ -68,8 +68,8 @@ export function SessionUsageMeter({ sessionId }: { sessionId: string }) {
 }
 
 function useSessionContextSummary(sessionId: string): SessionContextSummary | null {
-  const modelId = typedTinybase.useCell('sessionRunConfigs', sessionId, 'modelId') ?? ''
-  const languageModel = typedTinybase.useRow('languageModels', modelId)
+  const modelId = libraryTinybase.useCell('sessionRunConfigs', sessionId, 'modelId') ?? ''
+  const languageModel = catalogTinybase.useRow('languageModels', modelId)
   const usage = useSessionUsageTotals(sessionId)
 
   return useMemo(() => {

@@ -28,7 +28,17 @@ export type {
   RuntimeSynchronizer,
   StoreRuntime,
 } from './host/runtime.ts'
-export { createWebStoreHost, getWebLifecyclePlans, startWebStoreHost } from './web.ts'
+export {
+  assertMergeableStore,
+  createWebIndexedDbPersister,
+  createWebSocketClient,
+  createWebStoreHost,
+  createWebWsSynchronizer,
+  getWebLifecyclePlans,
+  startWebStoreHost,
+  WEB_CATALOG_INDEXED_DB_NAME,
+  WEB_LIBRARY_INDEXED_DB_NAME,
+} from './web.ts'
 export type { WebDataMode, WebStoreHost, WebStoreHostOptions } from './web.ts'
 export {
   createWorkerStoreHost,
@@ -54,5 +64,5 @@ export type {
   LibraryTypedStore,
   RunConfig,
 } from './library/index.ts'
-export type { WebRows } from './web/index.ts'
+export type { WebRows, WebTypedStore } from './web/index.ts'
 export { webStoreDefinition, webStoreSchema } from './web/index.ts'

@@ -1,4 +1,4 @@
-import type { LibraryTypedIndexes, LibraryTypedStore, RunConfig } from '@tetra/stores'
+import type { LibraryTypedIndexes, LibraryTypedStore, RunConfig } from '@tetra/stores/library'
 
 import { createIdGenerator } from '#ids'
 import type { RunConfigs } from '#run-configs'

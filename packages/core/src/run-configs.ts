@@ -1,5 +1,5 @@
-import { RunConfigSchema, SessionRunConfigSchema } from '@tetra/stores'
-import type { LibraryTypedStore, RunConfig } from '@tetra/stores'
+import { RunConfigSchema, SessionRunConfigSchema } from '@tetra/stores/library'
+import type { LibraryTypedStore, RunConfig } from '@tetra/stores/library'
 
 // RunConfigs owns the run config operations a single cell write cannot express:
 // the session config birth merge and run-start resolution (ADR-0008). Typed
