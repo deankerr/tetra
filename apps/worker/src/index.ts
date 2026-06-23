@@ -1,10 +1,9 @@
-import { createMergeableStore } from 'tinybase/mergeable-store'
-import type { MergeableStore } from 'tinybase/mergeable-store'
-import { createDurableObjectSqlStoragePersister } from 'tinybase/persisters/persister-durable-object-sql-storage'
+import { createWorkerStoreRuntime } from '@tetra/stores/worker'
+import type { WorkerStoreSchemas } from '@tetra/stores/worker'
 import {
   WsServerDurableObject,
   getWsServerDurableObjectFetch,
-} from 'tinybase/synchronizers/synchronizer-ws-server-durable-object'
+} from 'tinybase/synchronizers/synchronizer-ws-server-durable-object/with-schemas'
 
 const SYNC_PATH = '/tetra'
 const RESET_PATH = '/tetra/reset'
@@ -19,10 +18,9 @@ export interface Env {
   TinyBaseDurableObjects: DurableObjectNamespace<TinyBaseDurableObject>
 }
 
-type DurableObjectSqlStoragePersister = ReturnType<typeof createDurableObjectSqlStoragePersister>
+type WorkerRuntime = Awaited<ReturnType<typeof createWorkerStoreRuntime>>
 
-const persisters = new WeakMap<TinyBaseDurableObject, DurableObjectSqlStoragePersister>()
-const stores = new WeakMap<TinyBaseDurableObject, MergeableStore>()
+const runtimes = new WeakMap<TinyBaseDurableObject, WorkerRuntime>()
 
 function addResetCorsHeaders(response: Response): Response {
   const headers = new Headers(response.headers)
@@ -64,14 +62,13 @@ function getResetResponse(request: Request, env: Env): Promise<Response> | Respo
   ).then(addResetCorsHeaders)
 }
 
-// Each DO instance holds one MergeableStore, persisted to its SQLite storage.
+// Each DO instance hosts the shared library store, persisted to its SQLite storage.
 // Clients connect via WebSocket; the base class handles sync protocol and hibernation.
-export class TinyBaseDurableObject extends WsServerDurableObject<Env> {
-  override createPersister() {
-    const store = createMergeableStore()
-    const persister = createDurableObjectSqlStoragePersister(store, this.ctx.storage.sql)
-    stores.set(this, store)
-    persisters.set(this, persister)
+export class TinyBaseDurableObject extends WsServerDurableObject<WorkerStoreSchemas, Env> {
+  override async createPersister() {
+    const runtime = await createWorkerStoreRuntime({ sqlStorage: this.ctx.storage.sql })
+    const persister = runtime.persistersById[runtime.host.library.definition.persisterId]
+    runtimes.set(this, runtime)
     return persister
   }
 
@@ -87,21 +84,24 @@ export class TinyBaseDurableObject extends WsServerDurableObject<Env> {
       return response as Response
     }
 
-    const store = stores.get(this)
-    const persister = persisters.get(this)
-    if (store === undefined || persister === undefined) {
+    const runtime = runtimes.get(this)
+    if (runtime === undefined) {
       return new Response('Store is not ready', { status: 503 })
     }
 
-    store.delTables()
-    store.delValues()
+    const { rawStore } = runtime.host.library
+    const persister = runtime.persistersById[runtime.host.library.definition.persisterId]
+    rawStore.delTables()
+    rawStore.delValues()
     await persister.save()
 
     return Response.json({ ok: true })
   }
 }
 
-const wsFetch = getWsServerDurableObjectFetch('TinyBaseDurableObjects')
+const wsFetch = getWsServerDurableObjectFetch<WorkerStoreSchemas, 'TinyBaseDurableObjects'>(
+  'TinyBaseDurableObjects',
+)
 
 export default {
   fetch(request, env): Promise<Response> | Response {

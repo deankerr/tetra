@@ -1,18 +1,23 @@
+import type { StoreSchemasFor } from '@tetra/tinybase-schema'
+import type { Persister, Persists } from 'tinybase/persisters/with-schemas'
+
 import { createStoreHost } from './host/definition.ts'
 import type { StoreLifecyclePlan } from './host/lifecycle.ts'
 import { createStoreRuntime, requireStoreInstance } from './host/runtime.ts'
-import type { RuntimePersister, RuntimeStoreInstance, StoreRuntime } from './host/runtime.ts'
+import type { RuntimeStoreInstance, StoreRuntime } from './host/runtime.ts'
 import { libraryStoreDefinition } from './library/index.ts'
 
 // oxlint-disable no-unsafe-type-assertion -- The Worker passes Cloudflare SQL storage through to TinyBase's Durable Object persister.
 
 const workerStoreDefinitions = [libraryStoreDefinition] as const
+export type WorkerStoreSchemas = StoreSchemasFor<(typeof libraryStoreDefinition)['schema']>
+export type WorkerRuntimePersister = Persister<WorkerStoreSchemas, Persists.MergeableStoreOnly>
 
 export interface WorkerStoreHostOptions {
   createDurableObjectSqlStoragePersister?: (
     instance: RuntimeStoreInstance,
     sqlStorage: unknown,
-  ) => Promise<RuntimePersister> | RuntimePersister
+  ) => Promise<WorkerRuntimePersister> | WorkerRuntimePersister
   sqlStorage: unknown
 }
 
@@ -38,9 +43,9 @@ export function getWorkerLifecyclePlans(): StoreLifecyclePlan[] {
 
 export async function createWorkerStoreRuntime(
   options: WorkerStoreHostOptions,
-): Promise<StoreRuntime<WorkerStoreHost>> {
+): Promise<StoreRuntime<WorkerStoreHost, WorkerRuntimePersister>> {
   const host = createWorkerStoreHost()
-  const persistersById: Record<string, RuntimePersister> = {}
+  const persistersById: Record<string, WorkerRuntimePersister> = {}
   const createDurableObjectSqlStoragePersister =
     options.createDurableObjectSqlStoragePersister ?? createDefaultDurableObjectSqlStoragePersister
 
@@ -75,11 +80,8 @@ export async function createWorkerStoreRuntime(
 async function createDefaultDurableObjectSqlStoragePersister(
   instance: RuntimeStoreInstance,
   sqlStorage: unknown,
-): Promise<RuntimePersister> {
+): Promise<WorkerRuntimePersister> {
   const { createDurableObjectSqlStoragePersister } =
     await import('tinybase/persisters/persister-durable-object-sql-storage/with-schemas')
-  return createDurableObjectSqlStoragePersister(
-    instance.rawStore as never,
-    sqlStorage as never,
-  ) as RuntimePersister
+  return createDurableObjectSqlStoragePersister(instance.rawStore as never, sqlStorage as never)
 }

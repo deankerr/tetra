@@ -50,6 +50,9 @@ function createPrototypePersister(id: string, log: string[]): RuntimePersister {
       log.push(`${id}:destroy`)
       await Promise.resolve()
     },
+    getStore() {
+      return { id }
+    },
     async load() {
       log.push(`${id}:load`)
       await Promise.resolve()

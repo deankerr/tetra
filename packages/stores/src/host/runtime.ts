@@ -3,6 +3,7 @@ import type { AnyStoreDefinition } from './definition.ts'
 
 export interface RuntimePersister {
   destroy(): Promise<unknown>
+  getStore(): unknown
   load(): Promise<unknown>
   save(): Promise<unknown>
   startAutoLoad(): Promise<unknown>
@@ -27,25 +28,33 @@ export interface RuntimeStoreInstance {
 
 export type RuntimeStoreHost = Record<string, RuntimeStoreInstance>
 
-export interface StoreRuntime<Host extends RuntimeStoreHost> {
+export interface StoreRuntime<
+  Host extends RuntimeStoreHost,
+  Persister extends RuntimePersister = RuntimePersister,
+  Synchronizer extends RuntimeSynchronizer = RuntimeSynchronizer,
+> {
   close(): Promise<void>
   host: Host
-  persistersById: Record<string, RuntimePersister>
+  persistersById: Record<string, Persister>
   providerProps: {
     indexesById: Record<string, unknown>
-    persistersById: Record<string, RuntimePersister>
+    persistersById: Record<string, Persister>
     storesById: Record<string, unknown>
-    synchronizersById: Record<string, RuntimeSynchronizer>
+    synchronizersById: Record<string, Synchronizer>
   }
-  synchronizersById: Record<string, RuntimeSynchronizer>
+  synchronizersById: Record<string, Synchronizer>
 }
 
-export function createStoreRuntime<Host extends RuntimeStoreHost>(args: {
+export function createStoreRuntime<
+  Host extends RuntimeStoreHost,
+  Persister extends RuntimePersister = RuntimePersister,
+  Synchronizer extends RuntimeSynchronizer = RuntimeSynchronizer,
+>(args: {
   close: () => Promise<void>
   host: Host
-  persistersById: Record<string, RuntimePersister>
-  synchronizersById: Record<string, RuntimeSynchronizer>
-}): StoreRuntime<Host> {
+  persistersById: Record<string, Persister>
+  synchronizersById: Record<string, Synchronizer>
+}): StoreRuntime<Host, Persister, Synchronizer> {
   return {
     ...args,
     providerProps: {

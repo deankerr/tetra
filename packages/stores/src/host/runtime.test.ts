@@ -12,6 +12,9 @@ function createLoggedPersister(id: string, log: string[]): RuntimePersister {
       log.push(`${id}:destroy`)
       await Promise.resolve()
     },
+    getStore() {
+      return { id }
+    },
     async load() {
       log.push(`${id}:load`)
       await Promise.resolve()
@@ -192,23 +195,25 @@ describe('store host runtimes', () => {
   })
 
   test('creates the Worker library host and Durable Object persister boundary', async () => {
-    const log: string[] = []
     const runtime = await createWorkerStoreRuntime({
-      createDurableObjectSqlStoragePersister(instance, sqlStorage) {
-        expect(instance.id).toBe('library')
-        expect(instance.isMergeable).toBe(true)
-        expect(sqlStorage).toEqual({ kind: 'sql-storage' })
-        return createLoggedPersister(instance.definition.persisterId, log)
+      sqlStorage: {
+        exec() {
+          return {
+            toArray() {
+              return []
+            },
+          }
+        },
       },
-      sqlStorage: { kind: 'sql-storage' },
     })
 
+    expect(runtime.host.library.isMergeable).toBe(true)
     expect(Object.keys(runtime.providerProps.storesById)).toEqual(['library'])
     expect(Object.keys(runtime.persistersById)).toEqual(['libraryPersister'])
-    expect(log).toEqual([])
+    expect(
+      Object.is(runtime.persistersById.libraryPersister.getStore(), runtime.host.library.rawStore),
+    ).toBe(true)
 
     await runtime.close()
-
-    expect(log).toEqual(['libraryPersister:destroy'])
   })
 })
