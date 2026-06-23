@@ -1,17 +1,15 @@
 import { expect, test } from 'bun:test'
 
-import { createRawStore, tetraIndexIds, tetraStoreSchema } from '@tetra/store-schema'
-import { bindIndexes, bindStore } from '@tetra/tinybase-schema'
+import { createStoreInstance } from '@tetra/stores/host'
+import { libraryStoreDefinition } from '@tetra/stores/library'
 
 import { Prompts } from './prompts.ts'
 import { RunConfigs } from './run-configs.ts'
 import { Transcripts } from './transcripts/index.ts'
 
 function createPromptHarness() {
-  // Tests bind the same raw TinyBase objects used by app composition roots.
-  const { rawIndexes, rawStore } = createRawStore()
-  const typedStore = bindStore(rawStore, tetraStoreSchema.tables, tetraStoreSchema.values)
-  const typedIndexes = bindIndexes(rawIndexes, tetraIndexIds)
+  // Tests own the same library store instance shape used by app composition roots.
+  const { rawStore, typedIndexes, typedStore } = createStoreInstance(libraryStoreDefinition)
   const runConfigs = new RunConfigs({ typedStore })
   const prompts = new Prompts({ runConfigs, typedStore })
 

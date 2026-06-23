@@ -80,9 +80,7 @@
         "@ai-sdk/provider": "^3.0.8",
         "@openrouter/ai-sdk-provider": "catalog:",
         "@tetra/credentials": "workspace:*",
-        "@tetra/store-schema": "workspace:*",
         "@tetra/stores": "workspace:*",
-        "@tetra/tinybase-schema": "workspace:*",
         "@tetra/tools-exa": "workspace:*",
         "ai": "catalog:",
         "nanoid": "^5.1.11",
@@ -97,19 +95,6 @@
     "packages/credentials": {
       "name": "@tetra/credentials",
       "devDependencies": {
-        "typescript": "catalog:",
-      },
-    },
-    "packages/store-schema": {
-      "name": "@tetra/store-schema",
-      "dependencies": {
-        "@tetra/tinybase-schema": "workspace:*",
-        "ai": "catalog:",
-        "tinybase": "catalog:",
-        "zod": "catalog:",
-      },
-      "devDependencies": {
-        "@types/bun": "catalog:",
         "typescript": "catalog:",
       },
     },
@@ -906,8 +891,6 @@
     "@tetra/core": ["@tetra/core@workspace:packages/core"],
 
     "@tetra/credentials": ["@tetra/credentials@workspace:packages/credentials"],
-
-    "@tetra/store-schema": ["@tetra/store-schema@workspace:packages/store-schema"],
 
     "@tetra/stores": ["@tetra/stores@workspace:packages/stores"],
 

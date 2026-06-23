@@ -29,11 +29,6 @@
       "entry": ["src/**/*.test.ts"],
       "project": ["src/**/*.{ts,tsx}"]
     },
-    "packages/store-schema": {
-      "includeEntryExports": true,
-      "entry": ["src/**/*.test.ts"],
-      "project": ["src/**/*.{ts,tsx}"]
-    },
     "packages/stores": {
       "entry": ["src/**/*.test.ts"],
       "includeEntryExports": false,

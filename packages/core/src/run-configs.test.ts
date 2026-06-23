@@ -1,14 +1,13 @@
 import { expect, test } from 'bun:test'
 
-import { createRawStore, SessionRunConfigSchema, tetraStoreSchema } from '@tetra/store-schema'
-import { bindStore } from '@tetra/tinybase-schema'
+import { createStoreInstance } from '@tetra/stores/host'
+import { libraryStoreDefinition, SessionRunConfigSchema } from '@tetra/stores/library'
 
 import { RunConfigs } from './run-configs.ts'
 
 function createRunConfigHarness() {
-  // Tests bind the same raw TinyBase objects used by app composition roots.
-  const { rawStore } = createRawStore()
-  const typedStore = bindStore(rawStore, tetraStoreSchema.tables, tetraStoreSchema.values)
+  // Tests own the same library store instance shape used by app composition roots.
+  const { rawStore, typedStore } = createStoreInstance(libraryStoreDefinition)
   const runConfigs = new RunConfigs({ typedStore })
 
   return { rawStore, runConfigs, typedStore }

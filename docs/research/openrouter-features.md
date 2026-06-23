@@ -4,7 +4,7 @@ Research compiled 2026-06-13 from https://openrouter.ai/docs. Catalog of OpenRou
 
 Annotated 2026-06-13 against the current codebase. Legend: ✅ implemented · 🟡 partial · ⬜ not implemented · ➖ nothing to build.
 
-A cross-cutting note on status: the `providerOptions` cell on run configs ([run-config.ts](../../packages/store-schema/src/run-config.ts)) is passed verbatim as `providerOptions.openrouter` to `streamText` ([run.ts](../../packages/core/src/runtime/run.ts)), and the web app has a free-form key/value editor for it ([provider-options-editor.tsx](../../apps/web/src/session/settings/provider-options-editor.tsx)). So most request-body features below are _reachable today_ by hand-authoring JSON — "⬜" for those means "no dedicated schema/UI/behavior", not "impossible".
+A cross-cutting note on status: the `providerOptions` cell on run configs ([schema.ts](../../packages/stores/src/library/schema.ts)) is passed verbatim as `providerOptions.openrouter` to `streamText` ([run.ts](../../packages/core/src/runtime/run.ts)), and the web app has a free-form key/value editor for it ([provider-options-editor.tsx](../../apps/web/src/session/settings/provider-options-editor.tsx)). So most request-body features below are _reachable today_ by hand-authoring JSON — "⬜" for those means "no dedicated schema/UI/behavior", not "impossible".
 
 Out of scope by decision: enterprise features (orgs, workspaces, guardrails admin, broadcast/observability destinations, sovereign AI), account management (key management API, credits, analytics), and manual protocol selection (chat completions vs responses vs anthropic messages — we stay on whatever the AI SDK provider uses).
 

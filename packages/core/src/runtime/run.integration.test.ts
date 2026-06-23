@@ -2,9 +2,9 @@ import { expect, test } from 'bun:test'
 
 import type { LanguageModelV3StreamPart } from '@ai-sdk/provider'
 import { CredentialsStore } from '@tetra/credentials'
-import { createRawStore, tetraStoreSchema, tetraIndexIds } from '@tetra/store-schema'
-import type { Rows } from '@tetra/store-schema'
-import { bindIndexes, bindStore } from '@tetra/tinybase-schema'
+import { createStoreInstance } from '@tetra/stores/host'
+import { libraryStoreDefinition } from '@tetra/stores/library'
+import type { LibraryRows } from '@tetra/stores/library'
 import { simulateReadableStream, tool } from 'ai'
 import { MockLanguageModelV3 } from 'ai/test'
 import { z } from 'zod'
@@ -14,10 +14,9 @@ import { toolsRegistryMap } from '../tools/tools.ts'
 import type { LanguageModelResolver } from './language-model-resolver.ts'
 
 function createTestDb() {
-  // Tests own the rawStore/rawIndexes objects, matching app setup before typed binding.
-  const { rawIndexes, rawStore } = createRawStore()
-  const typedStore = bindStore(rawStore, tetraStoreSchema.tables, tetraStoreSchema.values)
-  const typedIndexes = bindIndexes(rawIndexes, tetraIndexIds)
+  // Tests own the same library store instance shape used by app composition roots.
+  const { rawIndexes, rawStore, typedIndexes, typedStore } =
+    createStoreInstance(libraryStoreDefinition)
   return {
     rawIndexes,
     rawStore,
@@ -76,7 +75,7 @@ type TestCore = ReturnType<typeof createTestRuntime>['core']
 function appendAfterNewestLeaf(
   core: TestCore,
   sessionId: string,
-  args: { parts: Rows['messages']['parts']; role: Rows['messages']['role'] },
+  args: { parts: LibraryRows['messages']['parts']; role: LibraryRows['messages']['role'] },
 ): string {
   const session = core.transcripts.getSession(sessionId)
   const parentMessageId = session.getNewestLeafMessageId()
@@ -85,7 +84,7 @@ function appendAfterNewestLeaf(
   return session.appendMessage({ parentMessageId, ...args })
 }
 
-function listThreadFromNewestLeaf(core: TestCore, sessionId: string): Rows['messages'][] {
+function listThreadFromNewestLeaf(core: TestCore, sessionId: string): LibraryRows['messages'][] {
   const session = core.transcripts.getSession(sessionId)
   const threadAnchorMessageId = session.getNewestLeafMessageId()
   if (threadAnchorMessageId === null) {
