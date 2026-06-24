@@ -1,6 +1,5 @@
 import { catalogStoreDefinition } from '@tetra/stores/catalog'
 import { libraryStoreDefinition } from '@tetra/stores/library'
-import type { StoreApiFor } from '@tetra/tinybase-schema'
 import { defineTypedStore } from '@tetra/tinybase-schema'
 import { createStoreInstance, defineStoreDefinition } from '@tetra/tinybase-schema/runtime'
 import { z } from 'zod'
@@ -31,10 +30,9 @@ export const webStoreDefinition = defineStoreDefinition({
   schema: webStoreSchema,
 })
 
-export type WebStores = ReturnType<typeof createWebStores>
-export type WebTypedStore = StoreApiFor<typeof webStoreSchema>
+export type WebStoreInstances = ReturnType<typeof createWebStoreInstances>
 
-export function createWebStores() {
+export function createWebStoreInstances() {
   // Web stores are currently volatile; persistence and sync are external concerns.
   return {
     catalog: createStoreInstance(catalogStoreDefinition),

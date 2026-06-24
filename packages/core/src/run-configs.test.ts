@@ -7,8 +7,9 @@ import { RunConfigs } from './run-configs.ts'
 
 function createRunConfigHarness() {
   // Tests own the same library store instance shape used by app composition roots.
-  const { rawStore, typedStore } = createStoreInstance(libraryStoreDefinition)
-  const runConfigs = new RunConfigs({ typedStore })
+  const libraryStore = createStoreInstance(libraryStoreDefinition)
+  const { rawStore, typedStore } = libraryStore
+  const runConfigs = new RunConfigs({ libraryStore })
 
   return { rawStore, runConfigs, typedStore }
 }

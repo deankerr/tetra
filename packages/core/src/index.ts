@@ -1,4 +1,5 @@
-export { Catalog } from '#catalog'
+export { createCoreModules } from '#modules'
+export { ModelCatalog } from '#catalog'
 export { Run, Runs } from '#runtime'
 export { Prompts } from '#prompts'
 export { RunConfigs } from '#run-configs'

@@ -17,9 +17,9 @@ const cliStoreDefinition = defineStoreDefinition({
   schema: cliStoreSchema,
 })
 
-export type CliStores = ReturnType<typeof createCliStores>
+export type CliStoreInstances = ReturnType<typeof createCliStoreInstances>
 
-export function createCliStores() {
+export function createCliStoreInstances() {
   // CLI stores are currently volatile; persistence and sync are external concerns.
   return {
     catalog: createStoreInstance(catalogStoreDefinition),

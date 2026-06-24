@@ -28,7 +28,8 @@ export function NewSessionPage() {
   const [promptSheetOpen, setPromptSheetOpen] = useState(false)
   const [openrouterApiKey] = useCredential('OPENROUTER_API_KEY')
   const [, setSettingsOpen] = webTinybase.useValueState('settingsOpen')
-  const { webStore } = useTetra()
+  const { stores } = useTetra()
+  const webStore = stores.web.typedStore
   const apiKeyConfigured = openrouterApiKey.trim() !== ''
 
   const openSettings = useCallback(() => {
@@ -151,7 +152,8 @@ export function NewSessionPage() {
 }
 
 function useDraftSessionId(): string | null {
-  const { transcripts, webStore } = useTetra()
+  const { stores, transcripts } = useTetra()
+  const webStore = stores.web.typedStore
   const draftSessionPointer = webTinybase.useEntity('draftSessions', 'current')
   const draftSessionId = draftSessionPointer?.sessionId ?? ''
   const draftSession = libraryTinybase.useEntity('sessions', draftSessionId)

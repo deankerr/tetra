@@ -1,29 +1,29 @@
 import { createTinyBaseProviderProps, StoreProvider } from '@tetra/tinybase-schema/react'
 import { createContext, useContext, useMemo } from 'react'
 
-import { createWebStores } from '@/stores/web'
-import type { WebStores } from '@/stores/web'
+import { createWebStoreInstances } from '@/stores/web'
+import type { WebStoreInstances } from '@/stores/web'
 
-const WebStoresContext = createContext<WebStores | null>(null)
+const WebStoreInstancesContext = createContext<WebStoreInstances | null>(null)
 
 export function TinyBaseProvider({ children }: { children: React.ReactNode }) {
   // Browser stores are created synchronously and kept volatile for now.
-  const stores = useMemo(() => createWebStores(), [])
+  const stores = useMemo(() => createWebStoreInstances(), [])
   const providerProps = useMemo(() => createTinyBaseProviderProps(stores), [stores])
 
   return (
-    <WebStoresContext value={stores}>
+    <WebStoreInstancesContext value={stores}>
       <StoreProvider indexesById={providerProps.indexesById} storesById={providerProps.storesById}>
         {children}
       </StoreProvider>
-    </WebStoresContext>
+    </WebStoreInstancesContext>
   )
 }
 
-export function useWebStores(): WebStores {
-  const stores = useContext(WebStoresContext)
+export function useWebStoreInstances(): WebStoreInstances {
+  const stores = useContext(WebStoreInstancesContext)
   if (stores === null) {
-    throw new Error('useWebStores must be used within TinyBaseProvider')
+    throw new Error('useWebStoreInstances must be used within TinyBaseProvider')
   }
 
   return stores

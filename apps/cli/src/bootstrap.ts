@@ -1,58 +1,33 @@
-import { Catalog, Prompts, RunConfigs, Runs, Transcripts } from '@tetra/core'
+import { createCoreModules } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
 
-import { createCliStores } from './stores/cli'
-import type { CliStores } from './stores/cli'
+import { createCliStoreInstances } from './stores/cli'
+import type { CliStoreInstances } from './stores/cli'
 
 export function bootstrap() {
-  const stores = createCliStores()
-  const library = connectLibrary(stores)
-  const catalog = connectCatalog(stores)
+  const stores = createCliStoreInstances()
+  const core = createCoreModules({
+    credentials: credentialStore,
+    stores: {
+      catalogStore: stores.catalog,
+      libraryStore: stores.library,
+    },
+  })
   const workspace = connectCliWorkspace(stores)
 
   return {
-    ...library,
-    catalog,
-    catalogStore: stores.catalog.typedStore,
-    cliStore: stores.cli.typedStore,
+    ...core,
     close: async () => {
       await Promise.resolve()
     },
-    typedIndexes: stores.library.typedIndexes,
-    typedStore: stores.library.typedStore,
+    stores,
     workspace,
   }
 }
 
-function connectLibrary(stores: CliStores) {
-  const { typedIndexes } = stores.library
-  const { typedStore } = stores.library
+export type CliAppContext = ReturnType<typeof bootstrap>
 
-  // RunConfigs comes first so Prompts can delegate prompt unlinking to it.
-  const runConfigs = new RunConfigs({ typedStore })
-  const prompts = new Prompts({ runConfigs, typedStore })
-  const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
-  const runs = new Runs({
-    credentials: credentialStore,
-    prompts,
-    runConfigs,
-    transcripts,
-    typedStore,
-  })
-
-  return {
-    prompts,
-    runConfigs,
-    runs,
-    transcripts,
-  }
-}
-
-function connectCatalog(stores: CliStores) {
-  return new Catalog({ typedStore: stores.catalog.typedStore })
-}
-
-function connectCliWorkspace(stores: CliStores) {
+function connectCliWorkspace(stores: CliStoreInstances) {
   const { activeSessionId } = stores.cli.typedStore.values
 
   // Active session is CLI-local state.

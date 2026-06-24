@@ -135,8 +135,8 @@ function useComposerSubmit({
         event.nativeEvent instanceof SubmitEvent ? event.nativeEvent.submitter : null
       const isAdd = submitter instanceof HTMLElement && submitter.dataset.action === 'add'
       const session = tetra.transcripts.getSession(sessionId)
-      const shouldSetTitle =
-        tetra.libraryStore.tables.sessions.requireEntity(sessionId).title === ''
+      const libraryStore = tetra.stores.library.typedStore
+      const shouldSetTitle = libraryStore.tables.sessions.requireEntity(sessionId).title === ''
 
       if (isAdd) {
         // Add-only submits append committed content without starting model inference.
@@ -147,7 +147,7 @@ function useComposerSubmit({
         })
         selectThreadFromMessage(messageId)
         if (shouldSetTitle) {
-          tetra.libraryStore.tables.sessions.updateRow(sessionId, {
+          libraryStore.tables.sessions.updateRow(sessionId, {
             title: text === '' ? 'Image' : text.slice(0, 60),
             updatedAt: Date.now(),
           })
@@ -175,7 +175,7 @@ function useComposerSubmit({
         tetra.runs.generate({ targetMessageId })
         selectThreadFromMessage(targetMessageId)
         if (shouldSetTitle) {
-          tetra.libraryStore.tables.sessions.updateRow(sessionId, {
+          libraryStore.tables.sessions.updateRow(sessionId, {
             title: text === '' ? 'Image' : text.slice(0, 60),
             updatedAt: Date.now(),
           })

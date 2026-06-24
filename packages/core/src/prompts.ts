@@ -1,4 +1,4 @@
-import type { LibraryTypedStore } from '@tetra/stores/library'
+import type { LibraryStoreInstance, LibraryTypedStore } from '@tetra/stores/library'
 
 import { createIdGenerator } from '#ids'
 import type { RunConfigs } from '#run-configs'
@@ -11,14 +11,14 @@ export class Prompts {
   private readonly typedStore: LibraryTypedStore
 
   constructor({
+    libraryStore,
     runConfigs,
-    typedStore,
   }: {
+    libraryStore: LibraryStoreInstance
     runConfigs: RunConfigs
-    typedStore: LibraryTypedStore
   }) {
     this.runConfigs = runConfigs
-    this.typedStore = typedStore
+    this.typedStore = libraryStore.typedStore
   }
 
   createPrompt(args: { content?: string; label?: string } = {}): string {

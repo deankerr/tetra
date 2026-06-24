@@ -5,9 +5,11 @@
   "imports": {
     "#catalog": "./src/catalog.ts",
     "#ids": "./src/ids.ts",
+    "#modules": "./src/modules.ts",
     "#prompts": "./src/prompts.ts",
     "#run-configs": "./src/run-configs.ts",
     "#runtime": "./src/runtime/index.ts",
+    "#runtime/*": "./src/runtime/*",
     "#tools": "./src/tools/tools.ts",
     "#transcripts": "./src/transcripts/index.ts",
     "#usage": "./src/usage.ts"

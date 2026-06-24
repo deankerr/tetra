@@ -10,9 +10,10 @@ import type { TranscriptSession } from './index.ts'
 
 function createTranscriptHarness() {
   // Tests own the same library store instance shape used by app composition roots.
-  const { rawStore, typedIndexes, typedStore } = createStoreInstance(libraryStoreDefinition)
-  const runConfigs = new RunConfigs({ typedStore })
-  const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
+  const libraryStore = createStoreInstance(libraryStoreDefinition)
+  const { rawStore, typedIndexes, typedStore } = libraryStore
+  const runConfigs = new RunConfigs({ libraryStore })
+  const transcripts = new Transcripts({ libraryStore, runConfigs })
 
   return { rawStore, transcripts, typedIndexes, typedStore }
 }

@@ -1,13 +1,11 @@
 import type { RunConfig } from '@tetra/core'
 import type { Command } from 'commander'
 
-import type { bootstrap } from '../bootstrap'
+import type { CliAppContext } from '../bootstrap'
 import { readMessage } from '../lib/input'
 import { resolveSession } from '../lib/session-ref'
 import { titleFromMessage } from '../lib/title'
 import { waitForRun } from '../lib/wait-run'
-
-type CliContext = Awaited<ReturnType<typeof bootstrap>>
 
 interface ChatOptions {
   message?: string
@@ -18,14 +16,14 @@ interface ChatOptions {
   active?: boolean
 }
 
-async function runChat(ctx: CliContext, parts: string[], opts: ChatOptions): Promise<void> {
+async function runChat(ctx: CliAppContext, parts: string[], opts: ChatOptions): Promise<void> {
   // Gather the user's request from argv and stdin before touching session state.
   const content = await readMessage({ message: opts.message, parts })
   await runChatContent(ctx, content, opts)
 }
 
 export async function runChatContent(
-  ctx: CliContext,
+  ctx: CliAppContext,
   content: string,
   opts: ChatOptions,
 ): Promise<void> {
@@ -94,14 +92,11 @@ function addChatOptions(command: Command): Command {
     .option('--no-prompt', 'Send without a system prompt')
 }
 
-export function registerChatCommands(
-  program: Command,
-  getContext: () => Promise<CliContext>,
-): void {
+export function registerChatCommands(program: Command, getContext: () => CliAppContext): void {
   // The root command is the golden path: tetra "ask anything".
   addChatOptions(program.argument('[message...]', 'Message to send')).action(
     async (parts: string[], opts: ChatOptions) => {
-      await runChat(await getContext(), parts, opts)
+      await runChat(getContext(), parts, opts)
     },
   )
 
@@ -109,6 +104,6 @@ export function registerChatCommands(
   addChatOptions(
     program.command('chat').alias('c').argument('[message...]', 'Message to send'),
   ).action(async (parts: string[], opts: ChatOptions) => {
-    await runChat(await getContext(), parts, opts)
+    await runChat(getContext(), parts, opts)
   })
 }

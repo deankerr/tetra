@@ -1,6 +1,7 @@
 import { Command } from 'commander'
 
 import { bootstrap } from './bootstrap'
+import type { CliAppContext } from './bootstrap'
 import { registerChatCommands } from './commands/chat'
 import { registerConfigCommand } from './commands/config'
 import { registerModelsCommand } from './commands/models'
@@ -11,11 +12,8 @@ const program = new Command()
 program.name('tetra').description('Tetra CLI').version('0.1.0')
 
 // Lazily bootstrap so pure help/version output does not create stores.
-type CliContext = ReturnType<typeof bootstrap>
-
-let context: CliContext | undefined
-// eslint-disable-next-line require-await -- Command modules expect an async context provider while volatile store bootstrap is synchronous.
-async function getContext(): Promise<CliContext> {
+let context: CliAppContext | undefined
+function getContext(): CliAppContext {
   context ??= bootstrap()
   return context
 }

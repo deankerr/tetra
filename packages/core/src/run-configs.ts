@@ -1,5 +1,5 @@
 import { RunConfigSchema, SessionRunConfigSchema } from '@tetra/stores/library'
-import type { LibraryTypedStore, RunConfig } from '@tetra/stores/library'
+import type { LibraryStoreInstance, LibraryTypedStore, RunConfig } from '@tetra/stores/library'
 
 // RunConfigs owns the run config operations a single cell write cannot express:
 // the session config birth merge and run-start resolution (ADR-0008). Typed
@@ -7,8 +7,8 @@ import type { LibraryTypedStore, RunConfig } from '@tetra/stores/library'
 export class RunConfigs {
   private readonly typedStore: LibraryTypedStore
 
-  constructor({ typedStore }: { typedStore: LibraryTypedStore }) {
-    this.typedStore = typedStore
+  constructor({ libraryStore }: { libraryStore: LibraryStoreInstance }) {
+    this.typedStore = libraryStore.typedStore
   }
 
   // Birth merge: session schema defaults under the stored new-session default

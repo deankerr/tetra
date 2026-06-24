@@ -1,20 +1,15 @@
 import type { Command } from 'commander'
 
-import type { bootstrap } from '../bootstrap'
+import type { CliAppContext } from '../bootstrap'
 
-type CliContext = Awaited<ReturnType<typeof bootstrap>>
-
-export function registerPromptCommands(
-  program: Command,
-  getContext: () => Promise<CliContext>,
-): void {
+export function registerPromptCommands(program: Command, getContext: () => CliAppContext): void {
   // List stored system prompts.
   program
     .command('prompts')
     .description('List stored prompts')
-    .action(async () => {
-      const ctx = await getContext()
-      const prompts = ctx.typedStore.tables.prompts
+    .action(() => {
+      const ctx = getContext()
+      const prompts = ctx.stores.library.typedStore.tables.prompts
         .listEntities()
         .toSorted((a, b) => a.id.localeCompare(b.id))
 
@@ -37,17 +32,17 @@ export function registerPromptCommands(
     .argument('[content]', 'Prompt content')
     .option('-l, --label <label>', 'Prompt label')
     .description('Create a stored prompt')
-    .action(async (content: string | undefined, opts: { label?: string }) => {
-      const ctx = await getContext()
+    .action((content: string | undefined, opts: { label?: string }) => {
+      const ctx = getContext()
       console.log(ctx.prompts.createPrompt({ content: content ?? '', label: opts.label ?? '' }))
     })
 
   prompt
     .command('show <id>')
     .description('Show a stored prompt')
-    .action(async (promptId: string) => {
-      const ctx = await getContext()
-      const row = ctx.typedStore.tables.prompts.requireEntity(promptId)
+    .action((promptId: string) => {
+      const ctx = getContext()
+      const row = ctx.stores.library.typedStore.tables.prompts.requireEntity(promptId)
       console.log(`id:      ${row.id}`)
       console.log(`label:   ${row.label ?? '(none)'}`)
       console.log(`content:\n${row.content}`)
@@ -58,9 +53,9 @@ export function registerPromptCommands(
     .argument('[content]', 'Prompt content')
     .option('-l, --label <label>', 'Prompt label')
     .description('Update a stored prompt')
-    .action(async (promptId: string, content: string | undefined, opts: { label?: string }) => {
-      const ctx = await getContext()
-      ctx.typedStore.tables.prompts.updateRow(promptId, {
+    .action((promptId: string, content: string | undefined, opts: { label?: string }) => {
+      const ctx = getContext()
+      ctx.stores.library.typedStore.tables.prompts.updateRow(promptId, {
         ...(content !== undefined && { content }),
         ...(opts.label !== undefined && { label: opts.label }),
       })
@@ -70,8 +65,8 @@ export function registerPromptCommands(
   prompt
     .command('delete <id>')
     .description('Delete a stored prompt')
-    .action(async (promptId: string) => {
-      const ctx = await getContext()
+    .action((promptId: string) => {
+      const ctx = getContext()
       ctx.prompts.deletePrompt(promptId)
       console.log(promptId)
     })

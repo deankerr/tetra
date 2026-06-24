@@ -1,4 +1,9 @@
-import type { LibraryTypedIndexes, LibraryTypedStore, RunConfig } from '@tetra/stores/library'
+import type {
+  LibraryStoreInstance,
+  LibraryTypedIndexes,
+  LibraryTypedStore,
+  RunConfig,
+} from '@tetra/stores/library'
 
 import { createIdGenerator } from '#ids'
 import type { RunConfigs } from '#run-configs'
@@ -13,17 +18,15 @@ export class Transcripts {
   private readonly typedStore: LibraryTypedStore
 
   constructor({
+    libraryStore,
     runConfigs,
-    typedIndexes,
-    typedStore,
   }: {
+    libraryStore: LibraryStoreInstance
     runConfigs: RunConfigs
-    typedIndexes: LibraryTypedIndexes
-    typedStore: LibraryTypedStore
   }) {
     this.runConfigs = runConfigs
-    this.typedIndexes = typedIndexes
-    this.typedStore = typedStore
+    this.typedIndexes = libraryStore.typedIndexes
+    this.typedStore = libraryStore.typedStore
   }
 
   createSession(

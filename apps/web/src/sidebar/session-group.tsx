@@ -38,7 +38,8 @@ const useSessionIds = (draftSessionId: string) => {
 }
 
 export function SessionGroup() {
-  const { libraryStore, transcripts } = useTetra()
+  const { stores, transcripts } = useTetra()
+  const libraryStore = stores.library.typedStore
   const activeSessionMatch = useMatch({
     from: '/sessions/$sessionId',
     shouldThrow: false,

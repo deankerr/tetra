@@ -1,19 +1,15 @@
-import type { Catalog, Prompts, RunConfigs, Runs, Transcripts } from '@tetra/core'
-import type { CatalogTypedStore } from '@tetra/stores/catalog'
-import type { LibraryTypedStore } from '@tetra/stores/library'
+import type { ModelCatalog, Prompts, RunConfigs, Runs, Transcripts } from '@tetra/core'
 import { createContext, useContext } from 'react'
 
-import type { WebTypedStore } from '@/stores/web'
+import type { WebStoreInstances } from '@/stores/web'
 
 export interface TetraAppContext {
-  catalog: Catalog
-  catalogStore: CatalogTypedStore
-  libraryStore: LibraryTypedStore
+  modelCatalog: ModelCatalog
   prompts: Prompts
   runConfigs: RunConfigs
   runs: Runs
+  stores: WebStoreInstances
   transcripts: Transcripts
-  webStore: WebTypedStore
 }
 
 export const TetraContext = createContext<TetraAppContext | null>(null)

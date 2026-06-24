@@ -9,11 +9,12 @@ import { Transcripts } from './transcripts/index.ts'
 
 function createPromptHarness() {
   // Tests own the same library store instance shape used by app composition roots.
-  const { rawStore, typedIndexes, typedStore } = createStoreInstance(libraryStoreDefinition)
-  const runConfigs = new RunConfigs({ typedStore })
-  const prompts = new Prompts({ runConfigs, typedStore })
+  const libraryStore = createStoreInstance(libraryStoreDefinition)
+  const { rawStore, typedIndexes, typedStore } = libraryStore
+  const runConfigs = new RunConfigs({ libraryStore })
+  const prompts = new Prompts({ libraryStore, runConfigs })
 
-  return { prompts, rawStore, runConfigs, typedIndexes, typedStore }
+  return { libraryStore, prompts, rawStore, runConfigs, typedIndexes, typedStore }
 }
 
 test('createPrompt stores a prompt row with defaults and provided fields', () => {
@@ -35,8 +36,8 @@ test('createPrompt stores a prompt row with defaults and provided fields', () =>
 })
 
 test('deletePrompt removes the row and unlinks it from session configs', () => {
-  const { prompts, runConfigs, typedIndexes, typedStore } = createPromptHarness()
-  const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
+  const { libraryStore, prompts, runConfigs, typedStore } = createPromptHarness()
+  const transcripts = new Transcripts({ libraryStore, runConfigs })
   const promptId = prompts.createPrompt({ content: 'Be terse.' })
 
   // One session references the prompt, another references a different prompt.

@@ -1,4 +1,4 @@
-import type { CatalogRows, CatalogTypedStore } from '@tetra/stores/catalog'
+import type { CatalogRows, CatalogStoreInstance } from '@tetra/stores/catalog'
 import { z } from 'zod'
 
 const STALE_MS = 60 * 60 * 1000
@@ -20,15 +20,16 @@ const OpenRouterModelsResponse = z.object({
   data: z.array(OpenRouterModel),
 })
 
-export class Catalog {
-  private readonly typedStore: CatalogTypedStore
+export class ModelCatalog {
+  private readonly catalogStore: CatalogStoreInstance
 
-  constructor({ typedStore }: { typedStore: CatalogTypedStore }) {
-    this.typedStore = typedStore
+  constructor({ catalogStore }: { catalogStore: CatalogStoreInstance }) {
+    this.catalogStore = catalogStore
   }
 
   async refresh(args: { force?: boolean } = {}): Promise<void> {
-    const { lastRefreshed } = this.typedStore.values
+    const { typedStore } = this.catalogStore
+    const { lastRefreshed } = typedStore.values
     const refreshedAt = lastRefreshed.get()
     const isStale = refreshedAt === null || Date.now() - refreshedAt > STALE_MS
     if (args.force !== true && !isStale) {
@@ -66,15 +67,15 @@ export class Catalog {
 
     // Publish the catalog replacement and refresh timestamp as one TinyBase event.
     const incomingIds = new Set(models.map((m) => m.id))
-    this.typedStore.transaction(() => {
-      for (const existingId of this.typedStore.tables.languageModels.getRowIds()) {
+    typedStore.transaction(() => {
+      for (const existingId of typedStore.tables.languageModels.getRowIds()) {
         if (!incomingIds.has(existingId)) {
-          this.typedStore.tables.languageModels.deleteRow(existingId)
+          typedStore.tables.languageModels.deleteRow(existingId)
         }
       }
       for (const { id, ...record } of models) {
-        const existing = this.typedStore.tables.languageModels.getEntity(id)
-        this.typedStore.tables.languageModels.setRow(id, {
+        const existing = typedStore.tables.languageModels.getEntity(id)
+        typedStore.tables.languageModels.setRow(id, {
           ...record,
           createdAt: existing?.createdAt ?? record.createdAt,
         })

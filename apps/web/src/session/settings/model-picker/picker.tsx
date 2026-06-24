@@ -151,13 +151,13 @@ function useFavoriteIds() {
 }
 
 function RefreshButton() {
-  const { catalog } = useTetra()
+  const { modelCatalog } = useTetra()
   const [loading, setLoading] = useState(false)
 
   const refresh = async () => {
     setLoading(true)
     try {
-      await catalog.refresh({ force: true })
+      await modelCatalog.refresh({ force: true })
     } finally {
       setLoading(false)
     }
@@ -231,7 +231,8 @@ export function ModelPickerSheet({
   open: boolean
   value: string
 }) {
-  const { libraryStore } = useTetra()
+  const { stores } = useTetra()
+  const libraryStore = stores.library.typedStore
   const [filter, setFilter] = useState<ModelFilter>('all')
   const [query, setQuery] = useState('')
   const [sortMode, setSortMode] = useState<ModelSortMode>('latest')

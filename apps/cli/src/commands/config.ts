@@ -1,14 +1,9 @@
 import type { RunConfig } from '@tetra/core'
 import type { Command } from 'commander'
 
-import type { bootstrap } from '../bootstrap'
+import type { CliAppContext } from '../bootstrap'
 
-type CliContext = Awaited<ReturnType<typeof bootstrap>>
-
-export function registerConfigCommand(
-  program: Command,
-  getContext: () => Promise<CliContext>,
-): void {
+export function registerConfigCommand(program: Command, getContext: () => CliAppContext): void {
   // Show or update inference config for a specific session, defaulting to active.
   program
     .command('config')
@@ -19,11 +14,11 @@ export function registerConfigCommand(
     .option('-p, --prompt <promptId>', 'Stored system prompt id')
     .option('--no-prompt', 'Clear the stored system prompt')
     .action(
-      async (
+      (
         sessionId: string | undefined,
         opts: { maxMessages?: number; model?: string; prompt?: false | string },
       ) => {
-        const ctx = await getContext()
+        const ctx = getContext()
         const resolvedSessionId = sessionId ?? ctx.workspace.getActiveSessionId()
         if (resolvedSessionId === undefined) {
           throw new Error('No active session. Try: tetra "hello"')
@@ -41,7 +36,7 @@ export function registerConfigCommand(
         }
 
         const latestConfig =
-          ctx.typedStore.tables.sessionRunConfigs.requireEntity(resolvedSessionId)
+          ctx.stores.library.typedStore.tables.sessionRunConfigs.requireEntity(resolvedSessionId)
         console.log(`session:      ${resolvedSessionId}`)
         console.log(`model:        ${latestConfig.modelId}`)
         console.log(

@@ -1,24 +1,19 @@
 import type { Command } from 'commander'
 
-import type { bootstrap } from '../bootstrap'
+import type { CliAppContext } from '../bootstrap'
 
-type CliContext = Awaited<ReturnType<typeof bootstrap>>
-
-export function registerModelsCommand(
-  program: Command,
-  getContext: () => Promise<CliContext>,
-): void {
+export function registerModelsCommand(program: Command, getContext: () => CliAppContext): void {
   // Refresh and list text-output models from OpenRouter.
   program
     .command('models')
     .description('List available models from OpenRouter')
     .option('-p, --provider <name>', 'Filter by provider name')
     .action(async (opts: { provider?: string }) => {
-      const ctx = await getContext()
-      await ctx.catalog.refresh({ force: true })
+      const ctx = getContext()
+      await ctx.modelCatalog.refresh({ force: true })
       const providerQuery = opts.provider?.toLowerCase()
 
-      const rows = ctx.catalogStore.tables.languageModels
+      const rows = ctx.stores.catalog.typedStore.tables.languageModels
         .listEntities()
         .filter((row) => row.outputModalities.includes('text'))
         .filter((row) => {
