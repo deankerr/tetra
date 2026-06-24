@@ -30,7 +30,6 @@
       "project": ["src/**/*.{ts,tsx}"]
     },
     "packages/stores": {
-      "entry": ["src/**/*.test.ts"],
       "includeEntryExports": false,
       "project": ["src/**/*.{ts,tsx}"]
     },

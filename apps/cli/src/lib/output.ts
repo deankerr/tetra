@@ -1,4 +1,4 @@
-import type { LibraryRows as Rows } from '@tetra/stores'
+import type { LibraryRows as Rows } from '@tetra/stores/library'
 
 export function formatSession(session: Rows['sessions'], activeSessionId?: string): string {
   // Keep the list scan-friendly: active marker, stable short id, title, and update time.

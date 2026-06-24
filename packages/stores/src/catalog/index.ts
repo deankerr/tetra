@@ -1,8 +1,7 @@
 import type { StoreApiFor, StoreRowsFor } from '@tetra/tinybase-schema'
 import { defineTypedStore } from '@tetra/tinybase-schema'
+import { defineStoreDefinition } from '@tetra/tinybase-schema/runtime'
 import { z } from 'zod'
-
-import { defineTetraStore } from '../host/definition.ts'
 
 export const catalogStoreSchema = defineTypedStore({
   tables: {
@@ -24,7 +23,7 @@ export const catalogStoreSchema = defineTypedStore({
   },
 })
 
-export const catalogStoreDefinition = defineTetraStore({
+export const catalogStoreDefinition = defineStoreDefinition({
   id: 'catalog',
   indexIds: [],
   schema: catalogStoreSchema,

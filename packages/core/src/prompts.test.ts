@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test'
 
-import { createStoreInstance } from '@tetra/stores/host'
 import { libraryStoreDefinition } from '@tetra/stores/library'
+import { createStoreInstance } from '@tetra/tinybase-schema/runtime'
 
 import { Prompts } from './prompts.ts'
 import { RunConfigs } from './run-configs.ts'

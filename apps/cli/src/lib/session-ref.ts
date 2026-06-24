@@ -1,5 +1,5 @@
 import type { Transcripts } from '@tetra/core'
-import type { LibraryTypedStore } from '@tetra/stores'
+import type { LibraryTypedStore } from '@tetra/stores/library'
 
 export interface ResolveSessionArgs {
   forceNew?: boolean

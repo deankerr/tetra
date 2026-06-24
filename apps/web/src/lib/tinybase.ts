@@ -1,5 +1,6 @@
-import { catalogStoreDefinition, libraryStoreDefinition } from '@tetra/stores'
-import { createStoreReactApi } from '@tetra/stores/react'
+import { catalogStoreDefinition } from '@tetra/stores/catalog'
+import { libraryStoreDefinition } from '@tetra/stores/library'
+import { createStoreReactApi } from '@tetra/tinybase-schema/react'
 
 import { webStoreDefinition } from '@/stores/web'
 

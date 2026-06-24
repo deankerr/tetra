@@ -27,7 +27,7 @@ Dev data is wiped and regenerated as needed. This app is not public. There are h
 - `apps/worker` — Cloudflare Worker and Durable Object sync backend.
 - `packages/core` — sessions, runner, tool registry, and UI-agnostic app logic.
 - `packages/credentials` — credential registry and localStorage store.
-- `packages/stores` — Tetra TinyBase store definitions, indexes, host composition, and row types.
+- `packages/stores` — Tetra TinyBase store definitions, indexes, and row types.
 - `packages/tinybase-schema` — typed TinyBase schema, store, index, and React wrappers.
 - `packages/tools-exa` — Exa search tool integration.
 - `packages/ui` — shadcn/ai-elements component library.

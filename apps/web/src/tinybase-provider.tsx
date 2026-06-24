@@ -1,4 +1,4 @@
-import { createTinyBaseProviderProps, StoreHostProvider } from '@tetra/stores/react'
+import { createTinyBaseProviderProps, StoreProvider } from '@tetra/tinybase-schema/react'
 import { createContext, useContext, useMemo } from 'react'
 
 import { createWebStores } from '@/stores/web'
@@ -13,12 +13,9 @@ export function TinyBaseProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <WebStoresContext value={stores}>
-      <StoreHostProvider
-        indexesById={providerProps.indexesById}
-        storesById={providerProps.storesById}
-      >
+      <StoreProvider indexesById={providerProps.indexesById} storesById={providerProps.storesById}>
         {children}
-      </StoreHostProvider>
+      </StoreProvider>
     </WebStoresContext>
   )
 }

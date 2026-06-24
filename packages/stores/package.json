@@ -3,26 +3,16 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
     "./catalog": "./src/catalog/index.ts",
-    "./host": "./src/host/definition.ts",
-    "./library": "./src/library/index.ts",
-    "./react": "./src/host/react.ts",
-    "./worker": "./src/worker.ts"
-  },
-  "scripts": {
-    "test": "bun test ./src"
+    "./library": "./src/library/index.ts"
   },
   "dependencies": {
     "@tetra/tinybase-schema": "workspace:*",
     "ai": "catalog:",
-    "react": "catalog:",
-    "tinybase": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
-    "@types/react": "catalog:",
     "typescript": "catalog:"
   }
 }

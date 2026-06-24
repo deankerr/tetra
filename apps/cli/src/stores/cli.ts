@@ -1,10 +1,7 @@
-import {
-  catalogStoreDefinition,
-  createStoreHost,
-  defineTetraStore,
-  libraryStoreDefinition,
-} from '@tetra/stores'
+import { catalogStoreDefinition } from '@tetra/stores/catalog'
+import { libraryStoreDefinition } from '@tetra/stores/library'
 import { defineTypedStore } from '@tetra/tinybase-schema'
+import { createStoreInstance, defineStoreDefinition } from '@tetra/tinybase-schema/runtime'
 import { z } from 'zod'
 
 const cliStoreSchema = defineTypedStore({
@@ -14,21 +11,19 @@ const cliStoreSchema = defineTypedStore({
   },
 })
 
-const cliStoreDefinition = defineTetraStore({
+const cliStoreDefinition = defineStoreDefinition({
   id: 'cli',
   indexIds: [],
   schema: cliStoreSchema,
 })
 
-const cliStoreDefinitions = [
-  libraryStoreDefinition,
-  catalogStoreDefinition,
-  cliStoreDefinition,
-] as const
-
 export type CliStores = ReturnType<typeof createCliStores>
 
 export function createCliStores() {
   // CLI stores are currently volatile; persistence and sync are external concerns.
-  return createStoreHost(cliStoreDefinitions)
+  return {
+    catalog: createStoreInstance(catalogStoreDefinition),
+    cli: createStoreInstance(cliStoreDefinition),
+    library: createStoreInstance(libraryStoreDefinition),
+  }
 }

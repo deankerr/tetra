@@ -1,4 +1,5 @@
-import type { RawIndexesFor } from '../host/definition.ts'
+import type { RawIndexesFor } from '@tetra/tinybase-schema/runtime'
+
 import type { libraryStoreSchema } from './schema.ts'
 
 export const libraryIndexIds = [

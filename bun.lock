@@ -70,6 +70,7 @@
       "name": "@tetra/worker",
       "dependencies": {
         "@tetra/stores": "workspace:*",
+        "@tetra/tinybase-schema": "workspace:*",
         "tinybase": "catalog:",
       },
       "devDependencies": {
@@ -91,6 +92,7 @@
         "zod": "catalog:",
       },
       "devDependencies": {
+        "@tetra/tinybase-schema": "workspace:*",
         "@types/bun": "catalog:",
         "typescript": "catalog:",
       },
@@ -106,13 +108,10 @@
       "dependencies": {
         "@tetra/tinybase-schema": "workspace:*",
         "ai": "catalog:",
-        "react": "catalog:",
-        "tinybase": "catalog:",
         "zod": "catalog:",
       },
       "devDependencies": {
         "@types/bun": "catalog:",
-        "@types/react": "catalog:",
         "typescript": "catalog:",
       },
     },

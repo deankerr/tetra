@@ -27,6 +27,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@tetra/tinybase-schema": "workspace:*",
     "@types/bun": "catalog:",
     "typescript": "catalog:"
   }

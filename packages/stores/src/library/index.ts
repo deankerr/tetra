@@ -1,10 +1,10 @@
 import type { BoundIndexes, StoreApiFor, StoreRowsFor } from '@tetra/tinybase-schema'
+import { defineStoreDefinition } from '@tetra/tinybase-schema/runtime'
 
-import { defineTetraStore } from '../host/definition.ts'
 import { applyLibraryIndexes, libraryIndexIds } from './indexes.ts'
 import { libraryStoreSchema } from './schema.ts'
 
-export const libraryStoreDefinition = defineTetraStore({
+export const libraryStoreDefinition = defineStoreDefinition({
   applyIndexes: applyLibraryIndexes,
   id: 'library',
   indexIds: libraryIndexIds,

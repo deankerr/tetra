@@ -1,11 +1,8 @@
-import {
-  catalogStoreDefinition,
-  createStoreHost,
-  defineTetraStore,
-  libraryStoreDefinition,
-} from '@tetra/stores'
+import { catalogStoreDefinition } from '@tetra/stores/catalog'
+import { libraryStoreDefinition } from '@tetra/stores/library'
 import type { StoreApiFor } from '@tetra/tinybase-schema'
 import { defineTypedStore } from '@tetra/tinybase-schema'
+import { createStoreInstance, defineStoreDefinition } from '@tetra/tinybase-schema/runtime'
 import { z } from 'zod'
 
 const webStoreSchema = defineTypedStore({
@@ -28,22 +25,20 @@ const webStoreSchema = defineTypedStore({
   },
 })
 
-export const webStoreDefinition = defineTetraStore({
+export const webStoreDefinition = defineStoreDefinition({
   id: 'web',
   indexIds: [],
   schema: webStoreSchema,
 })
-
-const webStoreDefinitions = [
-  libraryStoreDefinition,
-  catalogStoreDefinition,
-  webStoreDefinition,
-] as const
 
 export type WebStores = ReturnType<typeof createWebStores>
 export type WebTypedStore = StoreApiFor<typeof webStoreSchema>
 
 export function createWebStores() {
   // Web stores are currently volatile; persistence and sync are external concerns.
-  return createStoreHost(webStoreDefinitions)
+  return {
+    catalog: createStoreInstance(catalogStoreDefinition),
+    library: createStoreInstance(libraryStoreDefinition),
+    web: createStoreInstance(webStoreDefinition),
+  }
 }

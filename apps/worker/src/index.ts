@@ -1,5 +1,6 @@
-import { createWorkerStoreRuntime } from '@tetra/stores/worker'
-import type { WorkerStoreSchemas } from '@tetra/stores/worker'
+import { libraryStoreDefinition } from '@tetra/stores/library'
+import type { StoreSchemasFor } from '@tetra/tinybase-schema'
+import { createMergeableStoreInstance } from '@tetra/tinybase-schema/runtime'
 import {
   WsServerDurableObject,
   getWsServerDurableObjectFetch,
@@ -18,9 +19,35 @@ export interface Env {
   TinyBaseDurableObjects: DurableObjectNamespace<TinyBaseDurableObject>
 }
 
+type WorkerStoreSchemas = StoreSchemasFor<(typeof libraryStoreDefinition)['schema']>
 type WorkerRuntime = Awaited<ReturnType<typeof createWorkerStoreRuntime>>
 
 const runtimes = new WeakMap<TinyBaseDurableObject, WorkerRuntime>()
+
+async function createWorkerStoreRuntime(sqlStorage: unknown) {
+  // The sync server hosts only the shared library store, and it must be mergeable.
+  const library = createMergeableStoreInstance(libraryStoreDefinition)
+  const { createDurableObjectSqlStoragePersister } =
+    await import('tinybase/persisters/persister-durable-object-sql-storage/with-schemas')
+  const libraryPersister = createDurableObjectSqlStoragePersister(
+    library.rawStore,
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Cloudflare SQL storage is supplied by the Worker runtime.
+    sqlStorage as never,
+  )
+
+  let closed = false
+  return {
+    async close() {
+      if (closed) {
+        return
+      }
+      closed = true
+      await libraryPersister.destroy()
+    },
+    library,
+    libraryPersister,
+  }
+}
 
 function addResetCorsHeaders(response: Response): Response {
   const headers = new Headers(response.headers)
@@ -66,7 +93,7 @@ function getResetResponse(request: Request, env: Env): Promise<Response> | Respo
 // Clients connect via WebSocket; the base class handles sync protocol and hibernation.
 export class TinyBaseDurableObject extends WsServerDurableObject<WorkerStoreSchemas, Env> {
   override async createPersister() {
-    const runtime = await createWorkerStoreRuntime({ sqlStorage: this.ctx.storage.sql })
+    const runtime = await createWorkerStoreRuntime(this.ctx.storage.sql)
     runtimes.set(this, runtime)
     return runtime.libraryPersister
   }
@@ -88,7 +115,7 @@ export class TinyBaseDurableObject extends WsServerDurableObject<WorkerStoreSche
       return new Response('Store is not ready', { status: 503 })
     }
 
-    const { rawStore } = runtime.host.library
+    const { rawStore } = runtime.library
     rawStore.delTables()
     rawStore.delValues()
     await runtime.libraryPersister.save()
