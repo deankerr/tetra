@@ -1,5 +1,4 @@
-import { createTinyBaseProviderProps } from '@tetra/stores'
-import { StoreHostProvider } from '@tetra/stores/react'
+import { createTinyBaseProviderProps, StoreHostProvider } from '@tetra/stores/react'
 import { createContext, useContext, useMemo } from 'react'
 
 import { createWebStores } from '@/stores/web'

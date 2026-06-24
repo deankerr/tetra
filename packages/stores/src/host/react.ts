@@ -14,18 +14,11 @@ import type { ReactNode } from 'react'
 import * as UiReact from 'tinybase/ui-react/with-schemas'
 import type { z } from 'zod'
 
-import { getStoreIndexesId } from './definition.ts'
-import type {
-  AnyStoreDefinition,
-  RawIndexesFor,
-  RawStoreFor,
-  StoreDefinition,
-} from './definition.ts'
+import type { AnyStoreDefinition, RawIndexesFor, RawStoreFor } from './definition.ts'
 
 // oxlint-disable no-unsafe-return, no-unsafe-type-assertion -- This file adapts TinyBase's generic React hooks to store-bound Tetra hooks.
 
-type DefinitionSchema<Definition extends AnyStoreDefinition> =
-  Definition extends StoreDefinition<string, infer Schema, IndexIds> ? Schema : never
+type DefinitionSchema<Definition extends AnyStoreDefinition> = Definition['schema']
 
 type DefinitionIndexIds<Definition extends AnyStoreDefinition> = Definition['indexIds']
 
@@ -61,11 +54,24 @@ interface StoreHostProviderProps {
   storesById?: Record<string, unknown>
 }
 
+type StoreHostProviderHost = Record<
+  string,
+  {
+    id: string
+    rawIndexes: unknown
+    rawStore: unknown
+  }
+>
+
 interface StoreHostReact {
   Provider(props: StoreHostProviderProps): ReactNode
 }
 
 const storeHostReact = UiReact as unknown as StoreHostReact
+
+function getStoreIndexesId<const Id extends string>(storeId: Id): `${Id}Indexes` {
+  return `${storeId}Indexes`
+}
 
 export interface StoreReactApi<
   Definition extends AnyStoreDefinition,
@@ -126,6 +132,18 @@ export interface StoreReactApi<
 
 export function StoreHostProvider(props: StoreHostProviderProps): ReactNode {
   return storeHostReact.Provider(props)
+}
+
+export function createTinyBaseProviderProps(host: StoreHostProviderHost) {
+  // TinyBase React names stores and indexes separately, so derive provider props from store ids.
+  return {
+    indexesById: Object.fromEntries(
+      Object.values(host).map((instance) => [getStoreIndexesId(instance.id), instance.rawIndexes]),
+    ),
+    storesById: Object.fromEntries(
+      Object.values(host).map((instance) => [instance.id, instance.rawStore]),
+    ),
+  }
 }
 
 export function createStoreReactApi<const Definition extends AnyStoreDefinition>(

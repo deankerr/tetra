@@ -1,12 +1,11 @@
 import type { StoreSchemasFor } from '@tetra/tinybase-schema'
 import type { Persister, Persists } from 'tinybase/persisters/with-schemas'
 
-import { createStoreHost } from './host/definition.ts'
+import { createStoreInstance } from './host/definition.ts'
 import { libraryStoreDefinition } from './library/index.ts'
 
 // oxlint-disable no-unsafe-type-assertion -- The Worker passes Cloudflare SQL storage through to TinyBase's Durable Object persister.
 
-const workerStoreDefinitions = [libraryStoreDefinition] as const
 export type WorkerStores = ReturnType<typeof createWorkerStores>
 export type WorkerStoreSchemas = StoreSchemasFor<(typeof libraryStoreDefinition)['schema']>
 export type WorkerRuntimePersister = Persister<WorkerStoreSchemas, Persists.MergeableStoreOnly>
@@ -27,9 +26,9 @@ export interface WorkerStoreRuntime {
 
 export function createWorkerStores() {
   // The sync server hosts only the shared library store, and it must be mergeable.
-  return createStoreHost(workerStoreDefinitions, {
-    mergeableStoreIds: [libraryStoreDefinition.id],
-  })
+  return {
+    library: createStoreInstance(libraryStoreDefinition, { mergeable: true }),
+  }
 }
 
 export async function createWorkerStoreRuntime(

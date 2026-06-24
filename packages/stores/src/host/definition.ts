@@ -32,37 +32,23 @@ export interface StoreDefinition<
   schema: Schema
 }
 
-export type DefinedStore<
-  Id extends string,
-  Schema extends AnyStoreSchema,
-  IndexIdList extends IndexIds,
-> = StoreDefinition<Id, Schema, IndexIdList>
-
 export interface AnyStoreDefinition {
   applyIndexes?: unknown
   id: string
   indexIds: IndexIds
-  schema: unknown
+  schema: AnyStoreSchema
 }
-
 export type RawStoreFor<Schema extends AnyStoreSchema> = RawStore<StoreSchemasFor<Schema>>
 export type RawIndexesFor<Schema extends AnyStoreSchema> = RawIndexes<StoreSchemasFor<Schema>>
-export type StoreIndexesId<Id extends string> = `${Id}Indexes`
-type SchemaFor<Definition extends AnyStoreDefinition> =
-  Definition extends StoreDefinition<string, infer Schema, IndexIds> ? Schema : never
 
-export type StoreInstanceFor<Definition extends AnyStoreDefinition> =
-  Definition extends StoreDefinition<string, infer Schema, infer IndexIdList>
-    ? {
-        definition: Definition
-        id: Definition['id']
-        isMergeable: boolean
-        rawIndexes: RawIndexesFor<Schema>
-        rawStore: RawStoreFor<Schema>
-        typedIndexes: BoundIndexes<IndexIdList>
-        typedStore: StoreApiFor<Schema>
-      }
-    : never
+export interface StoreInstanceFor<Definition extends AnyStoreDefinition> {
+  definition: Definition
+  id: Definition['id']
+  rawIndexes: RawIndexesFor<Definition['schema']>
+  rawStore: RawStoreFor<Definition['schema']>
+  typedIndexes: BoundIndexes<Definition['indexIds']>
+  typedStore: StoreApiFor<Definition['schema']>
+}
 
 export type StoreHost<Definitions extends readonly AnyStoreDefinition[]> = {
   [Definition in Definitions[number] as Definition['id']]: StoreInstanceFor<Definition>
@@ -72,22 +58,18 @@ export function defineTetraStore<
   const Id extends string,
   const Schema extends AnyStoreSchema,
   const IndexIdList extends IndexIds = readonly [],
->(definition: StoreDefinition<Id, Schema, IndexIdList>): DefinedStore<Id, Schema, IndexIdList> {
+>(definition: StoreDefinition<Id, Schema, IndexIdList>): StoreDefinition<Id, Schema, IndexIdList> {
   return definition
-}
-
-export function getStoreIndexesId<const Id extends string>(storeId: Id): StoreIndexesId<Id> {
-  return `${storeId}Indexes`
 }
 
 export function createStoreInstance<const Definition extends AnyStoreDefinition>(
   definition: Definition,
   options: { mergeable?: boolean } = {},
 ): StoreInstanceFor<Definition> {
-  type Schema = SchemaFor<Definition>
-  const schema = definition.schema as Schema
+  type Schema = Definition['schema']
+  const { schema } = definition
 
-  // Store definitions own schema and indexes; hosts choose plain Store versus MergeableStore.
+  // Store definitions own schema and indexes; callers choose the TinyBase runtime mode.
   const rawStore = (options.mergeable === true ? createMergeableStore() : createStore()).setSchema(
     structuredClone(schema.tablesSchema),
     structuredClone(schema.valuesSchema),
@@ -103,7 +85,6 @@ export function createStoreInstance<const Definition extends AnyStoreDefinition>
   return {
     definition,
     id: definition.id,
-    isMergeable: options.mergeable === true,
     rawIndexes,
     rawStore,
     typedIndexes: bindIndexes(rawIndexes, definition.indexIds),
@@ -113,35 +94,9 @@ export function createStoreInstance<const Definition extends AnyStoreDefinition>
 
 export function createStoreHost<const Definitions extends readonly AnyStoreDefinition[]>(
   definitions: Definitions,
-  options: { mergeableStoreIds?: readonly Definitions[number]['id'][] } = {},
 ): StoreHost<Definitions> {
-  // Hosts can vary store runtime mode without changing the store definitions themselves.
-  const mergeableStoreIds = new Set(options.mergeableStoreIds)
-  const entries = definitions.map((definition) => [
-    definition.id,
-    createStoreInstance(definition, { mergeable: mergeableStoreIds.has(definition.id) }),
-  ])
+  // App hosts are just named collections of volatile TinyBase stores.
+  const entries = definitions.map((definition) => [definition.id, createStoreInstance(definition)])
 
   return Object.fromEntries(entries) as unknown as StoreHost<Definitions>
-}
-
-export function createTinyBaseProviderProps(
-  host: Record<
-    string,
-    {
-      id: string
-      rawIndexes: unknown
-      rawStore: unknown
-    }
-  >,
-) {
-  // TinyBase already supports named stores and indexes, so the host can provide everything by id.
-  return {
-    indexesById: Object.fromEntries(
-      Object.values(host).map((instance) => [getStoreIndexesId(instance.id), instance.rawIndexes]),
-    ),
-    storesById: Object.fromEntries(
-      Object.values(host).map((instance) => [instance.id, instance.rawStore]),
-    ),
-  }
 }

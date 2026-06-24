@@ -1,21 +1,5 @@
 export { catalogStoreDefinition, catalogStoreSchema } from './catalog/index.ts'
-export {
-  createStoreHost,
-  createStoreInstance,
-  createTinyBaseProviderProps,
-  defineTetraStore,
-  getStoreIndexesId,
-} from './host/definition.ts'
-export type {
-  AnyStoreDefinition,
-  DefinedStore,
-  RawIndexesFor,
-  RawStoreFor,
-  StoreDefinition,
-  StoreHost,
-  StoreIndexesId,
-  StoreInstanceFor,
-} from './host/definition.ts'
+export { createStoreHost, defineTetraStore } from './host/definition.ts'
 export {
   libraryIndexIds,
   libraryStoreDefinition,
