@@ -6,8 +6,8 @@ import { toast } from '@tetra/ui/components/ui/sonner'
 import { KeyRoundIcon, Settings2Icon, XIcon } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { libraryTinybase, webTinybase } from '@/lib/tinybase'
-import { useTetra } from '@/tetra-context'
+import { useApp } from '@/app'
+import { libraryTinybase, webTinybase } from '@/store'
 import { useCredential } from '@/use-credential'
 
 import { Composer } from './composer'
@@ -28,7 +28,7 @@ export function NewSessionPage() {
   const [promptSheetOpen, setPromptSheetOpen] = useState(false)
   const [openrouterApiKey] = useCredential('OPENROUTER_API_KEY')
   const [, setSettingsOpen] = webTinybase.useValueState('settingsOpen')
-  const { stores } = useTetra()
+  const { stores } = useApp()
   const webStore = stores.web.typedStore
   const apiKeyConfigured = openrouterApiKey.trim() !== ''
 
@@ -152,7 +152,7 @@ export function NewSessionPage() {
 }
 
 function useDraftSessionId(): string | null {
-  const { stores, transcripts } = useTetra()
+  const { stores, transcripts } = useApp()
   const webStore = stores.web.typedStore
   const draftSessionPointer = webTinybase.useEntity('draftSessions', 'current')
   const draftSessionId = draftSessionPointer?.sessionId ?? ''

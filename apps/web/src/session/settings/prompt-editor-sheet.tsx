@@ -12,8 +12,8 @@ import { Textarea } from '@tetra/ui/components/ui/textarea'
 import { Trash2Icon, XIcon } from 'lucide-react'
 import { useMemo } from 'react'
 
-import { libraryTinybase } from '@/lib/tinybase'
-import { useTetra } from '@/tetra-context'
+import { useApp } from '@/app'
+import { libraryTinybase } from '@/store'
 
 const usePromptIds = () => {
   const prompts = libraryTinybase.useEntityList('prompts')
@@ -176,7 +176,7 @@ export function PromptEditorSheet({
   open: boolean
   sessionId: string
 }) {
-  const { prompts } = useTetra()
+  const { prompts } = useApp()
   const [systemPromptId, setSystemPromptId] = libraryTinybase.useCellState(
     'sessionRunConfigs',
     sessionId,

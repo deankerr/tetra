@@ -20,8 +20,8 @@ import {
 import { MoreHorizontalIcon, PlusIcon } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 
-import { libraryTinybase, webTinybase } from '@/lib/tinybase'
-import { useTetra } from '@/tetra-context'
+import { useApp } from '@/app'
+import { libraryTinybase, webTinybase } from '@/store'
 
 // Sessions sorted by updatedAt descending — most recently active first.
 // Transcript writes touch updatedAt, so this order naturally tracks conversation activity.
@@ -38,7 +38,7 @@ const useSessionIds = (draftSessionId: string) => {
 }
 
 export function SessionGroup() {
-  const { stores, transcripts } = useTetra()
+  const { stores, transcripts } = useApp()
   const libraryStore = stores.library.typedStore
   const activeSessionMatch = useMatch({
     from: '/sessions/$sessionId',

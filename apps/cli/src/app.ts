@@ -1,10 +1,10 @@
 import { createCoreModules } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
 
-import { createCliStoreInstances } from './stores/cli'
-import type { CliStoreInstances } from './stores/cli'
+import { createCliStoreInstances } from './store'
+import type { CliStoreInstances } from './store'
 
-export function bootstrap() {
+export function createCliApp() {
   const stores = createCliStoreInstances()
   const core = createCoreModules({
     credentials: credentialStore,
@@ -25,7 +25,7 @@ export function bootstrap() {
   }
 }
 
-export type CliAppContext = ReturnType<typeof bootstrap>
+export type CliAppContext = ReturnType<typeof createCliApp>
 
 function connectCliWorkspace(stores: CliStoreInstances) {
   const { activeSessionId } = stores.cli.typedStore.values

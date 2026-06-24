@@ -4,7 +4,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from '@tetra/ui/compone
 import { Progress } from '@tetra/ui/components/ui/progress'
 import { useMemo } from 'react'
 
-import { catalogTinybase, libraryTinybase } from '@/lib/tinybase'
+import { catalogTinybase, libraryTinybase } from '@/store'
 
 import { useSessionUsageTotals } from './usage-hooks'
 

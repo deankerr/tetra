@@ -8,8 +8,8 @@ import { RotateCcwIcon, SearchIcon, XIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { ComponentProps } from 'react'
 
-import { catalogTinybase, libraryTinybase } from '@/lib/tinybase'
-import { useTetra } from '@/tetra-context'
+import { useApp } from '@/app'
+import { catalogTinybase, libraryTinybase } from '@/store'
 
 import { ModelCard } from './model-card'
 
@@ -151,7 +151,7 @@ function useFavoriteIds() {
 }
 
 function RefreshButton() {
-  const { modelCatalog } = useTetra()
+  const { modelCatalog } = useApp()
   const [loading, setLoading] = useState(false)
 
   const refresh = async () => {
@@ -231,7 +231,7 @@ export function ModelPickerSheet({
   open: boolean
   value: string
 }) {
-  const { stores } = useTetra()
+  const { stores } = useApp()
   const libraryStore = stores.library.typedStore
   const [filter, setFilter] = useState<ModelFilter>('all')
   const [query, setQuery] = useState('')

@@ -5,7 +5,7 @@ import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
 import { HomeIcon, Settings2Icon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 
-import { libraryTinybase } from '@/lib/tinybase'
+import { libraryTinybase } from '@/store'
 
 import { ConversationView } from './conversation-view'
 import { SessionPanelErrorBoundary } from './error-boundary'

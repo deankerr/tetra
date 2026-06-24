@@ -1,6 +1,6 @@
 import type { Command } from 'commander'
 
-import type { CliAppContext } from '../bootstrap'
+import type { CliAppContext } from '../app'
 
 export function registerPromptCommands(program: Command, getContext: () => CliAppContext): void {
   // List stored system prompts.

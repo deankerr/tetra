@@ -1,7 +1,7 @@
 import type { RunConfig } from '@tetra/core'
 import type { Command } from 'commander'
 
-import type { CliAppContext } from '../bootstrap'
+import type { CliAppContext } from '../app'
 import { readMessage } from '../lib/input'
 import { formatSession, printMessages } from '../lib/output'
 import { titleFromMessage } from '../lib/title'

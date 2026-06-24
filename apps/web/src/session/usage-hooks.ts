@@ -3,7 +3,7 @@ import type { UsageTotals } from '@tetra/core'
 import type { LibraryRows } from '@tetra/stores/library'
 import { useMemo } from 'react'
 
-import { libraryTinybase } from '@/lib/tinybase'
+import { libraryTinybase } from '@/store'
 
 type StepIndexId = 'stepsByRun' | 'stepsBySession'
 

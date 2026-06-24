@@ -10,8 +10,7 @@ import { JsonViewSheet } from '@/components/json-view-sheet'
 import { RootErrorComponent } from '@/components/root-error'
 import { RootNotFoundComponent } from '@/components/root-not-found'
 import { AppSidebar } from '@/sidebar/app-sidebar'
-import { TetraProvider } from '@/tetra-provider'
-import { TinyBaseProvider } from '@/tinybase-provider'
+import { AppProvider } from '@/app'
 
 import appCss from '../styles.css?url'
 
@@ -49,23 +48,21 @@ export const Route = createRootRoute({
 
 function RootAppLayout() {
   return (
-    <TinyBaseProvider>
-      <TetraProvider>
-        <SidebarProvider>
-          <Sidebar variant='inset'>
-            <AppSidebar />
-          </Sidebar>
+    <AppProvider>
+      <SidebarProvider>
+        <Sidebar variant='inset'>
+          <AppSidebar />
+        </Sidebar>
 
-          <SidebarInset className="h-svh min-w-0 overflow-hidden md:h-[calc(100svh-1rem)]">
-            <div className="flex h-full min-w-0">
-              <Outlet />
-            </div>
-          </SidebarInset>
-        </SidebarProvider>
-        <JsonViewSheet />
-        <Toaster richColors />
-      </TetraProvider>
-    </TinyBaseProvider>
+        <SidebarInset className="h-svh min-w-0 overflow-hidden md:h-[calc(100svh-1rem)]">
+          <div className="flex h-full min-w-0">
+            <Outlet />
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+      <JsonViewSheet />
+      <Toaster richColors />
+    </AppProvider>
   )
 }
 

@@ -20,9 +20,9 @@ import type { UIMessage } from 'ai'
 import { ArrowUpFromDot, ImageIcon } from 'lucide-react'
 import { useCallback, useState } from 'react'
 
-import { libraryTinybase } from '@/lib/tinybase'
+import { useApp } from '@/app'
 import { ModelPickerButton, ModelPickerSheet } from '@/session/settings/model-picker'
-import { useTetra } from '@/tetra-context'
+import { libraryTinybase } from '@/store'
 
 import { useSessionThreadAppendTarget } from './thread-view'
 import { SessionUsageMeter } from './usage-meter'
@@ -116,7 +116,7 @@ function useComposerSubmit({
   sessionId: string
   setDraft: (draft: string) => void
 }): ComposerSubmitHandler {
-  const tetra = useTetra()
+  const tetra = useApp()
   const { selectThreadFromMessage, threadLeafMessageId } = useSessionThreadAppendTarget(sessionId)
 
   return useCallback<ComposerSubmitHandler>(
@@ -207,7 +207,7 @@ function useComposerSubmit({
 // liveness, so a stale non-terminal row (crash, reload, another client) never locks
 // the composer.
 const useActiveRun = (sessionId: string) => {
-  const tetra = useTetra()
+  const tetra = useApp()
   const ids = libraryTinybase.useSliceRowIds('runsBySessionNewestFirst', sessionId)
   const run = libraryTinybase.useEntity('runs', ids[0] ?? '')
   if (run === null || run.status !== 'active') {
@@ -273,7 +273,7 @@ function ComposerSubmitControls({
   isActive: boolean
   sessionId: string
 }) {
-  const tetra = useTetra()
+  const tetra = useApp()
   const attachments = usePromptInputAttachments()
   const isEmpty = draft.trim() === '' && attachments.files.length === 0
 

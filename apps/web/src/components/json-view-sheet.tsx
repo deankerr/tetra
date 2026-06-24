@@ -3,7 +3,7 @@ import { Button } from '@tetra/ui/components/ui/button'
 import { Sheet, SheetClose, SheetContent } from '@tetra/ui/components/ui/sheet'
 import { CopyIcon, XIcon } from 'lucide-react'
 
-import { webTinybase } from '@/lib/tinybase'
+import { webTinybase } from '@/store'
 
 const CLOSED_JSON_VIEW = { json: '', title: '' }
 

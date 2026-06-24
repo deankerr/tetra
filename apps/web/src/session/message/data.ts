@@ -1,8 +1,8 @@
 import { RunConfigSchema } from '@tetra/stores/library'
 import type { LibraryRows } from '@tetra/stores/library'
 
-import { libraryTinybase } from '@/lib/tinybase'
-import { useTetra } from '@/tetra-context'
+import { useApp } from '@/app'
+import { libraryTinybase } from '@/store'
 
 export type MessagePart = LibraryRows['messages']['parts'][number]
 
@@ -22,7 +22,7 @@ export function getRunErrorMessage(run: LibraryRows['runs'] | null): string | nu
 // so a stale row (crash, reload, or another client) never freezes the message UI. The
 // status check short-circuits reactively, before the live-run lookup.
 export function useMessageRunActive(run: LibraryRows['runs'] | null): boolean {
-  const tetra = useTetra()
+  const tetra = useApp()
   if (run === null || run.status !== 'active') {
     return false
   }

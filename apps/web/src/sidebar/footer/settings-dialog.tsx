@@ -13,7 +13,7 @@ import { Input } from '@tetra/ui/components/ui/input'
 import { Label } from '@tetra/ui/components/ui/label'
 import { SettingsIcon } from 'lucide-react'
 
-import { webTinybase } from '@/lib/tinybase'
+import { webTinybase } from '@/store'
 import { useCredential } from '@/use-credential'
 
 export function SettingsDialog() {

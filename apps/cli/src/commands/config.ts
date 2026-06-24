@@ -1,7 +1,7 @@
 import type { RunConfig } from '@tetra/core'
 import type { Command } from 'commander'
 
-import type { CliAppContext } from '../bootstrap'
+import type { CliAppContext } from '../app'
 
 export function registerConfigCommand(program: Command, getContext: () => CliAppContext): void {
   // Show or update inference config for a specific session, defaulting to active.

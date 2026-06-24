@@ -3,8 +3,8 @@ import { Button } from '@tetra/ui/components/ui/button'
 import { ButtonGroup, ButtonGroupText } from '@tetra/ui/components/ui/button-group'
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
 
-import { libraryTinybase } from '@/lib/tinybase'
-import { useTetra } from '@/tetra-context'
+import { useApp } from '@/app'
+import { libraryTinybase } from '@/store'
 
 import { useSessionThreadSelection } from '../thread-view'
 
@@ -58,7 +58,7 @@ export function MessageForkControl({ message }: { message: LibraryRows['messages
 }
 
 function useForkChoices(message: LibraryRows['messages']): LibraryRows['messages'][] {
-  const { transcripts } = useTetra()
+  const { transcripts } = useApp()
   libraryTinybase.useSliceRowIds('messagesBySession', message.sessionId)
 
   // Fork choices are ordinary child messages of the current message's parent.

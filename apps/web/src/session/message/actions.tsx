@@ -6,9 +6,9 @@ import { BracesIcon, CopyIcon, ListTreeIcon, RefreshCwIcon, TrashIcon } from 'lu
 import type { ReactNode } from 'react'
 import { useState } from 'react'
 
+import { useApp } from '@/app'
 import { useJsonViewSheet } from '@/components/json-view-sheet'
-import { libraryTinybase } from '@/lib/tinybase'
-import { useTetra } from '@/tetra-context'
+import { libraryTinybase } from '@/store'
 
 import { RunDetailSheet } from '../run-detail-sheet'
 import { useSessionThreadSelection } from '../thread-view'
@@ -25,7 +25,7 @@ export function MessageActionsView({
   message: LibraryRows['messages']
   run: LibraryRows['runs'] | null
 }) {
-  const { runs, transcripts } = useTetra()
+  const { runs, transcripts } = useApp()
   const { openJsonView } = useJsonViewSheet()
   const { selectThreadFromMessage } = useSessionThreadSelection(message.sessionId)
   const [runDetailOpen, setRunDetailOpen] = useState(false)
@@ -173,7 +173,7 @@ function MessageMetadata({ message }: { message: LibraryRows['messages'] }) {
 }
 
 function useMessageHasContinuations(message: LibraryRows['messages']): boolean {
-  const tetra = useTetra()
+  const tetra = useApp()
   const messageIds = libraryTinybase.useSliceRowIds('messagesBySession', message.sessionId)
   const libraryStore = tetra.stores.library.typedStore
 

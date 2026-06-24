@@ -1,6 +1,7 @@
 import { catalogStoreDefinition } from '@tetra/stores/catalog'
 import { libraryStoreDefinition } from '@tetra/stores/library'
 import { defineTypedStore } from '@tetra/tinybase-schema'
+import { createStoreReactApi } from '@tetra/tinybase-schema/react'
 import { createStoreInstance, defineStoreDefinition } from '@tetra/tinybase-schema/runtime'
 import { z } from 'zod'
 
@@ -24,7 +25,7 @@ const webStoreSchema = defineTypedStore({
   },
 })
 
-export const webStoreDefinition = defineStoreDefinition({
+const webStoreDefinition = defineStoreDefinition({
   id: 'web',
   indexIds: [],
   schema: webStoreSchema,
@@ -40,3 +41,7 @@ export function createWebStoreInstances() {
     web: createStoreInstance(webStoreDefinition),
   }
 }
+
+export const catalogTinybase = createStoreReactApi(catalogStoreDefinition)
+export const libraryTinybase = createStoreReactApi(libraryStoreDefinition)
+export const webTinybase = createStoreReactApi(webStoreDefinition)

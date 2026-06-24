@@ -10,7 +10,7 @@ import { CopyIcon, XIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useMemo } from 'react'
 
-import { libraryTinybase } from '@/lib/tinybase'
+import { libraryTinybase } from '@/store'
 
 import { useRunSteps } from './usage-hooks'
 

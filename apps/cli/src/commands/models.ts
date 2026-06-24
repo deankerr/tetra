@@ -1,6 +1,6 @@
 import type { Command } from 'commander'
 
-import type { CliAppContext } from '../bootstrap'
+import type { CliAppContext } from '../app'
 
 export function registerModelsCommand(program: Command, getContext: () => CliAppContext): void {
   // Refresh and list text-output models from OpenRouter.

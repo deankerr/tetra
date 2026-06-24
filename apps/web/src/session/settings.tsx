@@ -4,9 +4,9 @@ import { Field, FieldGroup, FieldTitle } from '@tetra/ui/components/ui/field'
 import { Input } from '@tetra/ui/components/ui/input'
 import { BracesIcon, DownloadIcon } from 'lucide-react'
 
+import { useApp } from '@/app'
 import { useJsonViewSheet } from '@/components/json-view-sheet'
-import { libraryTinybase } from '@/lib/tinybase'
-import { useTetra } from '@/tetra-context'
+import { libraryTinybase } from '@/store'
 
 import { SessionExportButton } from './export-button'
 import { ModelPickerButton } from './settings/model-picker'
@@ -93,7 +93,7 @@ export function SessionSettings({
 }
 
 function UseAsDefaultButton({ sessionId }: { sessionId: string }) {
-  const { runConfigs } = useTetra()
+  const { runConfigs } = useApp()
 
   return (
     <Button
