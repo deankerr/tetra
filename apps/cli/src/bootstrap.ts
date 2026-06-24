@@ -1,7 +1,8 @@
 import { Catalog, Prompts, RunConfigs, Runs, Transcripts } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
-import { createCliStores } from '@tetra/stores'
-import type { CliStores } from '@tetra/stores'
+
+import { createCliStores } from './stores/cli'
+import type { CliStores } from './stores/cli'
 
 export function bootstrap() {
   const stores = createCliStores()

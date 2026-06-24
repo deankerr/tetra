@@ -5,11 +5,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./catalog": "./src/catalog/index.ts",
-    "./cli": "./src/cli.ts",
     "./host": "./src/host/definition.ts",
     "./library": "./src/library/index.ts",
     "./react": "./src/host/react.ts",
-    "./web": "./src/web.ts",
     "./worker": "./src/worker.ts"
   },
   "scripts": {

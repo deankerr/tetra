@@ -1,4 +1,4 @@
-import type { LibraryRows } from '@tetra/stores/web'
+import type { LibraryRows } from '@tetra/stores/library'
 import {
   Message as AiMessage,
   MessageContent as AiMessageContent,

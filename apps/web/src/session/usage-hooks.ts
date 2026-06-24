@@ -1,6 +1,6 @@
 import { summarizeSteps } from '@tetra/core'
 import type { UsageTotals } from '@tetra/core'
-import type { LibraryRows } from '@tetra/stores/web'
+import type { LibraryRows } from '@tetra/stores/library'
 import { useMemo } from 'react'
 
 import { libraryTinybase } from '@/lib/tinybase'

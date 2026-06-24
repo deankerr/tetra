@@ -1,5 +1,5 @@
 import { summarizeSteps } from '@tetra/core'
-import type { LibraryRows } from '@tetra/stores/web'
+import type { LibraryRows } from '@tetra/stores/library'
 import { CodeBlock } from '@tetra/ui/components/ai-elements/code-block'
 import { Badge } from '@tetra/ui/components/ui/badge'
 import { Button } from '@tetra/ui/components/ui/button'

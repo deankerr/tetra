@@ -1,10 +1,14 @@
-import type { StoreApiFor, StoreRowsFor } from '@tetra/tinybase-schema'
+import {
+  catalogStoreDefinition,
+  createStoreHost,
+  defineTetraStore,
+  libraryStoreDefinition,
+} from '@tetra/stores'
+import type { StoreApiFor } from '@tetra/tinybase-schema'
 import { defineTypedStore } from '@tetra/tinybase-schema'
 import { z } from 'zod'
 
-import { defineTetraStore } from '../host/definition.ts'
-
-export const webStoreSchema = defineTypedStore({
+const webStoreSchema = defineTypedStore({
   tables: {
     draftSessions: z.object({
       sessionId: z.string(),
@@ -30,5 +34,16 @@ export const webStoreDefinition = defineTetraStore({
   schema: webStoreSchema,
 })
 
-export type WebRows = StoreRowsFor<typeof webStoreSchema>
+const webStoreDefinitions = [
+  libraryStoreDefinition,
+  catalogStoreDefinition,
+  webStoreDefinition,
+] as const
+
+export type WebStores = ReturnType<typeof createWebStores>
 export type WebTypedStore = StoreApiFor<typeof webStoreSchema>
+
+export function createWebStores() {
+  // Web stores are currently volatile; persistence and sync are external concerns.
+  return createStoreHost(webStoreDefinitions)
+}

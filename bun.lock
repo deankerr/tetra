@@ -23,7 +23,9 @@
         "@tetra/core": "workspace:*",
         "@tetra/credentials": "workspace:*",
         "@tetra/stores": "workspace:*",
+        "@tetra/tinybase-schema": "workspace:*",
         "commander": "^14.0.3",
+        "zod": "catalog:",
       },
       "devDependencies": {
         "@types/bun": "catalog:",
@@ -42,6 +44,7 @@
         "@tetra/core": "workspace:*",
         "@tetra/credentials": "workspace:*",
         "@tetra/stores": "workspace:*",
+        "@tetra/tinybase-schema": "workspace:*",
         "@tetra/ui": "workspace:*",
         "ai": "catalog:",
         "lucide-react": "catalog:",

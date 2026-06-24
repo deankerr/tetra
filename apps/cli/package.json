@@ -10,7 +10,9 @@
     "@tetra/core": "workspace:*",
     "@tetra/credentials": "workspace:*",
     "@tetra/stores": "workspace:*",
-    "commander": "^14.0.3"
+    "@tetra/tinybase-schema": "workspace:*",
+    "commander": "^14.0.3",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "catalog:",

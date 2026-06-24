@@ -1,8 +1,8 @@
 import { Catalog, Prompts, RunConfigs, Runs, Transcripts } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
-import type { WebStores } from '@tetra/stores/web'
 import { useMemo } from 'react'
 
+import type { WebStores } from '@/stores/web'
 import { TetraContext } from '@/tetra-context'
 import { useWebStores } from '@/tinybase-provider'
 

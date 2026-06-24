@@ -1,7 +1,9 @@
+import { createTinyBaseProviderProps } from '@tetra/stores'
 import { StoreHostProvider } from '@tetra/stores/react'
-import { createTinyBaseProviderProps, createWebStores } from '@tetra/stores/web'
-import type { WebStores } from '@tetra/stores/web'
 import { createContext, useContext, useMemo } from 'react'
+
+import { createWebStores } from '@/stores/web'
+import type { WebStores } from '@/stores/web'
 
 const WebStoresContext = createContext<WebStores | null>(null)
 

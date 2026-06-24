@@ -1,4 +1,4 @@
-import type { LibraryRows } from '@tetra/stores/web'
+import type { LibraryRows } from '@tetra/stores/library'
 import { Button } from '@tetra/ui/components/ui/button'
 import { ButtonGroup, ButtonGroupText } from '@tetra/ui/components/ui/button-group'
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
