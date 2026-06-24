@@ -14,8 +14,8 @@ old Step/Block renderer with ai-elements primitives:
 - `Tool` renders AI SDK tool parts without Tetra-specific tool chrome.
 
 The message surface intentionally keeps run accounting quiet. The header shows the
-message role, the run model id from the run config snapshot, and coarse run status;
-step metadata, token counts, and detailed usage live in the run details sheet.
+run model id from the run config snapshot with coarse run status; step metadata,
+token counts, and detailed usage live in the run details sheet.
 
 Composition stays explicit. Major behavior slices live in separate files, but their
 sub-components remain local unless another slice needs them. TinyBase remains the
@@ -31,7 +31,7 @@ Current slices:
 
 - `view.tsx` owns the TinyBase message/run lookup, the outer ai-elements
   `Message` frame, the ai-elements `MessageContent` frame, and run error display.
-- `header.tsx` owns role, model, and coarse run status badges.
+- `header.tsx` owns the combined model and coarse run status badge.
 - `parts.tsx` owns UIMessage part rendering; `view.tsx` passes the current message
   parts plus the run-derived streaming flag.
 - `fork-control.tsx` owns local fork-choice navigation for regenerated messages

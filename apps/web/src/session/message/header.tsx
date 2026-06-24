@@ -1,75 +1,58 @@
 import type { Rows } from '@tetra/store-schema'
 import { Badge } from '@tetra/ui/components/ui/badge'
+import { cn } from '@tetra/ui/lib/utils'
 import { BanIcon, CheckCircle2Icon, LoaderCircleIcon, XCircleIcon } from 'lucide-react'
 
 import { getRunModelId } from './data'
 
-type MessageRow = Rows['messages']
 type RunRow = Rows['runs']
 type RunStatus = RunRow['status']
 
-export function MessageHeader({
-  isActive,
-  message,
-  run,
-}: {
-  isActive: boolean
-  message: MessageRow
-  run: RunRow | null
-}) {
-  const modelId = run === null ? '' : getRunModelId(run)
+export function MessageHeader({ isActive, run }: { isActive: boolean; run: RunRow | null }) {
+  if (run === null) {
+    return null
+  }
+
+  const modelId = getRunModelId(run)
+  const statusLabel = getRunStatusLabel({ isActive, status: run.status })
 
   return (
     <div className="flex items-center gap-2 group-[.is-user]:justify-end">
-      <Badge className="rounded-xs font-mono uppercase" variant="secondary">
-        {message.role}
+      <Badge
+        aria-label={statusLabel}
+        className={cn(
+          'gap-2 rounded-sm font-mono',
+          run.status !== 'error' && 'text-muted-foreground',
+        )}
+        title={statusLabel}
+        variant={run.status === 'error' ? 'destructive' : 'secondary'}
+      >
+        {modelId !== '' && <span className="truncate">{modelId}</span>}
+        {run.status === 'completed' && <CheckCircle2Icon />}
+        {run.status === 'error' && <XCircleIcon />}
+        {run.status === 'cancelled' && <BanIcon />}
+        {run.status === 'active' && (
+          <LoaderCircleIcon className={isActive ? 'animate-spin' : undefined} />
+        )}
       </Badge>
-      {modelId !== '' && (
-        <Badge className="max-w-60 rounded-xs font-mono" title={modelId} variant="secondary">
-          <span className="truncate">{modelId}</span>
-        </Badge>
-      )}
-      {run && <RunStatusBadge isActive={isActive} status={run.status} />}
     </div>
   )
 }
 
-function RunStatusBadge({ isActive, status }: { isActive: boolean; status: RunStatus }) {
+function getRunStatusLabel({ isActive, status }: { isActive: boolean; status: RunStatus }) {
   if (status === 'completed') {
-    return (
-      <Badge className="text-muted-foreground" title="Run completed" variant="secondary">
-        <CheckCircle2Icon />
-        <span className="sr-only">Run completed</span>
-      </Badge>
-    )
+    return 'Run completed'
   }
 
   if (status === 'error') {
-    return (
-      <Badge title="Run error" variant="destructive">
-        <XCircleIcon />
-        <span className="sr-only">Run error</span>
-      </Badge>
-    )
+    return 'Run error'
   }
 
   if (status === 'cancelled') {
-    return (
-      <Badge className="text-muted-foreground" title="Run cancelled" variant="secondary">
-        <BanIcon />
-        <span className="sr-only">Run cancelled</span>
-      </Badge>
-    )
+    return 'Run cancelled'
   }
 
   // A non-terminal row only spins/claims "active" when a live Run backs it. A stale
   // non-terminal row (crash, reload, another client) shows a static, inactive badge.
-  const label = isActive ? 'Run active' : 'Run inactive'
-
-  return (
-    <Badge className="text-muted-foreground" title={label} variant="secondary">
-      <LoaderCircleIcon className={isActive ? 'animate-spin' : undefined} />
-      <span className="sr-only">{label}</span>
-    </Badge>
-  )
+  return isActive ? 'Run active' : 'Run inactive'
 }
