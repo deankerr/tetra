@@ -5,7 +5,6 @@ import { TetraLogo } from '@/components/tetra-logo'
 import { ThemeSwitcher } from '@/sidebar/footer/theme-switcher'
 import { SessionGroup } from '@/sidebar/session-group'
 
-import { DataModeIndicator } from './footer/data-mode-indicator'
 import { SettingsDialog } from './footer/settings-dialog'
 
 export function AppSidebar() {
@@ -26,7 +25,6 @@ export function AppSidebar() {
 
       <SidebarFooter>
         <div className="flex items-center justify-center gap-1">
-          <DataModeIndicator />
           <SettingsDialog />
           <ThemeSwitcher />
         </div>

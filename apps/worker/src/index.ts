@@ -67,9 +67,8 @@ function getResetResponse(request: Request, env: Env): Promise<Response> | Respo
 export class TinyBaseDurableObject extends WsServerDurableObject<WorkerStoreSchemas, Env> {
   override async createPersister() {
     const runtime = await createWorkerStoreRuntime({ sqlStorage: this.ctx.storage.sql })
-    const persister = runtime.persistersById[runtime.host.library.definition.persisterId]
     runtimes.set(this, runtime)
-    return persister
+    return runtime.libraryPersister
   }
 
   override async fetch(request: Request): Promise<Response> {
@@ -90,10 +89,9 @@ export class TinyBaseDurableObject extends WsServerDurableObject<WorkerStoreSche
     }
 
     const { rawStore } = runtime.host.library
-    const persister = runtime.persistersById[runtime.host.library.definition.persisterId]
     rawStore.delTables()
     rawStore.delValues()
-    await persister.save()
+    await runtime.libraryPersister.save()
 
     return Response.json({ ok: true })
   }

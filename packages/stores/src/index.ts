@@ -5,6 +5,7 @@ export {
   createStoreInstance,
   createTinyBaseProviderProps,
   defineTetraStore,
+  getStoreIndexesId,
 } from './host/definition.ts'
 export type {
   AnyStoreDefinition,
@@ -13,39 +14,15 @@ export type {
   RawStoreFor,
   StoreDefinition,
   StoreHost,
+  StoreIndexesId,
   StoreInstanceFor,
-  StorePolicy,
 } from './host/definition.ts'
-export { createCliStoreHost, getCliLifecyclePlans, startCliStoreHost } from './cli.ts'
-export { describeLifecyclePlans } from './host/lifecycle.ts'
-export { createStoreRuntime, requireStoreInstance } from './host/runtime.ts'
-export type { CliDataMode, CliDatabase, CliStoreHost, CliStoreHostOptions } from './cli.ts'
-export type { PersistencePlan, StoreLifecyclePlan } from './host/lifecycle.ts'
-export type {
-  RuntimePersister,
-  RuntimeStoreHost,
-  RuntimeStoreInstance,
-  RuntimeSynchronizer,
-  StoreRuntime,
-} from './host/runtime.ts'
-export {
-  assertMergeableStore,
-  createWebIndexedDbPersister,
-  createWebSocketClient,
-  createWebStoreHost,
-  createWebWsSynchronizer,
-  getWebLifecyclePlans,
-  startWebStoreHost,
-  WEB_CATALOG_INDEXED_DB_NAME,
-  WEB_LIBRARY_INDEXED_DB_NAME,
-} from './web.ts'
-export type { WebDataMode, WebStoreHost, WebStoreHostOptions } from './web.ts'
-export {
-  createWorkerStoreHost,
-  createWorkerStoreRuntime,
-  getWorkerLifecyclePlans,
-} from './worker.ts'
-export type { WorkerStoreHost, WorkerStoreHostOptions } from './worker.ts'
+export { createCliStores } from './cli.ts'
+export type { CliStores } from './cli.ts'
+export { createWebStores } from './web.ts'
+export type { WebStores } from './web.ts'
+export { createWorkerStores, createWorkerStoreRuntime } from './worker.ts'
+export type { WorkerStoreRuntime, WorkerStores } from './worker.ts'
 export {
   libraryIndexIds,
   libraryStoreDefinition,

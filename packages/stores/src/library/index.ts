@@ -8,7 +8,6 @@ export const libraryStoreDefinition = defineTetraStore({
   applyIndexes: applyLibraryIndexes,
   id: 'library',
   indexIds: libraryIndexIds,
-  policy: 'synced',
   schema: libraryStoreSchema,
 })
 

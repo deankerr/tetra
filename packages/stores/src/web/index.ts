@@ -27,7 +27,6 @@ export const webStoreSchema = defineTypedStore({
 export const webStoreDefinition = defineTetraStore({
   id: 'web',
   indexIds: [],
-  policy: 'tab-local',
   schema: webStoreSchema,
 })
 

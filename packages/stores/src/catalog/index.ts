@@ -27,7 +27,6 @@ export const catalogStoreSchema = defineTypedStore({
 export const catalogStoreDefinition = defineTetraStore({
   id: 'catalog',
   indexIds: [],
-  policy: 'local-persisted',
   schema: catalogStoreSchema,
 })
 

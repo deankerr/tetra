@@ -1,13 +1,10 @@
 import { Link } from '@tanstack/react-router'
 import { Button } from '@tetra/ui/components/ui/button'
 import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
-import { AlertCircleIcon, CloudIcon, HomeIcon, Trash2Icon } from 'lucide-react'
+import { AlertCircleIcon, HomeIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 import type { FallbackProps } from 'react-error-boundary'
-
-import { clearTetraIndexedDbAndReload } from '@/lib/tinybase'
-import { clearTetraSyncDataAndReload } from '@/lib/websocket'
 
 export function SessionPanelErrorBoundary({
   children,
@@ -55,24 +52,6 @@ function SessionPanelErrorFallback({ error, resetErrorBoundary }: FallbackProps)
           <Button render={<Link to="/" />} variant="outline">
             <HomeIcon />
             New session
-          </Button>
-          <Button
-            onClick={() => {
-              void clearTetraIndexedDbAndReload()
-            }}
-            variant="outline"
-          >
-            <Trash2Icon />
-            Clear all IndexedDB data
-          </Button>
-          <Button
-            onClick={() => {
-              void clearTetraSyncDataAndReload()
-            }}
-            variant="outline"
-          >
-            <CloudIcon />
-            Clear Cloudflare sync data
           </Button>
         </div>
       </div>

@@ -152,19 +152,12 @@ export function NewSessionPage() {
 
 function useDraftSessionId(): string | null {
   const { transcripts, webStore } = useTetra()
-  const persister = libraryTinybase.useRawPersister()
-  const synchronizer = libraryTinybase.useRawSynchronizer()
   const draftSessionPointer = webTinybase.useEntity('draftSessions', 'current')
   const draftSessionId = draftSessionPointer?.sessionId ?? ''
   const draftSession = libraryTinybase.useEntity('sessions', draftSessionId)
   const creatingDraftSession = useRef(false)
-  const storeReady = persister !== undefined || synchronizer !== undefined
 
   useEffect(() => {
-    if (!storeReady) {
-      return
-    }
-
     if (draftSessionId !== '' && draftSession === null) {
       webStore.tables.draftSessions.deleteRow('current')
       creatingDraftSession.current = false
@@ -187,9 +180,9 @@ function useDraftSessionId(): string | null {
         webStore.tables.draftSessions.setRow('current', { sessionId })
       },
     })
-  }, [draftSession, draftSessionId, storeReady, transcripts, webStore])
+  }, [draftSession, draftSessionId, transcripts, webStore])
 
-  if (!storeReady || draftSessionId === '' || draftSession === null) {
+  if (draftSessionId === '' || draftSession === null) {
     return null
   }
 

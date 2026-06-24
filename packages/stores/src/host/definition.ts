@@ -21,8 +21,6 @@ type IndexApplier<Schema extends AnyStoreSchema> = {
   apply(indexes: RawIndexesFor<Schema>): void
 }['apply']
 
-export type StorePolicy = 'local-persisted' | 'synced' | 'tab-local'
-
 export interface StoreDefinition<
   Id extends string,
   Schema extends AnyStoreSchema,
@@ -31,7 +29,6 @@ export interface StoreDefinition<
   applyIndexes?: IndexApplier<Schema>
   id: Id
   indexIds: IndexIdList
-  policy: StorePolicy
   schema: Schema
 }
 
@@ -39,32 +36,23 @@ export type DefinedStore<
   Id extends string,
   Schema extends AnyStoreSchema,
   IndexIdList extends IndexIds,
-> = StoreDefinition<Id, Schema, IndexIdList> & {
-  indexesId: `${Id}Indexes`
-  persisterId: `${Id}Persister`
-  storeId: Id
-  synchronizerId: `${Id}Synchronizer`
-}
+> = StoreDefinition<Id, Schema, IndexIdList>
 
 export interface AnyStoreDefinition {
   applyIndexes?: unknown
   id: string
-  indexesId: string
   indexIds: IndexIds
-  persisterId: string
-  policy: StorePolicy
   schema: unknown
-  storeId: string
-  synchronizerId: string
 }
 
 export type RawStoreFor<Schema extends AnyStoreSchema> = RawStore<StoreSchemasFor<Schema>>
 export type RawIndexesFor<Schema extends AnyStoreSchema> = RawIndexes<StoreSchemasFor<Schema>>
+export type StoreIndexesId<Id extends string> = `${Id}Indexes`
 type SchemaFor<Definition extends AnyStoreDefinition> =
-  Definition extends DefinedStore<string, infer Schema, IndexIds> ? Schema : never
+  Definition extends StoreDefinition<string, infer Schema, IndexIds> ? Schema : never
 
 export type StoreInstanceFor<Definition extends AnyStoreDefinition> =
-  Definition extends DefinedStore<string, infer Schema, infer IndexIdList>
+  Definition extends StoreDefinition<string, infer Schema, infer IndexIdList>
     ? {
         definition: Definition
         id: Definition['id']
@@ -85,13 +73,11 @@ export function defineTetraStore<
   const Schema extends AnyStoreSchema,
   const IndexIdList extends IndexIds = readonly [],
 >(definition: StoreDefinition<Id, Schema, IndexIdList>): DefinedStore<Id, Schema, IndexIdList> {
-  return {
-    ...definition,
-    indexesId: `${definition.id}Indexes`,
-    persisterId: `${definition.id}Persister`,
-    storeId: definition.id,
-    synchronizerId: `${definition.id}Synchronizer`,
-  } as DefinedStore<Id, Schema, IndexIdList>
+  return definition
+}
+
+export function getStoreIndexesId<const Id extends string>(storeId: Id): StoreIndexesId<Id> {
+  return `${storeId}Indexes`
 }
 
 export function createStoreInstance<const Definition extends AnyStoreDefinition>(
@@ -143,7 +129,7 @@ export function createTinyBaseProviderProps(
   host: Record<
     string,
     {
-      definition: Pick<AnyStoreDefinition, 'indexesId' | 'storeId'>
+      id: string
       rawIndexes: unknown
       rawStore: unknown
     }
@@ -152,10 +138,10 @@ export function createTinyBaseProviderProps(
   // TinyBase already supports named stores and indexes, so the host can provide everything by id.
   return {
     indexesById: Object.fromEntries(
-      Object.values(host).map((instance) => [instance.definition.indexesId, instance.rawIndexes]),
+      Object.values(host).map((instance) => [getStoreIndexesId(instance.id), instance.rawIndexes]),
     ),
     storesById: Object.fromEntries(
-      Object.values(host).map((instance) => [instance.definition.storeId, instance.rawStore]),
+      Object.values(host).map((instance) => [instance.id, instance.rawStore]),
     ),
   }
 }

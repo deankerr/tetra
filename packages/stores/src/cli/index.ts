@@ -13,6 +13,5 @@ export const cliStoreSchema = defineTypedStore({
 export const cliStoreDefinition = defineTetraStore({
   id: 'cli',
   indexIds: [],
-  policy: 'local-persisted',
   schema: cliStoreSchema,
 })
