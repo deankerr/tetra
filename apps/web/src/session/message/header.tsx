@@ -5,7 +5,6 @@ import { BanIcon, CheckCircle2Icon, LoaderCircleIcon, XCircleIcon } from 'lucide
 
 import { getRunModelId } from './data'
 
-type MessageRow = LibraryRows['messages']
 type RunRow = LibraryRows['runs']
 type RunStatus = RunRow['status']
 
