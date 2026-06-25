@@ -1,4 +1,8 @@
-import type { Rows, TetraTypedIndexes, TetraTypedStore } from '@tetra/store-schema'
+import type {
+  LibraryRows as Rows,
+  LibraryTypedIndexes,
+  LibraryTypedStore,
+} from '@tetra/stores/library'
 import type { UIMessage } from 'ai'
 
 import { TranscriptMessagePath } from './message-path.ts'
@@ -9,8 +13,8 @@ export class TranscriptSession {
   readonly id: string
 
   private readonly nextMessageId: () => string
-  private readonly typedIndexes: TetraTypedIndexes
-  private readonly typedStore: TetraTypedStore
+  private readonly typedIndexes: LibraryTypedIndexes
+  private readonly typedStore: LibraryTypedStore
   private readonly tree: TranscriptMessageTree
 
   constructor({
@@ -21,8 +25,8 @@ export class TranscriptSession {
   }: {
     id: string
     nextMessageId: () => string
-    typedIndexes: TetraTypedIndexes
-    typedStore: TetraTypedStore
+    typedIndexes: LibraryTypedIndexes
+    typedStore: LibraryTypedStore
   }) {
     this.id = id
     this.nextMessageId = nextMessageId

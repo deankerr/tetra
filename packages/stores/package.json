@@ -1,14 +1,14 @@
 {
-  "name": "@tetra/store-schema",
+  "name": "@tetra/stores",
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    "./catalog": "./src/catalog/index.ts",
+    "./library": "./src/library/index.ts"
   },
   "dependencies": {
     "@tetra/tinybase-schema": "workspace:*",
     "ai": "catalog:",
-    "tinybase": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

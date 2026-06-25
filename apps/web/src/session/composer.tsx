@@ -20,9 +20,9 @@ import type { UIMessage } from 'ai'
 import { ArrowUpFromDot, ImageIcon } from 'lucide-react'
 import { useCallback, useState } from 'react'
 
-import { typedTinybase } from '@/lib/tinybase'
+import { useApp } from '@/app'
 import { ModelPickerButton, ModelPickerSheet } from '@/session/settings/model-picker'
-import { useTetra } from '@/tetra-context'
+import { libraryTinybase } from '@/store'
 
 import { useSessionThreadAppendTarget } from './thread-view'
 import { SessionUsageMeter } from './usage-meter'
@@ -42,7 +42,7 @@ export function Composer({
 }) {
   const activeRun = useActiveRun(sessionId)
   const isActive = activeRun !== null
-  const [modelId, setModelId] = typedTinybase.useCellState(
+  const [modelId, setModelId] = libraryTinybase.useCellState(
     'sessionRunConfigs',
     sessionId,
     'modelId',
@@ -116,7 +116,7 @@ function useComposerSubmit({
   sessionId: string
   setDraft: (draft: string) => void
 }): ComposerSubmitHandler {
-  const tetra = useTetra()
+  const tetra = useApp()
   const { selectThreadFromMessage, threadLeafMessageId } = useSessionThreadAppendTarget(sessionId)
 
   return useCallback<ComposerSubmitHandler>(
@@ -135,7 +135,8 @@ function useComposerSubmit({
         event.nativeEvent instanceof SubmitEvent ? event.nativeEvent.submitter : null
       const isAdd = submitter instanceof HTMLElement && submitter.dataset.action === 'add'
       const session = tetra.transcripts.getSession(sessionId)
-      const shouldSetTitle = tetra.typedStore.tables.sessions.requireEntity(sessionId).title === ''
+      const libraryStore = tetra.stores.library.typedStore
+      const shouldSetTitle = libraryStore.tables.sessions.requireEntity(sessionId).title === ''
 
       if (isAdd) {
         // Add-only submits append committed content without starting model inference.
@@ -146,7 +147,7 @@ function useComposerSubmit({
         })
         selectThreadFromMessage(messageId)
         if (shouldSetTitle) {
-          tetra.typedStore.tables.sessions.updateRow(sessionId, {
+          libraryStore.tables.sessions.updateRow(sessionId, {
             title: text === '' ? 'Image' : text.slice(0, 60),
             updatedAt: Date.now(),
           })
@@ -174,7 +175,7 @@ function useComposerSubmit({
         tetra.runs.generate({ targetMessageId })
         selectThreadFromMessage(targetMessageId)
         if (shouldSetTitle) {
-          tetra.typedStore.tables.sessions.updateRow(sessionId, {
+          libraryStore.tables.sessions.updateRow(sessionId, {
             title: text === '' ? 'Image' : text.slice(0, 60),
             updatedAt: Date.now(),
           })
@@ -206,9 +207,9 @@ function useComposerSubmit({
 // liveness, so a stale non-terminal row (crash, reload, another client) never locks
 // the composer.
 const useActiveRun = (sessionId: string) => {
-  const tetra = useTetra()
-  const ids = typedTinybase.useSliceRowIds('runsBySessionNewestFirst', sessionId)
-  const run = typedTinybase.useEntity('runs', ids[0] ?? '')
+  const tetra = useApp()
+  const ids = libraryTinybase.useSliceRowIds('runsBySessionNewestFirst', sessionId)
+  const run = libraryTinybase.useEntity('runs', ids[0] ?? '')
   if (run === null || run.status !== 'active') {
     return null
   }
@@ -272,7 +273,7 @@ function ComposerSubmitControls({
   isActive: boolean
   sessionId: string
 }) {
-  const tetra = useTetra()
+  const tetra = useApp()
   const attachments = usePromptInputAttachments()
   const isEmpty = draft.trim() === '' && attachments.files.length === 0
 

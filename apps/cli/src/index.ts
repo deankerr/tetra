@@ -1,36 +1,53 @@
 import { Command } from 'commander'
 
-import type { BootstrapMode } from './bootstrap'
-import { bootstrap } from './bootstrap'
+import { createCliApp } from './app'
+import type { CliAppContext } from './app'
 import { registerChatCommands } from './commands/chat'
 import { registerConfigCommand } from './commands/config'
 import { registerModelsCommand } from './commands/models'
 import { registerPromptCommands } from './commands/prompts'
-import { registerResetCommand } from './commands/reset'
 import { registerSessionCommands } from './commands/sessions'
 
 const program = new Command()
-program
-  .name('tetra')
-  .description('Tetra CLI')
-  .version('0.1.0')
-  .option('--local', 'Use local SQLite instead of DO sync')
+program.name('tetra').description('Tetra CLI').version('0.1.0')
+program.option('--no-sync', 'Disable optional remote sync')
 
-// Lazily bootstrap so pure help/version output does not open the database.
-let context: Awaited<ReturnType<typeof bootstrap>> | undefined
-async function getContext() {
-  const mode: BootstrapMode = program.opts<{ local?: boolean }>().local === true ? 'local' : 'sync'
-  context ??= await bootstrap(mode)
+interface ProgramOptions {
+  sync?: boolean
+}
+
+// Lazily create the app so pure help/version output does not create stores.
+let context: CliAppContext | undefined
+let contextPromise: Promise<CliAppContext> | undefined
+async function getContext(): Promise<CliAppContext> {
+  if (context !== undefined) {
+    return context
+  }
+
+  const opts = program.opts<ProgramOptions>()
+  contextPromise ??= createCliApp({
+    syncEnabled: opts.sync !== false,
+  })
+  context = await contextPromise
   return context
 }
 
 let closePromise: Promise<void> | undefined
 async function saveAndClose() {
-  // CLI processes are short-lived, so flush TinyBase manually instead of relying on auto-save.
-  if (context === undefined) {
+  // CLI processes are short-lived; close flushes the library cache when it was created.
+  let ctx = context
+  if (ctx === undefined && contextPromise !== undefined) {
+    try {
+      ctx = await contextPromise
+    } catch {
+      return
+    }
+  }
+
+  if (ctx === undefined) {
     return
   }
-  closePromise ??= context.close()
+  closePromise ??= ctx.close()
   await closePromise
 }
 
@@ -53,7 +70,6 @@ registerSessionCommands(program, getContext)
 registerConfigCommand(program, getContext)
 registerModelsCommand(program, getContext)
 registerPromptCommands(program, getContext)
-registerResetCommand(program)
 
 let exitCode = 0
 try {

@@ -8,7 +8,7 @@ This document frames the sync and persistence problem space before a formal deci
 
 Tetra is a local-first app with two durable surfaces: the web app and the CLI. That dual surface is not temporary. The sync and persistence strategy needs to support both without letting each surface invent subtly different semantics for the same app state.
 
-The current sync backend is a single TinyBase `MergeableStore` hosted by a Cloudflare Durable Object at `/tetra`. The web app can run in local IndexedDB mode or sync mode. The CLI can run in local SQLite mode or sync mode, and sync mode also keeps a local SQLite cache.
+The current sync backend is the shared `library` TinyBase `MergeableStore`, hosted by a Cloudflare Durable Object at `/sync`. The web app always keeps local browser persistence and can optionally add remote sync. The CLI always keeps local SQLite persistence and can optionally add remote sync.
 
 TinyBase is doing two jobs at once:
 
@@ -19,15 +19,17 @@ That coupling is useful while prototyping, but it means every table, value, and 
 
 ## Current Shape
 
-The Tetra store schema currently includes durable tables for sessions, messages, session run configs, runs, steps, prompts, model data, favorites, and draft-session state. It also includes values such as `cliActiveSessionId`, `defaultRunConfig`, and `catalogLastRefreshed`.
+The shared `library` store contains synced tables for sessions, messages, session run configs, runs, steps, prompts, and model favorites. It also contains the synced `defaultRunConfig` value.
 
-The web app has a separate `webUi` TinyBase store for tab-local state such as JSON sheet state, settings dialog state, and session thread anchors. That store is intentionally not persisted or synced.
+The app-local `catalog` store contains language model rows and `lastRefreshed`. The web app persists it to IndexedDB, while the CLI persists it to the local SQLite database.
 
-The CLI stores `cliActiveSessionId` in the main Tetra store. In sync mode, that makes the CLI's selected session part of the synced app store rather than client-local state.
+The web app has a separate `web` TinyBase store for tab-local state such as JSON sheet state, settings dialog state, draft sessions, and session thread anchors. It is persisted to sessionStorage, but it is not synced or shared across browser tabs.
 
-The web sync provider creates a `MergeableStore`, starts a WebSocket synchronizer, and does not add a local persister in sync mode. The CLI sync path creates a `MergeableStore`, loads a local SQLite cache, starts WebSocket sync, and saves the local cache on close.
+The CLI has a separate `cli` TinyBase store for client-local state such as `activeSessionId`. It is persisted to the same local SQLite database as the CLI's catalog and library stores.
 
-The Worker owns one `MergeableStore` for all synced Tetra data. It persists through TinyBase's Durable Object SQL storage persister. The reset endpoint deletes all tables and values and saves the cleared store.
+The web app loads its local library cache from localStorage, keeps same-origin tabs converged with a BroadcastChannel synchronizer, and adds remote WebSocket sync only when enabled. The CLI loads all local stores from SQLite, and adds remote WebSocket sync unless disabled.
+
+The Worker owns one `MergeableStore` for the synced library data. It persists through TinyBase's Durable Object SQL storage persister in fragmented mode. The reset endpoint deletes all tables and values and saves the cleared store.
 
 ## Run Ownership
 

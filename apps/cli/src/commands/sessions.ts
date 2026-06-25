@@ -1,17 +1,15 @@
-import type { RunConfig } from '@tetra/store-schema'
+import type { RunConfig } from '@tetra/core'
 import type { Command } from 'commander'
 
-import type { bootstrap } from '../bootstrap'
+import type { CliAppContext } from '../app'
 import { readMessage } from '../lib/input'
 import { formatSession, printMessages } from '../lib/output'
 import { titleFromMessage } from '../lib/title'
 import { runChatContent } from './chat'
 
-type CliContext = Awaited<ReturnType<typeof bootstrap>>
-
 export function registerSessionCommands(
   program: Command,
-  getContext: () => Promise<CliContext>,
+  getContext: () => Promise<CliAppContext>,
 ): void {
   // Create a session, optionally using the first message as both prompt and title source.
   program
@@ -78,7 +76,7 @@ export function registerSessionCommands(
     .description('List sessions')
     .action(async () => {
       const ctx = await getContext()
-      const sessions = ctx.typedStore.tables.sessions
+      const sessions = ctx.stores.library.typedStore.tables.sessions
         .listEntities()
         .toSorted((a, b) => a.createdAt - b.createdAt)
       const activeSessionId = ctx.workspace.getActiveSessionId()
@@ -102,7 +100,7 @@ export function registerSessionCommands(
       const ctx = await getContext()
 
       if (sessionId !== undefined) {
-        if (!ctx.typedStore.tables.sessions.hasRow(sessionId)) {
+        if (!ctx.stores.library.typedStore.tables.sessions.hasRow(sessionId)) {
           throw new Error(`Session not found: ${sessionId}`)
         }
         ctx.workspace.setActiveSessionId(sessionId)
@@ -118,7 +116,7 @@ export function registerSessionCommands(
     .description('Set the active session')
     .action(async (sessionId: string) => {
       const ctx = await getContext()
-      if (!ctx.typedStore.tables.sessions.hasRow(sessionId)) {
+      if (!ctx.stores.library.typedStore.tables.sessions.hasRow(sessionId)) {
         throw new Error(`Session not found: ${sessionId}`)
       }
       ctx.workspace.setActiveSessionId(sessionId)
@@ -146,7 +144,7 @@ export function registerSessionCommands(
     .description('Delete a message')
     .action(async (messageId: string) => {
       const ctx = await getContext()
-      const message = ctx.typedStore.tables.messages.requireEntity(messageId)
+      const message = ctx.stores.library.typedStore.tables.messages.requireEntity(messageId)
       ctx.transcripts.getSession(message.sessionId).deleteMessage(messageId)
       console.log(messageId)
     })
@@ -184,11 +182,14 @@ export function registerSessionCommands(
         throw new Error('No active session. Try: tetra "hello"')
       }
       if (title !== undefined) {
-        ctx.typedStore.tables.sessions.updateRow(sessionId, {
+        ctx.stores.library.typedStore.tables.sessions.updateRow(sessionId, {
           title,
           updatedAt: Date.now(),
         })
       }
-      console.log(ctx.typedStore.tables.sessions.requireEntity(sessionId).title ?? '(untitled)')
+      console.log(
+        ctx.stores.library.typedStore.tables.sessions.requireEntity(sessionId).title ??
+          '(untitled)',
+      )
     })
 }

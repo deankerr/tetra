@@ -1,11 +1,11 @@
 import type { CredentialsStore } from '@tetra/credentials'
-import { RunConfigSchema } from '@tetra/store-schema'
+import { RunConfigSchema } from '@tetra/stores/library'
 import type {
+  LibraryRows as Rows,
+  LibraryRunStatus,
+  LibraryTypedStore,
   RunConfig as RunConfigType,
-  Rows,
-  RunStatus,
-  TetraTypedStore,
-} from '@tetra/store-schema'
+} from '@tetra/stores/library'
 import { convertToModelMessages, readUIMessageStream, stepCountIs, streamText } from 'ai'
 import type { LanguageModel, ModelMessage, ToolSet, UIMessage } from 'ai'
 
@@ -32,7 +32,7 @@ interface RunInit {
   credentials: CredentialsStore
   start: RunStart
   modelResolver: LanguageModelResolver
-  typedStore: TetraTypedStore
+  typedStore: LibraryTypedStore
 }
 
 export class Run extends EventTarget {
@@ -53,13 +53,13 @@ export class Run extends EventTarget {
   modelMessages: ModelMessage[] = []
   parts: UIMessage['parts'] = []
   result: ReturnType<typeof streamText> | null = null
-  status: RunStatus = 'active'
+  status: LibraryRunStatus = 'active'
   tools: ToolSet = {}
 
   private readonly credentials: CredentialsStore
   private readonly doneController = Promise.withResolvers<undefined>()
   private readonly modelResolver: LanguageModelResolver
-  private readonly typedStore: TetraTypedStore
+  private readonly typedStore: LibraryTypedStore
 
   constructor(init: RunInit) {
     super()
@@ -136,7 +136,7 @@ export class Run extends EventTarget {
     return resolveTools(this.config.toolIds, (id) => this.credentials.get(id))
   }
 
-  private setStatus(status: RunStatus): void {
+  private setStatus(status: LibraryRunStatus): void {
     this.status = status
     this.dispatchEvent(new Event('status'))
   }

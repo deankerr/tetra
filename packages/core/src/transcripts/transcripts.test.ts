@@ -1,20 +1,19 @@
 import { expect, test } from 'bun:test'
 
-import { createRawStore, tetraIndexIds, tetraStoreSchema } from '@tetra/store-schema'
-import type { Rows } from '@tetra/store-schema'
-import { bindIndexes, bindStore } from '@tetra/tinybase-schema'
+import { libraryStoreDefinition } from '@tetra/stores/library'
+import type { LibraryRows } from '@tetra/stores/library'
+import { createStoreInstance } from '@tetra/tinybase-schema/runtime'
 
 import { RunConfigs } from '../run-configs.ts'
 import { Transcripts } from './index.ts'
 import type { TranscriptSession } from './index.ts'
 
 function createTranscriptHarness() {
-  // Tests bind the same raw TinyBase objects used by app composition roots.
-  const { rawIndexes, rawStore } = createRawStore()
-  const typedStore = bindStore(rawStore, tetraStoreSchema.tables, tetraStoreSchema.values)
-  const typedIndexes = bindIndexes(rawIndexes, tetraIndexIds)
-  const runConfigs = new RunConfigs({ typedStore })
-  const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
+  // Tests own the same library store instance shape used by app composition roots.
+  const libraryStore = createStoreInstance(libraryStoreDefinition)
+  const { rawStore, typedIndexes, typedStore } = libraryStore
+  const runConfigs = new RunConfigs({ libraryStore })
+  const transcripts = new Transcripts({ libraryStore, runConfigs })
 
   return { rawStore, transcripts, typedIndexes, typedStore }
 }
@@ -25,7 +24,7 @@ function appendText(
   args: {
     createdAt: number
     parentMessageId: string | null
-    role?: Rows['messages']['role']
+    role?: LibraryRows['messages']['role']
     text: string
   },
 ): string {
@@ -44,7 +43,7 @@ function appendText(
   return messageId
 }
 
-function ids(messages: Rows['messages'][]): string[] {
+function ids(messages: LibraryRows['messages'][]): string[] {
   return messages.map((message) => message.id)
 }
 
@@ -124,7 +123,7 @@ test('empty sessions have no synthetic root or thread', () => {
   expect(rootPath.messages()).toEqual([])
 })
 
-test('session creation can attach colocated state in the same transaction', () => {
+test('session creation can attach colocated library state in the same transaction', () => {
   const { rawStore, transcripts, typedStore } = createTranscriptHarness()
   let finishedTransactions = 0
   const listenerId = rawStore.addDidFinishTransactionListener(() => {
@@ -133,14 +132,21 @@ test('session creation can attach colocated state in the same transaction', () =
 
   const sessionId = transcripts.createSession({
     onCreate(id) {
-      typedStore.tables.draftSessions.setRow('current', { sessionId: id })
+      typedStore.tables.messages.setRow('msg_seed', {
+        createdAt: 1,
+        parentMessageId: null,
+        parts: [{ text: 'seed', type: 'text' }],
+        role: 'user',
+        sessionId: id,
+        updatedAt: 1,
+      })
     },
   })
 
-  // Draft state is web-owned, but it must persist atomically with its backing session.
+  // Caller-owned library rows can be created atomically with the backing session.
   rawStore.delListener(listenerId)
   expect(typedStore.tables.sessions.getEntity(sessionId)).not.toBeNull()
-  expect(typedStore.tables.draftSessions.requireEntity('current').sessionId).toBe(sessionId)
+  expect(typedStore.tables.messages.requireEntity('msg_seed').sessionId).toBe(sessionId)
   expect(finishedTransactions).toBe(1)
 })
 

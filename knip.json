@@ -29,9 +29,8 @@
       "entry": ["src/**/*.test.ts"],
       "project": ["src/**/*.{ts,tsx}"]
     },
-    "packages/store-schema": {
-      "includeEntryExports": true,
-      "entry": ["src/**/*.test.ts"],
+    "packages/stores": {
+      "includeEntryExports": false,
       "project": ["src/**/*.{ts,tsx}"]
     },
     "packages/tinybase-schema": {

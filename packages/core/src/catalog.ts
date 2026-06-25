@@ -1,4 +1,4 @@
-import type { Rows, TetraTypedStore } from '@tetra/store-schema'
+import type { CatalogRows, CatalogStoreInstance } from '@tetra/stores/catalog'
 import { z } from 'zod'
 
 const STALE_MS = 60 * 60 * 1000
@@ -20,17 +20,18 @@ const OpenRouterModelsResponse = z.object({
   data: z.array(OpenRouterModel),
 })
 
-export class Catalog {
-  private readonly typedStore: TetraTypedStore
+export class ModelCatalog {
+  private readonly catalogStore: CatalogStoreInstance
 
-  constructor({ typedStore }: { typedStore: TetraTypedStore }) {
-    this.typedStore = typedStore
+  constructor({ catalogStore }: { catalogStore: CatalogStoreInstance }) {
+    this.catalogStore = catalogStore
   }
 
   async refresh(args: { force?: boolean } = {}): Promise<void> {
-    const { catalogLastRefreshed } = this.typedStore.values
-    const lastRefreshed = catalogLastRefreshed.get()
-    const isStale = lastRefreshed === null || Date.now() - lastRefreshed > STALE_MS
+    const { typedStore } = this.catalogStore
+    const { lastRefreshed } = typedStore.values
+    const refreshedAt = lastRefreshed.get()
+    const isStale = refreshedAt === null || Date.now() - refreshedAt > STALE_MS
     if (args.force !== true && !isStale) {
       return
     }
@@ -43,7 +44,7 @@ export class Catalog {
 
     const { data } = OpenRouterModelsResponse.parse(await response.json())
     const now = Date.now()
-    const models: Rows['languageModels'][] = data.map((model) => {
+    const models: CatalogRows['languageModels'][] = data.map((model) => {
       const [provider = ''] = model.id.split('/')
       const colonIndex = model.name.indexOf(':')
       const rawProviderName = colonIndex > 0 ? model.name.slice(0, colonIndex).trim() : ''
@@ -66,20 +67,20 @@ export class Catalog {
 
     // Publish the catalog replacement and refresh timestamp as one TinyBase event.
     const incomingIds = new Set(models.map((m) => m.id))
-    this.typedStore.transaction(() => {
-      for (const existingId of this.typedStore.tables.languageModels.getRowIds()) {
+    typedStore.transaction(() => {
+      for (const existingId of typedStore.tables.languageModels.getRowIds()) {
         if (!incomingIds.has(existingId)) {
-          this.typedStore.tables.languageModels.deleteRow(existingId)
+          typedStore.tables.languageModels.deleteRow(existingId)
         }
       }
       for (const { id, ...record } of models) {
-        const existing = this.typedStore.tables.languageModels.getEntity(id)
-        this.typedStore.tables.languageModels.setRow(id, {
+        const existing = typedStore.tables.languageModels.getEntity(id)
+        typedStore.tables.languageModels.setRow(id, {
           ...record,
           createdAt: existing?.createdAt ?? record.createdAt,
         })
       }
-      catalogLastRefreshed.set(now)
+      lastRefreshed.set(now)
     })
   }
 }

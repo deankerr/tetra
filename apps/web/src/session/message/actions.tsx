@@ -1,4 +1,4 @@
-import type { Rows } from '@tetra/store-schema'
+import type { LibraryRows } from '@tetra/stores/library'
 import { MessageActions, MessageToolbar } from '@tetra/ui/components/ai-elements/message'
 import { Button } from '@tetra/ui/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@tetra/ui/components/ui/tooltip'
@@ -6,9 +6,9 @@ import { BracesIcon, CopyIcon, ListTreeIcon, RefreshCwIcon, TrashIcon } from 'lu
 import type { ReactNode } from 'react'
 import { useState } from 'react'
 
+import { useApp } from '@/app'
 import { useJsonViewSheet } from '@/components/json-view-sheet'
-import { typedTinybase } from '@/lib/tinybase'
-import { useTetra } from '@/tetra-context'
+import { libraryTinybase } from '@/store'
 
 import { RunDetailSheet } from '../run-detail-sheet'
 import { useSessionThreadSelection } from '../thread-view'
@@ -22,10 +22,10 @@ export function MessageActionsView({
   run,
 }: {
   isThreadLeafMessage: boolean
-  message: Rows['messages']
-  run: Rows['runs'] | null
+  message: LibraryRows['messages']
+  run: LibraryRows['runs'] | null
 }) {
-  const { runs, transcripts } = useTetra()
+  const { runs, transcripts } = useApp()
   const { openJsonView } = useJsonViewSheet()
   const { selectThreadFromMessage } = useSessionThreadSelection(message.sessionId)
   const [runDetailOpen, setRunDetailOpen] = useState(false)
@@ -164,7 +164,7 @@ function MessageIconAction({
   )
 }
 
-function MessageMetadata({ message }: { message: Rows['messages'] }) {
+function MessageMetadata({ message }: { message: LibraryRows['messages'] }) {
   return (
     <div className="text-muted-foreground text-xxs flex min-w-0 flex-wrap items-center justify-end gap-x-2.5 gap-y-1">
       <span>{formatDateTime(message.updatedAt)}</span>
@@ -172,12 +172,13 @@ function MessageMetadata({ message }: { message: Rows['messages'] }) {
   )
 }
 
-function useMessageHasContinuations(message: Rows['messages']): boolean {
-  const tetra = useTetra()
-  const messageIds = typedTinybase.useSliceRowIds('messagesBySession', message.sessionId)
+function useMessageHasContinuations(message: LibraryRows['messages']): boolean {
+  const tetra = useApp()
+  const messageIds = libraryTinybase.useSliceRowIds('messagesBySession', message.sessionId)
+  const libraryStore = tetra.stores.library.typedStore
 
   return messageIds.some((messageId) => {
-    const candidate = tetra.typedStore.tables.messages.requireEntity(messageId)
+    const candidate = libraryStore.tables.messages.requireEntity(messageId)
     return candidate.parentMessageId === message.id
   })
 }

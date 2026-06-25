@@ -5,9 +5,11 @@
   "imports": {
     "#catalog": "./src/catalog.ts",
     "#ids": "./src/ids.ts",
+    "#modules": "./src/modules.ts",
     "#prompts": "./src/prompts.ts",
     "#run-configs": "./src/run-configs.ts",
     "#runtime": "./src/runtime/index.ts",
+    "#runtime/*": "./src/runtime/*",
     "#tools": "./src/tools/tools.ts",
     "#transcripts": "./src/transcripts/index.ts",
     "#usage": "./src/usage.ts"
@@ -19,8 +21,7 @@
     "@ai-sdk/provider": "^3.0.8",
     "@openrouter/ai-sdk-provider": "catalog:",
     "@tetra/credentials": "workspace:*",
-    "@tetra/store-schema": "workspace:*",
-    "@tetra/tinybase-schema": "workspace:*",
+    "@tetra/stores": "workspace:*",
     "@tetra/tools-exa": "workspace:*",
     "ai": "catalog:",
     "nanoid": "^5.1.11",
@@ -28,6 +29,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@tetra/tinybase-schema": "workspace:*",
     "@types/bun": "catalog:",
     "typescript": "catalog:"
   }

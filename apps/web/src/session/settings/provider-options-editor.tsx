@@ -1,4 +1,4 @@
-import type { ProviderOptionsSchema } from '@tetra/store-schema'
+import type { ProviderOptionsSchema } from '@tetra/stores/library'
 import { Button } from '@tetra/ui/components/ui/button'
 import { Input } from '@tetra/ui/components/ui/input'
 import { BracesIcon, PlusIcon, XIcon } from 'lucide-react'
@@ -6,7 +6,7 @@ import type { Dispatch } from 'react'
 import { useEffect, useReducer, useRef } from 'react'
 import { z } from 'zod'
 
-import { typedTinybase } from '@/lib/tinybase'
+import { libraryTinybase } from '@/store'
 
 // --- Types ---
 
@@ -327,7 +327,7 @@ function ObjectRow({ dispatch, entry }: { dispatch: Dispatch<Action>; entry: Obj
 // Rendered with key={sessionId} by the parent — each session gets a fresh instance,
 // so sessionId never changes within this component's lifetime.
 export function ProviderOptionsEditor({ sessionId }: { sessionId: string }) {
-  const [options = EMPTY_PROVIDER_OPTIONS, setOptions] = typedTinybase.useCellState(
+  const [options = EMPTY_PROVIDER_OPTIONS, setOptions] = libraryTinybase.useCellState(
     'sessionRunConfigs',
     sessionId,
     'providerOptions',

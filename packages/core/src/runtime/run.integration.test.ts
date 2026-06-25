@@ -2,9 +2,9 @@ import { expect, test } from 'bun:test'
 
 import type { LanguageModelV3StreamPart } from '@ai-sdk/provider'
 import { CredentialsStore } from '@tetra/credentials'
-import { createRawStore, tetraStoreSchema, tetraIndexIds } from '@tetra/store-schema'
-import type { Rows } from '@tetra/store-schema'
-import { bindIndexes, bindStore } from '@tetra/tinybase-schema'
+import { libraryStoreDefinition } from '@tetra/stores/library'
+import type { LibraryRows } from '@tetra/stores/library'
+import { createStoreInstance } from '@tetra/tinybase-schema/runtime'
 import { simulateReadableStream, tool } from 'ai'
 import { MockLanguageModelV3 } from 'ai/test'
 import { z } from 'zod'
@@ -14,11 +14,11 @@ import { toolsRegistryMap } from '../tools/tools.ts'
 import type { LanguageModelResolver } from './language-model-resolver.ts'
 
 function createTestDb() {
-  // Tests own the rawStore/rawIndexes objects, matching app setup before typed binding.
-  const { rawIndexes, rawStore } = createRawStore()
-  const typedStore = bindStore(rawStore, tetraStoreSchema.tables, tetraStoreSchema.values)
-  const typedIndexes = bindIndexes(rawIndexes, tetraIndexIds)
+  // Tests own the same library store instance shape used by app composition roots.
+  const libraryStore = createStoreInstance(libraryStoreDefinition)
+  const { rawIndexes, rawStore, typedIndexes, typedStore } = libraryStore
   return {
+    libraryStore,
     rawIndexes,
     rawStore,
     typedIndexes,
@@ -28,10 +28,10 @@ function createTestDb() {
 
 function createTestRuntime() {
   const context = createTestDb()
-  const { typedIndexes, typedStore } = context
-  const runConfigs = new RunConfigs({ typedStore })
-  const prompts = new Prompts({ runConfigs, typedStore })
-  const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
+  const { libraryStore, typedIndexes, typedStore } = context
+  const runConfigs = new RunConfigs({ libraryStore })
+  const prompts = new Prompts({ libraryStore, runConfigs })
+  const transcripts = new Transcripts({ libraryStore, runConfigs })
   const core = { prompts, transcripts, typedIndexes, typedStore }
   const credentials = new CredentialsStore([])
   const streamChunks: LanguageModelV3StreamPart[] = [
@@ -61,11 +61,11 @@ function createTestRuntime() {
   const modelResolver: LanguageModelResolver = { resolve: () => model }
   const runs = new Runs({
     credentials,
+    libraryStore,
     modelResolver,
     prompts,
     runConfigs,
     transcripts,
-    typedStore,
   })
 
   return { core, model, runs }
@@ -76,7 +76,7 @@ type TestCore = ReturnType<typeof createTestRuntime>['core']
 function appendAfterNewestLeaf(
   core: TestCore,
   sessionId: string,
-  args: { parts: Rows['messages']['parts']; role: Rows['messages']['role'] },
+  args: { parts: LibraryRows['messages']['parts']; role: LibraryRows['messages']['role'] },
 ): string {
   const session = core.transcripts.getSession(sessionId)
   const parentMessageId = session.getNewestLeafMessageId()
@@ -85,7 +85,7 @@ function appendAfterNewestLeaf(
   return session.appendMessage({ parentMessageId, ...args })
 }
 
-function listThreadFromNewestLeaf(core: TestCore, sessionId: string): Rows['messages'][] {
+function listThreadFromNewestLeaf(core: TestCore, sessionId: string): LibraryRows['messages'][] {
   const session = core.transcripts.getSession(sessionId)
   const threadAnchorMessageId = session.getNewestLeafMessageId()
   if (threadAnchorMessageId === null) {
@@ -181,10 +181,10 @@ test('generate streams through the AI SDK into TinyBase rows', async () => {
 
 test('streaming snapshots persist to the target message before terminal status', async () => {
   const context = createTestDb()
-  const { typedIndexes, typedStore } = context
-  const runConfigs = new RunConfigs({ typedStore })
-  const prompts = new Prompts({ runConfigs, typedStore })
-  const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
+  const { libraryStore, typedIndexes, typedStore } = context
+  const runConfigs = new RunConfigs({ libraryStore })
+  const prompts = new Prompts({ libraryStore, runConfigs })
+  const transcripts = new Transcripts({ libraryStore, runConfigs })
   const core = { prompts, transcripts, typedIndexes, typedStore }
   const credentials = new CredentialsStore([])
   const model = new MockLanguageModelV3({
@@ -212,11 +212,11 @@ test('streaming snapshots persist to the target message before terminal status',
   })
   const runs = new Runs({
     credentials,
+    libraryStore,
     modelResolver: { resolve: () => model },
     prompts,
     runConfigs,
     transcripts,
-    typedStore,
   })
   const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
 
@@ -457,10 +457,10 @@ test('Caller-Owned Regeneration — sibling target preserves the old output', as
 
 test('Tool Loop — tool call executes and result appears in final parts', async () => {
   const context = createTestDb()
-  const { typedIndexes, typedStore } = context
-  const runConfigs = new RunConfigs({ typedStore })
-  const prompts = new Prompts({ runConfigs, typedStore })
-  const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
+  const { libraryStore, typedIndexes, typedStore } = context
+  const runConfigs = new RunConfigs({ libraryStore })
+  const prompts = new Prompts({ libraryStore, runConfigs })
+  const transcripts = new Transcripts({ libraryStore, runConfigs })
   const core = { prompts, transcripts, typedIndexes, typedStore }
   const credentials = new CredentialsStore([])
 
@@ -519,11 +519,11 @@ test('Tool Loop — tool call executes and result appears in final parts', async
   const modelResolver: LanguageModelResolver = { resolve: () => model }
   const runs = new Runs({
     credentials,
+    libraryStore,
     modelResolver,
     prompts,
     runConfigs,
     transcripts,
-    typedStore,
   })
   const sessionId = core.transcripts.createSession({
     config: { modelId: 'mock-model', toolIds: ['getWeather'] },
@@ -570,10 +570,10 @@ test('Tool Loop — tool call executes and result appears in final parts', async
 
 test('Error Path — stream error sets run to error status', async () => {
   const context = createTestDb()
-  const { typedIndexes, typedStore } = context
-  const runConfigs = new RunConfigs({ typedStore })
-  const prompts = new Prompts({ runConfigs, typedStore })
-  const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
+  const { libraryStore, typedIndexes, typedStore } = context
+  const runConfigs = new RunConfigs({ libraryStore })
+  const prompts = new Prompts({ libraryStore, runConfigs })
+  const transcripts = new Transcripts({ libraryStore, runConfigs })
   const core = { prompts, transcripts, typedIndexes, typedStore }
   const credentials = new CredentialsStore([])
 
@@ -586,11 +586,11 @@ test('Error Path — stream error sets run to error status', async () => {
   const modelResolver: LanguageModelResolver = { resolve: () => model }
   const runs = new Runs({
     credentials,
+    libraryStore,
     modelResolver,
     prompts,
     runConfigs,
     transcripts,
-    typedStore,
   })
   const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
 
@@ -619,10 +619,10 @@ test('Error Path — stream error sets run to error status', async () => {
 
 test('Error Path — later runs can still run after an error', async () => {
   const context = createTestDb()
-  const { typedIndexes, typedStore } = context
-  const runConfigs = new RunConfigs({ typedStore })
-  const prompts = new Prompts({ runConfigs, typedStore })
-  const transcripts = new Transcripts({ runConfigs, typedIndexes, typedStore })
+  const { libraryStore, typedIndexes, typedStore } = context
+  const runConfigs = new RunConfigs({ libraryStore })
+  const prompts = new Prompts({ libraryStore, runConfigs })
+  const transcripts = new Transcripts({ libraryStore, runConfigs })
   const core = { prompts, transcripts, typedIndexes, typedStore }
   const credentials = new CredentialsStore([])
 
@@ -660,11 +660,11 @@ test('Error Path — later runs can still run after an error', async () => {
   const modelResolver: LanguageModelResolver = { resolve: () => model }
   const runs = new Runs({
     credentials,
+    libraryStore,
     modelResolver,
     prompts,
     runConfigs,
     transcripts,
-    typedStore,
   })
   const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
 

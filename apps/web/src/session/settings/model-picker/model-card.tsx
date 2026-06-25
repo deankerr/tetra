@@ -1,4 +1,4 @@
-import type { Rows } from '@tetra/store-schema'
+import type { CatalogRows } from '@tetra/stores/catalog'
 import { ModelSelectorLogo } from '@tetra/ui/components/ai-elements/model-selector'
 import { Badge } from '@tetra/ui/components/ui/badge'
 import { Button } from '@tetra/ui/components/ui/button'
@@ -72,7 +72,7 @@ export function ModelCard({
   selected,
 }: {
   favorite: boolean
-  model: Rows['languageModels']
+  model: CatalogRows['languageModels']
   onSelect: () => void
   onToggleFavorite: () => void
   selected: boolean

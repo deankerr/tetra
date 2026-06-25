@@ -1,16 +1,16 @@
-import { RunConfigSchema } from '@tetra/store-schema'
-import type { Rows } from '@tetra/store-schema'
+import { RunConfigSchema } from '@tetra/stores/library'
+import type { LibraryRows } from '@tetra/stores/library'
 
-import { typedTinybase } from '@/lib/tinybase'
-import { useTetra } from '@/tetra-context'
+import { useApp } from '@/app'
+import { libraryTinybase } from '@/store'
 
-export type MessagePart = Rows['messages']['parts'][number]
+export type MessagePart = LibraryRows['messages']['parts'][number]
 
-export function getRunModelId(run: Rows['runs']): string {
+export function getRunModelId(run: LibraryRows['runs']): string {
   return RunConfigSchema.parse(run.config).modelId
 }
 
-export function getRunErrorMessage(run: Rows['runs'] | null): string | null {
+export function getRunErrorMessage(run: LibraryRows['runs'] | null): string | null {
   if (run === null || run.errorMessage === '') {
     return null
   }
@@ -21,8 +21,8 @@ export function getRunErrorMessage(run: Rows['runs'] | null): string | null {
 // An `active` run row is only a claim. The live Run object is the authority on liveness,
 // so a stale row (crash, reload, or another client) never freezes the message UI. The
 // status check short-circuits reactively, before the live-run lookup.
-export function useMessageRunActive(run: Rows['runs'] | null): boolean {
-  const tetra = useTetra()
+export function useMessageRunActive(run: LibraryRows['runs'] | null): boolean {
+  const tetra = useApp()
   if (run === null || run.status !== 'active') {
     return false
   }
@@ -30,8 +30,8 @@ export function useMessageRunActive(run: Rows['runs'] | null): boolean {
   return tetra.runs.getByTargetMessage(run.targetMessageId) !== null
 }
 
-export function useMessageRun(messageId: string): Rows['runs'] | null {
-  const ids = typedTinybase.useSliceRowIds('runsByTargetMessageNewestFirst', messageId)
+export function useMessageRun(messageId: string): LibraryRows['runs'] | null {
+  const ids = libraryTinybase.useSliceRowIds('runsByTargetMessageNewestFirst', messageId)
 
-  return typedTinybase.useEntity('runs', ids[0] ?? '')
+  return libraryTinybase.useEntity('runs', ids[0] ?? '')
 }

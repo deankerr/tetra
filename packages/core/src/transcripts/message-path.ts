@@ -1,4 +1,4 @@
-import type { Rows } from '@tetra/store-schema'
+import type { LibraryRows as Rows } from '@tetra/stores/library'
 
 import type { TranscriptMessageTree } from './message-tree.ts'
 

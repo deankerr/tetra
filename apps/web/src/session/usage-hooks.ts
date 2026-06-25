@@ -1,13 +1,13 @@
 import { summarizeSteps } from '@tetra/core'
 import type { UsageTotals } from '@tetra/core'
-import type { Rows } from '@tetra/store-schema'
+import type { LibraryRows } from '@tetra/stores/library'
 import { useMemo } from 'react'
 
-import { typedTinybase } from '@/lib/tinybase'
+import { libraryTinybase } from '@/store'
 
 type StepIndexId = 'stepsByRun' | 'stepsBySession'
 
-export function useRunSteps(runId: string | undefined): Rows['steps'][] {
+export function useRunSteps(runId: string | undefined): LibraryRows['steps'][] {
   return useStepsBySlice('stepsByRun', runId ?? '')
 }
 
@@ -17,6 +17,6 @@ export function useSessionUsageTotals(sessionId: string): UsageTotals {
   return useMemo(() => summarizeSteps(steps), [steps])
 }
 
-function useStepsBySlice(indexId: StepIndexId, sliceId: string): Rows['steps'][] {
-  return typedTinybase.useSliceEntities(indexId, sliceId, 'steps')
+function useStepsBySlice(indexId: StepIndexId, sliceId: string): LibraryRows['steps'][] {
+  return libraryTinybase.useSliceEntities(indexId, sliceId, 'steps')
 }

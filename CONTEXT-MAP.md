@@ -15,7 +15,7 @@ Most context files are created lazily. If a mapped `CONTEXT.md` or `docs/adr/` d
 | Path                                  | Scope                                                                                                                                                           |
 | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `packages/core/CONTEXT.md`            | Core domain behavior: sessions, messages, runs, catalog refresh, tool execution, recovery, and shared behavior used by web and CLI.                             |
-| `packages/store-schema/CONTEXT.md`    | Tetra's durable TinyBase data model: tables, values, indexes, persisted row semantics, and app-specific schema tradeoffs.                                       |
+| `packages/stores/NOTES.md`            | Tetra's shared TinyBase store definitions, indexes, row types, and app-specific store ownership boundaries.                                                     |
 | `packages/tinybase-schema/CONTEXT.md` | Typed TinyBase helper library design: zod-to-TinyBase schema generation, bound store/index APIs, React wrappers, escape hatches, and library-level constraints. |
 | `apps/web/CONTEXT.md`                 | Web app shell behavior: TanStack Start routes, React UI state, TinyBase provider wiring, persistence/sync UI, credentials UI, and interaction workflows.        |
 | `apps/cli/CONTEXT.md`                 | CLI workflows: command behavior, parity with web features, local session selection, terminal I/O, and scriptable operations.                                    |
@@ -32,7 +32,7 @@ Read `docs/adr/` for system-wide decisions when it exists. For context-specific 
 
 If a change spans multiple contexts, read each matching context rather than forcing the work through a single global glossary. In particular, keep these boundaries distinct:
 
-- `packages/store-schema` describes Tetra's app data model.
+- `packages/stores` describes Tetra's app data model and shared store definitions.
 - `packages/tinybase-schema` describes a reusable typed TinyBase helper library.
 - `packages/core` owns UI-agnostic app behavior over the schema.
 - `apps/web` and `apps/cli` decide surface-specific workflows around shared core behavior.

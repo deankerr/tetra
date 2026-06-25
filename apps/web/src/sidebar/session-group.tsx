@@ -20,13 +20,13 @@ import {
 import { MoreHorizontalIcon, PlusIcon } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 
-import { typedTinybase } from '@/lib/tinybase'
-import { useTetra } from '@/tetra-context'
+import { useApp } from '@/app'
+import { libraryTinybase, webTinybase } from '@/store'
 
 // Sessions sorted by updatedAt descending — most recently active first.
 // Transcript writes touch updatedAt, so this order naturally tracks conversation activity.
 const useSessionIds = (draftSessionId: string) => {
-  const sessions = typedTinybase.useEntityList('sessions')
+  const sessions = libraryTinybase.useEntityList('sessions')
   return useMemo(
     () =>
       sessions
@@ -38,12 +38,13 @@ const useSessionIds = (draftSessionId: string) => {
 }
 
 export function SessionGroup() {
-  const { transcripts, typedStore } = useTetra()
+  const { stores, transcripts } = useApp()
+  const libraryStore = stores.library.typedStore
   const activeSessionMatch = useMatch({
     from: '/sessions/$sessionId',
     shouldThrow: false,
   })
-  const draftSessionId = typedTinybase.useEntity('draftSessions', 'current')?.sessionId ?? ''
+  const draftSessionId = webTinybase.useEntity('draftSessions', 'current')?.sessionId ?? ''
   const navigate = useNavigate()
   const sessionIds = useSessionIds(draftSessionId)
   const activeSessionId = activeSessionMatch?.params.sessionId ?? ''
@@ -70,7 +71,7 @@ export function SessionGroup() {
                 }
               }}
               onRename={(title) => {
-                typedStore.tables.sessions.updateRow(sessionId, {
+                libraryStore.tables.sessions.updateRow(sessionId, {
                   title,
                   updatedAt: Date.now(),
                 })
@@ -95,7 +96,7 @@ function SessionListItem({
   onRename: (title: string) => void
   sessionId: string
 }) {
-  const session = typedTinybase.useEntity('sessions', sessionId)
+  const session = libraryTinybase.useEntity('sessions', sessionId)
   const [renaming, setRenaming] = useState(false)
   const [draft, setDraft] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -158,7 +159,7 @@ function SessionListItem({
         <DropdownMenuTrigger
           render={
             <SidebarMenuAction
-              aria-label={`Session actions for ${session.title || 'Untitled session'}`}
+              aria-label={`Session actions for ${session.title ?? 'Untitled session'}`}
               showOnHover
             />
           }

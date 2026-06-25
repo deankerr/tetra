@@ -11,6 +11,7 @@ moving runtime parsing, row/entity typing, and repeated casts to one boundary.
 - Generate TinyBase `tablesSchema` and `valuesSchema` from zod schemas.
 - Derive row, entity, cell, and value types from zod schemas.
 - Parse TinyBase reads through zod at the boundary.
+- Optionally create typed TinyBase runtime instances from typed definitions.
 - Keep the public API shaped like TinyBase where possible.
 
 ## Current Shape
@@ -35,8 +36,8 @@ The store schema emits TinyBase schemas by reading zod's Standard JSON Schema
 output and keeping only the small shape TinyBase can express: `string`,
 `number`, `boolean`, `array`, `object`, `default`, and nullable `allowNull`.
 Unsupported cell schemas throw during schema creation rather than silently
-becoming loose storage. Store and Indexes binding are separate so callers keep
-ownership of TinyBase runtime objects:
+becoming loose storage. Store and Indexes binding are separate so callers can
+keep ownership of TinyBase runtime objects:
 
 ```ts
 const store = createStore().setSchema(storeSchema.tablesSchema, storeSchema.valuesSchema)
@@ -47,12 +48,34 @@ rawIndexes.setIndexDefinition('messagesBySession', 'messages', 'sessionId')
 const indexes = bindIndexes(rawIndexes, ['messagesBySession'] as const)
 ```
 
+Composition roots that want the standard runtime shape can define a store and
+create an instance:
+
+```ts
+const messagesDefinition = defineStoreDefinition({
+  applyIndexes(indexes) {
+    indexes.setIndexDefinition('messagesBySession', 'messages', 'sessionId')
+  },
+  id: 'messages',
+  indexIds: ['messagesBySession'] as const,
+  schema: storeSchema,
+})
+
+const messages = createStoreInstance(messagesDefinition)
+const syncMessages = createMergeableStoreInstance(messagesDefinition)
+```
+
+The resulting instance exposes the raw TinyBase `store` / `indexes` alongside
+the bound typed `typedStore` / `typedIndexes`.
+
 Use TinyBase's own schema-aware types for raw runtime objects, parameterized by
 `StoreSchemasFor<typeof storeSchema>`. The helper surfaces are:
 
 - `StoreApiFor<typeof storeSchema>` for the bound `{ tables, values }`
   helper API.
 - `BoundIndexes<typeof indexIds>` for the bound index helper API.
+- `StoreInstanceFor<typeof storeDefinition>` for a raw-plus-typed runtime
+  instance.
 - `StoreRowsFor<typeof storeSchema>` for table-id keyed entity row types, such
   as `Rows['messages']`.
 
@@ -62,6 +85,7 @@ Source files mirror the TinyBase concepts they wrap:
   TinyBase-compatible schema objects.
 - `store.ts` binds table/value helpers around a caller-owned `Store`.
 - `indexes.ts` binds a caller-owned, already-configured `Indexes` object.
+- `runtime.ts` creates typed Store/Indexes instances from typed definitions.
 - `store-schema.ts` composes the store schema object and stateless parsers.
 
 The bind functions intentionally accept a structural Store/Indexes API rather
@@ -165,9 +189,10 @@ Some TinyBase integrations still need raw objects:
 - Persistence receives the raw `store`.
 - React `Provider` receives the raw `store` and `indexes`.
 
-Those objects should be owned by the app or package runtime layer, then passed
-to this package only for typed helper binding. `@tetra/tinybase-schema` should
-not create stores, create indexes, or know whether a store is mergeable.
+Those objects should be owned by the composition root. This package may create
+the generic typed runtime instance, but it should not choose app storage policy:
+persistence, sync, lifecycle, and which stores are grouped together remain
+outside `@tetra/tinybase-schema`.
 
 ## Boundary Casts
 
@@ -203,11 +228,11 @@ Hold off on these until the app needs them:
   `Store` and `Indexes` as separate objects. Index definitions use TinyBase's
   native `setIndexDefinition` builder API at the composition root.
 - `StoreApiFor<typeof storeSchema>` and `BoundIndexes<typeof indexIds>`
-  are helper types, not TinyBase raw object types. Composition roots should
-  import raw `Store`, `MergeableStore`, and `Indexes` types from TinyBase
-  directly when they need them.
+  are helper types, not TinyBase raw object types. `RawStoreFor` and
+  `RawIndexesFor` describe raw TinyBase objects parameterized by a typed schema
+  when integration code needs them.
 - `raw` escape hatches should stay rare and explicit.
 - Prefer adding wrappers only when Tetra already has a raw TinyBase call site
   that would benefit from typing.
-- TinyBase `Store`, `MergeableStore`, `Indexes`, persisters, synchronizers, and
-  React `Provider` wiring are runtime concerns owned outside this package.
+- TinyBase persisters, synchronizers, and app lifecycle remain runtime concerns
+  owned outside this package.

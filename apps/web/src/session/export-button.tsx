@@ -2,7 +2,7 @@ import { Button } from '@tetra/ui/components/ui/button'
 import { DownloadIcon } from 'lucide-react'
 import type { ComponentProps } from 'react'
 
-import { useTetra } from '@/tetra-context'
+import { useApp } from '@/app'
 
 type SessionExportButtonProps = Pick<
   ComponentProps<typeof Button>,
@@ -18,7 +18,7 @@ export function SessionExportButton({
   size = 'icon-sm',
   variant = 'ghost',
 }: SessionExportButtonProps) {
-  const { transcripts } = useTetra()
+  const { transcripts } = useApp()
 
   return (
     <Button

@@ -1,13 +1,11 @@
-import type { RunConfig } from '@tetra/store-schema'
+import type { RunConfig } from '@tetra/core'
 import type { Command } from 'commander'
 
-import type { bootstrap } from '../bootstrap'
-
-type CliContext = Awaited<ReturnType<typeof bootstrap>>
+import type { CliAppContext } from '../app'
 
 export function registerConfigCommand(
   program: Command,
-  getContext: () => Promise<CliContext>,
+  getContext: () => Promise<CliAppContext>,
 ): void {
   // Show or update inference config for a specific session, defaulting to active.
   program
@@ -41,7 +39,7 @@ export function registerConfigCommand(
         }
 
         const latestConfig =
-          ctx.typedStore.tables.sessionRunConfigs.requireEntity(resolvedSessionId)
+          ctx.stores.library.typedStore.tables.sessionRunConfigs.requireEntity(resolvedSessionId)
         console.log(`session:      ${resolvedSessionId}`)
         console.log(`model:        ${latestConfig.modelId}`)
         console.log(

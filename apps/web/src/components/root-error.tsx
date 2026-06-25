@@ -1,10 +1,7 @@
 import type { ErrorComponentProps } from '@tanstack/react-router'
 import { useRouter } from '@tanstack/react-router'
 import { Button } from '@tetra/ui/components/ui/button'
-import { AlertCircleIcon, CloudIcon, Trash2Icon } from 'lucide-react'
-
-import { clearTetraIndexedDbAndReload } from '@/lib/tinybase'
-import { clearTetraSyncDataAndReload } from '@/lib/websocket'
+import { AlertCircleIcon } from 'lucide-react'
 
 export function RootErrorComponent({ error, reset }: ErrorComponentProps) {
   const router = useRouter()
@@ -27,24 +24,6 @@ export function RootErrorComponent({ error, reset }: ErrorComponentProps) {
           variant="outline"
         >
           Try again
-        </Button>
-        <Button
-          onClick={() => {
-            void clearTetraIndexedDbAndReload()
-          }}
-          variant="outline"
-        >
-          <Trash2Icon />
-          Clear all IndexedDB data
-        </Button>
-        <Button
-          onClick={() => {
-            void clearTetraSyncDataAndReload()
-          }}
-          variant="outline"
-        >
-          <CloudIcon />
-          Clear Cloudflare sync data
         </Button>
       </div>
     </div>

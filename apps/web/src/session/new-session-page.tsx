@@ -6,8 +6,8 @@ import { toast } from '@tetra/ui/components/ui/sonner'
 import { KeyRoundIcon, Settings2Icon, XIcon } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { WEB_UI_STORE_ID, tinybase, typedTinybase, webUiTinybase } from '@/lib/tinybase'
-import { useTetra } from '@/tetra-context'
+import { useApp } from '@/app'
+import { libraryTinybase, webTinybase } from '@/store'
 import { useCredential } from '@/use-credential'
 
 import { Composer } from './composer'
@@ -20,15 +20,16 @@ export function NewSessionPage() {
   const draftSessionId = useDraftSessionId()
   const [detailOpen, setDetailOpen] = useState(false)
   const [modelPickerOpen, setModelPickerOpen] = useState(false)
-  const [modelId, setModelId] = typedTinybase.useCellState(
+  const [modelId, setModelId] = libraryTinybase.useCellState(
     'sessionRunConfigs',
     draftSessionId ?? '',
     'modelId',
   )
   const [promptSheetOpen, setPromptSheetOpen] = useState(false)
   const [openrouterApiKey] = useCredential('OPENROUTER_API_KEY')
-  const [, setSettingsOpen] = webUiTinybase.useValueState('settingsOpen', WEB_UI_STORE_ID)
-  const { typedStore } = useTetra()
+  const [, setSettingsOpen] = webTinybase.useValueState('settingsOpen')
+  const { stores } = useApp()
+  const webStore = stores.web.typedStore
   const apiKeyConfigured = openrouterApiKey.trim() !== ''
 
   const openSettings = useCallback(() => {
@@ -41,9 +42,9 @@ export function NewSessionPage() {
     }
 
     // Clearing the pointer makes this session normal history before routing to it.
-    typedStore.tables.draftSessions.deleteRow('current')
+    webStore.tables.draftSessions.deleteRow('current')
     void navigate({ params: { sessionId: draftSessionId }, to: '/sessions/$sessionId' })
-  }, [draftSessionId, typedStore, navigate])
+  }, [draftSessionId, webStore, navigate])
 
   const requireGenerateReady = useCallback(() => {
     if (apiKeyConfigured) {
@@ -151,22 +152,16 @@ export function NewSessionPage() {
 }
 
 function useDraftSessionId(): string | null {
-  const { transcripts, typedStore } = useTetra()
-  const persister = tinybase.usePersister()
-  const synchronizer = tinybase.useSynchronizer()
-  const draftSessionPointer = typedTinybase.useEntity('draftSessions', 'current')
+  const { stores, transcripts } = useApp()
+  const webStore = stores.web.typedStore
+  const draftSessionPointer = webTinybase.useEntity('draftSessions', 'current')
   const draftSessionId = draftSessionPointer?.sessionId ?? ''
-  const draftSession = typedTinybase.useEntity('sessions', draftSessionId)
+  const draftSession = libraryTinybase.useEntity('sessions', draftSessionId)
   const creatingDraftSession = useRef(false)
-  const storeReady = persister !== undefined || synchronizer !== undefined
 
   useEffect(() => {
-    if (!storeReady) {
-      return
-    }
-
     if (draftSessionId !== '' && draftSession === null) {
-      typedStore.tables.draftSessions.deleteRow('current')
+      webStore.tables.draftSessions.deleteRow('current')
       creatingDraftSession.current = false
       return
     }
@@ -184,12 +179,12 @@ function useDraftSessionId(): string | null {
     creatingDraftSession.current = true
     transcripts.createSession({
       onCreate(sessionId) {
-        typedStore.tables.draftSessions.setRow('current', { sessionId })
+        webStore.tables.draftSessions.setRow('current', { sessionId })
       },
     })
-  }, [draftSession, draftSessionId, storeReady, transcripts, typedStore])
+  }, [draftSession, draftSessionId, transcripts, webStore])
 
-  if (!storeReady || draftSessionId === '' || draftSession === null) {
+  if (draftSessionId === '' || draftSession === null) {
     return null
   }
 

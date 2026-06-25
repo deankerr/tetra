@@ -1,5 +1,10 @@
 import type { CredentialsStore } from '@tetra/credentials'
-import type { RunConfig as RunConfigType, Rows, TetraTypedStore } from '@tetra/store-schema'
+import type {
+  LibraryRows as Rows,
+  LibraryStoreInstance,
+  LibraryTypedStore,
+  RunConfig as RunConfigType,
+} from '@tetra/stores/library'
 
 import type { Prompts } from '#prompts'
 import type { RunConfigs } from '#run-configs'
@@ -17,11 +22,11 @@ export interface GenerateArgs {
 
 export interface RunsInit {
   credentials: CredentialsStore
+  libraryStore: LibraryStoreInstance
   modelResolver?: LanguageModelResolver
   prompts: Prompts
   runConfigs: RunConfigs
   transcripts: Transcripts
-  typedStore: TetraTypedStore
 }
 
 export class Runs {
@@ -31,22 +36,22 @@ export class Runs {
   private readonly prompts: Prompts
   private readonly runConfigs: RunConfigs
   private readonly transcripts: Transcripts
-  private readonly typedStore: TetraTypedStore
+  private readonly typedStore: LibraryTypedStore
 
   constructor({
     credentials,
+    libraryStore,
     modelResolver = openRouterLanguageModelResolver,
     prompts,
     runConfigs,
     transcripts,
-    typedStore,
   }: RunsInit) {
     this.credentials = credentials
     this.modelResolver = modelResolver
     this.prompts = prompts
     this.runConfigs = runConfigs
     this.transcripts = transcripts
-    this.typedStore = typedStore
+    this.typedStore = libraryStore.typedStore
   }
 
   cancel(runId: string): void {

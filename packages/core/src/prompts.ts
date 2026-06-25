@@ -1,4 +1,4 @@
-import type { TetraTypedStore } from '@tetra/store-schema'
+import type { LibraryStoreInstance, LibraryTypedStore } from '@tetra/stores/library'
 
 import { createIdGenerator } from '#ids'
 import type { RunConfigs } from '#run-configs'
@@ -8,11 +8,17 @@ import type { RunConfigs } from '#run-configs'
 export class Prompts {
   private readonly nextPromptId = createIdGenerator('prpt')
   private readonly runConfigs: RunConfigs
-  private readonly typedStore: TetraTypedStore
+  private readonly typedStore: LibraryTypedStore
 
-  constructor({ runConfigs, typedStore }: { runConfigs: RunConfigs; typedStore: TetraTypedStore }) {
+  constructor({
+    libraryStore,
+    runConfigs,
+  }: {
+    libraryStore: LibraryStoreInstance
+    runConfigs: RunConfigs
+  }) {
     this.runConfigs = runConfigs
-    this.typedStore = typedStore
+    this.typedStore = libraryStore.typedStore
   }
 
   createPrompt(args: { content?: string; label?: string } = {}): string {

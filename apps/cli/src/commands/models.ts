@@ -1,12 +1,10 @@
 import type { Command } from 'commander'
 
-import type { bootstrap } from '../bootstrap'
-
-type CliContext = Awaited<ReturnType<typeof bootstrap>>
+import type { CliAppContext } from '../app'
 
 export function registerModelsCommand(
   program: Command,
-  getContext: () => Promise<CliContext>,
+  getContext: () => Promise<CliAppContext>,
 ): void {
   // Refresh and list text-output models from OpenRouter.
   program
@@ -15,17 +13,22 @@ export function registerModelsCommand(
     .option('-p, --provider <name>', 'Filter by provider name')
     .action(async (opts: { provider?: string }) => {
       const ctx = await getContext()
-      await ctx.catalog.refresh({ force: true })
+      await ctx.modelCatalog.refresh({ force: true })
+      const providerQuery = opts.provider?.toLowerCase()
 
-      const rows = ctx.typedStore.tables.languageModels
+      const rows = ctx.stores.catalog.typedStore.tables.languageModels
         .listEntities()
         .filter((row) => row.outputModalities.includes('text'))
-        .filter(
-          (row) =>
-            opts.provider === undefined ||
-            row.providerName.toLowerCase().includes(opts.provider.toLowerCase()) ||
-            row.provider.toLowerCase().includes(opts.provider.toLowerCase()),
-        )
+        .filter((row) => {
+          if (providerQuery === undefined) {
+            return true
+          }
+
+          return (
+            row.providerName.toLowerCase().includes(providerQuery) ||
+            row.provider.toLowerCase().includes(providerQuery)
+          )
+        })
         .toSorted((a, b) => b.upstreamCreatedAt - a.upstreamCreatedAt)
 
       if (rows.length === 0) {

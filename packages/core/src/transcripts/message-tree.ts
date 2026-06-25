@@ -1,10 +1,14 @@
-import type { Rows, TetraTypedIndexes, TetraTypedStore } from '@tetra/store-schema'
+import type {
+  LibraryRows as Rows,
+  LibraryTypedIndexes,
+  LibraryTypedStore,
+} from '@tetra/stores/library'
 
 export class TranscriptMessageTree {
   readonly sessionId: string
 
-  private readonly typedIndexes: TetraTypedIndexes
-  private readonly typedStore: TetraTypedStore
+  private readonly typedIndexes: LibraryTypedIndexes
+  private readonly typedStore: LibraryTypedStore
 
   constructor({
     sessionId,
@@ -12,8 +16,8 @@ export class TranscriptMessageTree {
     typedStore,
   }: {
     sessionId: string
-    typedIndexes: TetraTypedIndexes
-    typedStore: TetraTypedStore
+    typedIndexes: LibraryTypedIndexes
+    typedStore: LibraryTypedStore
   }) {
     this.sessionId = sessionId
     this.typedIndexes = typedIndexes

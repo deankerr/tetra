@@ -1,4 +1,4 @@
-import type { Rows } from '@tetra/store-schema'
+import type { CatalogRows } from '@tetra/stores/catalog'
 import { ModelSelectorLogo } from '@tetra/ui/components/ai-elements/model-selector'
 import { Button } from '@tetra/ui/components/ui/button'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@tetra/ui/components/ui/input-group'
@@ -8,13 +8,14 @@ import { RotateCcwIcon, SearchIcon, XIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { ComponentProps } from 'react'
 
-import { typedTinybase } from '@/lib/tinybase'
-import { useTetra } from '@/tetra-context'
+import { useApp } from '@/app'
+import { catalogTinybase, libraryTinybase } from '@/store'
 
 import { ModelCard } from './model-card'
 
 type ModelFilter = 'all' | 'audio' | 'file' | 'image' | 'starred' | 'text' | 'video'
 type ModelSortMode = 'latest' | 'provider'
+type LanguageModelRow = CatalogRows['languageModels']
 
 const MODEL_FILTERS = [
   { label: 'Starred', value: 'starred' },
@@ -26,24 +27,40 @@ const MODEL_FILTERS = [
   { label: 'Files', value: 'file' },
 ] satisfies { label: string; value: ModelFilter }[]
 
-function compareByLatest(left: Rows['languageModels'], right: Rows['languageModels']) {
-  return (
-    right.upstreamCreatedAt - left.upstreamCreatedAt ||
-    left.providerName.localeCompare(right.providerName) ||
-    left.name.localeCompare(right.name) ||
-    left.id.localeCompare(right.id)
-  )
+function compareByLatest(left: LanguageModelRow, right: LanguageModelRow) {
+  const latest = right.upstreamCreatedAt - left.upstreamCreatedAt
+  if (latest !== 0) {
+    return latest
+  }
+
+  const provider = left.providerName.localeCompare(right.providerName)
+  if (provider !== 0) {
+    return provider
+  }
+
+  const name = left.name.localeCompare(right.name)
+  if (name !== 0) {
+    return name
+  }
+
+  return left.id.localeCompare(right.id)
 }
 
-function compareByProvider(left: Rows['languageModels'], right: Rows['languageModels']) {
-  return (
-    normalizeProviderName(left).localeCompare(normalizeProviderName(right)) ||
-    left.name.localeCompare(right.name) ||
-    left.id.localeCompare(right.id)
-  )
+function compareByProvider(left: LanguageModelRow, right: LanguageModelRow) {
+  const provider = normalizeProviderName(left).localeCompare(normalizeProviderName(right))
+  if (provider !== 0) {
+    return provider
+  }
+
+  const name = left.name.localeCompare(right.name)
+  if (name !== 0) {
+    return name
+  }
+
+  return left.id.localeCompare(right.id)
 }
 
-function matchesSearch(model: Rows['languageModels'], query: string) {
+function matchesSearch(model: LanguageModelRow, query: string) {
   if (query === '') {
     return true
   }
@@ -62,11 +79,7 @@ function matchesSearch(model: Rows['languageModels'], query: string) {
   return searchable.includes(query)
 }
 
-function matchesFilter(
-  model: Rows['languageModels'],
-  filter: ModelFilter,
-  favoriteIds: Set<string>,
-) {
+function matchesFilter(model: LanguageModelRow, filter: ModelFilter, favoriteIds: Set<string>) {
   if (filter === 'all') {
     return true
   }
@@ -78,7 +91,7 @@ function matchesFilter(
   return [...model.inputModalities, ...model.outputModalities].includes(filter)
 }
 
-function normalizeProviderName(model: Rows['languageModels']) {
+function normalizeProviderName(model: LanguageModelRow) {
   const providerName = model.providerName.toLowerCase()
   if (providerName.startsWith('~')) {
     return providerName.slice(1)
@@ -86,7 +99,7 @@ function normalizeProviderName(model: Rows['languageModels']) {
   return providerName
 }
 
-function groupModelsByProvider(models: Rows['languageModels'][]) {
+function groupModelsByProvider(models: LanguageModelRow[]) {
   return [...Map.groupBy(models, normalizeProviderName).entries()]
     .map(([heading, groupedModels]) => ({
       heading,
@@ -104,8 +117,8 @@ function useModelGroups({
   query: string
   sortMode: ModelSortMode
 }) {
-  const models = typedTinybase.useEntityList('languageModels')
-  const favorites = typedTinybase.useEntityList('modelFavorites')
+  const models = catalogTinybase.useEntityList('languageModels')
+  const favorites = libraryTinybase.useEntityList('modelFavorites')
 
   return useMemo(() => {
     const favoriteIds = new Set(favorites.map((favorite) => favorite.id))
@@ -133,18 +146,18 @@ function useModelGroups({
 }
 
 function useFavoriteIds() {
-  const favorites = typedTinybase.useEntityList('modelFavorites')
+  const favorites = libraryTinybase.useEntityList('modelFavorites')
   return useMemo(() => new Set(favorites.map((favorite) => favorite.id)), [favorites])
 }
 
 function RefreshButton() {
-  const { catalog } = useTetra()
+  const { modelCatalog } = useApp()
   const [loading, setLoading] = useState(false)
 
   const refresh = async () => {
     setLoading(true)
     try {
-      await catalog.refresh({ force: true })
+      await modelCatalog.refresh({ force: true })
     } finally {
       setLoading(false)
     }
@@ -172,7 +185,7 @@ export function ModelPickerButton({
   variant = 'outline',
   ...props
 }: Omit<ComponentProps<typeof Button>, 'children' | 'value'> & { value: string }) {
-  const currentModel = typedTinybase.useEntity('languageModels', value)
+  const currentModel = catalogTinybase.useEntity('languageModels', value)
   const label = currentModel?.name ?? (value === '' ? 'Select model' : value)
 
   return (
@@ -218,7 +231,8 @@ export function ModelPickerSheet({
   open: boolean
   value: string
 }) {
-  const { typedStore } = useTetra()
+  const { stores } = useApp()
+  const libraryStore = stores.library.typedStore
   const [filter, setFilter] = useState<ModelFilter>('all')
   const [query, setQuery] = useState('')
   const [sortMode, setSortMode] = useState<ModelSortMode>('latest')
@@ -313,10 +327,10 @@ export function ModelPickerSheet({
                       }}
                       onToggleFavorite={() => {
                         if (favoriteIds.has(model.id)) {
-                          typedStore.tables.modelFavorites.deleteRow(model.id)
+                          libraryStore.tables.modelFavorites.deleteRow(model.id)
                           return
                         }
-                        typedStore.tables.modelFavorites.setRow(model.id, {
+                        libraryStore.tables.modelFavorites.setRow(model.id, {
                           createdAt: Date.now(),
                         })
                       }}

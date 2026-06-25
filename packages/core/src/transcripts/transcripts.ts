@@ -1,4 +1,9 @@
-import type { RunConfig, TetraTypedIndexes, TetraTypedStore } from '@tetra/store-schema'
+import type {
+  LibraryStoreInstance,
+  LibraryTypedIndexes,
+  LibraryTypedStore,
+  RunConfig,
+} from '@tetra/stores/library'
 
 import { createIdGenerator } from '#ids'
 import type { RunConfigs } from '#run-configs'
@@ -9,21 +14,19 @@ export class Transcripts {
   private readonly nextMessageId = createIdGenerator('msg')
   private readonly nextSessionId = createIdGenerator('sess')
   private readonly runConfigs: RunConfigs
-  private readonly typedIndexes: TetraTypedIndexes
-  private readonly typedStore: TetraTypedStore
+  private readonly typedIndexes: LibraryTypedIndexes
+  private readonly typedStore: LibraryTypedStore
 
   constructor({
+    libraryStore,
     runConfigs,
-    typedIndexes,
-    typedStore,
   }: {
+    libraryStore: LibraryStoreInstance
     runConfigs: RunConfigs
-    typedIndexes: TetraTypedIndexes
-    typedStore: TetraTypedStore
   }) {
     this.runConfigs = runConfigs
-    this.typedIndexes = typedIndexes
-    this.typedStore = typedStore
+    this.typedIndexes = libraryStore.typedIndexes
+    this.typedStore = libraryStore.typedStore
   }
 
   createSession(
