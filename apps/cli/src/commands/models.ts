@@ -8,7 +8,7 @@ interface ModelListOptions {
 
 export function registerModelCommands(
   program: Command,
-  getContext: () => Promise<CliAppContext>,
+  getContext: (options?: { syncLibrary?: boolean }) => Promise<CliAppContext>,
 ): void {
   // Model commands read and refresh the local OpenRouter catalog cache.
   const models = program.command('models').description('Manage model catalog')
@@ -19,7 +19,7 @@ export function registerModelCommands(
     .description('List cached models')
     .option('-p, --provider <name>', 'Filter by provider name')
     .action(async (options: ModelListOptions) => {
-      const ctx = await getContext()
+      const ctx = await getContext({ syncLibrary: false })
       const providerQuery = options.provider?.toLowerCase()
       const rows = ctx.stores.catalog.typedStore.tables.languageModels
         .listEntities()
@@ -56,7 +56,7 @@ export function registerModelCommands(
     .command('refresh')
     .description('Refresh models from OpenRouter')
     .action(async () => {
-      const ctx = await getContext()
+      const ctx = await getContext({ syncLibrary: false })
       await ctx.modelCatalog.refresh({ force: true })
       const count = ctx.stores.catalog.typedStore.tables.languageModels.getRowIds().length
       console.log(`Refreshed ${count} models.`)

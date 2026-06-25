@@ -18,17 +18,21 @@ interface ProgramOptions {
   sync?: boolean
 }
 
+interface ContextOptions {
+  syncLibrary?: boolean
+}
+
 // Keep store startup lazy so help, version, and sync maintenance commands stay cheap.
 let context: CliAppContext | undefined
 let contextPromise: Promise<CliAppContext> | undefined
-async function getContext(): Promise<CliAppContext> {
+async function getContext(options: ContextOptions = {}): Promise<CliAppContext> {
   if (context !== undefined) {
     return context
   }
 
   const opts = program.opts<ProgramOptions>()
   contextPromise ??= createCliApp({
-    syncEnabled: opts.sync !== false,
+    syncEnabled: opts.sync !== false && options.syncLibrary !== false,
   })
   context = await contextPromise
   return context
@@ -89,7 +93,12 @@ try {
   exitCode = 1
   console.error(error instanceof Error ? error.message : String(error))
 } finally {
-  await saveAndClose()
+  try {
+    await saveAndClose()
+  } catch (error) {
+    exitCode = 1
+    console.error(error instanceof Error ? error.message : String(error))
+  }
   if (exitCode !== 0) {
     process.exit(exitCode)
   }
