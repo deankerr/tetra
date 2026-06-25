@@ -26,6 +26,7 @@
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-error-boundary": "^6.1.2",
+    "tinybase": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

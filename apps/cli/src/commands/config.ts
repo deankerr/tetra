@@ -3,7 +3,10 @@ import type { Command } from 'commander'
 
 import type { CliAppContext } from '../app'
 
-export function registerConfigCommand(program: Command, getContext: () => CliAppContext): void {
+export function registerConfigCommand(
+  program: Command,
+  getContext: () => Promise<CliAppContext>,
+): void {
   // Show or update inference config for a specific session, defaulting to active.
   program
     .command('config')
@@ -14,11 +17,11 @@ export function registerConfigCommand(program: Command, getContext: () => CliApp
     .option('-p, --prompt <promptId>', 'Stored system prompt id')
     .option('--no-prompt', 'Clear the stored system prompt')
     .action(
-      (
+      async (
         sessionId: string | undefined,
         opts: { maxMessages?: number; model?: string; prompt?: false | string },
       ) => {
-        const ctx = getContext()
+        const ctx = await getContext()
         const resolvedSessionId = sessionId ?? ctx.workspace.getActiveSessionId()
         if (resolvedSessionId === undefined) {
           throw new Error('No active session. Try: tetra "hello"')

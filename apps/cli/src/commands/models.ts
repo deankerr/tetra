@@ -2,14 +2,17 @@ import type { Command } from 'commander'
 
 import type { CliAppContext } from '../app'
 
-export function registerModelsCommand(program: Command, getContext: () => CliAppContext): void {
+export function registerModelsCommand(
+  program: Command,
+  getContext: () => Promise<CliAppContext>,
+): void {
   // Refresh and list text-output models from OpenRouter.
   program
     .command('models')
     .description('List available models from OpenRouter')
     .option('-p, --provider <name>', 'Filter by provider name')
     .action(async (opts: { provider?: string }) => {
-      const ctx = getContext()
+      const ctx = await getContext()
       await ctx.modelCatalog.refresh({ force: true })
       const providerQuery = opts.provider?.toLowerCase()
 

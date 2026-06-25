@@ -92,11 +92,14 @@ function addChatOptions(command: Command): Command {
     .option('--no-prompt', 'Send without a system prompt')
 }
 
-export function registerChatCommands(program: Command, getContext: () => CliAppContext): void {
+export function registerChatCommands(
+  program: Command,
+  getContext: () => Promise<CliAppContext>,
+): void {
   // The root command is the golden path: tetra "ask anything".
   addChatOptions(program.argument('[message...]', 'Message to send')).action(
     async (parts: string[], opts: ChatOptions) => {
-      await runChat(getContext(), parts, opts)
+      await runChat(await getContext(), parts, opts)
     },
   )
 
@@ -104,6 +107,6 @@ export function registerChatCommands(program: Command, getContext: () => CliAppC
   addChatOptions(
     program.command('chat').alias('c').argument('[message...]', 'Message to send'),
   ).action(async (parts: string[], opts: ChatOptions) => {
-    await runChat(getContext(), parts, opts)
+    await runChat(await getContext(), parts, opts)
   })
 }

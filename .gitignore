@@ -1,9 +1,9 @@
-!.env.example
 .alchemy
 .cache
 .dev.vars
 .DS_Store
 .env*
+!apps/*/.env.example
 .next
 .nitro
 .output

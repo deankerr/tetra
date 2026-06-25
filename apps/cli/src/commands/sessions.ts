@@ -7,7 +7,10 @@ import { formatSession, printMessages } from '../lib/output'
 import { titleFromMessage } from '../lib/title'
 import { runChatContent } from './chat'
 
-export function registerSessionCommands(program: Command, getContext: () => CliAppContext): void {
+export function registerSessionCommands(
+  program: Command,
+  getContext: () => Promise<CliAppContext>,
+): void {
   // Create a session, optionally using the first message as both prompt and title source.
   program
     .command('new')
@@ -29,7 +32,7 @@ export function registerSessionCommands(program: Command, getContext: () => CliA
           title?: string
         },
       ) => {
-        const ctx = getContext()
+        const ctx = await getContext()
         const content = await readMessage({ message: opts.message, parts })
         const config: Partial<RunConfig> = {
           ...(opts.model !== undefined && { modelId: opts.model }),
@@ -71,8 +74,8 @@ export function registerSessionCommands(program: Command, getContext: () => CliA
     .command('sessions')
     .alias('ls')
     .description('List sessions')
-    .action(() => {
-      const ctx = getContext()
+    .action(async () => {
+      const ctx = await getContext()
       const sessions = ctx.stores.library.typedStore.tables.sessions
         .listEntities()
         .toSorted((a, b) => a.createdAt - b.createdAt)
@@ -93,8 +96,8 @@ export function registerSessionCommands(program: Command, getContext: () => CliA
     .command('active')
     .argument('[id]', 'Session id')
     .description('Show or set the active session')
-    .action((sessionId?: string) => {
-      const ctx = getContext()
+    .action(async (sessionId?: string) => {
+      const ctx = await getContext()
 
       if (sessionId !== undefined) {
         if (!ctx.stores.library.typedStore.tables.sessions.hasRow(sessionId)) {
@@ -111,8 +114,8 @@ export function registerSessionCommands(program: Command, getContext: () => CliA
   program
     .command('resume <id>')
     .description('Set the active session')
-    .action((sessionId: string) => {
-      const ctx = getContext()
+    .action(async (sessionId: string) => {
+      const ctx = await getContext()
       if (!ctx.stores.library.typedStore.tables.sessions.hasRow(sessionId)) {
         throw new Error(`Session not found: ${sessionId}`)
       }
@@ -125,8 +128,8 @@ export function registerSessionCommands(program: Command, getContext: () => CliA
     .command('delete-session <id>')
     .alias('rm-session')
     .description('Delete a session')
-    .action((sessionId: string) => {
-      const ctx = getContext()
+    .action(async (sessionId: string) => {
+      const ctx = await getContext()
       ctx.transcripts.deleteSession(sessionId)
       if (ctx.workspace.getActiveSessionId() === sessionId) {
         ctx.workspace.clearActiveSessionId()
@@ -139,8 +142,8 @@ export function registerSessionCommands(program: Command, getContext: () => CliA
     .command('delete-message <id>')
     .alias('rm-message')
     .description('Delete a message')
-    .action((messageId: string) => {
-      const ctx = getContext()
+    .action(async (messageId: string) => {
+      const ctx = await getContext()
       const message = ctx.stores.library.typedStore.tables.messages.requireEntity(messageId)
       ctx.transcripts.getSession(message.sessionId).deleteMessage(messageId)
       console.log(messageId)
@@ -151,8 +154,8 @@ export function registerSessionCommands(program: Command, getContext: () => CliA
     .command('history')
     .argument('[id]', 'Session id, defaults to active')
     .description('Print message history')
-    .action((sessionId?: string) => {
-      const ctx = getContext()
+    .action(async (sessionId?: string) => {
+      const ctx = await getContext()
       const resolvedSessionId = sessionId ?? ctx.workspace.getActiveSessionId()
       if (resolvedSessionId === undefined) {
         throw new Error('No active session. Try: tetra "hello"')
@@ -172,8 +175,8 @@ export function registerSessionCommands(program: Command, getContext: () => CliA
     .command('title')
     .argument('[title]', 'New title')
     .description('Show or rename the active session')
-    .action((title?: string) => {
-      const ctx = getContext()
+    .action(async (title?: string) => {
+      const ctx = await getContext()
       const sessionId = ctx.workspace.getActiveSessionId()
       if (sessionId === undefined) {
         throw new Error('No active session. Try: tetra "hello"')

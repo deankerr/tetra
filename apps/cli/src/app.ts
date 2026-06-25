@@ -1,11 +1,16 @@
 import { createCoreModules } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
 
-import { createCliStoreInstances } from './store'
+import { createCliStoreRuntime } from './store'
 import type { CliStoreInstances } from './store'
 
-export function createCliApp() {
-  const stores = createCliStoreInstances()
+export interface CliAppOptions {
+  syncEnabled?: boolean
+}
+
+export async function createCliApp(options: CliAppOptions = {}) {
+  const runtime = await createCliStoreRuntime({ syncEnabled: options.syncEnabled })
+  const { stores } = runtime
   const core = createCoreModules({
     credentials: credentialStore,
     stores: {
@@ -18,14 +23,14 @@ export function createCliApp() {
   return {
     ...core,
     close: async () => {
-      await Promise.resolve()
+      await runtime.close()
     },
     stores,
     workspace,
   }
 }
 
-export type CliAppContext = ReturnType<typeof createCliApp>
+export type CliAppContext = Awaited<ReturnType<typeof createCliApp>>
 
 function connectCliWorkspace(stores: CliStoreInstances) {
   const { activeSessionId } = stores.cli.typedStore.values
