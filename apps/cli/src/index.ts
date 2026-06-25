@@ -3,20 +3,22 @@ import { Command } from 'commander'
 import { createCliApp } from './app'
 import type { CliAppContext } from './app'
 import { registerChatCommands } from './commands/chat'
-import { registerConfigCommand } from './commands/config'
-import { registerModelsCommand } from './commands/models'
+import { registerMessageCommands } from './commands/messages'
+import { registerModelCommands } from './commands/models'
 import { registerPromptCommands } from './commands/prompts'
 import { registerSessionCommands } from './commands/sessions'
+import { registerSyncCommands } from './commands/sync'
 
 const program = new Command()
 program.name('tetra').description('Tetra CLI').version('0.1.0')
 program.option('--no-sync', 'Disable optional remote sync')
+program.showHelpAfterError()
 
 interface ProgramOptions {
   sync?: boolean
 }
 
-// Lazily create the app so pure help/version output does not create stores.
+// Keep store startup lazy so help, version, and sync maintenance commands stay cheap.
 let context: CliAppContext | undefined
 let contextPromise: Promise<CliAppContext> | undefined
 async function getContext(): Promise<CliAppContext> {
@@ -33,8 +35,8 @@ async function getContext(): Promise<CliAppContext> {
 }
 
 let closePromise: Promise<void> | undefined
-async function saveAndClose() {
-  // CLI processes are short-lived; close flushes the library cache when it was created.
+async function saveAndClose(): Promise<void> {
+  // A failed lazy startup should not mask the original command error.
   let ctx = context
   if (ctx === undefined && contextPromise !== undefined) {
     try {
@@ -44,9 +46,12 @@ async function saveAndClose() {
     }
   }
 
+  // Help-only commands never create a context.
   if (ctx === undefined) {
     return
   }
+
+  // Multiple exit paths may converge here after SIGINT or thrown command errors.
   closePromise ??= ctx.close()
   await closePromise
 }
@@ -64,16 +69,21 @@ process.once('SIGINT', () => {
   })()
 })
 
-// Register command groups; the root command remains the primary chat surface.
+// The root command is informational only; chat is intentionally explicit.
+program.action(() => {
+  program.outputHelp()
+})
+
+// Register the noun-shaped command surface.
 registerChatCommands(program, getContext)
 registerSessionCommands(program, getContext)
-registerConfigCommand(program, getContext)
-registerModelsCommand(program, getContext)
+registerMessageCommands(program, getContext)
 registerPromptCommands(program, getContext)
+registerModelCommands(program, getContext)
+registerSyncCommands(program)
 
 let exitCode = 0
 try {
-  // Commander routes subcommands first and falls back to the root chat action for messages.
   await program.parseAsync(process.argv)
 } catch (error: unknown) {
   exitCode = 1

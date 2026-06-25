@@ -33,7 +33,7 @@
     "fix": "ultracite fix --type-aware --type-check",
     "knip": "knip",
     "preview": "turbo run preview",
-    "reset-sync": "bun run --cwd apps/cli start reset-sync --yes"
+    "reset-sync": "bun run --cwd apps/cli start sync reset --yes"
   },
   "devDependencies": {
     "@types/bun": "catalog:",

@@ -2,131 +2,144 @@ import type { RunConfig } from '@tetra/core'
 import type { Command } from 'commander'
 
 import type { CliAppContext } from '../app'
-import { readMessage } from '../lib/input'
-import { formatSession, printMessages } from '../lib/output'
-import { titleFromMessage } from '../lib/title'
-import { runChatContent } from './chat'
+import {
+  configFromOptions,
+  formatSession,
+  printMessages,
+  printRunConfig,
+  requireSession,
+  resolveSessionId,
+} from './shared'
+
+interface CreateOptions {
+  model?: string
+  prompt?: string
+  title?: string
+}
+
+interface ConfigSetOptions {
+  maxMessages?: number
+  model?: string
+  prompt?: string
+}
 
 export function registerSessionCommands(
   program: Command,
   getContext: () => Promise<CliAppContext>,
 ): void {
-  // Create a session, optionally using the first message as both prompt and title source.
-  program
-    .command('new')
-    .argument('[message...]', 'Optional first message')
-    .option('-M, --model <modelId>', 'Model to use')
-    .option('-m, --message <message>', 'Prompt prefix, useful with stdin')
-    .option('-p, --prompt <promptId>', 'Stored system prompt id override')
-    .option('-t, --title <title>', 'Session title')
-    .option('--no-active', 'Do not update the active session')
-    .option('--no-prompt', 'Send without a system prompt')
-    .action(
-      async (
-        parts: string[],
-        opts: {
-          active?: boolean
-          message?: string
-          model?: string
-          prompt?: false | string
-          title?: string
-        },
-      ) => {
-        const ctx = await getContext()
-        const content = await readMessage({ message: opts.message, parts })
-        const config: Partial<RunConfig> = {
-          ...(opts.model !== undefined && { modelId: opts.model }),
-          ...(typeof opts.prompt === 'string' && { systemPromptId: opts.prompt }),
-        }
-        if (opts.prompt === false) {
-          config.systemPromptId = ''
-        }
+  // Sessions are the durable transcript workspaces used by web and CLI.
+  const sessions = program.command('sessions').description('Manage sessions')
 
-        if (content.trim() !== '') {
-          const sessionId = ctx.transcripts.createSession({
-            config,
-            title: opts.title ?? titleFromMessage(content),
-          })
-          if (opts.active !== false) {
-            ctx.workspace.setActiveSessionId(sessionId)
-          }
-          await runChatContent(ctx, content, {
-            active: opts.active,
-            new: false,
-            session: sessionId,
-          })
-          return
-        }
-
-        const sessionId = ctx.transcripts.createSession({
-          config,
-          title: opts.title ?? 'Untitled Session',
-        })
-        if (opts.active !== false) {
-          ctx.workspace.setActiveSessionId(sessionId)
-        }
-        console.log(sessionId)
-      },
-    )
-
-  // List sessions with the active session clearly marked.
-  program
-    .command('sessions')
-    .alias('ls')
+  // List durable sessions and mark the CLI-local active selection.
+  sessions
+    .command('list')
     .description('List sessions')
     .action(async () => {
       const ctx = await getContext()
-      const sessions = ctx.stores.library.typedStore.tables.sessions
-        .listEntities()
-        .toSorted((a, b) => a.createdAt - b.createdAt)
       const activeSessionId = ctx.workspace.getActiveSessionId()
+      const rows = ctx.stores.library.typedStore.tables.sessions
+        .listEntities()
+        .toSorted((a, b) => b.updatedAt - a.updatedAt)
 
-      if (sessions.length === 0) {
-        console.log('No sessions. Run: tetra "hello"')
+      if (rows.length === 0) {
+        console.log('No sessions. Run: tetra sessions create --title "New Session"')
         return
       }
 
-      for (const session of sessions) {
+      for (const session of rows) {
         console.log(formatSession(session, activeSessionId))
       }
     })
 
-  // Show or set the active session id.
-  program
-    .command('active')
-    .argument('[id]', 'Session id')
-    .description('Show or set the active session')
-    .action(async (sessionId?: string) => {
+  // Create an empty session and make it the active CLI target.
+  sessions
+    .command('create')
+    .description('Create a session')
+    .option('-M, --model <modelId>', 'Model to store on the session RunConfig')
+    .option('-p, --prompt <promptId>', 'Stored system prompt id')
+    .option('-t, --title <title>', 'Session title')
+    .action(async (options: CreateOptions) => {
       const ctx = await getContext()
-
-      if (sessionId !== undefined) {
-        if (!ctx.stores.library.typedStore.tables.sessions.hasRow(sessionId)) {
-          throw new Error(`Session not found: ${sessionId}`)
-        }
-        ctx.workspace.setActiveSessionId(sessionId)
+      const config = configFromOptions(options)
+      if (options.prompt !== undefined) {
+        ctx.stores.library.typedStore.tables.prompts.requireEntity(options.prompt)
       }
 
-      const activeSessionId = ctx.workspace.getActiveSessionId()
-      console.log(activeSessionId ?? '(none)')
-    })
-
-  // Resume is the friendly verb for setting active session state.
-  program
-    .command('resume <id>')
-    .description('Set the active session')
-    .action(async (sessionId: string) => {
-      const ctx = await getContext()
-      if (!ctx.stores.library.typedStore.tables.sessions.hasRow(sessionId)) {
-        throw new Error(`Session not found: ${sessionId}`)
-      }
+      const sessionId = ctx.transcripts.createSession({
+        config,
+        title: options.title ?? 'Untitled Session',
+      })
       ctx.workspace.setActiveSessionId(sessionId)
       console.log(sessionId)
     })
 
-  // Delete a full session cascade: messages, runs, config, and steps.
-  program
-    .command('delete-session <id>')
-    .alias('rm-session')
+  // Show session metadata and its current durable RunConfig.
+  sessions
+    .command('show <id>')
+    .description('Show a session')
+    .action(async (sessionId: string) => {
+      const ctx = await getContext()
+      const session = ctx.stores.library.typedStore.tables.sessions.requireEntity(sessionId)
+      const messageCount = ctx.stores.library.typedIndexes.getSliceRowIds(
+        'messagesBySession',
+        sessionId,
+      ).length
+      const runCount = ctx.stores.library.typedIndexes.getSliceRowIds(
+        'runsBySessionNewestFirst',
+        sessionId,
+      ).length
+
+      console.log(`id:        ${session.id}`)
+      console.log(`title:     ${session.title.trim() || '(untitled)'}`)
+      console.log(`created:   ${new Date(session.createdAt).toLocaleString()}`)
+      console.log(`updated:   ${new Date(session.updatedAt).toLocaleString()}`)
+      console.log(`messages:  ${messageCount}`)
+      console.log(`runs:      ${runCount}`)
+      printRunConfig(ctx, sessionId)
+    })
+
+  // Print the newest root-to-leaf thread for a session.
+  sessions
+    .command('history')
+    .argument('[id]', 'Session id, defaults to active')
+    .description('Print message history')
+    .action(async (sessionId: string | undefined) => {
+      const ctx = await getContext()
+      const resolvedSessionId = resolveSessionId(ctx, sessionId)
+      const session = ctx.transcripts.getSession(resolvedSessionId)
+      const threadAnchorMessageId = session.getNewestLeafMessageId()
+      if (threadAnchorMessageId === null) {
+        console.log('No messages in this session.')
+        return
+      }
+
+      const thread = session.resolveThread({ fromMessageId: threadAnchorMessageId })
+      printMessages(thread.messages())
+    })
+
+  // Rename a durable session row.
+  sessions
+    .command('rename <id>')
+    .argument('<title...>', 'New title')
+    .description('Rename a session')
+    .action(async (sessionId: string, titleParts: string[]) => {
+      const ctx = await getContext()
+      requireSession(ctx, sessionId)
+      const title = titleParts.join(' ').trim()
+      if (title === '') {
+        throw new Error('Title cannot be empty')
+      }
+
+      ctx.stores.library.typedStore.tables.sessions.updateRow(sessionId, {
+        title,
+        updatedAt: Date.now(),
+      })
+      console.log(sessionId)
+    })
+
+  // Delete a session cascade and clear the CLI active selection when needed.
+  sessions
+    .command('delete <id>')
     .description('Delete a session')
     .action(async (sessionId: string) => {
       const ctx = await getContext()
@@ -137,59 +150,98 @@ export function registerSessionCommands(
       console.log(sessionId)
     })
 
-  // Delete one message row and any hot streaming row attached to it.
-  program
-    .command('delete-message <id>')
-    .alias('rm-message')
-    .description('Delete a message')
-    .action(async (messageId: string) => {
+  // Show the CLI-local active session id.
+  sessions
+    .command('active')
+    .description('Show the active session')
+    .action(async () => {
       const ctx = await getContext()
-      const message = ctx.stores.library.typedStore.tables.messages.requireEntity(messageId)
-      ctx.transcripts.getSession(message.sessionId).deleteMessage(messageId)
-      console.log(messageId)
+      console.log(ctx.workspace.getActiveSessionId() ?? '(none)')
     })
 
-  // Print history for a specific or active session.
-  program
-    .command('history')
+  // Set the CLI-local active session id.
+  sessions
+    .command('use <id>')
+    .description('Set the active session')
+    .action(async (sessionId: string) => {
+      const ctx = await getContext()
+      requireSession(ctx, sessionId)
+      ctx.workspace.setActiveSessionId(sessionId)
+      console.log(sessionId)
+    })
+
+  // Clear the CLI-local active session id.
+  sessions
+    .command('clear-active')
+    .description('Clear the active session')
+    .action(async () => {
+      const ctx = await getContext()
+      ctx.workspace.clearActiveSessionId()
+      console.log('(none)')
+    })
+
+  // Session RunConfig commands stay nested under sessions because config is session-owned.
+  registerSessionConfigCommands(sessions, getContext)
+}
+
+function registerSessionConfigCommands(
+  sessions: Command,
+  getContext: () => Promise<CliAppContext>,
+): void {
+  // Session RunConfig is edited in place and resolved when a run starts.
+  const config = sessions.command('config').description('Manage session RunConfig')
+
+  // Show a session RunConfig, defaulting to the active session for inspection.
+  config
+    .command('show')
     .argument('[id]', 'Session id, defaults to active')
-    .description('Print message history')
-    .action(async (sessionId?: string) => {
+    .description('Show session RunConfig')
+    .action(async (sessionId: string | undefined) => {
       const ctx = await getContext()
-      const resolvedSessionId = sessionId ?? ctx.workspace.getActiveSessionId()
-      if (resolvedSessionId === undefined) {
-        throw new Error('No active session. Try: tetra "hello"')
-      }
-      const session = ctx.transcripts.getSession(resolvedSessionId)
-      const threadAnchorMessageId = session.getNewestLeafMessageId()
-      if (threadAnchorMessageId === null) {
-        console.log('No messages in this session.')
-        return
-      }
-      const messages = session.resolveThread({ fromMessageId: threadAnchorMessageId }).messages()
-      printMessages(messages)
+      printRunConfig(ctx, resolveSessionId(ctx, sessionId))
     })
 
-  // Show or set the active session title.
-  program
-    .command('title')
-    .argument('[title]', 'New title')
-    .description('Show or rename the active session')
-    .action(async (title?: string) => {
+  // Apply explicit RunConfig fields to a specific session.
+  config
+    .command('set <id>')
+    .description('Set session RunConfig fields')
+    .option('-M, --model <modelId>', 'Model id')
+    .option('-n, --max-messages <n>', 'Max messages for context window', parseCount)
+    .option('-p, --prompt <promptId>', 'Stored system prompt id')
+    .action(async (sessionId: string, options: ConfigSetOptions) => {
       const ctx = await getContext()
-      const sessionId = ctx.workspace.getActiveSessionId()
-      if (sessionId === undefined) {
-        throw new Error('No active session. Try: tetra "hello"')
+      requireSession(ctx, sessionId)
+      if (options.prompt !== undefined) {
+        ctx.stores.library.typedStore.tables.prompts.requireEntity(options.prompt)
       }
-      if (title !== undefined) {
-        ctx.stores.library.typedStore.tables.sessions.updateRow(sessionId, {
-          title,
-          updatedAt: Date.now(),
-        })
+
+      const update: Partial<RunConfig> = configFromOptions(options)
+      if (Object.keys(update).length === 0) {
+        throw new Error('No config fields provided')
       }
-      console.log(
-        ctx.stores.library.typedStore.tables.sessions.requireEntity(sessionId).title ??
-          '(untitled)',
-      )
+
+      ctx.runConfigs.update(sessionId, update)
+      printRunConfig(ctx, sessionId)
     })
+
+  // Copy one session's RunConfig into the new-session default.
+  config
+    .command('save-default <id>')
+    .description('Use this session RunConfig as the new-session default')
+    .action(async (sessionId: string) => {
+      const ctx = await getContext()
+      requireSession(ctx, sessionId)
+      ctx.runConfigs.setAsDefault(sessionId)
+      console.log(sessionId)
+    })
+}
+
+function parseCount(value: string): number {
+  // Commander parsers should fail fast with a useful field-level error.
+  const parsed = Number.parseInt(value, 10)
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new Error(`Expected a non-negative integer, got: ${value}`)
+  }
+
+  return parsed
 }

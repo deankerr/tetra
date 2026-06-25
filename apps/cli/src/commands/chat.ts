@@ -1,56 +1,38 @@
-import type { RunConfig } from '@tetra/core'
 import type { Command } from 'commander'
 
 import type { CliAppContext } from '../app'
-import { readMessage } from '../lib/input'
-import { resolveSession } from '../lib/session-ref'
-import { titleFromMessage } from '../lib/title'
-import { waitForRun } from '../lib/wait-run'
+import { readTextArgument, requireSession, resolveSessionId, waitForRun } from './shared'
 
 interface ChatOptions {
-  message?: string
-  model?: string
-  new?: boolean
-  prompt?: false | string
   session?: string
-  active?: boolean
 }
 
-async function runChat(ctx: CliAppContext, parts: string[], opts: ChatOptions): Promise<void> {
-  // Gather the user's request from argv and stdin before touching session state.
-  const content = await readMessage({ message: opts.message, parts })
-  await runChatContent(ctx, content, opts)
+export function registerChatCommands(
+  program: Command,
+  getContext: () => Promise<CliAppContext>,
+): void {
+  // Chat is explicit and only sends a message to an existing session.
+  program
+    .command('chat')
+    .argument('[message...]', 'Message to send, or "-" to read stdin')
+    .option('-s, --session <sessionId>', 'Session id to use, defaults to active')
+    .description('Send a message in a session')
+    .action(async (parts: string[], options: ChatOptions) => {
+      const ctx = await getContext()
+      const sessionId = resolveSessionId(ctx, options.session)
+      const content = await readTextArgument(parts)
+      await runChat(ctx, sessionId, content)
+    })
 }
 
-export async function runChatContent(
-  ctx: CliAppContext,
-  content: string,
-  opts: ChatOptions,
-): Promise<void> {
-  // Empty prompts are rejected at the execution boundary after all input modes are composed.
+async function runChat(ctx: CliAppContext, sessionId: string, content: string): Promise<void> {
+  // Empty prompts are rejected after argv/stdin composition.
   if (content.trim() === '') {
-    throw new Error('No message provided. Try: tetra "what should I build next?"')
+    throw new Error('No message provided. Try: tetra chat --session <id> "hello"')
   }
 
-  // Resolve the target session according to explicit flags, active state, or auto-create.
-  const sessionId = resolveSession(ctx, {
-    forceNew: opts.new,
-    sessionId: opts.session,
-    setActive: opts.active !== false,
-    title: titleFromMessage(content),
-  })
-
-  // Persist any CLI-provided run config fields onto the session before starting (ADR-0008).
-  const config: Partial<RunConfig> = {
-    ...(opts.model !== undefined && { modelId: opts.model }),
-    ...(typeof opts.prompt === 'string' && { systemPromptId: opts.prompt }),
-    ...(opts.prompt === false && { systemPromptId: '' }),
-  }
-  if (Object.keys(config).length > 0) {
-    ctx.runConfigs.update(sessionId, config)
-  }
-
-  // Create the user and assistant messages, then hand off to the run.
+  // Resolve the target session and append a user/assistant pair at the newest leaf.
+  requireSession(ctx, sessionId)
   const session = ctx.transcripts.getSession(sessionId)
   const parentMessageId = session.getNewestLeafMessageId()
   const userMessageId = session.appendMessage({
@@ -64,7 +46,7 @@ export async function runChatContent(
     role: 'assistant',
   })
 
-  // Stream new assistant text to stdout as UIMessage snapshots arrive.
+  // Stream assistant text to stdout as snapshots arrive.
   let lastLength = 0
   const run = ctx.runs.generate({ targetMessageId })
   run.addEventListener('snapshot', () => {
@@ -76,37 +58,7 @@ export async function runChatContent(
     lastLength = text.length
   })
 
-  // Wait for the live run to reach a terminal status before exiting.
+  // Wait for terminal status before saving and exiting.
   await waitForRun(run)
   console.log()
-}
-
-function addChatOptions(command: Command): Command {
-  return command
-    .option('--new', 'Force a new session')
-    .option('--no-active', 'Do not update the active session')
-    .option('-M, --model <modelId>', 'Model to use')
-    .option('-m, --message <message>', 'Prompt prefix, useful with stdin')
-    .option('-p, --prompt <promptId>', 'Stored system prompt id override')
-    .option('-s, --session <sessionId>', 'Session id to use')
-    .option('--no-prompt', 'Send without a system prompt')
-}
-
-export function registerChatCommands(
-  program: Command,
-  getContext: () => Promise<CliAppContext>,
-): void {
-  // The root command is the golden path: tetra "ask anything".
-  addChatOptions(program.argument('[message...]', 'Message to send')).action(
-    async (parts: string[], opts: ChatOptions) => {
-      await runChat(await getContext(), parts, opts)
-    },
-  )
-
-  // The explicit chat command mirrors the root command for scripts and discoverability.
-  addChatOptions(
-    program.command('chat').alias('c').argument('[message...]', 'Message to send'),
-  ).action(async (parts: string[], opts: ChatOptions) => {
-    await runChat(await getContext(), parts, opts)
-  })
 }

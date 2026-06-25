@@ -1,71 +1,92 @@
 import type { Command } from 'commander'
 
 import type { CliAppContext } from '../app'
+import { readTextArgument } from './shared'
+
+interface PromptOptions {
+  label?: string
+}
 
 export function registerPromptCommands(
   program: Command,
   getContext: () => Promise<CliAppContext>,
 ): void {
-  // List stored system prompts.
-  program
-    .command('prompts')
+  // Stored prompts are reusable system prompt records.
+  const prompts = program.command('prompts').description('Manage stored prompts')
+
+  // List stored prompt records.
+  prompts
+    .command('list')
     .description('List stored prompts')
     .action(async () => {
       const ctx = await getContext()
-      const prompts = ctx.stores.library.typedStore.tables.prompts
+      const rows = ctx.stores.library.typedStore.tables.prompts
         .listEntities()
         .toSorted((a, b) => a.id.localeCompare(b.id))
 
-      if (prompts.length === 0) {
-        console.log('No prompts. Run: tetra prompt create [content]')
+      if (rows.length === 0) {
+        console.log('No prompts. Run: tetra prompts create "Be terse."')
         return
       }
 
-      for (const prompt of prompts) {
-        const label = prompt.label.trim() ?? prompt.content.trim().slice(0, 60) ?? '(empty)'
+      for (const prompt of rows) {
+        const label = prompt.label.trim() || prompt.content.trim().slice(0, 60) || '(empty)'
         console.log(`${prompt.id}  ${label}`)
       }
     })
 
-  // Prompt subcommands manage reusable system prompt records.
-  const prompt = program.command('prompt').description('Manage stored prompts')
-
-  prompt
+  // Create a prompt from argv or stdin.
+  prompts
     .command('create')
-    .argument('[content]', 'Prompt content')
+    .argument('[content...]', 'Prompt content, or "-" to read stdin')
     .option('-l, --label <label>', 'Prompt label')
     .description('Create a stored prompt')
-    .action(async (content: string | undefined, opts: { label?: string }) => {
+    .action(async (parts: string[], options: PromptOptions) => {
       const ctx = await getContext()
-      console.log(ctx.prompts.createPrompt({ content: content ?? '', label: opts.label ?? '' }))
+      const content = await readTextArgument(parts)
+      const promptId = ctx.prompts.createPrompt({
+        content,
+        label: options.label ?? '',
+      })
+      console.log(promptId)
     })
 
-  prompt
+  // Show a prompt record.
+  prompts
     .command('show <id>')
     .description('Show a stored prompt')
     .action(async (promptId: string) => {
       const ctx = await getContext()
       const row = ctx.stores.library.typedStore.tables.prompts.requireEntity(promptId)
       console.log(`id:      ${row.id}`)
-      console.log(`label:   ${row.label ?? '(none)'}`)
+      console.log(`label:   ${row.label || '(none)'}`)
       console.log(`content:\n${row.content}`)
     })
 
-  prompt
+  // Update prompt content and label fields explicitly.
+  prompts
     .command('update <id>')
-    .argument('[content]', 'Prompt content')
+    .argument('[content...]', 'Prompt content, or "-" to read stdin')
     .option('-l, --label <label>', 'Prompt label')
     .description('Update a stored prompt')
-    .action(async (promptId: string, content: string | undefined, opts: { label?: string }) => {
+    .action(async (promptId: string, parts: string[], options: PromptOptions) => {
       const ctx = await getContext()
-      ctx.stores.library.typedStore.tables.prompts.updateRow(promptId, {
-        ...(content !== undefined && { content }),
-        ...(opts.label !== undefined && { label: opts.label }),
-      })
+      const content = await readTextArgument(parts)
+      const update = {
+        ...(content !== '' && { content }),
+        ...(options.label !== undefined && { label: options.label }),
+        updatedAt: Date.now(),
+      }
+      if (!('content' in update) && !('label' in update)) {
+        throw new Error('No prompt fields provided')
+      }
+
+      ctx.stores.library.typedStore.tables.prompts.updateRow(promptId, update)
       console.log(promptId)
     })
 
-  prompt
+  // Delete a prompt and unlink it from session configs.
+  prompts
     .command('delete <id>')
     .description('Delete a stored prompt')
     .action(async (promptId: string) => {
