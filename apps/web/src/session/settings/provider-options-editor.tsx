@@ -6,7 +6,7 @@ import type { Dispatch } from 'react'
 import { useEffect, useReducer, useRef } from 'react'
 import { z } from 'zod'
 
-import { useSessionRunConfig } from '../run-config-state'
+import { useRunConfig } from '../run-config-providers'
 
 // --- Types ---
 
@@ -322,10 +322,8 @@ function ObjectRow({ dispatch, entry }: { dispatch: Dispatch<Action>; entry: Obj
 
 // --- Editor ---
 
-// Rendered with key={sessionId} by the parent — each session gets a fresh instance,
-// so sessionId never changes within this component's lifetime.
-export function ProviderOptionsEditor({ sessionId }: { sessionId: string }) {
-  const [config, updateConfig] = useSessionRunConfig(sessionId)
+export function ProviderOptionsEditor() {
+  const { config, updateConfig } = useRunConfig()
   const options = config.providerOptions
   const [entries, dispatch] = useReducer(entriesReducer, options, optionsToEntries)
   const isInitialRender = useRef(true)

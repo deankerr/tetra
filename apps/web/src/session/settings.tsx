@@ -9,30 +9,26 @@ import { useJsonViewSheet } from '@/components/json-view-sheet'
 import { libraryTinybase } from '@/store'
 
 import { SessionExportButton } from './export-button'
-import { useSessionRunConfig } from './run-config-state'
+import { useRunConfig } from './run-config-providers'
 import { ModelPickerButton } from './settings/model-picker'
 import { PromptPreviewButton } from './settings/prompt-editor-sheet'
 import { ProviderOptionsEditor } from './settings/provider-options-editor'
 import { ToolSelector } from './settings/tool-selector'
 
 export function SessionSettings({
-  modelId,
   onOpenModelPicker,
   onOpenPromptSheet,
-  sessionId,
 }: {
-  modelId: string
   onOpenModelPicker: () => void
   onOpenPromptSheet: () => void
-  sessionId: string
 }) {
-  const [config, updateConfig] = useSessionRunConfig(sessionId)
+  const { config, updateConfig } = useRunConfig()
 
   return (
     <FieldGroup>
       <Field>
         <FieldTitle>Model</FieldTitle>
-        <ModelPickerButton className="w-full" onClick={onOpenModelPicker} value={modelId} />
+        <ModelPickerButton className="w-full" onClick={onOpenModelPicker} value={config.modelId} />
       </Field>
 
       <Field>
@@ -51,7 +47,7 @@ export function SessionSettings({
 
       <Field>
         <FieldTitle>System Prompt</FieldTitle>
-        <PromptPreviewButton onOpen={onOpenPromptSheet} sessionId={sessionId} />
+        <PromptPreviewButton onOpen={onOpenPromptSheet} />
       </Field>
 
       <Card size="sm">
@@ -73,25 +69,26 @@ export function SessionSettings({
           <CardTitle className="text-xs">Provider Options</CardTitle>
         </CardHeader>
         <CardContent>
-          <ProviderOptionsEditor key={sessionId} sessionId={sessionId} />
+          <ProviderOptionsEditor />
         </CardContent>
       </Card>
 
-      <UseAsDefaultButton sessionId={sessionId} />
+      <UseAsDefaultButton />
 
-      <SessionSettingsActions sessionId={sessionId} />
+      <SessionSettingsActions />
     </FieldGroup>
   )
 }
 
-function UseAsDefaultButton({ sessionId }: { sessionId: string }) {
+function UseAsDefaultButton() {
   const { runConfigs } = useApp()
+  const { config } = useRunConfig()
 
   return (
     <Button
       className="w-full"
       onClick={() => {
-        runConfigs.setAsDefault(sessionId)
+        runConfigs.setDefault(config)
       }}
       variant="outline"
     >
@@ -100,11 +97,12 @@ function UseAsDefaultButton({ sessionId }: { sessionId: string }) {
   )
 }
 
-function SessionSettingsActions({ sessionId }: { sessionId: string }) {
-  const session = libraryTinybase.useEntity('sessions', sessionId)
+function SessionSettingsActions() {
+  const { sessionId } = useRunConfig()
+  const session = libraryTinybase.useEntity('sessions', sessionId ?? '')
   const { openJsonView } = useJsonViewSheet()
 
-  if (session === null) {
+  if (sessionId === null || session === null) {
     return null
   }
 

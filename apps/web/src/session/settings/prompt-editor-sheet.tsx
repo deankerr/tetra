@@ -21,7 +21,7 @@ import { useMemo } from 'react'
 import { useApp } from '@/app'
 import { libraryTinybase } from '@/store'
 
-import { useSessionRunConfig } from '../run-config-state'
+import { useRunConfig } from '../run-config-providers'
 
 const usePromptIds = () => {
   const prompts = libraryTinybase.useEntityList('prompts')
@@ -138,15 +138,9 @@ function PromptLabel({ promptId }: { promptId: string }) {
 }
 
 /** 3-line preview in the settings panel. Calls onOpen to open the dedicated editor sheet. */
-export function PromptPreviewButton({
-  onOpen,
-  sessionId,
-}: {
-  onOpen: () => void
-  sessionId: string
-}) {
+export function PromptPreviewButton({ onOpen }: { onOpen: () => void }) {
   const promptIds = usePromptIds()
-  const [config] = useSessionRunConfig(sessionId)
+  const { config } = useRunConfig()
   const { systemPromptId } = config
   const selectedPromptId =
     systemPromptId !== '' && promptIds.includes(systemPromptId) ? systemPromptId : undefined
@@ -177,14 +171,12 @@ export function PromptPreviewButton({
 export function PromptEditorSheet({
   onOpenChange,
   open,
-  sessionId,
 }: {
   onOpenChange: (open: boolean) => void
   open: boolean
-  sessionId: string
 }) {
   const { prompts } = useApp()
-  const [config, updateConfig] = useSessionRunConfig(sessionId)
+  const { config, updateConfig } = useRunConfig()
   const { systemPromptId } = config
   const promptIds = usePromptIds()
   const selectedPromptId =

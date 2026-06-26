@@ -122,6 +122,27 @@ test('setAsDefault stores a session config that later createForSession calls pic
   })
 })
 
+test('setDefault stores a config object without requiring a session row', () => {
+  const { runConfigs, typedStore } = createRunConfigHarness()
+
+  runConfigs.setDefault({
+    maxMessages: 2,
+    modelId: 'draft-model',
+    providerOptions: {},
+    systemPromptId: '',
+    toolIds: [],
+  })
+
+  expect(typedStore.values.defaultRunConfig.get()).toMatchObject({
+    maxMessages: 2,
+    modelId: 'draft-model',
+  })
+  expect(runConfigs.createForSession()).toMatchObject({
+    maxMessages: 2,
+    modelId: 'draft-model',
+  })
+})
+
 test('setAsDefault throws when the session row does not exist', () => {
   const { runConfigs, typedStore } = createRunConfigHarness()
 

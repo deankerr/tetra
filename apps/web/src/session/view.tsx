@@ -15,7 +15,7 @@ import { libraryTinybase } from '@/store'
 
 import { ConversationView } from './conversation-view'
 import { SessionPanelErrorBoundary } from './error-boundary'
-import { useSessionRunConfig } from './run-config-state'
+import { PersistedRunConfigProvider, useRunConfig } from './run-config-providers'
 import { SessionSettings } from './settings'
 import { ModelPickerSheet } from './settings/model-picker'
 import { PromptEditorSheet } from './settings/prompt-editor-sheet'
@@ -57,14 +57,29 @@ function MissingSession() {
 /** Renders one session panel. Guards session existence — children can assume valid sessionId. */
 function ActiveSession({ sessionId }: { sessionId: string }) {
   const session = libraryTinybase.useEntity('sessions', sessionId)
-  const [detailOpen, setDetailOpen] = useState(false)
-  const [modelPickerOpen, setModelPickerOpen] = useState(false)
-  const [config, updateConfig] = useSessionRunConfig(sessionId)
-  const [promptSheetOpen, setPromptSheetOpen] = useState(false)
 
   if (session === null) {
     return <MissingSession />
   }
+
+  return (
+    <PersistedRunConfigProvider sessionId={sessionId}>
+      <ActiveSessionPanel session={session} sessionId={sessionId} />
+    </PersistedRunConfigProvider>
+  )
+}
+
+function ActiveSessionPanel({
+  session,
+  sessionId,
+}: {
+  session: { title: string }
+  sessionId: string
+}) {
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [modelPickerOpen, setModelPickerOpen] = useState(false)
+  const { config, updateConfig } = useRunConfig()
+  const [promptSheetOpen, setPromptSheetOpen] = useState(false)
 
   return (
     <div className="flex min-h-0 min-w-[420px] flex-1 flex-col border-r last:border-r-0">
@@ -115,25 +130,19 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
 
           <div className="p-4">
             <SessionSettings
-              modelId={config.modelId}
               onOpenModelPicker={() => {
                 setModelPickerOpen(true)
               }}
               onOpenPromptSheet={() => {
                 setPromptSheetOpen(true)
               }}
-              sessionId={sessionId}
             />
           </div>
         </SheetContent>
       </Sheet>
 
       {/* Prompt sheet — sibling to settings sheet so portal events don't bubble through its popup */}
-      <PromptEditorSheet
-        onOpenChange={setPromptSheetOpen}
-        open={promptSheetOpen}
-        sessionId={sessionId}
-      />
+      <PromptEditorSheet onOpenChange={setPromptSheetOpen} open={promptSheetOpen} />
 
       {/* Model sheet — sibling to settings sheet for the same stacked overlay behavior. */}
       <ModelPickerSheet

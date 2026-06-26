@@ -32,11 +32,17 @@ export class RunConfigs {
     return config
   }
 
-  // Stored new-session default: copy the required session config row into the
-  // defaultRunConfig value so later createForSession calls layer it over schema defaults.
+  // Stored new-session default: copy the durable session config into defaultRunConfig
+  // so later createForSession calls layer it over schema defaults.
   setAsDefault(sessionId: string): void {
     const session = this.typedStore.tables.sessions.requireEntity(sessionId)
-    this.typedStore.values.defaultRunConfig.set(session.config)
+    this.setDefault(session.config)
+  }
+
+  // Direct default update: draft session settings can become the new-session default
+  // before a durable session row exists.
+  setDefault(config: RunConfig): void {
+    this.typedStore.values.defaultRunConfig.set(RunConfigSchema.parse(config))
   }
 
   // Prompt unlink: clear a deleted prompt id from every session config that
@@ -56,8 +62,8 @@ export class RunConfigs {
     })
   }
 
-  // Run-start resolution: require the session config row, then parse the typed row
-  // into the effective RunConfig snapshot.
+  // Run-start resolution: require the session row, then parse its config into the
+  // effective RunConfig snapshot.
   resolveForRun(sessionId: string): RunConfig {
     const session = this.typedStore.tables.sessions.requireEntity(sessionId)
     return RunConfigSchema.parse(session.config)

@@ -25,9 +25,6 @@ const WEB_STORAGE_NAME = 'tetra:web'
 
 const webStoreSchema = defineTypedStore({
   tables: {
-    draftSessions: z.object({
-      sessionId: z.string(),
-    }),
     sessionThreadViews: z.object({
       threadAnchorMessageId: z.string().nullable().default(null),
     }),

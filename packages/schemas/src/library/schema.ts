@@ -108,7 +108,6 @@ export const libraryStoreSchema = defineTypedStore({
       terminalAt: z.number(),
       updatedAt: z.number(),
     }),
-    sessionRunConfigs: SessionRunConfigSchema,
     sessions: z.object({
       config: SessionRunConfigSchema.default(DefaultSessionRunConfig),
       createdAt: z.number(),

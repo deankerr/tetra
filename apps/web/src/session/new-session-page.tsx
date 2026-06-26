@@ -10,44 +10,45 @@ import {
 import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
 import { toast } from '@tetra/ui/components/ui/sonner'
 import { KeyRoundIcon, Settings2Icon, XIcon } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 
-import { useApp } from '@/app'
-import { libraryTinybase, webTinybase } from '@/store'
+import { webTinybase } from '@/store'
 import { useCredential } from '@/use-credential'
 
-import { Composer } from './composer'
-import { useSessionRunConfig } from './run-config-state'
+import { NewSessionComposer } from './composer'
+import { DraftRunConfigProvider, useRunConfig } from './run-config-providers'
 import { SessionSettings } from './settings'
 import { ModelPickerSheet } from './settings/model-picker'
 import { PromptEditorSheet } from './settings/prompt-editor-sheet'
 
 export function NewSessionPage() {
+  return (
+    <DraftRunConfigProvider>
+      <NewSessionPageContent />
+    </DraftRunConfigProvider>
+  )
+}
+
+function NewSessionPageContent() {
   const navigate = useNavigate()
-  const draftSessionId = useDraftSessionId()
   const [detailOpen, setDetailOpen] = useState(false)
   const [modelPickerOpen, setModelPickerOpen] = useState(false)
-  const [config, updateConfig] = useSessionRunConfig(draftSessionId ?? '')
+  const { config, updateConfig } = useRunConfig()
   const [promptSheetOpen, setPromptSheetOpen] = useState(false)
   const [openrouterApiKey] = useCredential('OPENROUTER_API_KEY')
   const [, setSettingsOpen] = webTinybase.useValueState('settingsOpen')
-  const { stores } = useApp()
-  const webStore = stores.web.typedStore
   const apiKeyConfigured = openrouterApiKey.trim() !== ''
 
   const openSettings = useCallback(() => {
     setSettingsOpen(true)
   }, [setSettingsOpen])
 
-  const materializeDraftSession = useCallback(() => {
-    if (draftSessionId === null) {
-      return
-    }
-
-    // Clearing the pointer makes this session normal history before routing to it.
-    webStore.tables.draftSessions.deleteRow('current')
-    void navigate({ params: { sessionId: draftSessionId }, to: '/sessions/$sessionId' })
-  }, [draftSessionId, webStore, navigate])
+  const openMaterializedSession = useCallback(
+    ({ sessionId }: { sessionId: string }) => {
+      void navigate({ params: { sessionId }, to: '/sessions/$sessionId' })
+    },
+    [navigate],
+  )
 
   const requireGenerateReady = useCallback(() => {
     if (apiKeyConfigured) {
@@ -71,7 +72,6 @@ export function NewSessionPage() {
         <ApiKeyButton configured={apiKeyConfigured} onClick={openSettings} />
         <Button
           aria-label="Open new session settings"
-          disabled={draftSessionId === null}
           onClick={() => {
             setDetailOpen(true)
           }}
@@ -86,60 +86,47 @@ export function NewSessionPage() {
 
       {/* Composer */}
       <main className="flex min-h-0 flex-1 items-center justify-center px-4 py-8">
-        {draftSessionId === null ? null : (
-          <Composer
-            className="w-full max-w-3xl"
-            onSessionMaterialized={materializeDraftSession}
-            requireGenerateReady={requireGenerateReady}
-            sessionId={draftSessionId}
-          />
-        )}
+        <NewSessionComposer
+          className="w-full max-w-3xl"
+          onSessionMaterialized={openMaterializedSession}
+          requireGenerateReady={requireGenerateReady}
+        />
       </main>
 
       {/* Settings sheet */}
-      {draftSessionId === null ? null : (
-        <Sheet onOpenChange={setDetailOpen} open={detailOpen}>
-          <SheetContent className="w-80 sm:max-w-80">
-            <SheetHeader>
-              <SheetTitle>New session settings</SheetTitle>
-              <SheetClose
-                render={
-                  <Button
-                    aria-label="Close new session settings"
-                    size="icon-sm"
-                    title="Close new session settings"
-                    variant="ghost"
-                  />
-                }
-              >
-                <XIcon />
-              </SheetClose>
-            </SheetHeader>
+      <Sheet onOpenChange={setDetailOpen} open={detailOpen}>
+        <SheetContent className="w-80 sm:max-w-80">
+          <SheetHeader>
+            <SheetTitle>New session settings</SheetTitle>
+            <SheetClose
+              render={
+                <Button
+                  aria-label="Close new session settings"
+                  size="icon-sm"
+                  title="Close new session settings"
+                  variant="ghost"
+                />
+              }
+            >
+              <XIcon />
+            </SheetClose>
+          </SheetHeader>
 
-            <div className="p-4">
-              <SessionSettings
-                modelId={config.modelId}
-                onOpenModelPicker={() => {
-                  setModelPickerOpen(true)
-                }}
-                onOpenPromptSheet={() => {
-                  setPromptSheetOpen(true)
-                }}
-                sessionId={draftSessionId}
-              />
-            </div>
-          </SheetContent>
-        </Sheet>
-      )}
+          <div className="p-4">
+            <SessionSettings
+              onOpenModelPicker={() => {
+                setModelPickerOpen(true)
+              }}
+              onOpenPromptSheet={() => {
+                setPromptSheetOpen(true)
+              }}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Prompt sheet */}
-      {draftSessionId === null ? null : (
-        <PromptEditorSheet
-          onOpenChange={setPromptSheetOpen}
-          open={promptSheetOpen}
-          sessionId={draftSessionId}
-        />
-      )}
+      <PromptEditorSheet onOpenChange={setPromptSheetOpen} open={promptSheetOpen} />
 
       {/* Model sheet */}
       <ModelPickerSheet
@@ -152,46 +139,6 @@ export function NewSessionPage() {
       />
     </div>
   )
-}
-
-function useDraftSessionId(): string | null {
-  const { stores, transcripts } = useApp()
-  const webStore = stores.web.typedStore
-  const draftSessionPointer = webTinybase.useEntity('draftSessions', 'current')
-  const draftSessionId = draftSessionPointer?.sessionId ?? ''
-  const draftSession = libraryTinybase.useEntity('sessions', draftSessionId)
-  const creatingDraftSession = useRef(false)
-
-  useEffect(() => {
-    if (draftSessionId !== '' && draftSession === null) {
-      webStore.tables.draftSessions.deleteRow('current')
-      creatingDraftSession.current = false
-      return
-    }
-
-    if (draftSessionId !== '') {
-      creatingDraftSession.current = false
-      return
-    }
-
-    if (creatingDraftSession.current) {
-      return
-    }
-
-    // A draft starts life as an ordinary session row hidden only by this pointer.
-    creatingDraftSession.current = true
-    transcripts.createSession({
-      onCreate(sessionId) {
-        webStore.tables.draftSessions.setRow('current', { sessionId })
-      },
-    })
-  }, [draftSession, draftSessionId, transcripts, webStore])
-
-  if (draftSessionId === '' || draftSession === null) {
-    return null
-  }
-
-  return draftSessionId
 }
 
 function ApiKeyButton({ configured, onClick }: { configured: boolean; onClick: () => void }) {

@@ -6,7 +6,7 @@ import { useMemo } from 'react'
 
 import { catalogTinybase } from '@/store'
 
-import { useSessionRunConfig } from './run-config-state'
+import { useRunConfig } from './run-config-providers'
 import { useSessionUsageTotals } from './usage-hooks'
 
 interface SessionContextSummary {
@@ -69,7 +69,7 @@ export function SessionUsageMeter({ sessionId }: { sessionId: string }) {
 }
 
 function useSessionContextSummary(sessionId: string): SessionContextSummary | null {
-  const [config] = useSessionRunConfig(sessionId)
+  const { config } = useRunConfig()
   const { modelId } = config
   const languageModel = catalogTinybase.useRow('languageModels', modelId)
   const usage = useSessionUsageTotals(sessionId)

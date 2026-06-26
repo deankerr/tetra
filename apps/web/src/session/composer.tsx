@@ -1,3 +1,4 @@
+import type { RunConfig } from '@tetra/schemas/library'
 import {
   Attachment,
   AttachmentInfo,
@@ -21,10 +22,11 @@ import { ArrowUpFromDot, ImageIcon } from 'lucide-react'
 import { useCallback, useState } from 'react'
 
 import { useApp } from '@/app'
+import type { AppContextValue } from '@/app'
 import { ModelPickerButton, ModelPickerSheet } from '@/session/settings/model-picker'
 import { libraryTinybase } from '@/store'
 
-import { useSessionRunConfig } from './run-config-state'
+import { useRunConfig } from './run-config-providers'
 import { useSessionThreadAppendTarget } from './thread-view'
 import { SessionUsageMeter } from './usage-meter'
 
@@ -43,30 +45,97 @@ export function Composer({
 }) {
   const activeRun = useActiveRun(sessionId)
   const isActive = activeRun !== null
-  const [config, updateConfig] = useSessionRunConfig(sessionId)
   const [draft, setDraft] = useState('')
-  const [modelPickerOpen, setModelPickerOpen] = useState(false)
+  const { selectThreadFromMessage, threadLeafMessageId } = useSessionThreadAppendTarget(sessionId)
   const handleSubmit = useComposerSubmit({
     isActive,
     onSessionMaterialized,
     requireGenerateReady,
+    selectThreadFromMessage,
     sessionId,
     setDraft,
+    threadLeafMessageId,
   })
 
   return (
+    <ComposerForm
+      activeRunId={activeRun?.id ?? null}
+      className={className}
+      draft={draft}
+      isActive={isActive}
+      onDraftChange={setDraft}
+      onSubmit={handleSubmit}
+      sessionId={sessionId}
+    />
+  )
+}
+
+export function NewSessionComposer({
+  className,
+  onSessionMaterialized,
+  requireGenerateReady,
+}: {
+  className?: string
+  onSessionMaterialized?: (args: { sessionId: string }) => void
+  requireGenerateReady?: () => void
+}) {
+  const [draft, setDraft] = useState('')
+  const handleSubmit = useComposerSubmit({
+    isActive: false,
+    onSessionMaterialized,
+    requireGenerateReady,
+    selectThreadFromMessage: undefined,
+    sessionId: null,
+    setDraft,
+    threadLeafMessageId: null,
+  })
+
+  return (
+    <ComposerForm
+      activeRunId={null}
+      className={className}
+      draft={draft}
+      isActive={false}
+      onDraftChange={setDraft}
+      onSubmit={handleSubmit}
+      sessionId={null}
+    />
+  )
+}
+
+function ComposerForm({
+  activeRunId,
+  className,
+  draft,
+  isActive,
+  onDraftChange,
+  onSubmit,
+  sessionId,
+}: {
+  activeRunId: string | null
+  className: string | undefined
+  draft: string
+  isActive: boolean
+  onDraftChange: (draft: string) => void
+  onSubmit: ComposerSubmitHandler
+  sessionId: string | null
+}) {
+  const { config, updateConfig } = useRunConfig()
+  const [modelPickerOpen, setModelPickerOpen] = useState(false)
+
+  return (
     <>
-      <PromptInput accept="image/*" className={className} multiple onSubmit={handleSubmit}>
+      <PromptInput accept="image/*" className={className} multiple onSubmit={onSubmit}>
         <PromptInputBody>
           <ComposerAttachments />
           <PromptInputTextarea
+            className="min-h-14 md:text-sm"
             disabled={isActive}
             onChange={(e) => {
-              setDraft(e.currentTarget.value)
+              onDraftChange(e.currentTarget.value)
             }}
             placeholder="Where do you want to go today?"
             value={draft}
-            className="min-h-14 md:text-sm"
           />
         </PromptInputBody>
         <PromptInputFooter>
@@ -82,7 +151,7 @@ export function Composer({
           </PromptInputTools>
 
           <ComposerSubmitControls
-            activeRunId={activeRun?.id ?? null}
+            activeRunId={activeRunId}
             draft={draft}
             isActive={isActive}
             sessionId={sessionId}
@@ -105,89 +174,81 @@ function useComposerSubmit({
   isActive,
   onSessionMaterialized,
   requireGenerateReady,
+  selectThreadFromMessage,
   sessionId,
   setDraft,
+  threadLeafMessageId,
 }: {
   isActive: boolean
   onSessionMaterialized: ((args: { sessionId: string }) => void) | undefined
   requireGenerateReady: (() => void) | undefined
-  sessionId: string
+  selectThreadFromMessage: ((messageId: string) => void) | undefined
+  sessionId: string | null
   setDraft: (draft: string) => void
+  threadLeafMessageId: string | null
 }): ComposerSubmitHandler {
   const tetra = useApp()
-  const { selectThreadFromMessage, threadLeafMessageId } = useSessionThreadAppendTarget(sessionId)
+  const { config } = useRunConfig()
 
   return useCallback<ComposerSubmitHandler>(
     (message, event) => {
-      const text = message.text.trim()
-      const parts: UIMessage['parts'] = [
-        ...(text === '' ? [] : [{ text, type: 'text' } satisfies UIMessage['parts'][number]]),
-        ...message.files,
-      ]
-
-      if (isActive || parts.length === 0) {
+      const submission = getComposerSubmission(message, event)
+      if (isActive || submission === null) {
         return
       }
 
-      const submitter =
-        event.nativeEvent instanceof SubmitEvent ? event.nativeEvent.submitter : null
-      const isAdd = submitter instanceof HTMLElement && submitter.dataset.action === 'add'
-      const session = tetra.transcripts.getSession(sessionId)
-      const libraryStore = tetra.stores.library.typedStore
-      const shouldSetTitle = libraryStore.tables.sessions.requireEntity(sessionId).title === ''
-
-      if (isAdd) {
-        // Add-only submits append committed content without starting model inference.
-        const messageId = session.appendMessage({
-          parentMessageId: threadLeafMessageId,
-          parts,
-          role: 'user',
-        })
-        selectThreadFromMessage(messageId)
-        if (shouldSetTitle) {
-          libraryStore.tables.sessions.updateRow(sessionId, {
-            title: text === '' ? 'Image' : text.slice(0, 60),
-            updatedAt: Date.now(),
-          })
-        }
-        setDraft('')
-        onSessionMaterialized?.({ sessionId })
-        return
+      if (!submission.isAdd) {
+        // Send can be preflighted by the surrounding view before any transcript rows exist.
+        requireGenerateReady?.()
       }
-
-      // Send can be preflighted by the surrounding view before any transcript rows exist.
-      requireGenerateReady?.()
 
       try {
-        // Create user and assistant messages, then hand off to the run.
-        const userMessageId = session.appendMessage({
-          parentMessageId: threadLeafMessageId,
-          parts,
+        const title = getTitleFromSubmittedText(submission.text)
+        const target = getComposerSubmitTarget({
+          config,
+          sessionId,
+          tetra,
+          threadLeafMessageId,
+          title,
+        })
+        const userMessageId = target.session.appendMessage({
+          parentMessageId: target.parentMessageId,
+          parts: submission.parts,
           role: 'user',
         })
-        const targetMessageId = session.appendMessage({
-          parentMessageId: userMessageId,
-          parts: [],
-          role: 'assistant',
-        })
-        tetra.runs.generate({ targetMessageId })
-        selectThreadFromMessage(targetMessageId)
-        if (shouldSetTitle) {
-          libraryStore.tables.sessions.updateRow(sessionId, {
-            title: text === '' ? 'Image' : text.slice(0, 60),
+        let submittedMessageId = userMessageId
+
+        if (!submission.isAdd) {
+          // Send extends the committed user message with an empty assistant target for streaming.
+          submittedMessageId = target.session.appendMessage({
+            parentMessageId: userMessageId,
+            parts: [],
+            role: 'assistant',
+          })
+          tetra.runs.generate({ targetMessageId: submittedMessageId })
+        }
+
+        if (target.shouldSetTitle) {
+          tetra.stores.library.typedStore.tables.sessions.updateRow(target.sessionId, {
+            title,
             updatedAt: Date.now(),
           })
         }
+
+        selectThreadFromMessage?.(submittedMessageId)
         setDraft('')
-        onSessionMaterialized?.({ sessionId })
+        onSessionMaterialized?.({ sessionId: target.sessionId })
       } catch (error) {
-        toast.error('Could not generate response', {
-          description: error instanceof Error ? error.message : String(error),
-        })
+        if (!submission.isAdd) {
+          toast.error('Could not generate response', {
+            description: error instanceof Error ? error.message : String(error),
+          })
+        }
         throw error
       }
     },
     [
+      config,
       isActive,
       onSessionMaterialized,
       requireGenerateReady,
@@ -198,6 +259,67 @@ function useComposerSubmit({
       threadLeafMessageId,
     ],
   )
+}
+
+function getComposerSubmitTarget({
+  config,
+  sessionId,
+  tetra,
+  threadLeafMessageId,
+  title,
+}: {
+  config: RunConfig
+  sessionId: string | null
+  tetra: AppContextValue
+  threadLeafMessageId: string | null
+  title: string
+}) {
+  if (sessionId === null) {
+    const nextSessionId = tetra.transcripts.createSession({ config, title })
+
+    // Drafts become durable only on submit; their first message starts at the root.
+    return {
+      parentMessageId: null,
+      session: tetra.transcripts.getSession(nextSessionId),
+      sessionId: nextSessionId,
+      shouldSetTitle: false,
+    }
+  }
+
+  const session = tetra.transcripts.getSession(sessionId)
+  const existingSession = tetra.stores.library.typedStore.tables.sessions.requireEntity(sessionId)
+
+  // Existing sessions append to the selected thread and only infer a title while it is blank.
+  return {
+    parentMessageId: threadLeafMessageId,
+    session,
+    sessionId,
+    shouldSetTitle: existingSession.title === '',
+  }
+}
+
+function getComposerSubmission(
+  message: Parameters<ComposerSubmitHandler>[0],
+  event: Parameters<ComposerSubmitHandler>[1],
+) {
+  const text = message.text.trim()
+  const parts: UIMessage['parts'] = [
+    ...(text === '' ? [] : [{ text, type: 'text' } satisfies UIMessage['parts'][number]]),
+    ...message.files,
+  ]
+
+  if (parts.length === 0) {
+    return null
+  }
+
+  const submitter = event.nativeEvent instanceof SubmitEvent ? event.nativeEvent.submitter : null
+  const isAdd = submitter instanceof HTMLElement && submitter.dataset.action === 'add'
+
+  return { isAdd, parts, text }
+}
+
+function getTitleFromSubmittedText(text: string) {
+  return text === '' ? 'Image' : text.slice(0, 60)
 }
 
 // Returns the current active run for this composer so submit controls stay in sync.
@@ -270,7 +392,7 @@ function ComposerSubmitControls({
   activeRunId: string | null
   draft: string
   isActive: boolean
-  sessionId: string
+  sessionId: string | null
 }) {
   const tetra = useApp()
   const attachments = usePromptInputAttachments()
@@ -278,7 +400,7 @@ function ComposerSubmitControls({
 
   return (
     <div className="flex items-center gap-1">
-      <SessionUsageMeter sessionId={sessionId} />
+      {sessionId === null ? null : <SessionUsageMeter sessionId={sessionId} />}
 
       <PromptInputButton
         aria-label="Add"
