@@ -38,7 +38,7 @@ function MissingSession() {
             This session no longer exists in the local store.
           </p>
         </div>
-        <Button render={<Link to="/" />} variant="outline">
+        <Button nativeButton={false} render={<Link to="/" />} variant="outline">
           <HomeIcon />
           New session
         </Button>

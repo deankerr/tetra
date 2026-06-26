@@ -49,7 +49,7 @@ function SessionPanelErrorFallback({ error, resetErrorBoundary }: FallbackProps)
           <Button onClick={resetErrorBoundary} variant="outline">
             Try again
           </Button>
-          <Button render={<Link to="/" />} variant="outline">
+          <Button nativeButton={false} render={<Link to="/" />} variant="outline">
             <HomeIcon />
             New session
           </Button>
