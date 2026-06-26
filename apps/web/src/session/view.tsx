@@ -11,6 +11,7 @@ import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
 import { HomeIcon, Settings2Icon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 
+import { MissingOpenRouterApiKeyButton, useRequireOpenRouterApiKey } from '@/api-key-settings'
 import { libraryTinybase } from '@/store'
 
 import { ConversationView } from './conversation-view'
@@ -35,6 +36,7 @@ function MissingSession() {
       <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b px-2">
         <SidebarTrigger title="Open sidebar" />
         <span className="min-w-0 flex-1 truncate text-xs font-medium">Session not found</span>
+        <MissingOpenRouterApiKeyButton />
       </header>
 
       {/* Empty state */}
@@ -80,6 +82,7 @@ function ActiveSessionPanel({
   const [modelPickerOpen, setModelPickerOpen] = useState(false)
   const { config, updateConfig } = useRunConfig()
   const [promptSheetOpen, setPromptSheetOpen] = useState(false)
+  const requireGenerateReady = useRequireOpenRouterApiKey()
 
   return (
     <div className="flex min-h-0 min-w-[420px] flex-1 flex-col border-r last:border-r-0">
@@ -91,6 +94,8 @@ function ActiveSessionPanel({
           <span className="min-w-0 flex-1 truncate text-xs font-medium">
             {session.title ?? 'New session'}
           </span>
+
+          <MissingOpenRouterApiKeyButton />
 
           <Button
             aria-label="Open session settings"
@@ -106,7 +111,7 @@ function ActiveSessionPanel({
           </Button>
         </header>
 
-        <ConversationView sessionId={sessionId} />
+        <ConversationView requireGenerateReady={requireGenerateReady} sessionId={sessionId} />
       </div>
 
       {/* Settings sheet */}

@@ -40,7 +40,7 @@ export function Composer({
 }: {
   className?: string
   onSessionMaterialized?: (args: { sessionId: string }) => void
-  requireGenerateReady?: () => void
+  requireGenerateReady?: (() => void) | undefined
   sessionId: string
 }) {
   const activeRun = useActiveRun(sessionId)
@@ -77,7 +77,7 @@ export function NewSessionComposer({
 }: {
   className?: string
   onSessionMaterialized?: (args: { sessionId: string }) => void
-  requireGenerateReady?: () => void
+  requireGenerateReady?: (() => void) | undefined
 }) {
   const [draft, setDraft] = useState('')
   const handleSubmit = useComposerSubmit({

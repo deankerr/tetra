@@ -6,6 +6,7 @@ import { BracesIcon, CopyIcon, ListTreeIcon, RefreshCwIcon, TrashIcon } from 'lu
 import type { ReactNode } from 'react'
 import { useState } from 'react'
 
+import { useRequireOpenRouterApiKey } from '@/api-key-settings'
 import { useApp } from '@/app'
 import { useJsonViewSheet } from '@/components/json-view-sheet'
 import { libraryTinybase } from '@/store'
@@ -29,6 +30,7 @@ export function MessageActionsView({
   const { openJsonView } = useJsonViewSheet()
   const { selectThreadFromMessage } = useSessionThreadSelection(message.sessionId)
   const [runDetailOpen, setRunDetailOpen] = useState(false)
+  const requireGenerateReady = useRequireOpenRouterApiKey()
   const hasContinuations = useMessageHasContinuations(message)
   const messageText = getTextContent(message.parts)
   const isActive = useMessageRunActive(run)
@@ -79,6 +81,8 @@ export function MessageActionsView({
           <MessageIconAction
             label={generateActionLabel}
             onClick={() => {
+              requireGenerateReady()
+
               const session = transcripts.getSession(message.sessionId)
 
               if (run !== null) {

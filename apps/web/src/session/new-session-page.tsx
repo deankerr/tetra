@@ -8,12 +8,10 @@ import {
   SheetTitle,
 } from '@tetra/ui/components/ui/sheet'
 import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
-import { toast } from '@tetra/ui/components/ui/sonner'
-import { KeyRoundIcon, Settings2Icon, XIcon } from 'lucide-react'
+import { Settings2Icon, XIcon } from 'lucide-react'
 import { useCallback, useState } from 'react'
 
-import { webTinybase } from '@/store'
-import { useCredential } from '@/use-credential'
+import { MissingOpenRouterApiKeyButton, useRequireOpenRouterApiKey } from '@/api-key-settings'
 
 import { NewSessionComposer } from './composer'
 import { DraftRunConfigProvider, useRunConfig } from './run-config-providers'
@@ -35,13 +33,7 @@ function NewSessionPageContent() {
   const [modelPickerOpen, setModelPickerOpen] = useState(false)
   const { config, updateConfig } = useRunConfig()
   const [promptSheetOpen, setPromptSheetOpen] = useState(false)
-  const [openrouterApiKey] = useCredential('OPENROUTER_API_KEY')
-  const [, setSettingsOpen] = webTinybase.useValueState('settingsOpen')
-  const apiKeyConfigured = openrouterApiKey.trim() !== ''
-
-  const openSettings = useCallback(() => {
-    setSettingsOpen(true)
-  }, [setSettingsOpen])
+  const requireGenerateReady = useRequireOpenRouterApiKey()
 
   const openMaterializedSession = useCallback(
     ({ sessionId }: { sessionId: string }) => {
@@ -50,26 +42,13 @@ function NewSessionPageContent() {
     [navigate],
   )
 
-  const requireGenerateReady = useCallback(() => {
-    if (apiKeyConfigured) {
-      return
-    }
-
-    // New-session owns credential recovery so the composer can stay session-focused.
-    toast.error('OpenRouter API key required', {
-      description: 'Add an OpenRouter API key before running model inference.',
-    })
-    openSettings()
-    throw new Error('OpenRouter API key required')
-  }, [apiKeyConfigured, openSettings])
-
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       {/* Header */}
       <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b px-2">
         <SidebarTrigger title="Open sidebar" />
         <span className="min-w-0 flex-1 truncate text-xs font-medium">New session</span>
-        <ApiKeyButton configured={apiKeyConfigured} onClick={openSettings} />
+        <MissingOpenRouterApiKeyButton />
         <Button
           aria-label="Open new session settings"
           onClick={() => {
@@ -138,21 +117,5 @@ function NewSessionPageContent() {
         value={config.modelId}
       />
     </div>
-  )
-}
-
-function ApiKeyButton({ configured, onClick }: { configured: boolean; onClick: () => void }) {
-  return (
-    <Button
-      aria-label={configured ? 'API key configured' : 'Add API key'}
-      onClick={onClick}
-      size="sm"
-      title={configured ? 'API key configured' : 'Add API key'}
-      type="button"
-      variant={configured ? 'ghost' : 'outline'}
-    >
-      <KeyRoundIcon />
-      {configured ? 'API key' : 'Add key'}
-    </Button>
   )
 }

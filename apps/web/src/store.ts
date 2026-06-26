@@ -30,13 +30,13 @@ const webStoreSchema = defineTypedStore({
     }),
   },
   values: {
+    apiKeySettingsOpen: z.boolean().default(false),
     jsonView: z
       .object({
         json: z.string(),
         title: z.string(),
       })
       .default({ json: '', title: '' }),
-    settingsOpen: z.boolean().default(false),
   },
 })
 

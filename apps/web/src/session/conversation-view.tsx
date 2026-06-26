@@ -15,8 +15,12 @@ import { useSessionThreadView } from './thread-view'
 export function ConversationView({
   sessionId,
   className,
+  requireGenerateReady,
   ...props
-}: { sessionId: string } & React.ComponentProps<'div'>) {
+}: {
+  requireGenerateReady?: (() => void) | undefined
+  sessionId: string
+} & React.ComponentProps<'div'>) {
   const { messageIds } = useSessionThreadView(sessionId)
 
   return (
@@ -44,7 +48,11 @@ export function ConversationView({
       </Conversation>
 
       <div className="shrink-0 px-2 pb-2">
-        <Composer className="mx-auto max-w-3xl" sessionId={sessionId} />
+        <Composer
+          className="mx-auto max-w-3xl"
+          requireGenerateReady={requireGenerateReady}
+          sessionId={sessionId}
+        />
       </div>
     </div>
   )
