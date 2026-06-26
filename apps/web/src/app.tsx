@@ -1,14 +1,10 @@
-import { createCoreModules } from '@tetra/core'
-import { credentialStore } from '@tetra/credentials'
-import { createTinyBaseProviderProps, StoreProvider } from '@tetra/tinybase-schema/react'
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { StoreProvider } from '@tetra/tinybase-schema/react'
+import { createContext, useContext, useEffect, useState } from 'react'
 
-import { createWebStoreRuntime } from '@/store'
+import { getWebStoreRuntime } from '@/store'
 import type { WebStoreInstances, WebStoreRuntime } from '@/store'
 
-type CoreModules = ReturnType<typeof createCoreModules>
-
-export interface AppContextValue extends CoreModules {
+export type AppContextValue = WebStoreRuntime['core'] & {
   stores: WebStoreInstances
 }
 
@@ -20,37 +16,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return null
   }
 
-  return <ReadyAppProvider runtime={runtime}>{children}</ReadyAppProvider>
-}
-
-function ReadyAppProvider({
-  children,
-  runtime,
-}: {
-  children: React.ReactNode
-  runtime: WebStoreRuntime
-}) {
-  const { stores } = runtime
-  const providerProps = useMemo(() => createTinyBaseProviderProps(stores), [stores])
-
-  // Core modules are stable for the lifetime of the browser stores.
-  const core = useMemo(
-    () =>
-      createCoreModules({
-        credentials: credentialStore,
-        stores: {
-          catalogStore: stores.catalog,
-          libraryStore: stores.library,
-        },
-      }),
-    [stores],
-  )
-
-  const app = useMemo(() => ({ ...core, stores }), [core, stores])
-
+  const { core, providerProps, stores } = runtime
   return (
     <StoreProvider indexesById={providerProps.indexesById} storesById={providerProps.storesById}>
-      <AppContext value={app}>{children}</AppContext>
+      <AppContext value={{ ...core, stores }}>{children}</AppContext>
     </StoreProvider>
   )
 }
@@ -60,31 +29,25 @@ function useWebStoreRuntime(): WebStoreRuntime | null {
   const [error, setError] = useState<Error | null>(null)
 
   useEffect(() => {
-    let disposed = false
-    let createdRuntime: WebStoreRuntime | undefined
+    let mounted = true
 
-    // Store startup is async because the library cache must load before reads begin.
+    // The runtime is a page-lifetime singleton; the effect only mirrors it into React state.
+    // Browser-only stores mean this resolves client-side, after hydration.
     void (async () => {
       try {
-        const nextRuntime = await createWebStoreRuntime()
-        if (disposed) {
-          await closeWebStoreRuntime(nextRuntime)
-          return
+        const nextRuntime = await getWebStoreRuntime()
+        if (mounted) {
+          setRuntime(nextRuntime)
         }
-        createdRuntime = nextRuntime
-        setRuntime(nextRuntime)
       } catch (nextError) {
-        if (!disposed) {
+        if (mounted) {
           setError(toError(nextError))
         }
       }
     })()
 
     return () => {
-      disposed = true
-      if (createdRuntime !== undefined) {
-        void closeWebStoreRuntime(createdRuntime)
-      }
+      mounted = false
     }
   }, [])
 
@@ -93,14 +56,6 @@ function useWebStoreRuntime(): WebStoreRuntime | null {
   }
 
   return runtime
-}
-
-async function closeWebStoreRuntime(runtime: WebStoreRuntime): Promise<void> {
-  try {
-    await runtime.close()
-  } catch (error) {
-    console.error('[app] failed to close web store runtime', error)
-  }
 }
 
 function toError(error: unknown): Error {

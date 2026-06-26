@@ -1,7 +1,9 @@
+import { createCoreModules } from '@tetra/core'
+import { credentialStore } from '@tetra/credentials'
 import { catalogStoreDefinition } from '@tetra/stores/catalog'
 import { libraryStoreDefinition } from '@tetra/stores/library'
 import { defineTypedStore } from '@tetra/tinybase-schema'
-import { createStoreReactApi } from '@tetra/tinybase-schema/react'
+import { createStoreReactApi, createTinyBaseProviderProps } from '@tetra/tinybase-schema/react'
 import {
   createMergeableStoreInstance,
   createStoreInstance,
@@ -19,7 +21,6 @@ import { z } from 'zod'
 const CATALOG_DB_NAME = 'tetra:catalog'
 const LIBRARY_BROADCAST_CHANNEL = 'tetra:library'
 const LIBRARY_STORAGE_NAME = 'tetra:library'
-const SYNC_ENABLED = getEnv('VITE_SYNC_ENABLED') === 'true'
 const WEB_STORAGE_NAME = 'tetra:web'
 
 const webStoreSchema = defineTypedStore({
@@ -48,15 +49,6 @@ const webStoreDefinition = defineStoreDefinition({
   schema: webStoreSchema,
 })
 
-interface RuntimePersister {
-  addStatusListener(listener: (persister: RuntimePersister, status: number) => void): string
-  delListener(listenerId: string): unknown
-  destroy(): Promise<unknown>
-  getStatus(): number
-  save(): Promise<unknown>
-  stopAutoSave(): Promise<unknown>
-}
-
 function createWebStoreInstances() {
   // The shared library is mergeable so local cache, tab sync, and remote sync speak one shape.
   return {
@@ -68,8 +60,19 @@ function createWebStoreInstances() {
 
 export type WebStoreInstances = ReturnType<typeof createWebStoreInstances>
 export type WebStoreRuntime = Awaited<ReturnType<typeof createWebStoreRuntime>>
+type LibraryRawStore = WebStoreInstances['library']['rawStore']
 
-export async function createWebStoreRuntime() {
+// Browser-only resources live for the whole page, so the runtime is a lazily-created singleton:
+// one set of persisters, sockets, and channels shared across every mount (and StrictMode/HMR).
+let webStoreRuntime: Promise<WebStoreRuntime> | undefined
+export async function getWebStoreRuntime(): Promise<WebStoreRuntime> {
+  return await (webStoreRuntime ??= createWebStoreRuntime())
+}
+
+// The web app is long-lived and auto-saving, so there is no teardown: persistence is continuous
+// and the browser reclaims sockets and channels on unload. Startup loads each cache, then turns on
+// auto-save and live sync. Core modules and provider props are derived here so React just wires them.
+async function createWebStoreRuntime() {
   const stores = createWebStoreInstances()
   const catalogStore = stores.catalog.rawStore
   const libraryStore = stores.library.rawStore
@@ -80,17 +83,17 @@ export async function createWebStoreRuntime() {
     catalogStore,
     CATALOG_DB_NAME,
     undefined,
-    reportIgnoredPersistenceError,
+    reportIgnoredPersistenceError('catalog'),
   )
   const webPersister = createSessionPersister(
     webStore,
     WEB_STORAGE_NAME,
-    reportIgnoredPersistenceError,
+    reportIgnoredPersistenceError('web'),
   )
   const libraryPersister = createLocalPersister(
     libraryStore,
     LIBRARY_STORAGE_NAME,
-    reportIgnoredPersistenceError,
+    reportIgnoredPersistenceError('library'),
   )
   await catalogPersister.load(() => catalogStore.getContent())
   await webPersister.load(() => webStore.getContent())
@@ -99,88 +102,59 @@ export async function createWebStoreRuntime() {
   await webPersister.startAutoSave()
   await libraryPersister.startAutoSave()
 
-  // Keep same-origin tabs converged without making localStorage the live sync bus.
-  const tabSynchronizer = createBroadcastChannelSynchronizer(
-    libraryStore,
-    LIBRARY_BROADCAST_CHANNEL,
-    undefined,
-    undefined,
-    reportIgnoredTabSyncError,
-  )
-  await tabSynchronizer.startSync()
+  // Live library sync: BroadcastChannel converges same-origin tabs, the optional Worker socket
+  // fans out to other devices. Each owns its own swallowed-error logging.
+  await startLibraryTabSync(libraryStore)
+  await startLibraryRemoteSync(libraryStore)
 
-  // Remote sync is opt-in for the browser, even when a worker URL is configured.
-  const syncWorkerUrl = SYNC_ENABLED ? getEnv('VITE_SYNC_WORKER_URL') : undefined
-  const remoteSynchronizer =
-    syncWorkerUrl === undefined
-      ? undefined
-      : await createWsSynchronizer(
-          libraryStore,
-          createLibrarySyncWebSocket(syncWorkerUrl),
-          undefined,
-          undefined,
-          undefined,
-          reportIgnoredRemoteSyncError,
-        )
-  await remoteSynchronizer?.startSync()
-
-  let closed = false
-  return {
-    async close() {
-      if (closed) {
-        return
-      }
-      closed = true
-      await remoteSynchronizer?.destroy()
-      await tabSynchronizer.destroy()
-      await closePersisters([catalogPersister, webPersister, libraryPersister])
+  const core = createCoreModules({
+    credentials: credentialStore,
+    stores: {
+      catalogStore: stores.catalog,
+      libraryStore: stores.library,
     },
+  })
+
+  return {
+    core,
+    providerProps: createTinyBaseProviderProps(stores),
     stores,
   }
 }
 
-async function closePersisters(persisters: RuntimePersister[]): Promise<void> {
-  // Auto-save may already have an async save in flight, so wait before final save and destroy.
-  for (const persister of persisters) {
-    await persister.stopAutoSave()
-  }
-  for (const persister of persisters) {
-    await waitForPersisterIdle(persister)
-  }
-  for (const persister of persisters) {
-    await persister.save()
-  }
-  for (const persister of persisters) {
-    await waitForPersisterIdle(persister)
-  }
-  for (const persister of persisters) {
-    await persister.destroy()
-  }
+// Same-origin tab convergence over BroadcastChannel. A lone tab has no peer to answer TinyBase's
+// startup probe, so that one swallowed error is expected noise rather than a real failure.
+async function startLibraryTabSync(libraryStore: LibraryRawStore): Promise<void> {
+  const synchronizer = createBroadcastChannelSynchronizer(
+    libraryStore,
+    LIBRARY_BROADCAST_CHANNEL,
+    undefined,
+    undefined,
+    // oxlint-disable-next-line promise/prefer-await-to-callbacks -- TinyBase reports swallowed sync errors through this callback.
+    (error: unknown) => {
+      const isNoPeerProbe =
+        typeof error === 'string' &&
+        error.startsWith('No response from anyone to ') &&
+        error.endsWith(', 1')
+      if (isNoPeerProbe) {
+        return
+      }
+      console.error('[stores:web] tab library sync error', error)
+    },
+  )
+  await synchronizer.startSync()
 }
 
-async function waitForPersisterIdle(persister: RuntimePersister): Promise<void> {
-  if (persister.getStatus() === 0) {
+// Remote sync is opt-in: it needs the VITE_SYNC_ENABLED switch on and a Worker URL configured.
+async function startLibraryRemoteSync(libraryStore: LibraryRawStore): Promise<void> {
+  if (getEnv('VITE_SYNC_ENABLED') !== 'true') {
+    return
+  }
+  const workerUrl = getEnv('VITE_SYNC_WORKER_URL')
+  if (workerUrl === undefined) {
     return
   }
 
-  // oxlint-disable-next-line promise/avoid-new -- TinyBase exposes persister status changes through a listener API.
-  await new Promise<void>((resolve) => {
-    const listenerId = persister.addStatusListener((_persister, status) => {
-      if (status !== 0) {
-        return
-      }
-      persister.delListener(listenerId)
-      resolve()
-    })
-  })
-}
-
-function getEnv(name: string): string | undefined {
-  const value = import.meta.env[name]?.trim()
-  return value === undefined || value === '' ? undefined : value
-}
-
-function createLibrarySyncWebSocket(workerUrl: string): WebSocket {
   // Convert the Worker origin into the Durable Object websocket endpoint.
   const url = new URL('/sync', workerUrl)
   if (url.protocol === 'http:') {
@@ -189,32 +163,29 @@ function createLibrarySyncWebSocket(workerUrl: string): WebSocket {
   if (url.protocol === 'https:') {
     url.protocol = 'wss:'
   }
-  return new WebSocket(url.toString())
-}
 
-function reportIgnoredPersistenceError(error: unknown): void {
-  console.error('[stores:web] ignored persistence error', error)
-}
-
-function reportIgnoredTabSyncError(error: unknown): void {
-  // A single browser tab has no BroadcastChannel peer to answer TinyBase's startup probe.
-  if (isNoPeerStartupSyncError(error)) {
-    return
-  }
-
-  console.error('[stores:web] ignored tab library sync error', error)
-}
-
-function reportIgnoredRemoteSyncError(error: unknown): void {
-  console.error('[stores:web] ignored remote library sync error', error)
-}
-
-function isNoPeerStartupSyncError(error: unknown): boolean {
-  return (
-    typeof error === 'string' &&
-    error.startsWith('No response from anyone to ') &&
-    error.endsWith(', 1')
+  const synchronizer = await createWsSynchronizer(
+    libraryStore,
+    new WebSocket(url.toString()),
+    undefined,
+    undefined,
+    undefined,
+    (error: unknown) => {
+      console.error('[stores:web] remote library sync error', error)
+    },
   )
+  await synchronizer.startSync()
+}
+
+function getEnv(name: string): string | undefined {
+  const value = import.meta.env[name]?.trim()
+  return value === undefined || value === '' ? undefined : value
+}
+
+function reportIgnoredPersistenceError(label: string) {
+  return (error: unknown) => {
+    console.error(`[stores:web:${label}] persistence error`, error)
+  }
 }
 
 export const catalogTinybase = createStoreReactApi(catalogStoreDefinition)
