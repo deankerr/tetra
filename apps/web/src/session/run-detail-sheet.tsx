@@ -33,9 +33,8 @@ export function RunDetailSheet({
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
       <SheetContent
-        className="grid grid-rows-[var(--header-height)_1fr]"
+        className="grid grid-rows-[var(--header-height)_1fr] data-[side=right]:sm:max-w-2xl"
         showCloseButton={false}
-        style={{ maxWidth: 'none', width: 'min(92vw, 900px)' }}
       >
         {/* Sheet header */}
         <div className="flex items-center justify-between gap-2 border-b px-2">

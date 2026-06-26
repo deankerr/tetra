@@ -191,9 +191,8 @@ export function PromptEditorSheet({
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
       <SheetContent
-        className="flex flex-col"
+        className="flex flex-col data-[side=right]:sm:max-w-2xl"
         showCloseButton={false}
-        style={{ maxWidth: 'none', width: 'min(90vw, 1120px)' }}
       >
         <div className="flex h-(--header-height) shrink-0 items-center justify-between border-b px-2">
           <span className="px-2 text-xs font-medium">System Prompt</span>

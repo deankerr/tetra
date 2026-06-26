@@ -34,9 +34,8 @@ export function JsonViewSheet() {
       open={open}
     >
       <SheetContent
-        className="grid grid-rows-[var(--header-height)_1fr]"
+        className="grid grid-rows-[var(--header-height)_1fr] data-[side=right]:sm:max-w-2xl"
         showCloseButton={false}
-        style={{ maxWidth: 'none', width: 'min(90vw, 1120px)' }}
       >
         <div className="flex items-center justify-between border-b px-2">
           <span className="truncate px-2 text-xs font-medium">{jsonView.title ?? 'JSON View'}</span>

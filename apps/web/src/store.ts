@@ -164,6 +164,7 @@ async function startLibraryRemoteSync(libraryStore: LibraryRawStore): Promise<vo
     url.protocol = 'wss:'
   }
 
+  console.log('sync enabled', url.toString())
   const synchronizer = await createWsSynchronizer(
     libraryStore,
     new WebSocket(url.toString()),

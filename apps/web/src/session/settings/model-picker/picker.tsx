@@ -312,7 +312,7 @@ export function ModelPickerSheet({
               {groups.map((group) => (
                 <section key={group.heading ?? 'models'}>
                   {group.heading !== null && (
-                    <div className="bg-background/95 text-xxs text-muted-foreground sticky top-0 z-10 border-b px-4 py-2 font-medium uppercase">
+                    <div className="bg-background text-xxs text-muted-foreground sticky top-0 z-40 border-b px-4 py-2 font-medium uppercase">
                       {group.heading}
                     </div>
                   )}
