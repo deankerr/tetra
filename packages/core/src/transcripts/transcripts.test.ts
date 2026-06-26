@@ -112,7 +112,7 @@ test('empty sessions have no synthetic root or thread', () => {
 
   // Sessions are real before they have messages, but there is no implicit message row.
   expect(typedStore.tables.sessions.requireEntity(sessionId).title).toBe('Empty')
-  expect(typedStore.tables.sessionRunConfigs.requireEntity(sessionId)).toMatchObject({
+  expect(typedStore.tables.sessions.requireEntity(sessionId).config).toMatchObject({
     modelId: 'model-a',
     systemPromptId: 'prompt-a',
   })

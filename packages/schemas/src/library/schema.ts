@@ -25,6 +25,7 @@ export const SessionRunConfigSchema = z.object({
   systemPromptId: z.string().default(''),
   toolIds: z.array(z.string()).default([]),
 })
+const DefaultSessionRunConfig = SessionRunConfigSchema.parse({})
 
 export type RunConfig = z.infer<typeof RunConfigSchema>
 
@@ -109,6 +110,7 @@ export const libraryStoreSchema = defineTypedStore({
     }),
     sessionRunConfigs: SessionRunConfigSchema,
     sessions: z.object({
+      config: SessionRunConfigSchema.default(DefaultSessionRunConfig),
       createdAt: z.number(),
       title: z.string(),
       updatedAt: z.number(),

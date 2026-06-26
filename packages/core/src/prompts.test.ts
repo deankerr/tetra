@@ -48,8 +48,8 @@ test('deletePrompt removes the row and unlinks it from session configs', () => {
 
   // The prompt row is gone and only the linked session falls back to the '' sentinel.
   expect(typedStore.tables.prompts.hasRow(promptId)).toBe(false)
-  expect(typedStore.tables.sessionRunConfigs.requireEntity(linkedSessionId).systemPromptId).toBe('')
-  expect(typedStore.tables.sessionRunConfigs.requireEntity(unrelatedSessionId).systemPromptId).toBe(
+  expect(typedStore.tables.sessions.requireEntity(linkedSessionId).config.systemPromptId).toBe('')
+  expect(typedStore.tables.sessions.requireEntity(unrelatedSessionId).config.systemPromptId).toBe(
     'other',
   )
 })

@@ -9,6 +9,7 @@ import { useJsonViewSheet } from '@/components/json-view-sheet'
 import { libraryTinybase } from '@/store'
 
 import { SessionExportButton } from './export-button'
+import { useSessionRunConfig } from './run-config-state'
 import { ModelPickerButton } from './settings/model-picker'
 import { PromptPreviewButton } from './settings/prompt-editor-sheet'
 import { ProviderOptionsEditor } from './settings/provider-options-editor'
@@ -25,16 +26,7 @@ export function SessionSettings({
   onOpenPromptSheet: () => void
   sessionId: string
 }) {
-  const [maxMessages, setMaxMessages] = libraryTinybase.useCellState(
-    'sessionRunConfigs',
-    sessionId,
-    'maxMessages',
-  )
-  const [toolIds, setToolIds] = libraryTinybase.useCellState(
-    'sessionRunConfigs',
-    sessionId,
-    'toolIds',
-  )
+  const [config, updateConfig] = useSessionRunConfig(sessionId)
 
   return (
     <FieldGroup>
@@ -49,11 +41,11 @@ export function SessionSettings({
           min={1}
           onChange={(e) => {
             const val = e.currentTarget.value
-            setMaxMessages(val === '' ? 0 : Number(val))
+            updateConfig({ maxMessages: val === '' ? 0 : Number(val) })
           }}
           placeholder="Unlimited"
           type="number"
-          value={maxMessages === undefined || maxMessages === 0 ? '' : maxMessages}
+          value={config.maxMessages === 0 ? '' : config.maxMessages}
         />
       </Field>
 
@@ -69,9 +61,9 @@ export function SessionSettings({
         <CardContent className="space-y-3">
           <ToolSelector
             onToolIdsChange={(nextToolIds) => {
-              setToolIds(nextToolIds)
+              updateConfig({ toolIds: nextToolIds })
             }}
-            toolIds={toolIds ?? []}
+            toolIds={config.toolIds}
           />
         </CardContent>
       </Card>

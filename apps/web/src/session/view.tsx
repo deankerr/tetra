@@ -15,6 +15,7 @@ import { libraryTinybase } from '@/store'
 
 import { ConversationView } from './conversation-view'
 import { SessionPanelErrorBoundary } from './error-boundary'
+import { useSessionRunConfig } from './run-config-state'
 import { SessionSettings } from './settings'
 import { ModelPickerSheet } from './settings/model-picker'
 import { PromptEditorSheet } from './settings/prompt-editor-sheet'
@@ -58,11 +59,7 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
   const session = libraryTinybase.useEntity('sessions', sessionId)
   const [detailOpen, setDetailOpen] = useState(false)
   const [modelPickerOpen, setModelPickerOpen] = useState(false)
-  const [modelId, setModelId] = libraryTinybase.useCellState(
-    'sessionRunConfigs',
-    sessionId,
-    'modelId',
-  )
+  const [config, updateConfig] = useSessionRunConfig(sessionId)
   const [promptSheetOpen, setPromptSheetOpen] = useState(false)
 
   if (session === null) {
@@ -118,7 +115,7 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
 
           <div className="p-4">
             <SessionSettings
-              modelId={modelId ?? ''}
+              modelId={config.modelId}
               onOpenModelPicker={() => {
                 setModelPickerOpen(true)
               }}
@@ -142,10 +139,10 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
       <ModelPickerSheet
         onOpenChange={setModelPickerOpen}
         onValueChange={(nextModelId) => {
-          setModelId(nextModelId)
+          updateConfig({ modelId: nextModelId })
         }}
         open={modelPickerOpen}
-        value={modelId ?? ''}
+        value={config.modelId}
       />
     </div>
   )

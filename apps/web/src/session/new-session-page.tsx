@@ -17,6 +17,7 @@ import { libraryTinybase, webTinybase } from '@/store'
 import { useCredential } from '@/use-credential'
 
 import { Composer } from './composer'
+import { useSessionRunConfig } from './run-config-state'
 import { SessionSettings } from './settings'
 import { ModelPickerSheet } from './settings/model-picker'
 import { PromptEditorSheet } from './settings/prompt-editor-sheet'
@@ -26,11 +27,7 @@ export function NewSessionPage() {
   const draftSessionId = useDraftSessionId()
   const [detailOpen, setDetailOpen] = useState(false)
   const [modelPickerOpen, setModelPickerOpen] = useState(false)
-  const [modelId, setModelId] = libraryTinybase.useCellState(
-    'sessionRunConfigs',
-    draftSessionId ?? '',
-    'modelId',
-  )
+  const [config, updateConfig] = useSessionRunConfig(draftSessionId ?? '')
   const [promptSheetOpen, setPromptSheetOpen] = useState(false)
   const [openrouterApiKey] = useCredential('OPENROUTER_API_KEY')
   const [, setSettingsOpen] = webTinybase.useValueState('settingsOpen')
@@ -121,7 +118,7 @@ export function NewSessionPage() {
 
             <div className="p-4">
               <SessionSettings
-                modelId={modelId ?? ''}
+                modelId={config.modelId}
                 onOpenModelPicker={() => {
                   setModelPickerOpen(true)
                 }}
@@ -148,10 +145,10 @@ export function NewSessionPage() {
       <ModelPickerSheet
         onOpenChange={setModelPickerOpen}
         onValueChange={(nextModelId) => {
-          setModelId(nextModelId)
+          updateConfig({ modelId: nextModelId })
         }}
         open={modelPickerOpen}
-        value={modelId ?? ''}
+        value={config.modelId}
       />
     </div>
   )

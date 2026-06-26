@@ -6,7 +6,7 @@ import type { Dispatch } from 'react'
 import { useEffect, useReducer, useRef } from 'react'
 import { z } from 'zod'
 
-import { libraryTinybase } from '@/store'
+import { useSessionRunConfig } from '../run-config-state'
 
 // --- Types ---
 
@@ -29,8 +29,6 @@ interface ObjectEntry {
 type Entry = ObjectEntry | ScalarEntry
 
 type ProviderOption = ProviderOptions[string]
-
-const EMPTY_PROVIDER_OPTIONS: ProviderOptions = {}
 const providerOptionSchema = z.json()
 
 type Action =
@@ -327,11 +325,8 @@ function ObjectRow({ dispatch, entry }: { dispatch: Dispatch<Action>; entry: Obj
 // Rendered with key={sessionId} by the parent — each session gets a fresh instance,
 // so sessionId never changes within this component's lifetime.
 export function ProviderOptionsEditor({ sessionId }: { sessionId: string }) {
-  const [options = EMPTY_PROVIDER_OPTIONS, setOptions] = libraryTinybase.useCellState(
-    'sessionRunConfigs',
-    sessionId,
-    'providerOptions',
-  )
+  const [config, updateConfig] = useSessionRunConfig(sessionId)
+  const options = config.providerOptions
   const [entries, dispatch] = useReducer(entriesReducer, options, optionsToEntries)
   const isInitialRender = useRef(true)
 
@@ -340,8 +335,8 @@ export function ProviderOptionsEditor({ sessionId }: { sessionId: string }) {
       isInitialRender.current = false
       return
     }
-    setOptions(entriesToOptions(entries))
-  }, [entries, setOptions])
+    updateConfig({ providerOptions: entriesToOptions(entries) })
+  }, [entries, updateConfig])
 
   return (
     <div className="flex flex-col gap-1.5">

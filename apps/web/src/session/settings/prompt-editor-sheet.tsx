@@ -21,6 +21,8 @@ import { useMemo } from 'react'
 import { useApp } from '@/app'
 import { libraryTinybase } from '@/store'
 
+import { useSessionRunConfig } from '../run-config-state'
+
 const usePromptIds = () => {
   const prompts = libraryTinybase.useEntityList('prompts')
   return useMemo(
@@ -144,11 +146,10 @@ export function PromptPreviewButton({
   sessionId: string
 }) {
   const promptIds = usePromptIds()
-  const systemPromptId = libraryTinybase.useCell('sessionRunConfigs', sessionId, 'systemPromptId')
+  const [config] = useSessionRunConfig(sessionId)
+  const { systemPromptId } = config
   const selectedPromptId =
-    systemPromptId !== undefined && systemPromptId !== '' && promptIds.includes(systemPromptId)
-      ? systemPromptId
-      : undefined
+    systemPromptId !== '' && promptIds.includes(systemPromptId) ? systemPromptId : undefined
 
   const selectedPrompt = libraryTinybase.useEntity('prompts', selectedPromptId ?? '')
   const previewContent = selectedPrompt?.content?.trim() ?? ''
@@ -183,16 +184,11 @@ export function PromptEditorSheet({
   sessionId: string
 }) {
   const { prompts } = useApp()
-  const [systemPromptId, setSystemPromptId] = libraryTinybase.useCellState(
-    'sessionRunConfigs',
-    sessionId,
-    'systemPromptId',
-  )
+  const [config, updateConfig] = useSessionRunConfig(sessionId)
+  const { systemPromptId } = config
   const promptIds = usePromptIds()
   const selectedPromptId =
-    systemPromptId !== undefined && systemPromptId !== '' && promptIds.includes(systemPromptId)
-      ? systemPromptId
-      : undefined
+    systemPromptId !== '' && promptIds.includes(systemPromptId) ? systemPromptId : undefined
 
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
@@ -218,14 +214,14 @@ export function PromptEditorSheet({
           <Select
             onValueChange={(value) => {
               if (value === null) {
-                setSystemPromptId('')
+                updateConfig({ systemPromptId: '' })
                 return
               }
               if (value === NEW_PROMPT_VALUE) {
-                setSystemPromptId(prompts.createPrompt())
+                updateConfig({ systemPromptId: prompts.createPrompt() })
                 return
               }
-              setSystemPromptId(value === NO_PROMPT_VALUE ? '' : value)
+              updateConfig({ systemPromptId: value === NO_PROMPT_VALUE ? '' : value })
             }}
             value={selectedPromptId ?? NO_PROMPT_VALUE}
           >

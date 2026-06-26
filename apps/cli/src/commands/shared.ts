@@ -59,8 +59,8 @@ export function resolveSessionId(ctx: CliAppContext, sessionId: string | undefin
 }
 
 export function printRunConfig(ctx: CliAppContext, sessionId: string): void {
-  // Session config rows are required for every real session.
-  const config = ctx.stores.library.typedStore.tables.sessionRunConfigs.requireEntity(sessionId)
+  // Session config is colocated with the durable session row.
+  const { config } = ctx.stores.library.typedStore.tables.sessions.requireEntity(sessionId)
   console.log(`session:      ${sessionId}`)
   console.log(`model:        ${config.modelId}`)
   console.log(`prompt:       ${config.systemPromptId === '' ? '(none)' : config.systemPromptId}`)

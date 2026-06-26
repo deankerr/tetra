@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test'
 
 import { libraryStoreDefinition, SessionRunConfigSchema } from '@tetra/schemas/library'
+import type { RunConfig } from '@tetra/schemas/library'
 import { createStoreInstance } from '@tetra/tinybase-schema/runtime'
 
 import { RunConfigs } from './run-configs.ts'
@@ -14,14 +15,28 @@ function createRunConfigHarness() {
   return { rawStore, runConfigs, typedStore }
 }
 
-test('createForSession writes session schema defaults when nothing else is provided', () => {
-  const { runConfigs, typedStore } = createRunConfigHarness()
+function createSession(
+  harness: ReturnType<typeof createRunConfigHarness>,
+  sessionId: string,
+  partial: Partial<RunConfig> = {},
+) {
+  const config = harness.runConfigs.createForSession(partial)
+  harness.typedStore.tables.sessions.setRow(sessionId, {
+    config,
+    createdAt: 0,
+    title: '',
+    updatedAt: 0,
+  })
+  return config
+}
+
+test('createForSession returns session schema defaults when nothing else is provided', () => {
+  const { runConfigs } = createRunConfigHarness()
   const emptyConfig = SessionRunConfigSchema.parse({})
 
-  const config = runConfigs.createForSession('sess_1')
+  const config = runConfigs.createForSession()
 
   expect(config).toEqual(emptyConfig)
-  expect(typedStore.tables.sessionRunConfigs.requireEntity('sess_1')).toMatchObject(emptyConfig)
 })
 
 test('createForSession layers stored default over schema defaults and caller partial over both', () => {
@@ -29,33 +44,30 @@ test('createForSession layers stored default over schema defaults and caller par
 
   // The stored new-session default beats schema defaults; the caller partial beats both.
   typedStore.values.defaultRunConfig.set({ maxMessages: 5, modelId: 'stored-model' })
-  const config = runConfigs.createForSession('sess_1', { modelId: 'caller-model' })
+  const config = runConfigs.createForSession({ modelId: 'caller-model' })
 
   expect(config).toMatchObject({
     maxMessages: 5,
     modelId: 'caller-model',
     systemPromptId: '',
   })
-  expect(typedStore.tables.sessionRunConfigs.requireEntity('sess_1')).toMatchObject({
-    maxMessages: 5,
-    modelId: 'caller-model',
-  })
 })
 
-test('createForSession parses before writing, so an invalid merge lands no row', () => {
+test('createForSession parses stored defaults before returning a config', () => {
   const { runConfigs, typedStore } = createRunConfigHarness()
 
   // A stored default with a wrong-typed cell must fail loudly without a partial write.
   typedStore.values.defaultRunConfig.set({ maxMessages: -1 })
 
-  expect(() => runConfigs.createForSession('sess_1')).toThrow()
-  expect(typedStore.tables.sessionRunConfigs.getEntity('sess_1')).toBeNull()
+  expect(() => runConfigs.createForSession()).toThrow()
+  expect(typedStore.tables.sessions.getEntity('sess_1')).toBeNull()
 })
 
-test('update merges the partial over the existing session config row', () => {
-  const { runConfigs, typedStore } = createRunConfigHarness()
+test('update merges the partial over the existing session config', () => {
+  const harness = createRunConfigHarness()
+  const { runConfigs, typedStore } = harness
 
-  runConfigs.createForSession('sess_1', { maxMessages: 5, modelId: 'first-model' })
+  createSession(harness, 'sess_1', { maxMessages: 5, modelId: 'first-model' })
   const config = runConfigs.update('sess_1', { systemPromptId: 'prompt-a' })
 
   // Untouched cells survive the merge; the partial wins where provided.
@@ -64,7 +76,7 @@ test('update merges the partial over the existing session config row', () => {
     modelId: 'first-model',
     systemPromptId: 'prompt-a',
   })
-  expect(typedStore.tables.sessionRunConfigs.requireEntity('sess_1')).toMatchObject({
+  expect(typedStore.tables.sessions.requireEntity('sess_1').config).toMatchObject({
     maxMessages: 5,
     modelId: 'first-model',
     systemPromptId: 'prompt-a',
@@ -72,43 +84,45 @@ test('update merges the partial over the existing session config row', () => {
 })
 
 test('update parses before writing, so an invalid partial lands no write', () => {
-  const { runConfigs, typedStore } = createRunConfigHarness()
+  const harness = createRunConfigHarness()
+  const { runConfigs, typedStore } = harness
 
-  runConfigs.createForSession('sess_1', { modelId: 'first-model' })
+  createSession(harness, 'sess_1', { modelId: 'first-model' })
 
   // The invalid cell must fail loudly and leave the stored row untouched.
   expect(() => runConfigs.update('sess_1', { maxMessages: -1 })).toThrow()
-  expect(typedStore.tables.sessionRunConfigs.requireEntity('sess_1')).toMatchObject({
+  expect(typedStore.tables.sessions.requireEntity('sess_1').config).toMatchObject({
     maxMessages: 0,
     modelId: 'first-model',
   })
 })
 
-test('update throws when the session config row does not exist', () => {
+test('update throws when the session does not exist', () => {
   const { runConfigs, typedStore } = createRunConfigHarness()
 
   expect(() => runConfigs.update('sess_missing', { modelId: 'model-a' })).toThrow()
-  expect(typedStore.tables.sessionRunConfigs.getEntity('sess_missing')).toBeNull()
+  expect(typedStore.tables.sessions.getEntity('sess_missing')).toBeNull()
 })
 
 test('setAsDefault stores a session config that later createForSession calls pick up', () => {
-  const { runConfigs, typedStore } = createRunConfigHarness()
+  const harness = createRunConfigHarness()
+  const { runConfigs, typedStore } = harness
 
   // Roundtrip: one session's config becomes the stored default for the next session.
-  runConfigs.createForSession('sess_1', { maxMessages: 7, modelId: 'model-a' })
+  createSession(harness, 'sess_1', { maxMessages: 7, modelId: 'model-a' })
   runConfigs.setAsDefault('sess_1')
 
   expect(typedStore.values.defaultRunConfig.get()).toMatchObject({
     maxMessages: 7,
     modelId: 'model-a',
   })
-  expect(runConfigs.createForSession('sess_2')).toMatchObject({
+  expect(runConfigs.createForSession()).toMatchObject({
     maxMessages: 7,
     modelId: 'model-a',
   })
 })
 
-test('setAsDefault throws when the session config row does not exist', () => {
+test('setAsDefault throws when the session row does not exist', () => {
   const { runConfigs, typedStore } = createRunConfigHarness()
 
   expect(() => {
@@ -118,31 +132,24 @@ test('setAsDefault throws when the session config row does not exist', () => {
 })
 
 test('unlinkPrompt clears the prompt id only from session configs that reference it', () => {
-  const { runConfigs, typedStore } = createRunConfigHarness()
+  const harness = createRunConfigHarness()
+  const { runConfigs, typedStore } = harness
 
-  runConfigs.createForSession('sess_linked', { systemPromptId: 'prompt-a' })
-  runConfigs.createForSession('sess_other', { systemPromptId: 'prompt-b' })
+  createSession(harness, 'sess_linked', { systemPromptId: 'prompt-a' })
+  createSession(harness, 'sess_other', { systemPromptId: 'prompt-b' })
 
   runConfigs.unlinkPrompt('prompt-a')
 
   // Only the matching session falls back to the '' sentinel.
-  expect(typedStore.tables.sessionRunConfigs.requireEntity('sess_linked').systemPromptId).toBe('')
-  expect(typedStore.tables.sessionRunConfigs.requireEntity('sess_other').systemPromptId).toBe(
+  expect(typedStore.tables.sessions.requireEntity('sess_linked').config.systemPromptId).toBe('')
+  expect(typedStore.tables.sessions.requireEntity('sess_other').config.systemPromptId).toBe(
     'prompt-b',
   )
 })
 
-test('deleteForSession removes the session config row', () => {
-  const { runConfigs, typedStore } = createRunConfigHarness()
-
-  runConfigs.createForSession('sess_1')
-  runConfigs.deleteForSession('sess_1')
-
-  expect(typedStore.tables.sessionRunConfigs.getEntity('sess_1')).toBeNull()
-})
-
-test('resolveForRun returns a complete stored row as-is', () => {
-  const { runConfigs, typedStore } = createRunConfigHarness()
+test('resolveForRun returns a complete stored session config as-is', () => {
+  const harness = createRunConfigHarness()
+  const { runConfigs } = harness
   const stored = {
     maxMessages: 3,
     modelId: 'model-a',
@@ -151,38 +158,40 @@ test('resolveForRun returns a complete stored row as-is', () => {
     toolIds: ['getWeather'],
   }
 
-  typedStore.tables.sessionRunConfigs.setRow('sess_1', stored)
+  createSession(harness, 'sess_1', stored)
 
   expect(runConfigs.resolveForRun('sess_1')).toEqual(stored)
 })
 
-test('resolveForRun fills missing cells from schema defaults', () => {
+test('resolveForRun fills missing config from the session schema default', () => {
   const { rawStore, runConfigs } = createRunConfigHarness()
 
-  // Schema defaults repair sparse raw rows while preserving row existence.
-  rawStore.setRow('sessionRunConfigs', 'sess_1', { modelId: 'model-a' })
+  // Schema defaults repair sparse raw rows while preserving session existence.
+  rawStore.setRow('sessions', 'sess_1', { createdAt: 0, title: '', updatedAt: 0 })
 
-  expect(runConfigs.resolveForRun('sess_1')).toEqual(
-    SessionRunConfigSchema.parse({ modelId: 'model-a' }),
-  )
+  expect(runConfigs.resolveForRun('sess_1')).toEqual(SessionRunConfigSchema.parse({}))
 })
 
-test('resolveForRun throws when the session config row does not exist', () => {
+test('resolveForRun throws when the session row does not exist', () => {
   const { runConfigs } = createRunConfigHarness()
 
   expect(() => runConfigs.resolveForRun('sess_missing')).toThrow(
-    'Missing row: sessionRunConfigs/sess_missing',
+    'Missing row: sessions/sess_missing',
   )
 })
 
-test('resolveForRun reflects later per-cell edits to the session config row', () => {
-  const { runConfigs, typedStore } = createRunConfigHarness()
+test('resolveForRun reflects later edits to the session config cell', () => {
+  const harness = createRunConfigHarness()
+  const { runConfigs, typedStore } = harness
 
-  runConfigs.createForSession('sess_1', { modelId: 'first-model' })
+  createSession(harness, 'sess_1', { modelId: 'first-model' })
   expect(runConfigs.resolveForRun('sess_1').modelId).toBe('first-model')
 
-  // Surfaces edit config cells in place; the next resolution sees the edit (ADR-0008).
-  typedStore.tables.sessionRunConfigs.setCell('sess_1', 'modelId', 'edited-model')
+  // Surfaces edit the config cell in place; the next resolution sees the edit.
+  typedStore.tables.sessions.setCell('sess_1', 'config', {
+    ...typedStore.tables.sessions.requireEntity('sess_1').config,
+    modelId: 'edited-model',
+  })
   expect(runConfigs.resolveForRun('sess_1')).toMatchObject({
     maxMessages: 0,
     modelId: 'edited-model',

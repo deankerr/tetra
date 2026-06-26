@@ -38,13 +38,13 @@ export class Transcripts {
   ): string {
     const sessionId = this.nextSessionId()
     const now = Date.now()
+    const config = this.runConfigs.createForSession(args.config)
 
     // Create an empty session; only real caller-created messages enter the transcript.
-    // RunConfigs parses the birth merge before writing, so it runs first and a bad
-    // config leaves nothing behind. The nested transaction keeps session+config atomic.
+    // RunConfigs parses the birth merge before writing, so a bad config leaves nothing behind.
     this.typedStore.transaction(() => {
-      this.runConfigs.createForSession(sessionId, args.config)
       this.typedStore.tables.sessions.setRow(sessionId, {
+        config,
         createdAt: now,
         title: args.title ?? '',
         updatedAt: now,
@@ -72,7 +72,6 @@ export class Transcripts {
         this.typedStore.tables.messages.deleteRow(messageId)
       }
 
-      this.runConfigs.deleteForSession(sessionId)
       this.typedStore.tables.sessions.deleteRow(sessionId)
     })
   }

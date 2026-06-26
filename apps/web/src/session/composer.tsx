@@ -24,6 +24,7 @@ import { useApp } from '@/app'
 import { ModelPickerButton, ModelPickerSheet } from '@/session/settings/model-picker'
 import { libraryTinybase } from '@/store'
 
+import { useSessionRunConfig } from './run-config-state'
 import { useSessionThreadAppendTarget } from './thread-view'
 import { SessionUsageMeter } from './usage-meter'
 
@@ -42,11 +43,7 @@ export function Composer({
 }) {
   const activeRun = useActiveRun(sessionId)
   const isActive = activeRun !== null
-  const [modelId, setModelId] = libraryTinybase.useCellState(
-    'sessionRunConfigs',
-    sessionId,
-    'modelId',
-  )
+  const [config, updateConfig] = useSessionRunConfig(sessionId)
   const [draft, setDraft] = useState('')
   const [modelPickerOpen, setModelPickerOpen] = useState(false)
   const handleSubmit = useComposerSubmit({
@@ -79,7 +76,7 @@ export function Composer({
               onClick={() => {
                 setModelPickerOpen(true)
               }}
-              value={modelId ?? ''}
+              value={config.modelId}
             />
             <ImageInputButton disabled={isActive} />
           </PromptInputTools>
@@ -95,10 +92,10 @@ export function Composer({
       <ModelPickerSheet
         onOpenChange={setModelPickerOpen}
         onValueChange={(nextModelId) => {
-          setModelId(nextModelId)
+          updateConfig({ modelId: nextModelId })
         }}
         open={modelPickerOpen}
-        value={modelId ?? ''}
+        value={config.modelId}
       />
     </>
   )

@@ -1,9 +1,8 @@
 import { RunConfigSchema, SessionRunConfigSchema } from '@tetra/schemas/library'
 import type { LibraryStoreInstance, LibraryTypedStore, RunConfig } from '@tetra/schemas/library'
 
-// RunConfigs owns the run config operations a single cell write cannot express:
-// the session config birth merge and run-start resolution (ADR-0008). Typed
-// per-cell writes to sessionRunConfigs remain first-class for surfaces.
+// RunConfigs owns session config operations a raw cell write cannot express:
+// birth defaults, structured updates, default snapshots, and run-start resolution.
 export class RunConfigs {
   private readonly typedStore: LibraryTypedStore
 
@@ -14,25 +13,21 @@ export class RunConfigs {
   // Birth merge: session schema defaults under the stored new-session default
   // under the caller partial. Parse happens before any store write so an invalid
   // merge never lands a row.
-  createForSession(sessionId: string, partial?: Partial<RunConfig>): RunConfig {
+  createForSession(partial?: Partial<RunConfig>): RunConfig {
     const storedDefault = this.typedStore.values.defaultRunConfig.get()
-    const config = SessionRunConfigSchema.parse({
+    return SessionRunConfigSchema.parse({
       ...toConfigObject(storedDefault),
       ...partial,
     })
-
-    this.typedStore.tables.sessionRunConfigs.setRow(sessionId, config)
-
-    return config
   }
 
   // Structured update: merge the partial over the required existing row and
   // parse before any write so an invalid partial never lands a partial write.
   update(sessionId: string, partial: Partial<RunConfig>): RunConfig {
-    const existing = this.typedStore.tables.sessionRunConfigs.requireEntity(sessionId)
+    const existing = this.typedStore.tables.sessions.requireEntity(sessionId).config
     const config = RunConfigSchema.parse({ ...existing, ...partial })
 
-    this.typedStore.tables.sessionRunConfigs.setRow(sessionId, config)
+    this.typedStore.tables.sessions.setCell(sessionId, 'config', config)
 
     return config
   }
@@ -40,12 +35,8 @@ export class RunConfigs {
   // Stored new-session default: copy the required session config row into the
   // defaultRunConfig value so later createForSession calls layer it over schema defaults.
   setAsDefault(sessionId: string): void {
-    const config = this.typedStore.tables.sessionRunConfigs.getRow(sessionId)
-    if (config === null) {
-      throw new Error(`Missing row: sessionRunConfigs/${sessionId}`)
-    }
-
-    this.typedStore.values.defaultRunConfig.set(config)
+    const session = this.typedStore.tables.sessions.requireEntity(sessionId)
+    this.typedStore.values.defaultRunConfig.set(session.config)
   }
 
   // Prompt unlink: clear a deleted prompt id from every session config that
@@ -53,30 +44,23 @@ export class RunConfigs {
   // their own table writes.
   unlinkPrompt(promptId: string): void {
     this.typedStore.transaction(() => {
-      for (const sessionId of this.typedStore.tables.sessionRunConfigs.getRowIds()) {
-        if (
-          this.typedStore.tables.sessionRunConfigs.getCell(sessionId, 'systemPromptId') === promptId
-        ) {
-          this.typedStore.tables.sessionRunConfigs.setCell(sessionId, 'systemPromptId', '')
+      for (const sessionId of this.typedStore.tables.sessions.getRowIds()) {
+        const { config } = this.typedStore.tables.sessions.requireEntity(sessionId)
+        if (config.systemPromptId === promptId) {
+          this.typedStore.tables.sessions.setCell(sessionId, 'config', {
+            ...config,
+            systemPromptId: '',
+          })
         }
       }
     })
   }
 
-  // Session cascade: remove the session's config row when the owning session goes.
-  deleteForSession(sessionId: string): void {
-    this.typedStore.tables.sessionRunConfigs.deleteRow(sessionId)
-  }
-
   // Run-start resolution: require the session config row, then parse the typed row
   // into the effective RunConfig snapshot.
   resolveForRun(sessionId: string): RunConfig {
-    const sessionRunConfig = this.typedStore.tables.sessionRunConfigs.getRow(sessionId)
-    if (sessionRunConfig === null) {
-      throw new Error(`Missing row: sessionRunConfigs/${sessionId}`)
-    }
-
-    return RunConfigSchema.parse(sessionRunConfig)
+    const session = this.typedStore.tables.sessions.requireEntity(sessionId)
+    return RunConfigSchema.parse(session.config)
   }
 }
 

@@ -135,7 +135,7 @@ export class TranscriptSession {
         .getSliceRowIds('runsBySessionNewestFirst', this.id)
         .map((id) => this.typedStore.tables.runs.requireEntity(id)),
       session,
-      sessionRunConfig: this.typedStore.tables.sessionRunConfigs.requireEntity(this.id),
+      sessionRunConfig: session.config,
       steps: this.typedIndexes
         .getSliceRowIds('stepsBySession', this.id)
         .map((id) => this.typedStore.tables.steps.requireEntity(id)),
