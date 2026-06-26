@@ -203,13 +203,11 @@ function useComposerSubmit({
       }
 
       try {
-        const title = getTitleFromSubmittedText(submission.text)
         const target = getComposerSubmitTarget({
           config,
           sessionId,
           tetra,
           threadLeafMessageId,
-          title,
         })
         const userMessageId = target.session.appendMessage({
           parentMessageId: target.parentMessageId,
@@ -226,13 +224,6 @@ function useComposerSubmit({
             role: 'assistant',
           })
           tetra.runs.generate({ targetMessageId: submittedMessageId })
-        }
-
-        if (target.shouldSetTitle) {
-          tetra.stores.library.typedStore.tables.sessions.updateRow(target.sessionId, {
-            title,
-            updatedAt: Date.now(),
-          })
         }
 
         selectThreadFromMessage?.(submittedMessageId)
@@ -266,35 +257,30 @@ function getComposerSubmitTarget({
   sessionId,
   tetra,
   threadLeafMessageId,
-  title,
 }: {
   config: RunConfig
   sessionId: string | null
   tetra: AppContextValue
   threadLeafMessageId: string | null
-  title: string
 }) {
   if (sessionId === null) {
-    const nextSessionId = tetra.transcripts.createSession({ config, title })
+    const nextSessionId = tetra.transcripts.createSession({ config })
 
     // Drafts become durable only on submit; their first message starts at the root.
     return {
       parentMessageId: null,
       session: tetra.transcripts.getSession(nextSessionId),
       sessionId: nextSessionId,
-      shouldSetTitle: false,
     }
   }
 
   const session = tetra.transcripts.getSession(sessionId)
-  const existingSession = tetra.stores.library.typedStore.tables.sessions.requireEntity(sessionId)
 
-  // Existing sessions append to the selected thread and only infer a title while it is blank.
+  // Existing sessions append to the selected thread; transcripts own session title inference.
   return {
     parentMessageId: threadLeafMessageId,
     session,
     sessionId,
-    shouldSetTitle: existingSession.title === '',
   }
 }
 
@@ -315,11 +301,7 @@ function getComposerSubmission(
   const submitter = event.nativeEvent instanceof SubmitEvent ? event.nativeEvent.submitter : null
   const isAdd = submitter instanceof HTMLElement && submitter.dataset.action === 'add'
 
-  return { isAdd, parts, text }
-}
-
-function getTitleFromSubmittedText(text: string) {
-  return text === '' ? 'Image' : text.slice(0, 60)
+  return { isAdd, parts }
 }
 
 // Returns the current active run for this composer so submit controls stay in sync.

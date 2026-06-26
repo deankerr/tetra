@@ -123,6 +123,52 @@ test('empty sessions have no synthetic root or thread', () => {
   expect(rootPath.messages()).toEqual([])
 })
 
+test('blank sessions infer a title from the first user message', () => {
+  const { transcripts, typedStore } = createTranscriptHarness()
+  const textSession = transcripts.getSession(transcripts.createSession())
+  const titledSessionId = transcripts.createSession({ title: 'Manual title' })
+  const assistantSession = transcripts.getSession(transcripts.createSession())
+  const imageSession = transcripts.getSession(transcripts.createSession())
+  const firstText = `  ${'This message should become the inferred session title. '.repeat(5)}  `
+
+  // User text names a blank session once, capped to the transcript-owned preview length.
+  const firstMessageId = textSession.appendMessage({
+    parentMessageId: null,
+    parts: [{ text: firstText, type: 'text' }],
+    role: 'user',
+  })
+  textSession.appendMessage({
+    parentMessageId: firstMessageId,
+    parts: [{ text: 'A later message should not rename the session', type: 'text' }],
+    role: 'user',
+  })
+  expect(typedStore.tables.sessions.requireEntity(textSession.id).title).toBe(
+    `${firstText.trim().slice(0, 200)}...`,
+  )
+
+  // Existing titles and non-user messages stay caller-owned.
+  transcripts.getSession(titledSessionId).appendMessage({
+    parentMessageId: null,
+    parts: [{ text: 'Do not overwrite me', type: 'text' }],
+    role: 'user',
+  })
+  assistantSession.appendMessage({
+    parentMessageId: null,
+    parts: [{ text: 'Assistant should not name a session', type: 'text' }],
+    role: 'assistant',
+  })
+  expect(typedStore.tables.sessions.requireEntity(titledSessionId).title).toBe('Manual title')
+  expect(typedStore.tables.sessions.requireEntity(assistantSession.id).title).toBe('')
+
+  // Image-only user messages preserve the existing composer fallback title.
+  imageSession.appendMessage({
+    parentMessageId: null,
+    parts: [{ filename: 'image.png', mediaType: 'image/png', type: 'file', url: 'data:image/png' }],
+    role: 'user',
+  })
+  expect(typedStore.tables.sessions.requireEntity(imageSession.id).title).toBe('Image')
+})
+
 test('session creation can attach colocated library state in the same transaction', () => {
   const { rawStore, transcripts, typedStore } = createTranscriptHarness()
   let finishedTransactions = 0

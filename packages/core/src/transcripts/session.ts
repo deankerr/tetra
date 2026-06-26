@@ -9,6 +9,8 @@ import { TranscriptMessagePath } from './message-path.ts'
 import { TranscriptMessageTree } from './message-tree.ts'
 import { TranscriptThread } from './thread.ts'
 
+const INFERRED_SESSION_TITLE_TEXT_LENGTH = 200
+
 export class TranscriptSession {
   readonly id: string
 
@@ -40,13 +42,14 @@ export class TranscriptSession {
     parts: UIMessage['parts']
     role: Rows['messages']['role']
   }): string {
-    this.typedStore.tables.sessions.requireEntity(this.id)
+    const session = this.typedStore.tables.sessions.requireEntity(this.id)
     if (args.parentMessageId !== null) {
       this.tree.requireMessage(args.parentMessageId)
     }
 
     const messageId = this.nextMessageId()
     const now = Date.now()
+    const inferredTitle = getInferredTitle({ parts: args.parts, role: args.role, session })
 
     // Persist caller-authored message content with explicit parentage.
     this.typedStore.transaction(() => {
@@ -58,7 +61,15 @@ export class TranscriptSession {
         sessionId: this.id,
         updatedAt: now,
       })
-      this.typedStore.tables.sessions.setCell(this.id, 'updatedAt', now)
+      if (inferredTitle === null) {
+        this.typedStore.tables.sessions.setCell(this.id, 'updatedAt', now)
+        return
+      }
+
+      this.typedStore.tables.sessions.updateRow(this.id, {
+        title: inferredTitle,
+        updatedAt: now,
+      })
     })
 
     return messageId
@@ -171,4 +182,46 @@ export class TranscriptSession {
     // Resolved threads are continuable root-to-leaf paths from an explicit message anchor.
     return new TranscriptThread({ leafMessageId, sessionId: this.id, tree: this.tree })
   }
+}
+
+function getInferredTitle({
+  parts,
+  role,
+  session,
+}: {
+  parts: UIMessage['parts']
+  role: Rows['messages']['role']
+  session: Rows['sessions']
+}): string | null {
+  if (session.title.trim() !== '' || role !== 'user') {
+    return null
+  }
+
+  // Prefer the user's first text part; fall back to a coarse attachment title.
+  for (const part of parts) {
+    if (part.type !== 'text') {
+      continue
+    }
+
+    const text = part.text.trim()
+    const title =
+      text.length > INFERRED_SESSION_TITLE_TEXT_LENGTH
+        ? `${text.slice(0, INFERRED_SESSION_TITLE_TEXT_LENGTH)}...`
+        : text
+    if (title !== '') {
+      return title
+    }
+  }
+
+  for (const part of parts) {
+    if (part.type === 'file' && part.mediaType.startsWith('image/')) {
+      return 'Image'
+    }
+  }
+
+  if (parts.some((part) => part.type !== 'text')) {
+    return 'Attachment'
+  }
+
+  return null
 }
