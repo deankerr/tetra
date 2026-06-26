@@ -1,6 +1,12 @@
 import { CodeBlock } from '@tetra/ui/components/ai-elements/code-block'
 import { Button } from '@tetra/ui/components/ui/button'
-import { Sheet, SheetClose, SheetContent } from '@tetra/ui/components/ui/sheet'
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@tetra/ui/components/ui/sheet'
 import { CopyIcon, XIcon } from 'lucide-react'
 
 import { webTinybase } from '@/store'
@@ -33,12 +39,9 @@ export function JsonViewSheet() {
       }}
       open={open}
     >
-      <SheetContent
-        className="grid grid-rows-[var(--header-height)_1fr] data-[side=right]:sm:max-w-2xl"
-        showCloseButton={false}
-      >
-        <div className="flex items-center justify-between border-b px-2">
-          <span className="truncate px-2 text-xs font-medium">{jsonView.title ?? 'JSON View'}</span>
+      <SheetContent className="flex flex-col overflow-hidden data-[side=right]:sm:max-w-2xl">
+        <SheetHeader>
+          <SheetTitle>{jsonView.title ?? 'JSON View'}</SheetTitle>
           <div className="flex items-center gap-1">
             <Button
               aria-label="Copy JSON"
@@ -55,10 +58,10 @@ export function JsonViewSheet() {
               <XIcon />
             </SheetClose>
           </div>
-        </div>
+        </SheetHeader>
 
         <CodeBlock
-          className="rounded-none border-0 **:data-[slot=code-block-body-pre]:whitespace-pre-wrap [&>div]:h-full"
+          className="min-h-0 flex-1 rounded-none border-0 **:data-[slot=code-block-body-pre]:whitespace-pre-wrap [&>div]:h-full"
           code={jsonView.json}
           language="json"
           showLineNumbers

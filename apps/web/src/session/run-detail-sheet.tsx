@@ -3,8 +3,13 @@ import type { LibraryRows } from '@tetra/schemas/library'
 import { CodeBlock } from '@tetra/ui/components/ai-elements/code-block'
 import { Badge } from '@tetra/ui/components/ui/badge'
 import { Button } from '@tetra/ui/components/ui/button'
-import { ScrollArea } from '@tetra/ui/components/ui/scroll-area'
-import { Sheet, SheetClose, SheetContent, SheetTitle } from '@tetra/ui/components/ui/sheet'
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@tetra/ui/components/ui/sheet'
 import { cn } from '@tetra/ui/lib/utils'
 import { CopyIcon, XIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
@@ -32,13 +37,9 @@ export function RunDetailSheet({
 
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
-      <SheetContent
-        className="grid grid-rows-[var(--header-height)_1fr] data-[side=right]:sm:max-w-2xl"
-        showCloseButton={false}
-      >
-        {/* Sheet header */}
-        <div className="flex items-center justify-between gap-2 border-b px-2">
-          <SheetTitle className="truncate px-2 text-xs font-medium">Run details</SheetTitle>
+      <SheetContent className="data-[side=right]:sm:max-w-2xl">
+        <SheetHeader>
+          <SheetTitle>Run details</SheetTitle>
           <div className="flex items-center gap-1">
             <Button
               aria-label="Copy run details JSON"
@@ -62,19 +63,17 @@ export function RunDetailSheet({
               <XIcon />
             </SheetClose>
           </div>
-        </div>
+        </SheetHeader>
 
         {detail === null ? (
           <MissingRun />
         ) : (
-          <ScrollArea className="h-full min-h-0">
-            <div className="flex flex-col gap-4 divide-y p-4">
-              <RunOverview run={detail.run} />
-              <RunUsage usage={detail.usage} />
-              <RunConfigDetail config={detail.run.config} />
-              <RunSteps steps={detail.steps} />
-            </div>
-          </ScrollArea>
+          <div className="flex flex-col gap-4 divide-y p-4">
+            <RunOverview run={detail.run} />
+            <RunUsage usage={detail.usage} />
+            <RunConfigDetail config={detail.run.config} />
+            <RunSteps steps={detail.steps} />
+          </div>
         )}
       </SheetContent>
     </Sheet>
@@ -333,11 +332,7 @@ function RunStatusBadge({ status }: { status: Run['status'] }) {
     return <Badge variant="destructive">{status}</Badge>
   }
 
-  return (
-    <Badge className="text-muted-foreground" variant="secondary">
-      {status}
-    </Badge>
-  )
+  return <Badge variant="secondary">{status}</Badge>
 }
 
 // Config cells are intentionally best-effort because run snapshots preserve loose JSON.

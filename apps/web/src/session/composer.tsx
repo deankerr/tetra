@@ -75,6 +75,7 @@ export function Composer({
         <PromptInputFooter>
           <PromptInputTools>
             <ModelPickerButton
+              className="text-foreground"
               onClick={() => {
                 setModelPickerOpen(true)
               }}
@@ -251,6 +252,7 @@ function ImageInputButton({ disabled }: { disabled: boolean }) {
   return (
     <PromptInputButton
       aria-label="Add image"
+      className="text-foreground"
       disabled={disabled}
       onClick={attachments.openFileDialog}
       size="icon-sm"

@@ -2,7 +2,13 @@ import type { CatalogRows } from '@tetra/schemas/catalog'
 import { ModelSelectorLogo } from '@tetra/ui/components/ai-elements/model-selector'
 import { Button } from '@tetra/ui/components/ui/button'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@tetra/ui/components/ui/input-group'
-import { Sheet, SheetClose, SheetContent, SheetTitle } from '@tetra/ui/components/ui/sheet'
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@tetra/ui/components/ui/sheet'
 import { cn } from '@tetra/ui/lib/utils'
 import { RotateCcwIcon, SearchIcon, XIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
@@ -205,16 +211,9 @@ function FilterChip({
   children: string
   onClick: () => void
 }) {
+  // Selected reads as the filled, prominent state; unselected sits back as a quiet outlined pill.
   return (
-    <Button
-      aria-pressed={active}
-      className={cn(
-        'rounded-md px-2',
-        active && 'border-ring bg-background text-foreground ring-ring/50 ring-1',
-      )}
-      onClick={onClick}
-      variant={active ? 'outline' : 'secondary'}
-    >
+    <Button aria-pressed={active} onClick={onClick} variant={active ? 'default' : 'outline'}>
       {children}
     </Button>
   )
@@ -241,9 +240,9 @@ export function ModelPickerSheet({
 
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
-      <SheetContent className="data-[side=right]:sm:max-w-lg" showCloseButton={false}>
-        <div className="flex h-(--header-height) shrink-0 items-center justify-between border-b px-2">
-          <SheetTitle className="px-2 text-xs font-medium">Model selection</SheetTitle>
+      <SheetContent className="flex flex-col overflow-hidden data-[side=right]:sm:max-w-lg">
+        <SheetHeader>
+          <SheetTitle>Model selection</SheetTitle>
           <SheetClose
             render={
               <Button
@@ -256,7 +255,7 @@ export function ModelPickerSheet({
           >
             <XIcon />
           </SheetClose>
-        </div>
+        </SheetHeader>
 
         <div className="flex shrink-0 flex-col gap-2 border-b p-3">
           <div className="flex items-center gap-2">

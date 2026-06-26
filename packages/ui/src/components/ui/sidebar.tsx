@@ -178,15 +178,16 @@ function Sidebar({
           data-sidebar="sidebar"
           data-slot="sidebar"
           data-mobile="true"
-          className="w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+          className="flex max-w-(--sidebar-width) overflow-hidden bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
           style={
             {
               '--sidebar-width': SIDEBAR_WIDTH_MOBILE,
+              maxWidth: 'var(--sidebar-width)',
             } as React.CSSProperties
           }
           side={side}
         >
-          <SheetHeader className="sr-only">
+          <SheetHeader className="sr-only p-0">
             <SheetTitle>Sidebar</SheetTitle>
             <SheetDescription>Displays the mobile sidebar.</SheetDescription>
           </SheetHeader>

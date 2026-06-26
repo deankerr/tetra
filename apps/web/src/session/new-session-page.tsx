@@ -1,6 +1,12 @@
 import { useNavigate } from '@tanstack/react-router'
 import { Button } from '@tetra/ui/components/ui/button'
-import { Sheet, SheetClose, SheetContent, SheetTitle } from '@tetra/ui/components/ui/sheet'
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@tetra/ui/components/ui/sheet'
 import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
 import { toast } from '@tetra/ui/components/ui/sonner'
 import { KeyRoundIcon, Settings2Icon, XIcon } from 'lucide-react'
@@ -96,9 +102,9 @@ export function NewSessionPage() {
       {/* Settings sheet */}
       {draftSessionId === null ? null : (
         <Sheet onOpenChange={setDetailOpen} open={detailOpen}>
-          <SheetContent className="w-80 sm:max-w-80" showCloseButton={false}>
-            <div className="flex h-(--header-height) shrink-0 items-center justify-between border-b px-2">
-              <SheetTitle className="px-2 text-xs font-medium">New session settings</SheetTitle>
+          <SheetContent className="w-80 sm:max-w-80">
+            <SheetHeader>
+              <SheetTitle>New session settings</SheetTitle>
               <SheetClose
                 render={
                   <Button
@@ -111,9 +117,9 @@ export function NewSessionPage() {
               >
                 <XIcon />
               </SheetClose>
-            </div>
+            </SheetHeader>
 
-            <div className="min-h-0 flex-1 overflow-y-auto p-4">
+            <div className="p-4">
               <SessionSettings
                 modelId={modelId ?? ''}
                 onOpenModelPicker={() => {

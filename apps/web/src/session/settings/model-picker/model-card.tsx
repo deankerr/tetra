@@ -1,17 +1,20 @@
 import type { CatalogRows } from '@tetra/schemas/catalog'
 import { ModelSelectorLogo } from '@tetra/ui/components/ai-elements/model-selector'
-import { Badge } from '@tetra/ui/components/ui/badge'
 import { Button } from '@tetra/ui/components/ui/button'
 import { cn } from '@tetra/ui/lib/utils'
+import type { LucideIcon } from 'lucide-react'
 import {
-  ArrowDownToLineIcon,
-  ArrowUpFromLineIcon,
+  AudioLinesIcon,
   CalendarDaysIcon,
   CopyIcon,
-  InfoIcon,
+  FileIcon,
+  GaugeIcon,
+  ImageDownIcon,
+  ImageUpIcon,
+  ShapesIcon,
   StarIcon,
+  VideoIcon,
 } from 'lucide-react'
-import type { ComponentProps } from 'react'
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   day: 'numeric',
@@ -19,24 +22,27 @@ const dateFormatter = new Intl.DateTimeFormat(undefined, {
   year: 'numeric',
 })
 
-function formatContextLength(contextLength: number) {
-  if (contextLength <= 0) {
-    return '?'
-  }
+const contextLengthFormatter = new Intl.NumberFormat(undefined, {
+  compactDisplay: 'short',
+  maximumFractionDigits: 1,
+  notation: 'compact',
+})
 
-  if (contextLength >= 1_000_000) {
-    return `${Number((contextLength / 1_000_000).toFixed(1))}m`
-  }
-
-  return `${Number((contextLength / 1000).toFixed(1))}k`
-}
-
-function formatModality(modality: string) {
-  if (modality === '') {
-    return 'unknown'
-  }
-
-  return modality.replaceAll('_', ' ')
+// Direction-specific image glyphs keep input and output capabilities distinct while the rest of the
+// known modalities share their natural icon. Unknown modalities stay visible via the fallback.
+const MODALITY_ICONS: Record<'input' | 'output', Record<string, LucideIcon>> = {
+  input: {
+    audio: AudioLinesIcon,
+    file: FileIcon,
+    image: ImageUpIcon,
+    video: VideoIcon,
+  },
+  output: {
+    audio: AudioLinesIcon,
+    file: FileIcon,
+    image: ImageDownIcon,
+    video: VideoIcon,
+  },
 }
 
 function formatUpstreamCreatedAt(upstreamCreatedAt: number) {
@@ -49,18 +55,36 @@ function formatUpstreamCreatedAt(upstreamCreatedAt: number) {
   return dateFormatter.format(new Date(timestamp))
 }
 
-function ModelFact({ children, className, ...props }: ComponentProps<'div'>) {
+// Text is the baseline capability, so only non-text input and output modalities get icon slots.
+function ModelModalities({ model }: { model: CatalogRows['languageModels'] }) {
+  const modalities = [
+    ...model.inputModalities.map((modality) => ({ direction: 'input' as const, modality })),
+    ...model.outputModalities.map((modality) => ({ direction: 'output' as const, modality })),
+  ].filter(({ modality }) => modality !== 'text')
+
+  if (modalities.length === 0) {
+    return null
+  }
+
   return (
-    <div
-      className={cn(
-        'text-muted-foreground flex max-w-full min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-xs',
-        '[&>svg]:size-3.5 [&>svg]:shrink-0',
-        className,
-      )}
-      {...props}
-    >
-      {children}
-    </div>
+    <span className="flex items-center gap-1.5">
+      {modalities.map(({ direction, modality }) => {
+        const Icon = MODALITY_ICONS[direction][modality] ?? ShapesIcon
+        const label = `${modality} ${direction}`
+
+        return (
+          <span
+            aria-label={label}
+            className="inline-flex"
+            key={`${direction}:${modality}`}
+            role="img"
+            title={label}
+          >
+            <Icon aria-hidden className="size-3.5 shrink-0" />
+          </span>
+        )
+      })}
+    </span>
   )
 }
 
@@ -77,14 +101,16 @@ export function ModelCard({
   onToggleFavorite: () => void
   selected: boolean
 }) {
+  const contextLength = contextLengthFormatter.format(model.contextLength)
+  const releaseDate = formatUpstreamCreatedAt(model.upstreamCreatedAt)
   const selectLabel = selected ? `${model.name} selected` : `Use ${model.name}`
 
   return (
     <div
       aria-current={selected ? 'true' : undefined}
       className={cn(
-        'border-border @container/model-card relative border-b border-l-2 border-l-transparent last:border-b-0',
-        selected && 'border-l-ring bg-muted/35',
+        'border-border relative border-b border-l-4 border-l-transparent last:border-b-0',
+        selected && 'border-l-primary',
       )}
     >
       <button
@@ -95,14 +121,14 @@ export function ModelCard({
         type="button"
       />
 
-      <div className="pointer-events-none relative z-20 min-w-0 px-4 py-3">
-        <div className="flex min-w-0 items-start gap-3">
-          <div className="bg-muted flex size-9 shrink-0 items-center justify-center rounded-md">
-            <ModelSelectorLogo className="size-4" provider={model.provider} />
-          </div>
+      <div className="pointer-events-none relative z-20 flex min-w-0 items-start gap-3 px-4 py-2.5">
+        <div className="bg-muted flex size-8 shrink-0 items-center justify-center rounded-md">
+          <ModelSelectorLogo className="size-4" provider={model.provider} />
+        </div>
 
-          <div className="flex min-w-0 flex-1 items-start gap-2">
-            <div className="min-w-0 flex-1 pt-0.5">
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <div className="flex min-w-0 items-start gap-2">
+            <div className="min-w-0 flex-1">
               <div className="text-foreground truncate text-sm font-medium">{model.name}</div>
               <div className="text-muted-foreground min-w-0 truncate font-mono text-xs">
                 {model.id}
@@ -132,38 +158,26 @@ export function ModelCard({
               </Button>
             </div>
           </div>
-        </div>
 
-        <div className="mt-2 grid min-w-0 grid-cols-1 items-start gap-x-6 gap-y-1.5 pl-12 @lg/model-card:grid-cols-2">
-          <ModelFact>
-            <InfoIcon />
-            Context: {formatContextLength(model.contextLength)}
-          </ModelFact>
-
-          <ModelFact>
-            <CalendarDaysIcon />
-            Released: {formatUpstreamCreatedAt(model.upstreamCreatedAt)}
-          </ModelFact>
-
-          <ModelFact>
-            <ArrowDownToLineIcon />
-            Input:
-            {model.inputModalities.map((modality) => (
-              <Badge key={modality} variant="outline">
-                {formatModality(modality)}
-              </Badge>
-            ))}
-          </ModelFact>
-
-          <ModelFact>
-            <ArrowUpFromLineIcon />
-            Output:
-            {model.outputModalities.map((modality) => (
-              <Badge key={modality} variant="outline">
-                {formatModality(modality)}
-              </Badge>
-            ))}
-          </ModelFact>
+          <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+            <span
+              aria-label={`Context length ${contextLength}`}
+              className="flex items-center gap-1.5"
+              title="Context length"
+            >
+              <GaugeIcon aria-hidden className="size-3.5 shrink-0" />
+              {contextLength}
+            </span>
+            <span
+              aria-label={`Release date ${releaseDate}`}
+              className="flex items-center gap-1.5"
+              title="Release date"
+            >
+              <CalendarDaysIcon aria-hidden className="size-3.5 shrink-0" />
+              {releaseDate}
+            </span>
+            <ModelModalities model={model} />
+          </div>
         </div>
       </div>
     </div>

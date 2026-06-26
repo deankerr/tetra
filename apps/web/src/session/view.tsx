@@ -1,6 +1,12 @@
 import { Link } from '@tanstack/react-router'
 import { Button } from '@tetra/ui/components/ui/button'
-import { Sheet, SheetClose, SheetContent } from '@tetra/ui/components/ui/sheet'
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@tetra/ui/components/ui/sheet'
 import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
 import { HomeIcon, Settings2Icon, XIcon } from 'lucide-react'
 import { useState } from 'react'
@@ -93,9 +99,9 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
 
       {/* Settings sheet */}
       <Sheet onOpenChange={setDetailOpen} open={detailOpen}>
-        <SheetContent className="w-80 sm:max-w-80" showCloseButton={false}>
-          <div className="flex h-(--header-height) shrink-0 items-center justify-between border-b px-2">
-            <span className="px-2 text-xs font-medium">Settings</span>
+        <SheetContent className="w-80 sm:max-w-80">
+          <SheetHeader>
+            <SheetTitle>Settings</SheetTitle>
             <SheetClose
               render={
                 <Button
@@ -108,9 +114,9 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
             >
               <XIcon />
             </SheetClose>
-          </div>
+          </SheetHeader>
 
-          <div className="min-h-0 flex-1 overflow-y-auto p-4">
+          <div className="p-4">
             <SessionSettings
               modelId={modelId ?? ''}
               onOpenModelPicker={() => {

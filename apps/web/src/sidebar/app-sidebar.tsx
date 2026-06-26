@@ -11,7 +11,10 @@ export function AppSidebar() {
   return (
     <>
       <SidebarHeader className="p-0">
-        <Link className="flex h-(--header-height) items-center gap-1.5 border-b px-4" to="/">
+        <Link
+          className="flex h-(--header-height) items-center gap-1.5 border-b px-4 md:-mx-2 md:px-6"
+          to="/"
+        >
           <TetraLogo className="size-4.5" />
           <div className="font-orbitron flex translate-y-px items-center text-sm leading-none font-semibold tracking-wider uppercase">
             TETRA

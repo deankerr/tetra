@@ -54,7 +54,7 @@ function RootAppLayout() {
           <AppSidebar />
         </Sidebar>
 
-        <SidebarInset className="h-svh min-w-0 overflow-hidden md:h-[calc(100svh-1rem)]">
+        <SidebarInset className="bg-canvas h-svh min-w-0 overflow-hidden md:h-[calc(100svh-1rem)]">
           <div className="flex h-full min-w-0">
             <Outlet />
           </div>

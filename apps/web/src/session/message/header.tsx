@@ -1,6 +1,5 @@
 import type { LibraryRows } from '@tetra/schemas/library'
 import { Badge } from '@tetra/ui/components/ui/badge'
-import { cn } from '@tetra/ui/lib/utils'
 import { BanIcon, CheckCircle2Icon, LoaderCircleIcon, XCircleIcon } from 'lucide-react'
 
 import { getRunModelId } from './data'
@@ -20,10 +19,7 @@ export function MessageHeader({ isActive, run }: { isActive: boolean; run: RunRo
     <div className="flex items-center gap-2 group-[.is-user]:justify-end">
       <Badge
         aria-label={statusLabel}
-        className={cn(
-          'gap-2 rounded-sm font-mono',
-          run.status !== 'error' && 'text-muted-foreground',
-        )}
+        className="gap-2 rounded-sm font-mono"
         title={statusLabel}
         variant={run.status === 'error' ? 'destructive' : 'secondary'}
       >

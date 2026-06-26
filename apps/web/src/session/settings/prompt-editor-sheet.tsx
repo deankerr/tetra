@@ -7,7 +7,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@tetra/ui/components/ui/select'
-import { Sheet, SheetClose, SheetContent } from '@tetra/ui/components/ui/sheet'
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@tetra/ui/components/ui/sheet'
 import { Textarea } from '@tetra/ui/components/ui/textarea'
 import { Trash2Icon, XIcon } from 'lucide-react'
 import { useMemo } from 'react'
@@ -190,12 +196,9 @@ export function PromptEditorSheet({
 
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
-      <SheetContent
-        className="flex flex-col data-[side=right]:sm:max-w-2xl"
-        showCloseButton={false}
-      >
-        <div className="flex h-(--header-height) shrink-0 items-center justify-between border-b px-2">
-          <span className="px-2 text-xs font-medium">System Prompt</span>
+      <SheetContent className="flex flex-col overflow-hidden data-[side=right]:sm:max-w-2xl">
+        <SheetHeader>
+          <SheetTitle>System Prompt</SheetTitle>
           <SheetClose
             render={
               <Button
@@ -208,7 +211,7 @@ export function PromptEditorSheet({
           >
             <XIcon />
           </SheetClose>
-        </div>
+        </SheetHeader>
 
         {/* Prompt selector */}
         <div className="shrink-0 border-b p-4">
