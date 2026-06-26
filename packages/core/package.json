@@ -21,7 +21,7 @@
     "@ai-sdk/provider": "^3.0.8",
     "@openrouter/ai-sdk-provider": "catalog:",
     "@tetra/credentials": "workspace:*",
-    "@tetra/stores": "workspace:*",
+    "@tetra/schemas": "workspace:*",
     "@tetra/tools-exa": "workspace:*",
     "ai": "catalog:",
     "nanoid": "^5.1.11",

@@ -1,4 +1,4 @@
-import type { CatalogRows, CatalogStoreInstance } from '@tetra/stores/catalog'
+import type { CatalogRows, CatalogStoreInstance } from '@tetra/schemas/catalog'
 import { z } from 'zod'
 
 const STALE_MS = 60 * 60 * 1000

@@ -1,11 +1,11 @@
 import type { CredentialsStore } from '@tetra/credentials'
-import { RunConfigSchema } from '@tetra/stores/library'
+import { RunConfigSchema } from '@tetra/schemas/library'
 import type {
   LibraryRows as Rows,
   LibraryRunStatus,
   LibraryTypedStore,
   RunConfig as RunConfigType,
-} from '@tetra/stores/library'
+} from '@tetra/schemas/library'
 import { convertToModelMessages, readUIMessageStream, stepCountIs, streamText } from 'ai'
 import type { LanguageModel, ModelMessage, ToolSet, UIMessage } from 'ai'
 

@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
 
-import { libraryStoreDefinition, SessionRunConfigSchema } from '@tetra/stores/library'
+import { libraryStoreDefinition, SessionRunConfigSchema } from '@tetra/schemas/library'
 import { createStoreInstance } from '@tetra/tinybase-schema/runtime'
 
 import { RunConfigs } from './run-configs.ts'

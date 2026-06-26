@@ -29,7 +29,7 @@
       "entry": ["src/**/*.test.ts"],
       "project": ["src/**/*.{ts,tsx}"]
     },
-    "packages/stores": {
+    "packages/schemas": {
       "includeEntryExports": false,
       "project": ["src/**/*.{ts,tsx}"]
     },

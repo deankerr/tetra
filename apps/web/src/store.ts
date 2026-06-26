@@ -1,7 +1,7 @@
 import { createCoreModules } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
-import { catalogStoreDefinition } from '@tetra/stores/catalog'
-import { libraryStoreDefinition } from '@tetra/stores/library'
+import { catalogStoreDefinition } from '@tetra/schemas/catalog'
+import { libraryStoreDefinition } from '@tetra/schemas/library'
 import { defineTypedStore } from '@tetra/tinybase-schema'
 import { createStoreReactApi, createTinyBaseProviderProps } from '@tetra/tinybase-schema/react'
 import {

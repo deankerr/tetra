@@ -1,4 +1,4 @@
-import type { LibraryRows } from '@tetra/stores/library'
+import type { LibraryRows } from '@tetra/schemas/library'
 import { MessageActions, MessageToolbar } from '@tetra/ui/components/ai-elements/message'
 import { Button } from '@tetra/ui/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@tetra/ui/components/ui/tooltip'

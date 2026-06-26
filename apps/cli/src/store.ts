@@ -2,8 +2,8 @@ import { Database } from 'bun:sqlite'
 import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 
-import { catalogStoreDefinition } from '@tetra/stores/catalog'
-import { libraryStoreDefinition } from '@tetra/stores/library'
+import { catalogStoreDefinition } from '@tetra/schemas/catalog'
+import { libraryStoreDefinition } from '@tetra/schemas/library'
 import { defineTypedStore } from '@tetra/tinybase-schema'
 import {
   createMergeableStoreInstance,
@@ -21,6 +21,7 @@ const CLI_TABLE_NAME = 'cli'
 const LIBRARY_TABLE_NAME = 'library'
 const SYNC_REQUEST_TIMEOUT_SECONDS = 5
 const SYNC_TIMEOUT_MS = 10_000
+const SYNC_FLUSH_GRACE_MS = 1500
 
 const cliStoreSchema = defineTypedStore({
   tables: {},
@@ -42,11 +43,9 @@ export interface CliStoreRuntimeOptions {
   syncEnabled?: boolean
 }
 
-// The runtime only ever fires these at the start/stop boundary and ignores the outcome.
+// Live for the command's lifetime: connect starts bidirectional sync, close flushes and drops it.
 interface LibrarySynchronizer {
-  destroy(): Promise<void>
-  load(): Promise<void>
-  save(): Promise<void>
+  close(): Promise<void>
 }
 
 function createCliStoreInstances() {
@@ -92,9 +91,9 @@ export async function createCliStoreRuntime(options: CliStoreRuntimeOptions = {}
   await cliPersister.load(() => cliStore.getContent())
   await libraryPersister.load(() => libraryStore.getContent())
 
-  // Library commands start from the latest remote state when sync is configured.
+  // Bidirectional library sync runs for the whole command when configured: it pulls remote state
+  // up front and pushes local changes (including ones made offline) while the socket stays open.
   const remoteSync = await connectLibrarySynchronizer(libraryStore, options)
-  await remoteSync?.load()
 
   let closed = false
   return {
@@ -104,14 +103,12 @@ export async function createCliStoreRuntime(options: CliStoreRuntimeOptions = {}
       }
       closed = true
 
-      // The command boundary publishes synced library state, checkpoints the local cache,
-      // then drops the socket. Remote sync is best-effort and logs its own failures; only
-      // local persistence (and never destroy) is allowed to throw.
-      await remoteSync?.save()
+      // Checkpoint the local cache, then flush and drop the live sync socket. Remote sync is
+      // best-effort and logs its own failures; only local persistence is allowed to throw.
       await catalogPersister.save()
       await cliPersister.save()
       await libraryPersister.save()
-      await remoteSync?.destroy()
+      await remoteSync?.close()
     },
     stores,
   }
@@ -119,7 +116,7 @@ export async function createCliStoreRuntime(options: CliStoreRuntimeOptions = {}
 
 // Owns the whole remote-sync decision: whether it is enabled, connecting, and the one TinyBase
 // quirk that errors are swallowed and reported through a callback rather than thrown. Sync runs
-// only at the start/stop boundary and never throws, so failures are logged the moment they arrive
+// live for the command's lifetime and never throws, so failures are logged the moment they arrive
 // and the runtime treats the returned handle as fire-and-forget.
 async function connectLibrarySynchronizer(
   libraryStore: LibraryRawStore,
@@ -162,20 +159,17 @@ async function connectLibrarySynchronizer(
     return undefined
   }
 
+  // startSync makes the client a live peer: it answers the server's pull request (so local-only
+  // data, including offline edits, gets pushed) and auto-sends later changes while the socket is open.
+  await withSyncTimeout(synchronizer.startSync(), 'start')
+
   return {
-    // destroy is the one piece of teardown that matters: it closes the socket so the
-    // process can exit. It never throws, so it is never the reason a command fails.
-    destroy: async () => {
+    close: async () => {
+      // A synchronizer save() only announces hashes; the server pulls the diff back over the open
+      // socket. Re-announce, give that exchange a beat to land, then drop the socket.
+      await withSyncTimeout(synchronizer.save(), 'flush')
+      await Bun.sleep(SYNC_FLUSH_GRACE_MS)
       await withSyncTimeout(synchronizer.destroy(), 'destroy')
-    },
-    load: async () => {
-      await withSyncTimeout(
-        synchronizer.load(() => libraryStore.getContent()),
-        'load',
-      )
-    },
-    save: async () => {
-      await withSyncTimeout(synchronizer.save(), 'save')
     },
   }
 }

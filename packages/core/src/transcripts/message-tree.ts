@@ -2,7 +2,7 @@ import type {
   LibraryRows as Rows,
   LibraryTypedIndexes,
   LibraryTypedStore,
-} from '@tetra/stores/library'
+} from '@tetra/schemas/library'
 
 export class TranscriptMessageTree {
   readonly sessionId: string

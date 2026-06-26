@@ -1,4 +1,4 @@
-import type { CatalogRows } from '@tetra/stores/catalog'
+import type { CatalogRows } from '@tetra/schemas/catalog'
 import { ModelSelectorLogo } from '@tetra/ui/components/ai-elements/model-selector'
 import { Button } from '@tetra/ui/components/ui/button'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@tetra/ui/components/ui/input-group'

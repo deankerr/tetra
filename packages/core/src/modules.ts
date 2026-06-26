@@ -1,6 +1,6 @@
 import type { CredentialsStore } from '@tetra/credentials'
-import type { CatalogStoreInstance } from '@tetra/stores/catalog'
-import type { LibraryStoreInstance } from '@tetra/stores/library'
+import type { CatalogStoreInstance } from '@tetra/schemas/catalog'
+import type { LibraryStoreInstance } from '@tetra/schemas/library'
 
 import { ModelCatalog } from '#catalog'
 import { Prompts } from '#prompts'

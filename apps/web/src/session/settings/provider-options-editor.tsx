@@ -1,4 +1,4 @@
-import type { ProviderOptionsSchema } from '@tetra/stores/library'
+import type { ProviderOptionsSchema } from '@tetra/schemas/library'
 import { Button } from '@tetra/ui/components/ui/button'
 import { Input } from '@tetra/ui/components/ui/input'
 import { BracesIcon, PlusIcon, XIcon } from 'lucide-react'

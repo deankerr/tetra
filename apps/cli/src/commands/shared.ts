@@ -1,5 +1,5 @@
 import type { Run, RunConfig } from '@tetra/core'
-import type { LibraryRows } from '@tetra/stores/library'
+import type { LibraryRows } from '@tetra/schemas/library'
 
 import type { CliAppContext } from '../app'
 

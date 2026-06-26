@@ -1,4 +1,4 @@
-import type { LibraryStoreInstance, LibraryTypedStore } from '@tetra/stores/library'
+import type { LibraryStoreInstance, LibraryTypedStore } from '@tetra/schemas/library'
 
 import { createIdGenerator } from '#ids'
 import type { RunConfigs } from '#run-configs'

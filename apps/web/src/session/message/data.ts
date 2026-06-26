@@ -1,5 +1,5 @@
-import { RunConfigSchema } from '@tetra/stores/library'
-import type { LibraryRows } from '@tetra/stores/library'
+import { RunConfigSchema } from '@tetra/schemas/library'
+import type { LibraryRows } from '@tetra/schemas/library'
 
 import { useApp } from '@/app'
 import { libraryTinybase } from '@/store'

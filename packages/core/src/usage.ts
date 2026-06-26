@@ -1,4 +1,4 @@
-import type { LibraryRows as Rows } from '@tetra/stores/library'
+import type { LibraryRows as Rows } from '@tetra/schemas/library'
 
 type StepRecord = Rows['steps']
 

@@ -4,7 +4,7 @@ import type {
   LibraryStoreInstance,
   LibraryTypedStore,
   RunConfig as RunConfigType,
-} from '@tetra/stores/library'
+} from '@tetra/schemas/library'
 
 import type { Prompts } from '#prompts'
 import type { RunConfigs } from '#run-configs'

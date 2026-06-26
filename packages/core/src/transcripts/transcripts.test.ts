@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test'
 
-import { libraryStoreDefinition } from '@tetra/stores/library'
-import type { LibraryRows } from '@tetra/stores/library'
+import { libraryStoreDefinition } from '@tetra/schemas/library'
+import type { LibraryRows } from '@tetra/schemas/library'
 import { createStoreInstance } from '@tetra/tinybase-schema/runtime'
 
 import { RunConfigs } from '../run-configs.ts'

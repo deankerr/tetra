@@ -1,4 +1,4 @@
-import { libraryStoreDefinition } from '@tetra/stores/library'
+import { libraryStoreDefinition } from '@tetra/schemas/library'
 import type { StoreSchemasFor } from '@tetra/tinybase-schema'
 import { createMergeableStoreInstance } from '@tetra/tinybase-schema/runtime'
 import { createDurableObjectSqlStoragePersister } from 'tinybase/persisters/persister-durable-object-sql-storage/with-schemas'

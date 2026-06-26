@@ -22,7 +22,7 @@
       "dependencies": {
         "@tetra/core": "workspace:*",
         "@tetra/credentials": "workspace:*",
-        "@tetra/stores": "workspace:*",
+        "@tetra/schemas": "workspace:*",
         "@tetra/tinybase-schema": "workspace:*",
         "commander": "^14.0.3",
         "tinybase": "catalog:",
@@ -44,7 +44,7 @@
         "@tanstack/react-start": "^1.168.10",
         "@tetra/core": "workspace:*",
         "@tetra/credentials": "workspace:*",
-        "@tetra/stores": "workspace:*",
+        "@tetra/schemas": "workspace:*",
         "@tetra/tinybase-schema": "workspace:*",
         "@tetra/ui": "workspace:*",
         "ai": "catalog:",
@@ -71,7 +71,7 @@
     "apps/worker": {
       "name": "@tetra/worker",
       "dependencies": {
-        "@tetra/stores": "workspace:*",
+        "@tetra/schemas": "workspace:*",
         "@tetra/tinybase-schema": "workspace:*",
         "tinybase": "catalog:",
       },
@@ -86,7 +86,7 @@
         "@ai-sdk/provider": "^3.0.8",
         "@openrouter/ai-sdk-provider": "catalog:",
         "@tetra/credentials": "workspace:*",
-        "@tetra/stores": "workspace:*",
+        "@tetra/schemas": "workspace:*",
         "@tetra/tools-exa": "workspace:*",
         "ai": "catalog:",
         "nanoid": "^5.1.11",
@@ -105,8 +105,8 @@
         "typescript": "catalog:",
       },
     },
-    "packages/stores": {
-      "name": "@tetra/stores",
+    "packages/schemas": {
+      "name": "@tetra/schemas",
       "dependencies": {
         "@tetra/tinybase-schema": "workspace:*",
         "ai": "catalog:",
@@ -896,7 +896,7 @@
 
     "@tetra/credentials": ["@tetra/credentials@workspace:packages/credentials"],
 
-    "@tetra/stores": ["@tetra/stores@workspace:packages/stores"],
+    "@tetra/schemas": ["@tetra/schemas@workspace:packages/schemas"],
 
     "@tetra/tinybase-schema": ["@tetra/tinybase-schema@workspace:packages/tinybase-schema"],
 

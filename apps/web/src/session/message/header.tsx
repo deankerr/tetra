@@ -1,4 +1,4 @@
-import type { LibraryRows } from '@tetra/stores/library'
+import type { LibraryRows } from '@tetra/schemas/library'
 import { Badge } from '@tetra/ui/components/ui/badge'
 import { cn } from '@tetra/ui/lib/utils'
 import { BanIcon, CheckCircle2Icon, LoaderCircleIcon, XCircleIcon } from 'lucide-react'

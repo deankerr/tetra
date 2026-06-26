@@ -3,7 +3,7 @@ import type {
   LibraryTypedIndexes,
   LibraryTypedStore,
   RunConfig,
-} from '@tetra/stores/library'
+} from '@tetra/schemas/library'
 
 import { createIdGenerator } from '#ids'
 import type { RunConfigs } from '#run-configs'

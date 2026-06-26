@@ -9,7 +9,7 @@
   "dependencies": {
     "@tetra/core": "workspace:*",
     "@tetra/credentials": "workspace:*",
-    "@tetra/stores": "workspace:*",
+    "@tetra/schemas": "workspace:*",
     "@tetra/tinybase-schema": "workspace:*",
     "commander": "^14.0.3",
     "tinybase": "catalog:",

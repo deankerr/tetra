@@ -1,5 +1,5 @@
 {
-  "name": "@tetra/stores",
+  "name": "@tetra/schemas",
   "private": true,
   "type": "module",
   "exports": {

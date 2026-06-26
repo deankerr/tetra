@@ -2,7 +2,7 @@ import type {
   LibraryRows as Rows,
   LibraryTypedIndexes,
   LibraryTypedStore,
-} from '@tetra/stores/library'
+} from '@tetra/schemas/library'
 import type { UIMessage } from 'ai'
 
 import { TranscriptMessagePath } from './message-path.ts'
