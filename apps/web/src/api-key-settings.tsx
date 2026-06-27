@@ -15,7 +15,7 @@ import { KeyRoundIcon } from 'lucide-react'
 import { useCallback } from 'react'
 
 import { webTinybase } from '@/store'
-import { useCredential } from '@/use-credential'
+import { useCredential, useHasCredential } from '@/use-credential'
 
 export function ApiKeySettingsDialog() {
   const [open, setOpen] = webTinybase.useValueState('apiKeySettingsOpen')
@@ -65,37 +65,36 @@ export function ApiKeySettingsButton({
 }
 
 export function MissingOpenRouterApiKeyButton() {
-  const [openrouterApiKey] = useCredential('OPENROUTER_API_KEY')
+  const hasOpenrouterApiKey = useHasCredential('OPENROUTER_API_KEY')
   const [, setOpen] = webTinybase.useValueState('apiKeySettingsOpen')
 
-  if (openrouterApiKey.trim() !== '') {
+  if (hasOpenrouterApiKey) {
     return null
   }
 
   return (
     <Button
-      aria-label="Add OpenRouter API key"
+      aria-label="Missing OpenRouter API key"
       onClick={() => {
         setOpen(true)
       }}
       size="sm"
-      title="Add OpenRouter API key"
+      title="Missing OpenRouter API key"
       type="button"
-      variant="default"
+      variant="destructive"
     >
       <KeyRoundIcon />
-      Add OpenRouter key
+      Missing OpenRouter key
     </Button>
   )
 }
 
 export function useRequireOpenRouterApiKey(): () => void {
-  const [openrouterApiKey] = useCredential('OPENROUTER_API_KEY')
+  const hasOpenrouterApiKey = useHasCredential('OPENROUTER_API_KEY')
   const [, setOpen] = webTinybase.useValueState('apiKeySettingsOpen')
-  const apiKeyConfigured = openrouterApiKey.trim() !== ''
 
   return useCallback(() => {
-    if (apiKeyConfigured) {
+    if (hasOpenrouterApiKey) {
       return
     }
 
@@ -104,7 +103,7 @@ export function useRequireOpenRouterApiKey(): () => void {
     })
     setOpen(true)
     throw new Error('OpenRouter API key required')
-  }, [apiKeyConfigured, setOpen])
+  }, [hasOpenrouterApiKey, setOpen])
 }
 
 function CredentialField({ definition }: { definition: CredentialDefinition }) {

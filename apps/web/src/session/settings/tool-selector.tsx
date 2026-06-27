@@ -1,9 +1,12 @@
 import { toolIds, toolsRegistryMap } from '@tetra/core'
-import { credentialRegistry } from '@tetra/credentials'
+import type { CredentialId } from '@tetra/credentials'
+import { getCredentialDefinition } from '@tetra/credentials'
 import { Badge } from '@tetra/ui/components/ui/badge'
 import { Field, FieldContent, FieldDescription, FieldTitle } from '@tetra/ui/components/ui/field'
 import { Switch } from '@tetra/ui/components/ui/switch'
 import { KeyIcon } from 'lucide-react'
+
+import { useHasCredential } from '@/use-credential'
 
 interface ToolSelectorProps {
   onToolIdsChange: (toolIds: string[]) => void
@@ -49,15 +52,9 @@ function ToolToggle({
           {tool.credentialIds.length > 0 ? (
             <>
               Uses{' '}
-              {tool.credentialIds
-                .map((credentialId) => credentialRegistry.find((c) => c.id === credentialId)?.label)
-                .filter((label) => label !== undefined)
-                .map((label, i) => (
-                  <Badge key={label + i} variant="outline">
-                    <KeyIcon />
-                    {label}
-                  </Badge>
-                ))}
+              {tool.credentialIds.map((credentialId) => (
+                <ToolCredentialBadge credentialId={credentialId} key={credentialId} />
+              ))}
             </>
           ) : null}
         </FieldDescription>
@@ -70,5 +67,17 @@ function ToolToggle({
         }}
       />
     </Field>
+  )
+}
+
+function ToolCredentialBadge({ credentialId }: { credentialId: CredentialId }) {
+  const hasCredential = useHasCredential(credentialId)
+  const definition = getCredentialDefinition(credentialId)
+
+  return (
+    <Badge variant={hasCredential ? 'outline' : 'destructive'}>
+      <KeyIcon />
+      {hasCredential ? definition.label : `${definition.label} missing`}
+    </Badge>
   )
 }

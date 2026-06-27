@@ -4,13 +4,6 @@ function noopUnsubscribe() {
   // no-op: subscribe has no effect outside a browser environment
 }
 
-export interface CredentialDefinition {
-  description: string
-  id: string
-  label: string
-  placeholder: string
-}
-
 export const credentialRegistry = [
   {
     description: 'Required for model inference. Get a key at openrouter.ai/keys.',
@@ -24,44 +17,74 @@ export const credentialRegistry = [
     label: 'Exa API Key',
     placeholder: 'exa_...',
   },
-] as const satisfies CredentialDefinition[]
+] as const
 
 export type CredentialId = (typeof credentialRegistry)[number]['id']
+export type CredentialDefinition = (typeof credentialRegistry)[number]
+
+export function getCredentialDefinition(id: CredentialId): CredentialDefinition {
+  const definition = credentialRegistry.find((credential) => credential.id === id)
+  if (definition === undefined) {
+    throw new Error(`Unknown credential id: ${id}`)
+  }
+
+  return definition
+}
+
+function normalizeCredentialValue(value: string | null | undefined): string | undefined {
+  const trimmedValue = value?.trim() ?? ''
+  return trimmedValue === '' ? undefined : trimmedValue
+}
 
 export class CredentialsStore {
-  readonly registry: Map<string, CredentialDefinition>
-  private readonly listeners = new Map<string, Set<() => void>>()
+  readonly registry: Map<CredentialId, CredentialDefinition>
+  private readonly listeners = new Map<CredentialId, Set<() => void>>()
 
   constructor(definitions: readonly CredentialDefinition[]) {
     this.registry = new Map(definitions.map((d) => [d.id, d]))
   }
 
-  get(id: string): string {
-    if (!this.registry.has(id)) {
-      return ''
-    }
+  get(id: CredentialId): string | undefined {
+    this.requireDefinition(id)
 
     if (typeof window !== 'undefined') {
       try {
-        return localStorage.getItem(id) ?? ''
+        return normalizeCredentialValue(localStorage.getItem(id))
       } catch (error) {
         console.error('[credentials] localStorage read failed', { error, id })
-        return ''
+        return undefined
       }
     }
 
-    return process.env[id] ?? ''
+    return normalizeCredentialValue(process.env[id])
   }
 
-  set(id: string, value: string): void {
+  has(id: CredentialId): boolean {
+    return this.get(id) !== undefined
+  }
+
+  require(id: CredentialId): string {
+    const value = this.get(id)
+    if (value !== undefined) {
+      return value
+    }
+
+    throw new Error(`${this.requireDefinition(id).label} is required`)
+  }
+
+  set(id: CredentialId, value: string): void {
+    this.requireDefinition(id)
+
     if (typeof window === 'undefined') {
       return
     }
+
+    const nextValue = normalizeCredentialValue(value)
     try {
-      if (value === '') {
+      if (nextValue === undefined) {
         localStorage.removeItem(id)
       } else {
-        localStorage.setItem(id, value)
+        localStorage.setItem(id, nextValue)
       }
     } catch (error) {
       console.error('[credentials] localStorage write failed', { error, id })
@@ -71,7 +94,9 @@ export class CredentialsStore {
     }
   }
 
-  subscribe(id: string, listener: () => void): () => void {
+  subscribe(id: CredentialId, listener: () => void): () => void {
+    this.requireDefinition(id)
+
     if (typeof window === 'undefined') {
       return noopUnsubscribe
     }
@@ -92,6 +117,15 @@ export class CredentialsStore {
       this.listeners.get(id)?.delete(listener)
       window.removeEventListener('storage', onStorage)
     }
+  }
+
+  private requireDefinition(id: CredentialId): CredentialDefinition {
+    const definition = this.registry.get(id)
+    if (definition === undefined) {
+      throw new Error(`Unknown credential id: ${id}`)
+    }
+
+    return definition
   }
 }
 

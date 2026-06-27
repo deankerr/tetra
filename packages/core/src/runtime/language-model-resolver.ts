@@ -9,10 +9,7 @@ export interface LanguageModelResolver {
 
 export const openRouterLanguageModelResolver: LanguageModelResolver = {
   resolve: ({ config, credentials }) => {
-    const openrouterApiKey = credentials.get('OPENROUTER_API_KEY').trim()
-    if (openrouterApiKey === '') {
-      throw new Error('OPENROUTER_API_KEY is required for model inference')
-    }
+    const openrouterApiKey = credentials.require('OPENROUTER_API_KEY')
 
     return createOpenRouter({ apiKey: openrouterApiKey })(config.modelId)
   },

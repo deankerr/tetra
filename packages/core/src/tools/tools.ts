@@ -1,4 +1,5 @@
 import type { CredentialId } from '@tetra/credentials'
+import { getCredentialDefinition } from '@tetra/credentials'
 import { exaToolDescriptors } from '@tetra/tools-exa'
 import { tool } from 'ai'
 import type { ToolSet } from 'ai'
@@ -58,7 +59,7 @@ export const toolsRegistryMap = new Map<string, ToolDefinition>(Object.entries(t
 
 export function resolveTools(
   requestedToolIds: string[],
-  getCredential: (id: string) => string,
+  getCredential: (id: CredentialId) => string | undefined,
 ): ToolSet {
   const tools: ToolSet = {}
 
@@ -69,7 +70,22 @@ export function resolveTools(
       continue
     }
 
-    const credentials = Object.fromEntries(def.credentialIds.map((id) => [id, getCredential(id)]))
+    const credentials: Record<string, string> = {}
+    const missingCredentialIds: CredentialId[] = []
+    for (const id of def.credentialIds) {
+      const value = getCredential(id)
+      if (value === undefined) {
+        missingCredentialIds.push(id)
+        continue
+      }
+      credentials[id] = value
+    }
+
+    if (missingCredentialIds.length > 0) {
+      const labels = missingCredentialIds.map((id) => getCredentialDefinition(id).label).join(', ')
+      throw new Error(`${def.label} requires ${labels}`)
+    }
+
     tools[toolId] = def.createTool(credentials)
   }
 
