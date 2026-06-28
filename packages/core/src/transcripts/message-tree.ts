@@ -1,27 +1,27 @@
 import type {
   LibraryRows as Rows,
   LibraryTypedIndexes,
-  LibraryTypedStore,
+  LibraryBoundStore,
 } from '@tetra/schemas/library'
 
 export class TranscriptMessageTree {
   readonly sessionId: string
 
-  private readonly typedIndexes: LibraryTypedIndexes
-  private readonly typedStore: LibraryTypedStore
+  private readonly boundIndexes: LibraryTypedIndexes
+  private readonly boundStore: LibraryBoundStore
 
   constructor({
     sessionId,
-    typedIndexes,
-    typedStore,
+    boundIndexes,
+    boundStore,
   }: {
     sessionId: string
-    typedIndexes: LibraryTypedIndexes
-    typedStore: LibraryTypedStore
+    boundIndexes: LibraryTypedIndexes
+    boundStore: LibraryBoundStore
   }) {
     this.sessionId = sessionId
-    this.typedIndexes = typedIndexes
-    this.typedStore = typedStore
+    this.boundIndexes = boundIndexes
+    this.boundStore = boundStore
   }
 
   getNewestLeafMessageId(): string | null {
@@ -90,7 +90,7 @@ export class TranscriptMessageTree {
   }
 
   listMessagePathMessages(messageId: string | null): Rows['messages'][] {
-    this.typedStore.tables.sessions.requireEntity(this.sessionId)
+    this.boundStore.tables.sessions.requireEntity(this.sessionId)
     if (messageId === null) {
       return []
     }
@@ -114,17 +114,17 @@ export class TranscriptMessageTree {
   }
 
   listMessages(): Rows['messages'][] {
-    this.typedStore.tables.sessions.requireEntity(this.sessionId)
+    this.boundStore.tables.sessions.requireEntity(this.sessionId)
 
     // Shape session messages in memory so path semantics are independent of row ids.
-    return this.typedIndexes
+    return this.boundIndexes
       .getSliceRowIds('messagesBySession', this.sessionId)
-      .map((id) => this.typedStore.tables.messages.requireEntity(id))
+      .map((id) => this.boundStore.tables.messages.requireEntity(id))
       .toSorted(compareMessages)
   }
 
   requireMessage(messageId: string): Rows['messages'] {
-    const message = this.typedStore.tables.messages.requireEntity(messageId)
+    const message = this.boundStore.tables.messages.requireEntity(messageId)
     if (message.sessionId !== this.sessionId) {
       throw new Error(`Message ${messageId} does not belong to session ${this.sessionId}`)
     }

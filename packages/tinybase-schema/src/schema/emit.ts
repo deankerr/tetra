@@ -1,25 +1,30 @@
 import type { TablesSchema, ValuesSchema } from 'tinybase/store/with-schemas'
 import type { z } from 'zod'
 
-import type { ValueDefinitions } from './store.ts'
-import type { TableDefinitions, TableSchemaOf } from './table.ts'
-import type { AnyZod, FieldKind, TinyCellSchema } from './types.ts'
+import type {
+  AnyZod,
+  FieldKind,
+  TableDefinitions,
+  TableSchemaOf,
+  TinyCellSchema,
+  ValueDefinitions,
+} from './types.ts'
 
-export type NativeTablesSchemaOf<Tables extends TableDefinitions> = {
+export type TinybaseTablesSchemaOf<Tables extends TableDefinitions> = {
   [TableId in keyof Tables]: Record<
     keyof z.output<TableSchemaOf<Tables[TableId]>> & string,
     TinyCellSchema
   >
 } & TablesSchema
 
-export type NativeValuesSchemaOf<Values extends ValueDefinitions> = {
+export type TinybaseValuesSchemaOf<Values extends ValueDefinitions> = {
   [ValueId in keyof Values]: TinyCellSchema
 } & ValuesSchema
 
-export type NativeStoreSchemasOf<
+export type TinybaseStoreSchemasOf<
   Tables extends TableDefinitions,
   Values extends ValueDefinitions,
-> = [NativeTablesSchemaOf<Tables>, NativeValuesSchemaOf<Values>]
+> = [TinybaseTablesSchemaOf<Tables>, TinybaseValuesSchemaOf<Values>]
 
 export function toTinybaseTablesSchema(tables: TableDefinitions): TablesSchema {
   // TinyBase only needs the coarse cell schema nested by table and cell id.

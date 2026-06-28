@@ -21,7 +21,7 @@ export function registerModelCommands(
     .action(async (options: ModelListOptions) => {
       const ctx = await getContext({ syncLibrary: false })
       const providerQuery = options.provider?.toLowerCase()
-      const rows = ctx.stores.catalog.typedStore.tables.languageModels
+      const rows = ctx.stores.catalog.boundStore.tables.languageModels
         .listEntities()
         .filter((row) => row.outputModalities.includes('text'))
         .filter((row) => {
@@ -58,7 +58,7 @@ export function registerModelCommands(
     .action(async () => {
       const ctx = await getContext({ syncLibrary: false })
       await ctx.modelCatalog.refresh({ force: true })
-      const count = ctx.stores.catalog.typedStore.tables.languageModels.getRowIds().length
+      const count = ctx.stores.catalog.boundStore.tables.languageModels.getRowIds().length
       console.log(`Refreshed ${count} models.`)
     })
 }

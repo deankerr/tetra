@@ -2,14 +2,14 @@ import { describe, expect, test } from 'bun:test'
 
 import { z } from 'zod'
 
-import { defineTypedStore } from './index.ts'
+import { defineStoreSchema } from '../index.ts'
 import {
   createMergeableStoreInstance,
   createStoreInstance,
   defineStoreDefinition,
-} from './runtime.ts'
+} from './index.ts'
 
-const exampleStoreSchema = defineTypedStore({
+const exampleStoreSchema = defineStoreSchema({
   tables: {
     messages: z.object({
       sessionId: z.string(),
@@ -39,14 +39,14 @@ describe('typed store runtime instances', () => {
     expect(instance.id).toBe('library')
     expect('getMergeableContent' in instance.rawStore).toBe(false)
 
-    instance.typedStore.values.lastRefreshed.set(123)
-    instance.typedStore.tables.messages.setRow('msg_1', {
+    instance.boundStore.values.lastRefreshed.set(123)
+    instance.boundStore.tables.messages.setRow('msg_1', {
       sessionId: 'sess_1',
       title: 'Runtime',
     })
 
-    expect(instance.typedStore.values.lastRefreshed.get()).toBe(123)
-    expect(instance.typedIndexes.getSliceRowIds('messagesBySession', 'sess_1')).toEqual(['msg_1'])
+    expect(instance.boundStore.values.lastRefreshed.get()).toBe(123)
+    expect(instance.boundIndexes.getSliceRowIds('messagesBySession', 'sess_1')).toEqual(['msg_1'])
   })
 
   test('creates a mergeable TinyBase store with the same typed APIs', () => {
@@ -55,11 +55,11 @@ describe('typed store runtime instances', () => {
     expect(instance.id).toBe('library')
     expect('getMergeableContent' in instance.rawStore).toBe(true)
 
-    instance.typedStore.tables.messages.setRow('msg_1', {
+    instance.boundStore.tables.messages.setRow('msg_1', {
       sessionId: 'sess_1',
       title: 'Mergeable runtime',
     })
 
-    expect(instance.typedIndexes.messagesBySession.getSliceRowIds('sess_1')).toEqual(['msg_1'])
+    expect(instance.boundIndexes.messagesBySession.getSliceRowIds('sess_1')).toEqual(['msg_1'])
   })
 })

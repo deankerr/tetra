@@ -10,33 +10,33 @@ import { Transcripts } from './transcripts/index.ts'
 function createPromptHarness() {
   // Tests own the same library store instance shape used by app composition roots.
   const libraryStore = createStoreInstance(libraryStoreDefinition)
-  const { rawStore, typedIndexes, typedStore } = libraryStore
+  const { rawStore, boundIndexes, boundStore } = libraryStore
   const runConfigs = new RunConfigs({ libraryStore })
   const prompts = new Prompts({ libraryStore, runConfigs })
 
-  return { libraryStore, prompts, rawStore, runConfigs, typedIndexes, typedStore }
+  return { boundIndexes, boundStore, libraryStore, prompts, rawStore, runConfigs }
 }
 
 test('createPrompt stores a prompt row with defaults and provided fields', () => {
-  const { prompts, typedStore } = createPromptHarness()
+  const { prompts, boundStore } = createPromptHarness()
 
   // Defaults produce an empty prompt record.
   const emptyId = prompts.createPrompt()
-  expect(typedStore.tables.prompts.requireEntity(emptyId)).toMatchObject({
+  expect(boundStore.tables.prompts.requireEntity(emptyId)).toMatchObject({
     content: '',
     label: '',
   })
 
   // Provided fields land on the row as given.
   const filledId = prompts.createPrompt({ content: 'Be terse.', label: 'Terse' })
-  expect(typedStore.tables.prompts.requireEntity(filledId)).toMatchObject({
+  expect(boundStore.tables.prompts.requireEntity(filledId)).toMatchObject({
     content: 'Be terse.',
     label: 'Terse',
   })
 })
 
 test('deletePrompt removes the row and unlinks it from session configs', () => {
-  const { libraryStore, prompts, runConfigs, typedStore } = createPromptHarness()
+  const { libraryStore, prompts, runConfigs, boundStore } = createPromptHarness()
   const transcripts = new Transcripts({ libraryStore, runConfigs })
   const promptId = prompts.createPrompt({ content: 'Be terse.' })
 
@@ -47,9 +47,9 @@ test('deletePrompt removes the row and unlinks it from session configs', () => {
   prompts.deletePrompt(promptId)
 
   // The prompt row is gone and only the linked session falls back to the '' sentinel.
-  expect(typedStore.tables.prompts.hasRow(promptId)).toBe(false)
-  expect(typedStore.tables.sessions.requireEntity(linkedSessionId).config.systemPromptId).toBe('')
-  expect(typedStore.tables.sessions.requireEntity(unrelatedSessionId).config.systemPromptId).toBe(
+  expect(boundStore.tables.prompts.hasRow(promptId)).toBe(false)
+  expect(boundStore.tables.sessions.requireEntity(linkedSessionId).config.systemPromptId).toBe('')
+  expect(boundStore.tables.sessions.requireEntity(unrelatedSessionId).config.systemPromptId).toBe(
     'other',
   )
 })

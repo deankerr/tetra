@@ -1,7 +1,7 @@
 import type {
   LibraryRows as Rows,
   LibraryTypedIndexes,
-  LibraryTypedStore,
+  LibraryBoundStore,
 } from '@tetra/schemas/library'
 import type { UIMessage } from 'ai'
 
@@ -15,26 +15,26 @@ export class TranscriptSession {
   readonly id: string
 
   private readonly nextMessageId: () => string
-  private readonly typedIndexes: LibraryTypedIndexes
-  private readonly typedStore: LibraryTypedStore
+  private readonly boundIndexes: LibraryTypedIndexes
+  private readonly boundStore: LibraryBoundStore
   private readonly tree: TranscriptMessageTree
 
   constructor({
     id,
     nextMessageId,
-    typedIndexes,
-    typedStore,
+    boundIndexes,
+    boundStore,
   }: {
     id: string
     nextMessageId: () => string
-    typedIndexes: LibraryTypedIndexes
-    typedStore: LibraryTypedStore
+    boundIndexes: LibraryTypedIndexes
+    boundStore: LibraryBoundStore
   }) {
     this.id = id
     this.nextMessageId = nextMessageId
-    this.typedIndexes = typedIndexes
-    this.typedStore = typedStore
-    this.tree = new TranscriptMessageTree({ sessionId: id, typedIndexes, typedStore })
+    this.boundIndexes = boundIndexes
+    this.boundStore = boundStore
+    this.tree = new TranscriptMessageTree({ boundIndexes, boundStore, sessionId: id })
   }
 
   appendMessage(args: {
@@ -42,7 +42,7 @@ export class TranscriptSession {
     parts: UIMessage['parts']
     role: Rows['messages']['role']
   }): string {
-    const session = this.typedStore.tables.sessions.requireEntity(this.id)
+    const session = this.boundStore.tables.sessions.requireEntity(this.id)
     if (args.parentMessageId !== null) {
       this.tree.requireMessage(args.parentMessageId)
     }
@@ -52,8 +52,8 @@ export class TranscriptSession {
     const inferredTitle = getInferredTitle({ parts: args.parts, role: args.role, session })
 
     // Persist caller-authored message content with explicit parentage.
-    this.typedStore.transaction(() => {
-      this.typedStore.tables.messages.setRow(messageId, {
+    this.boundStore.transaction(() => {
+      this.boundStore.tables.messages.setRow(messageId, {
         createdAt: now,
         parentMessageId: args.parentMessageId,
         parts: args.parts,
@@ -62,11 +62,11 @@ export class TranscriptSession {
         updatedAt: now,
       })
       if (inferredTitle === null) {
-        this.typedStore.tables.sessions.setCell(this.id, 'updatedAt', now)
+        this.boundStore.tables.sessions.setCell(this.id, 'updatedAt', now)
         return
       }
 
-      this.typedStore.tables.sessions.updateRow(this.id, {
+      this.boundStore.tables.sessions.updateRow(this.id, {
         title: inferredTitle,
         updatedAt: now,
       })
@@ -85,23 +85,23 @@ export class TranscriptSession {
     const now = Date.now()
 
     // Remove run and step sidecars before dropping the target content row.
-    this.typedStore.transaction(() => {
-      for (const runId of this.typedIndexes.getSliceRowIds(
+    this.boundStore.transaction(() => {
+      for (const runId of this.boundIndexes.getSliceRowIds(
         'runsByTargetMessageNewestFirst',
         message.id,
       )) {
-        for (const stepId of this.typedIndexes.getSliceRowIds('stepsByRun', runId)) {
-          this.typedStore.tables.steps.deleteRow(stepId)
+        for (const stepId of this.boundIndexes.getSliceRowIds('stepsByRun', runId)) {
+          this.boundStore.tables.steps.deleteRow(stepId)
         }
-        this.typedStore.tables.runs.deleteRow(runId)
+        this.boundStore.tables.runs.deleteRow(runId)
       }
 
-      for (const stepId of this.typedIndexes.getSliceRowIds('stepsByMessage', message.id)) {
-        this.typedStore.tables.steps.deleteRow(stepId)
+      for (const stepId of this.boundIndexes.getSliceRowIds('stepsByMessage', message.id)) {
+        this.boundStore.tables.steps.deleteRow(stepId)
       }
 
-      this.typedStore.tables.messages.deleteRow(message.id)
-      this.typedStore.tables.sessions.setCell(this.id, 'updatedAt', now)
+      this.boundStore.tables.messages.deleteRow(message.id)
+      this.boundStore.tables.sessions.setCell(this.id, 'updatedAt', now)
     })
   }
 
@@ -129,31 +129,31 @@ export class TranscriptSession {
     }
 
     // Touch the owning session so coarse activity ordering follows transcript edits.
-    this.typedStore.transaction(() => {
-      this.typedStore.tables.messages.updateRow(messageId, update)
-      this.typedStore.tables.sessions.setCell(this.id, 'updatedAt', now)
+    this.boundStore.transaction(() => {
+      this.boundStore.tables.messages.updateRow(messageId, update)
+      this.boundStore.tables.sessions.setCell(this.id, 'updatedAt', now)
     })
   }
 
   export() {
-    const session = this.typedStore.tables.sessions.requireEntity(this.id)
+    const session = this.boundStore.tables.sessions.requireEntity(this.id)
 
     // Export every message in the session so forks and alternate continuations stay inspectable.
     return {
       exportedAt: new Date().toISOString(),
       messages: this.listMessages(),
-      runs: this.typedIndexes
+      runs: this.boundIndexes
         .getSliceRowIds('runsBySessionNewestFirst', this.id)
-        .map((id) => this.typedStore.tables.runs.requireEntity(id)),
+        .map((id) => this.boundStore.tables.runs.requireEntity(id)),
       session,
-      steps: this.typedIndexes
+      steps: this.boundIndexes
         .getSliceRowIds('stepsBySession', this.id)
-        .map((id) => this.typedStore.tables.steps.requireEntity(id)),
+        .map((id) => this.boundStore.tables.steps.requireEntity(id)),
     }
   }
 
   getMessagePath(args: { messageId: string | null }): TranscriptMessagePath {
-    this.typedStore.tables.sessions.requireEntity(this.id)
+    this.boundStore.tables.sessions.requireEntity(this.id)
     const { messageId } = args
     if (messageId !== null) {
       this.tree.requireMessage(messageId)
@@ -176,7 +176,7 @@ export class TranscriptSession {
   }
 
   resolveThread(args: { fromMessageId: string }): TranscriptThread {
-    this.typedStore.tables.sessions.requireEntity(this.id)
+    this.boundStore.tables.sessions.requireEntity(this.id)
     const leafMessageId = this.tree.getNewestLeafMessageIdUnder(args.fromMessageId)
 
     // Resolved threads are continuable root-to-leaf paths from an explicit message anchor.

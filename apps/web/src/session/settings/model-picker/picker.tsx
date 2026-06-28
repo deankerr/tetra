@@ -231,7 +231,7 @@ export function ModelPickerSheet({
   value: string
 }) {
   const { stores } = useApp()
-  const libraryStore = stores.library.typedStore
+  const libraryStore = stores.library.boundStore
   const [filter, setFilter] = useState<ModelFilter>('all')
   const [query, setQuery] = useState('')
   const [sortMode, setSortMode] = useState<ModelSortMode>('latest')

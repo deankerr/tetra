@@ -1,4 +1,4 @@
-import type { LibraryStoreInstance, LibraryTypedStore } from '@tetra/schemas/library'
+import type { LibraryStoreInstance, LibraryBoundStore } from '@tetra/schemas/library'
 
 import { createIdGenerator } from '#ids'
 import type { RunConfigs } from '#run-configs'
@@ -8,7 +8,7 @@ import type { RunConfigs } from '#run-configs'
 export class Prompts {
   private readonly nextPromptId = createIdGenerator('prpt')
   private readonly runConfigs: RunConfigs
-  private readonly typedStore: LibraryTypedStore
+  private readonly boundStore: LibraryBoundStore
 
   constructor({
     libraryStore,
@@ -18,14 +18,14 @@ export class Prompts {
     runConfigs: RunConfigs
   }) {
     this.runConfigs = runConfigs
-    this.typedStore = libraryStore.typedStore
+    this.boundStore = libraryStore.boundStore
   }
 
   createPrompt(args: { content?: string; label?: string } = {}): string {
     const promptId = this.nextPromptId()
     const now = Date.now()
 
-    this.typedStore.tables.prompts.setRow(promptId, {
+    this.boundStore.tables.prompts.setRow(promptId, {
       content: args.content ?? '',
       createdAt: now,
       label: args.label ?? '',
@@ -38,11 +38,11 @@ export class Prompts {
   // Removes the prompt and asks RunConfigs to unlink it from session configs.
   // TinyBase transactions nest, so the unlink merges into this transaction.
   deletePrompt(promptId: string): void {
-    this.typedStore.tables.prompts.requireEntity(promptId)
+    this.boundStore.tables.prompts.requireEntity(promptId)
 
-    this.typedStore.transaction(() => {
+    this.boundStore.transaction(() => {
       this.runConfigs.unlinkPrompt(promptId)
-      this.typedStore.tables.prompts.deleteRow(promptId)
+      this.boundStore.tables.prompts.deleteRow(promptId)
     })
   }
 
@@ -52,6 +52,6 @@ export class Prompts {
       return undefined
     }
 
-    return this.typedStore.tables.prompts.requireEntity(systemPromptId).content
+    return this.boundStore.tables.prompts.requireEntity(systemPromptId).content
   }
 }

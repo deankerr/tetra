@@ -22,7 +22,7 @@ export function PersistedRunConfigProvider({
   sessionId: string
 }) {
   const { stores } = useApp()
-  const libraryStore = stores.library.typedStore
+  const libraryStore = stores.library.boundStore
   const storedConfig = libraryTinybase.useCell('sessions', sessionId, 'config')
   const config = SessionRunConfigSchema.parse(storedConfig ?? {})
 

@@ -2,8 +2,8 @@ import { beforeEach, expect, mock, test } from 'bun:test'
 
 import { z } from 'zod'
 
-import { defineTypedStore } from './index.ts'
-import { defineStoreDefinition } from './runtime.ts'
+import { defineStoreSchema } from '../index.ts'
+import { defineStoreDefinition } from '../runtime/index.ts'
 
 interface HookState {
   cell: unknown
@@ -53,10 +53,10 @@ const tinybaseHooks = {
 await mock.module('tinybase/ui-react/with-schemas', () => tinybaseHooks)
 
 const { createStoreReactApi, createTinyBaseProviderProps, StoreProvider } =
-  await import('./react.ts')
+  await import('./index.ts')
 
 const createStoreSchema = () =>
-  defineTypedStore({
+  defineStoreSchema({
     tables: {
       sessions: z.object({
         messageCount: z.coerce.number().default(0),

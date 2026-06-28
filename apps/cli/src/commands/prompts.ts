@@ -20,7 +20,7 @@ export function registerPromptCommands(
     .description('List stored prompts')
     .action(async () => {
       const ctx = await getContext()
-      const rows = ctx.stores.library.typedStore.tables.prompts
+      const rows = ctx.stores.library.boundStore.tables.prompts
         .listEntities()
         .toSorted((a, b) => a.id.localeCompare(b.id))
 
@@ -57,7 +57,7 @@ export function registerPromptCommands(
     .description('Show a stored prompt')
     .action(async (promptId: string) => {
       const ctx = await getContext()
-      const row = ctx.stores.library.typedStore.tables.prompts.requireEntity(promptId)
+      const row = ctx.stores.library.boundStore.tables.prompts.requireEntity(promptId)
       console.log(`id:      ${row.id}`)
       console.log(`label:   ${row.label || '(none)'}`)
       console.log(`content:\n${row.content}`)
@@ -81,7 +81,7 @@ export function registerPromptCommands(
         throw new Error('No prompt fields provided')
       }
 
-      ctx.stores.library.typedStore.tables.prompts.updateRow(promptId, update)
+      ctx.stores.library.boundStore.tables.prompts.updateRow(promptId, update)
       console.log(promptId)
     })
 

@@ -3,11 +3,11 @@ import type { ReactNode } from 'react'
 import * as UiReact from 'tinybase/ui-react/with-schemas'
 import type { z } from 'zod'
 
-import type { IndexIds } from './indexes.ts'
-import type { AnyStoreDefinition } from './runtime.ts'
-import type { TypedStoreSchema } from './store-schema.ts'
-import type { CellOutputOf, EntityOf, OutputRowOf, ValueDefinitions } from './store.ts'
-import type { TableDefinitions, TableSchemaOf } from './table.ts'
+import type { IndexIds } from '../binding/indexes.ts'
+import type { CellOutputOf, EntityOf, OutputRowOf } from '../binding/store.ts'
+import type { AnyStoreDefinition } from '../runtime/index.ts'
+import type { StoreSchema } from '../schema/define.ts'
+import type { TableDefinitions, TableSchemaOf, ValueDefinitions } from '../schema/types.ts'
 
 // oxlint-disable no-unsafe-return, no-unsafe-type-assertion -- React hooks cross from TinyBase's coarse schema into zod-derived row types.
 
@@ -42,11 +42,9 @@ type LooseStoreOrStoreId = Parameters<LooseHooks['useValue']>[1]
 type DefinitionSchema<Definition extends AnyStoreDefinition> = Definition['schema']
 type DefinitionIndexIds<Definition extends AnyStoreDefinition> = Definition['indexIds']
 
-type TablesOf<Schema> =
-  Schema extends TypedStoreSchema<infer Tables, ValueDefinitions> ? Tables : never
+type TablesOf<Schema> = Schema extends StoreSchema<infer Tables, ValueDefinitions> ? Tables : never
 
-type ValuesOf<Schema> =
-  Schema extends TypedStoreSchema<TableDefinitions, infer Values> ? Values : never
+type ValuesOf<Schema> = Schema extends StoreSchema<TableDefinitions, infer Values> ? Values : never
 
 interface StoreProviderProps {
   children: ReactNode
@@ -75,8 +73,7 @@ function getStoreIndexesId<const Id extends string>(storeId: Id): `${Id}Indexes`
 
 export interface StoreReactApi<
   Definition extends AnyStoreDefinition,
-  Schema extends TypedStoreSchema<TableDefinitions, ValueDefinitions> =
-    DefinitionSchema<Definition>,
+  Schema extends StoreSchema<TableDefinitions, ValueDefinitions> = DefinitionSchema<Definition>,
   Tables extends TableDefinitions = TablesOf<Schema>,
   Values extends ValueDefinitions = ValuesOf<Schema>,
   IndexIdList extends IndexIds = DefinitionIndexIds<Definition>,
@@ -148,7 +145,7 @@ function createStoreHooks<
   const Tables extends TableDefinitions,
   const Values extends ValueDefinitions,
   const IndexIdList extends IndexIds,
->(storeSchema: TypedStoreSchema<Tables, Values>, indexIds: IndexIdList) {
+>(storeSchema: StoreSchema<Tables, Values>, indexIds: IndexIdList) {
   void indexIds
 
   return {

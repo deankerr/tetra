@@ -38,7 +38,7 @@ const useSessionIds = () => {
 
 export function SessionGroup() {
   const { stores, transcripts } = useApp()
-  const libraryStore = stores.library.typedStore
+  const libraryStore = stores.library.boundStore
   const activeSessionMatch = useMatch({
     from: '/sessions/$sessionId',
     shouldThrow: false,

@@ -28,8 +28,8 @@ export class ModelCatalog {
   }
 
   async refresh(args: { force?: boolean } = {}): Promise<void> {
-    const { typedStore } = this.catalogStore
-    const { lastRefreshed } = typedStore.values
+    const { boundStore } = this.catalogStore
+    const { lastRefreshed } = boundStore.values
     const refreshedAt = lastRefreshed.get()
     const isStale = refreshedAt === null || Date.now() - refreshedAt > STALE_MS
     if (args.force !== true && !isStale) {
@@ -67,15 +67,15 @@ export class ModelCatalog {
 
     // Publish the catalog replacement and refresh timestamp as one TinyBase event.
     const incomingIds = new Set(models.map((m) => m.id))
-    typedStore.transaction(() => {
-      for (const existingId of typedStore.tables.languageModels.getRowIds()) {
+    boundStore.transaction(() => {
+      for (const existingId of boundStore.tables.languageModels.getRowIds()) {
         if (!incomingIds.has(existingId)) {
-          typedStore.tables.languageModels.deleteRow(existingId)
+          boundStore.tables.languageModels.deleteRow(existingId)
         }
       }
       for (const { id, ...record } of models) {
-        const existing = typedStore.tables.languageModels.getEntity(id)
-        typedStore.tables.languageModels.setRow(id, {
+        const existing = boundStore.tables.languageModels.getEntity(id)
+        boundStore.tables.languageModels.setRow(id, {
           ...record,
           createdAt: existing?.createdAt ?? record.createdAt,
         })

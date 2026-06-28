@@ -16,23 +16,23 @@ import type { LanguageModelResolver } from './language-model-resolver.ts'
 function createTestDb() {
   // Tests own the same library store instance shape used by app composition roots.
   const libraryStore = createStoreInstance(libraryStoreDefinition)
-  const { rawIndexes, rawStore, typedIndexes, typedStore } = libraryStore
+  const { rawIndexes, rawStore, boundIndexes, boundStore } = libraryStore
   return {
+    boundIndexes,
+    boundStore,
     libraryStore,
     rawIndexes,
     rawStore,
-    typedIndexes,
-    typedStore,
   }
 }
 
 function createTestRuntime() {
   const context = createTestDb()
-  const { libraryStore, typedIndexes, typedStore } = context
+  const { libraryStore, boundIndexes, boundStore } = context
   const runConfigs = new RunConfigs({ libraryStore })
   const prompts = new Prompts({ libraryStore, runConfigs })
   const transcripts = new Transcripts({ libraryStore, runConfigs })
-  const core = { prompts, transcripts, typedIndexes, typedStore }
+  const core = { boundIndexes, boundStore, prompts, transcripts }
   const credentials = new CredentialsStore([])
   const streamChunks: LanguageModelV3StreamPart[] = [
     { type: 'stream-start', warnings: [] },
@@ -129,12 +129,12 @@ test('generate streams through the AI SDK into TinyBase rows', async () => {
   })
 
   const run = runs.generate({ targetMessageId })
-  expect(core.typedStore.tables.runs.requireEntity(run.runId).status).toBe('active')
+  expect(core.boundStore.tables.runs.requireEntity(run.runId).status).toBe('active')
 
   await run.done
 
   const messages = listThreadFromNewestLeaf(core, sessionId)
-  const runRecord = core.typedStore.tables.runs.requireEntity(run.runId)
+  const runRecord = core.boundStore.tables.runs.requireEntity(run.runId)
 
   expect(run.status).toBe('completed')
   expect(runRecord.status).toBe('completed')
@@ -156,9 +156,9 @@ test('generate streams through the AI SDK into TinyBase rows', async () => {
     type: 'text',
   })
   expect(run.finalParts).toEqual(messages[1]?.parts)
-  const steps = core.typedIndexes
+  const steps = core.boundIndexes
     .getSliceRowIds('stepsByRun', run.runId)
-    .map((id) => core.typedStore.tables.steps.requireEntity(id))
+    .map((id) => core.boundStore.tables.steps.requireEntity(id))
   expect(steps).toHaveLength(1)
   expect(steps[0]).toMatchObject({
     finishReason: 'stop',
@@ -181,11 +181,11 @@ test('generate streams through the AI SDK into TinyBase rows', async () => {
 
 test('streaming snapshots persist to the target message before terminal status', async () => {
   const context = createTestDb()
-  const { libraryStore, typedIndexes, typedStore } = context
+  const { libraryStore, boundIndexes, boundStore } = context
   const runConfigs = new RunConfigs({ libraryStore })
   const prompts = new Prompts({ libraryStore, runConfigs })
   const transcripts = new Transcripts({ libraryStore, runConfigs })
-  const core = { prompts, transcripts, typedIndexes, typedStore }
+  const core = { boundIndexes, boundStore, prompts, transcripts }
   const credentials = new CredentialsStore([])
   const model = new MockLanguageModelV3({
     doStream: {
@@ -239,22 +239,22 @@ test('streaming snapshots persist to the target message before terminal status',
     firstSnapshot.resolve()
   }
   run.addEventListener('snapshot', handleSnapshot)
-  const messageBeforeSnapshot = core.typedStore.tables.messages.requireEntity(targetMessageId)
-  const sessionAfterGenerate = core.typedStore.tables.sessions.requireEntity(sessionId)
+  const messageBeforeSnapshot = core.boundStore.tables.messages.requireEntity(targetMessageId)
+  const sessionAfterGenerate = core.boundStore.tables.sessions.requireEntity(sessionId)
 
   await firstSnapshot.promise
 
-  const messageAfterSnapshot = core.typedStore.tables.messages.requireEntity(targetMessageId)
-  const sessionAfterSnapshot = core.typedStore.tables.sessions.requireEntity(sessionId)
+  const messageAfterSnapshot = core.boundStore.tables.messages.requireEntity(targetMessageId)
+  const sessionAfterSnapshot = core.boundStore.tables.sessions.requireEntity(sessionId)
 
   expect(messageAfterSnapshot.parts.length).toBeGreaterThan(0)
   expect(messageAfterSnapshot.updatedAt).toBeGreaterThan(messageBeforeSnapshot.updatedAt)
   expect(sessionAfterSnapshot.updatedAt).toBe(sessionAfterGenerate.updatedAt)
-  expect(core.typedStore.tables.runs.requireEntity(run.runId).status).toBe('active')
+  expect(core.boundStore.tables.runs.requireEntity(run.runId).status).toBe('active')
 
   await run.done
   expect(
-    core.typedStore.tables.messages.requireEntity(targetMessageId).parts.length,
+    core.boundStore.tables.messages.requireEntity(targetMessageId).parts.length,
   ).toBeGreaterThan(0)
 })
 
@@ -272,15 +272,15 @@ test('Pre-Run Invariants — throws before creating run when systemPromptId is m
     parts: [],
     role: 'assistant',
   })
-  const runsBefore = core.typedIndexes.getSliceRowIds('runsBySessionNewestFirst', sessionId)
-  const sessionBefore = core.typedStore.tables.sessions.requireEntity(sessionId)
+  const runsBefore = core.boundIndexes.getSliceRowIds('runsBySessionNewestFirst', sessionId)
+  const sessionBefore = core.boundStore.tables.sessions.requireEntity(sessionId)
 
   expect(() => runs.generate({ targetMessageId })).toThrow(
     'Missing row: prompts/non-existent-prompt',
   )
 
-  const runsAfter = core.typedIndexes.getSliceRowIds('runsBySessionNewestFirst', sessionId)
-  const sessionAfter = core.typedStore.tables.sessions.requireEntity(sessionId)
+  const runsAfter = core.boundIndexes.getSliceRowIds('runsBySessionNewestFirst', sessionId)
+  const sessionAfter = core.boundStore.tables.sessions.requireEntity(sessionId)
 
   expect(runsAfter).toHaveLength(runsBefore.length)
   expect(sessionAfter.updatedAt).toBe(sessionBefore.updatedAt)
@@ -370,16 +370,16 @@ test('Generate Invariants — refuses to write into a message with existing part
     parts: [{ text: 'existing output', type: 'text' }],
     role: 'assistant',
   })
-  const runsBefore = core.typedIndexes.getSliceRowIds('runsBySessionNewestFirst', sessionId)
+  const runsBefore = core.boundIndexes.getSliceRowIds('runsBySessionNewestFirst', sessionId)
 
   expect(() => runs.generate({ targetMessageId })).toThrow(
     `Cannot generate into a message with existing parts: ${targetMessageId}`,
   )
 
-  expect(core.typedStore.tables.messages.requireEntity(targetMessageId).parts).toEqual([
+  expect(core.boundStore.tables.messages.requireEntity(targetMessageId).parts).toEqual([
     { text: 'existing output', type: 'text' },
   ])
-  expect(core.typedIndexes.getSliceRowIds('runsBySessionNewestFirst', sessionId)).toEqual(
+  expect(core.boundIndexes.getSliceRowIds('runsBySessionNewestFirst', sessionId)).toEqual(
     runsBefore,
   )
 })
@@ -430,18 +430,18 @@ test('Caller-Owned Regeneration — sibling target preserves the old output', as
 
   const firstRun = runs.generate({ targetMessageId: oldTargetMessageId })
   await firstRun.done
-  expect(core.typedIndexes.getSliceRowIds('stepsByMessage', oldTargetMessageId)).toHaveLength(1)
+  expect(core.boundIndexes.getSliceRowIds('stepsByMessage', oldTargetMessageId)).toHaveLength(1)
 
-  const oldTargetMessage = core.typedStore.tables.messages.requireEntity(oldTargetMessageId)
+  const oldTargetMessage = core.boundStore.tables.messages.requireEntity(oldTargetMessageId)
   const newTargetMessageId = core.transcripts.getSession(sessionId).appendMessage({
     parentMessageId: oldTargetMessage.parentMessageId,
     parts: [],
     role: oldTargetMessage.role,
   })
 
-  expect(core.typedStore.tables.messages.getEntity(oldTargetMessageId)).not.toBeNull()
-  expect(core.typedIndexes.getSliceRowIds('stepsByMessage', oldTargetMessageId)).toHaveLength(1)
-  expect(core.typedIndexes.getSliceRowIds('stepsByRun', firstRun.runId)).toHaveLength(1)
+  expect(core.boundStore.tables.messages.getEntity(oldTargetMessageId)).not.toBeNull()
+  expect(core.boundIndexes.getSliceRowIds('stepsByMessage', oldTargetMessageId)).toHaveLength(1)
+  expect(core.boundIndexes.getSliceRowIds('stepsByRun', firstRun.runId)).toHaveLength(1)
 
   const run = runs.generate({ targetMessageId: newTargetMessageId })
   await run.done
@@ -457,11 +457,11 @@ test('Caller-Owned Regeneration — sibling target preserves the old output', as
 
 test('Tool Loop — tool call executes and result appears in final parts', async () => {
   const context = createTestDb()
-  const { libraryStore, typedIndexes, typedStore } = context
+  const { libraryStore, boundIndexes, boundStore } = context
   const runConfigs = new RunConfigs({ libraryStore })
   const prompts = new Prompts({ libraryStore, runConfigs })
   const transcripts = new Transcripts({ libraryStore, runConfigs })
-  const core = { prompts, transcripts, typedIndexes, typedStore }
+  const core = { boundIndexes, boundStore, prompts, transcripts }
   const credentials = new CredentialsStore([])
 
   const toolCallChunks: LanguageModelV3StreamPart[] = [
@@ -570,11 +570,11 @@ test('Tool Loop — tool call executes and result appears in final parts', async
 
 test('Error Path — stream error sets run to error status', async () => {
   const context = createTestDb()
-  const { libraryStore, typedIndexes, typedStore } = context
+  const { libraryStore, boundIndexes, boundStore } = context
   const runConfigs = new RunConfigs({ libraryStore })
   const prompts = new Prompts({ libraryStore, runConfigs })
   const transcripts = new Transcripts({ libraryStore, runConfigs })
-  const core = { prompts, transcripts, typedIndexes, typedStore }
+  const core = { boundIndexes, boundStore, prompts, transcripts }
   const credentials = new CredentialsStore([])
 
   const model = new MockLanguageModelV3({
@@ -608,7 +608,7 @@ test('Error Path — stream error sets run to error status', async () => {
     return startedRun
   })
 
-  const runRecord = core.typedStore.tables.runs.requireEntity(run.runId)
+  const runRecord = core.boundStore.tables.runs.requireEntity(run.runId)
 
   expect(run.status).toBe('error')
   expect(runRecord.status).toBe('error')
@@ -619,11 +619,11 @@ test('Error Path — stream error sets run to error status', async () => {
 
 test('Error Path — later runs can still run after an error', async () => {
   const context = createTestDb()
-  const { libraryStore, typedIndexes, typedStore } = context
+  const { libraryStore, boundIndexes, boundStore } = context
   const runConfigs = new RunConfigs({ libraryStore })
   const prompts = new Prompts({ libraryStore, runConfigs })
   const transcripts = new Transcripts({ libraryStore, runConfigs })
-  const core = { prompts, transcripts, typedIndexes, typedStore }
+  const core = { boundIndexes, boundStore, prompts, transcripts }
   const credentials = new CredentialsStore([])
 
   let callCount = 0

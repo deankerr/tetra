@@ -3,7 +3,7 @@ import { RunConfigSchema } from '@tetra/schemas/library'
 import type {
   LibraryRows as Rows,
   LibraryRunStatus,
-  LibraryTypedStore,
+  LibraryBoundStore,
   RunConfig as RunConfigType,
 } from '@tetra/schemas/library'
 import { convertToModelMessages, readUIMessageStream, stepCountIs, streamText } from 'ai'
@@ -32,7 +32,7 @@ interface RunInit {
   credentials: CredentialsStore
   start: RunStart
   modelResolver: LanguageModelResolver
-  typedStore: LibraryTypedStore
+  boundStore: LibraryBoundStore
 }
 
 export class Run extends EventTarget {
@@ -59,7 +59,7 @@ export class Run extends EventTarget {
   private readonly credentials: CredentialsStore
   private readonly doneController = Promise.withResolvers<undefined>()
   private readonly modelResolver: LanguageModelResolver
-  private readonly typedStore: LibraryTypedStore
+  private readonly boundStore: LibraryBoundStore
 
   constructor(init: RunInit) {
     super()
@@ -73,7 +73,7 @@ export class Run extends EventTarget {
     this.system = init.start.system
     this.targetMessageId = init.start.targetMessageId
     this.transcriptMessages = init.start.transcriptMessages
-    this.typedStore = init.typedStore
+    this.boundStore = init.boundStore
   }
 
   cancel(): void {
@@ -88,7 +88,7 @@ export class Run extends EventTarget {
     this.parts = [...parts]
     this.finalParts = [...parts]
     this.writeMessagePartsSnapshot(parts)
-    completeRunRecord(this.typedStore, this.runId)
+    completeRunRecord(this.boundStore, this.runId)
     this.setStatus('completed')
     this.dispatchEvent(new Event('finish'))
     this.doneController.resolve()
@@ -98,7 +98,7 @@ export class Run extends EventTarget {
     this.error = error
     if (this.abortController.signal.aborted) {
       this.writeMessagePartsSnapshot(this.parts)
-      cancelRunRecord(this.typedStore, this.runId, 'Run cancelled')
+      cancelRunRecord(this.boundStore, this.runId, 'Run cancelled')
       this.setStatus('cancelled')
       this.dispatchEvent(new Event('cancel'))
       this.doneController.resolve()
@@ -106,7 +106,7 @@ export class Run extends EventTarget {
     }
 
     this.writeMessagePartsSnapshot(this.parts)
-    failRunRecord(this.typedStore, this.runId, error)
+    failRunRecord(this.boundStore, this.runId, error)
     this.setStatus('error')
     this.dispatchEvent(new Event('error'))
     this.doneController.resolve()
@@ -119,7 +119,7 @@ export class Run extends EventTarget {
 
   private recordStep(step: Omit<StepRecord, 'id' | 'messageId' | 'runId' | 'sessionId'>): void {
     const stepId = `${this.runId}_step_${step.stepNumber}`
-    this.typedStore.tables.steps.setRow(stepId, {
+    this.boundStore.tables.steps.setRow(stepId, {
       ...step,
       messageId: this.targetMessageId,
       runId: this.runId,
@@ -208,7 +208,7 @@ export class Run extends EventTarget {
   }
 
   private writeMessagePartsSnapshot(parts: UIMessage['parts'], now = Date.now()): void {
-    this.typedStore.tables.messages.updateRow(this.targetMessageId, {
+    this.boundStore.tables.messages.updateRow(this.targetMessageId, {
       parts,
       updatedAt: now,
     })

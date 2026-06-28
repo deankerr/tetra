@@ -1,17 +1,17 @@
-import type { LibraryTypedStore, RunConfig } from '@tetra/schemas/library'
+import type { LibraryBoundStore, RunConfig } from '@tetra/schemas/library'
 
 import { createIdGenerator } from '#ids'
 
 const nextId = createIdGenerator('run')
 
 export function createRunRecord(
-  typedStore: LibraryTypedStore,
+  boundStore: LibraryBoundStore,
   args: { config: RunConfig; sessionId: string; targetMessageId: string },
 ): string {
   const runId = nextId()
   const now = Date.now()
 
-  typedStore.tables.runs.setRow(runId, {
+  boundStore.tables.runs.setRow(runId, {
     config: args.config,
     createdAt: now,
     errorMessage: '',
@@ -25,18 +25,18 @@ export function createRunRecord(
   return runId
 }
 
-export function completeRunRecord(typedStore: LibraryTypedStore, runId: string): void {
+export function completeRunRecord(boundStore: LibraryBoundStore, runId: string): void {
   const now = Date.now()
-  typedStore.tables.runs.updateRow(runId, {
+  boundStore.tables.runs.updateRow(runId, {
     status: 'completed',
     terminalAt: now,
     updatedAt: now,
   })
 }
 
-export function cancelRunRecord(typedStore: LibraryTypedStore, runId: string, message = ''): void {
+export function cancelRunRecord(boundStore: LibraryBoundStore, runId: string, message = ''): void {
   const now = Date.now()
-  typedStore.tables.runs.updateRow(runId, {
+  boundStore.tables.runs.updateRow(runId, {
     errorMessage: message,
     status: 'cancelled',
     terminalAt: now,
@@ -44,9 +44,9 @@ export function cancelRunRecord(typedStore: LibraryTypedStore, runId: string, me
   })
 }
 
-export function failRunRecord(typedStore: LibraryTypedStore, runId: string, error: unknown): void {
+export function failRunRecord(boundStore: LibraryBoundStore, runId: string, error: unknown): void {
   const now = Date.now()
-  typedStore.tables.runs.updateRow(runId, {
+  boundStore.tables.runs.updateRow(runId, {
     errorMessage: String(error),
     status: 'error',
     terminalAt: now,

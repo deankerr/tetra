@@ -1,7 +1,12 @@
 import type { z } from 'zod'
 
-import type { TableDefinitions, TableSchemaOf } from './table.ts'
-import type { AnyZod, RowZod } from './types.ts'
+import type {
+  AnyZod,
+  RowZod,
+  TableDefinitions,
+  TableSchemaOf,
+  ValueDefinitions,
+} from '../schema/types.ts'
 
 interface StoreApi {
   delRow(tableId: string, rowId: string): unknown
@@ -19,7 +24,6 @@ interface StoreApi {
   transaction(fn: () => void): unknown
 }
 
-export type ValueDefinitions = Record<string, AnyZod>
 export type EntityOf<Schema extends RowZod> = z.output<Schema> & { id: string }
 type InputRowOf<Schema extends RowZod> = z.input<Schema>
 export type OutputRowOf<Schema extends RowZod> = z.output<Schema>
@@ -104,7 +108,7 @@ export function bindStore<
   const tableAccessors = Object.fromEntries(
     (Object.keys(tables) as (keyof Tables & string)[]).map((tableId) => [
       tableId,
-      createTableApi(store, tableId, tables[tableId]),
+      tablesApi.get(tableId),
     ]),
   )
 
@@ -118,7 +122,7 @@ export function bindStore<
   const valueAccessors = Object.fromEntries(
     (Object.keys(values) as (keyof Values & string)[]).map((valueId) => [
       valueId,
-      createValueApi(store, valueId, values[valueId]),
+      valuesApi.get(valueId),
     ]),
   )
 
@@ -160,8 +164,7 @@ function createTableApi<Schema extends RowZod>(
           return []
         }
 
-        const parsed = schema.parse(store.getRow(tableId, rowId))
-        return [{ ...parsed, id: rowId }]
+        return [parseEntity(schema, rowId, store.getRow(tableId, rowId))]
       })
     },
 
@@ -170,8 +173,7 @@ function createTableApi<Schema extends RowZod>(
         return null
       }
 
-      const parsed = schema.parse(store.getRow(tableId, rowId))
-      return { ...parsed, id: rowId }
+      return parseEntity(schema, rowId, store.getRow(tableId, rowId))
     },
 
     getRow(rowId) {
@@ -191,10 +193,9 @@ function createTableApi<Schema extends RowZod>(
     },
 
     listEntities() {
-      return store.getRowIds(tableId).map((rowId) => {
-        const parsed = schema.parse(store.getRow(tableId, rowId))
-        return { ...parsed, id: rowId }
-      })
+      return store
+        .getRowIds(tableId)
+        .map((rowId) => parseEntity(schema, rowId, store.getRow(tableId, rowId)))
     },
 
     requireEntity(rowId) {
@@ -250,15 +251,11 @@ function createValueApi<Schema extends AnyZod>(
   }
 }
 
-export function parseEntity<Schema extends RowZod>(schema: Schema, rowId: string, row: unknown) {
-  const parsed = schema.parse(row)
-  return { ...parsed, id: rowId }
-}
-
-export function parseRow<Schema extends RowZod>(schema: Schema, row: unknown) {
-  return schema.parse(row)
-}
-
-export function parseValue<Schema extends AnyZod>(schema: Schema, value: unknown) {
-  return schema.parse(value) as z.output<Schema>
+// Single source of the entity shape: parse the row, then attach its id.
+export function parseEntity<Schema extends RowZod>(
+  schema: Schema,
+  rowId: string,
+  row: unknown,
+): EntityOf<Schema> {
+  return { ...schema.parse(row), id: rowId }
 }

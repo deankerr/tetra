@@ -55,7 +55,7 @@ export function createCliAppContext({
 export type CliAppContext = ReturnType<typeof createCliAppContext>
 
 function connectCliWorkspace(stores: CliStores) {
-  const { activeSessionId } = stores.cli.typedStore.values
+  const { activeSessionId } = stores.cli.boundStore.values
 
   // Active session is CLI-local state.
   return {

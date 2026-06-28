@@ -1,7 +1,7 @@
 import type {
   LibraryStoreInstance,
   LibraryTypedIndexes,
-  LibraryTypedStore,
+  LibraryBoundStore,
   RunConfig,
 } from '@tetra/schemas/library'
 
@@ -14,8 +14,8 @@ export class Transcripts {
   private readonly nextMessageId = createIdGenerator('msg')
   private readonly nextSessionId = createIdGenerator('sess')
   private readonly runConfigs: RunConfigs
-  private readonly typedIndexes: LibraryTypedIndexes
-  private readonly typedStore: LibraryTypedStore
+  private readonly boundIndexes: LibraryTypedIndexes
+  private readonly boundStore: LibraryBoundStore
 
   constructor({
     libraryStore,
@@ -25,8 +25,8 @@ export class Transcripts {
     runConfigs: RunConfigs
   }) {
     this.runConfigs = runConfigs
-    this.typedIndexes = libraryStore.typedIndexes
-    this.typedStore = libraryStore.typedStore
+    this.boundIndexes = libraryStore.boundIndexes
+    this.boundStore = libraryStore.boundStore
   }
 
   createSession(
@@ -42,8 +42,8 @@ export class Transcripts {
 
     // Create an empty session; only real caller-created messages enter the transcript.
     // RunConfigs parses the birth merge before writing, so a bad config leaves nothing behind.
-    this.typedStore.transaction(() => {
-      this.typedStore.tables.sessions.setRow(sessionId, {
+    this.boundStore.transaction(() => {
+      this.boundStore.tables.sessions.setRow(sessionId, {
         config,
         createdAt: now,
         title: args.title ?? '',
@@ -56,35 +56,35 @@ export class Transcripts {
   }
 
   deleteSession(sessionId: string): void {
-    this.typedStore.tables.sessions.requireEntity(sessionId)
+    this.boundStore.tables.sessions.requireEntity(sessionId)
 
     // Cascade session-owned rows before deleting the session row itself.
-    this.typedStore.transaction(() => {
-      for (const runId of this.typedIndexes.getSliceRowIds('runsBySessionNewestFirst', sessionId)) {
-        this.typedStore.tables.runs.deleteRow(runId)
+    this.boundStore.transaction(() => {
+      for (const runId of this.boundIndexes.getSliceRowIds('runsBySessionNewestFirst', sessionId)) {
+        this.boundStore.tables.runs.deleteRow(runId)
       }
 
-      for (const stepId of this.typedIndexes.getSliceRowIds('stepsBySession', sessionId)) {
-        this.typedStore.tables.steps.deleteRow(stepId)
+      for (const stepId of this.boundIndexes.getSliceRowIds('stepsBySession', sessionId)) {
+        this.boundStore.tables.steps.deleteRow(stepId)
       }
 
-      for (const messageId of this.typedIndexes.getSliceRowIds('messagesBySession', sessionId)) {
-        this.typedStore.tables.messages.deleteRow(messageId)
+      for (const messageId of this.boundIndexes.getSliceRowIds('messagesBySession', sessionId)) {
+        this.boundStore.tables.messages.deleteRow(messageId)
       }
 
-      this.typedStore.tables.sessions.deleteRow(sessionId)
+      this.boundStore.tables.sessions.deleteRow(sessionId)
     })
   }
 
   getSession(sessionId: string): TranscriptSession {
-    this.typedStore.tables.sessions.requireEntity(sessionId)
+    this.boundStore.tables.sessions.requireEntity(sessionId)
 
     // Session handles keep mutation calls scoped to one owning session.
     return new TranscriptSession({
+      boundIndexes: this.boundIndexes,
+      boundStore: this.boundStore,
       id: sessionId,
       nextMessageId: this.nextMessageId,
-      typedIndexes: this.typedIndexes,
-      typedStore: this.typedStore,
     })
   }
 }

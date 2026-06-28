@@ -11,11 +11,11 @@ import type { TranscriptSession } from './index.ts'
 function createTranscriptHarness() {
   // Tests own the same library store instance shape used by app composition roots.
   const libraryStore = createStoreInstance(libraryStoreDefinition)
-  const { rawStore, typedIndexes, typedStore } = libraryStore
+  const { rawStore, boundIndexes, boundStore } = libraryStore
   const runConfigs = new RunConfigs({ libraryStore })
   const transcripts = new Transcripts({ libraryStore, runConfigs })
 
-  return { rawStore, transcripts, typedIndexes, typedStore }
+  return { boundIndexes, boundStore, rawStore, transcripts }
 }
 
 function appendText(
@@ -35,7 +35,7 @@ function appendText(
   })
 
   // Created-at ordering is semantic for thread resolution, so tests pin it explicitly.
-  harness.typedStore.tables.messages.updateRow(messageId, {
+  harness.boundStore.tables.messages.updateRow(messageId, {
     createdAt: args.createdAt,
     updatedAt: args.createdAt,
   })
@@ -102,7 +102,7 @@ function createForkedTree() {
 }
 
 test('empty sessions have no synthetic root or thread', () => {
-  const { transcripts, typedStore } = createTranscriptHarness()
+  const { transcripts, boundStore } = createTranscriptHarness()
   const sessionId = transcripts.createSession({
     config: { modelId: 'model-a', systemPromptId: 'prompt-a' },
     title: 'Empty',
@@ -111,8 +111,8 @@ test('empty sessions have no synthetic root or thread', () => {
   const rootPath = session.getMessagePath({ messageId: null })
 
   // Sessions are real before they have messages, but there is no implicit message row.
-  expect(typedStore.tables.sessions.requireEntity(sessionId).title).toBe('Empty')
-  expect(typedStore.tables.sessions.requireEntity(sessionId).config).toMatchObject({
+  expect(boundStore.tables.sessions.requireEntity(sessionId).title).toBe('Empty')
+  expect(boundStore.tables.sessions.requireEntity(sessionId).config).toMatchObject({
     modelId: 'model-a',
     systemPromptId: 'prompt-a',
   })
@@ -124,7 +124,7 @@ test('empty sessions have no synthetic root or thread', () => {
 })
 
 test('blank sessions infer a title from the first user message', () => {
-  const { transcripts, typedStore } = createTranscriptHarness()
+  const { transcripts, boundStore } = createTranscriptHarness()
   const textSession = transcripts.getSession(transcripts.createSession())
   const titledSessionId = transcripts.createSession({ title: 'Manual title' })
   const assistantSession = transcripts.getSession(transcripts.createSession())
@@ -142,7 +142,7 @@ test('blank sessions infer a title from the first user message', () => {
     parts: [{ text: 'A later message should not rename the session', type: 'text' }],
     role: 'user',
   })
-  expect(typedStore.tables.sessions.requireEntity(textSession.id).title).toBe(
+  expect(boundStore.tables.sessions.requireEntity(textSession.id).title).toBe(
     `${firstText.trim().slice(0, 200)}...`,
   )
 
@@ -157,8 +157,8 @@ test('blank sessions infer a title from the first user message', () => {
     parts: [{ text: 'Assistant should not name a session', type: 'text' }],
     role: 'assistant',
   })
-  expect(typedStore.tables.sessions.requireEntity(titledSessionId).title).toBe('Manual title')
-  expect(typedStore.tables.sessions.requireEntity(assistantSession.id).title).toBe('')
+  expect(boundStore.tables.sessions.requireEntity(titledSessionId).title).toBe('Manual title')
+  expect(boundStore.tables.sessions.requireEntity(assistantSession.id).title).toBe('')
 
   // Image-only user messages preserve the existing composer fallback title.
   imageSession.appendMessage({
@@ -166,11 +166,11 @@ test('blank sessions infer a title from the first user message', () => {
     parts: [{ filename: 'image.png', mediaType: 'image/png', type: 'file', url: 'data:image/png' }],
     role: 'user',
   })
-  expect(typedStore.tables.sessions.requireEntity(imageSession.id).title).toBe('Image')
+  expect(boundStore.tables.sessions.requireEntity(imageSession.id).title).toBe('Image')
 })
 
 test('session creation can attach colocated library state in the same transaction', () => {
-  const { rawStore, transcripts, typedStore } = createTranscriptHarness()
+  const { rawStore, transcripts, boundStore } = createTranscriptHarness()
   let finishedTransactions = 0
   const listenerId = rawStore.addDidFinishTransactionListener(() => {
     finishedTransactions += 1
@@ -178,7 +178,7 @@ test('session creation can attach colocated library state in the same transactio
 
   const sessionId = transcripts.createSession({
     onCreate(id) {
-      typedStore.tables.messages.setRow('msg_seed', {
+      boundStore.tables.messages.setRow('msg_seed', {
         createdAt: 1,
         parentMessageId: null,
         parts: [{ text: 'seed', type: 'text' }],
@@ -191,8 +191,8 @@ test('session creation can attach colocated library state in the same transactio
 
   // Caller-owned library rows can be created atomically with the backing session.
   rawStore.delListener(listenerId)
-  expect(typedStore.tables.sessions.getEntity(sessionId)).not.toBeNull()
-  expect(typedStore.tables.messages.requireEntity('msg_seed').sessionId).toBe(sessionId)
+  expect(boundStore.tables.sessions.getEntity(sessionId)).not.toBeNull()
+  expect(boundStore.tables.messages.requireEntity('msg_seed').sessionId).toBe(sessionId)
   expect(finishedTransactions).toBe(1)
 })
 
@@ -343,7 +343,7 @@ test('session-scoped APIs reject messages owned by another session', () => {
 })
 
 test('edits preserve parentage and deletes are leaf-only', () => {
-  const { transcripts, typedStore } = createTranscriptHarness()
+  const { transcripts, boundStore } = createTranscriptHarness()
   const session = transcripts.getSession(transcripts.createSession())
   const rootUserId = session.appendMessage({
     parentMessageId: null,
@@ -361,7 +361,7 @@ test('edits preserve parentage and deletes are leaf-only', () => {
     parts: [{ text: 'edited root', type: 'text' }],
     role: 'critic',
   })
-  expect(typedStore.tables.messages.requireEntity(rootUserId)).toMatchObject({
+  expect(boundStore.tables.messages.requireEntity(rootUserId)).toMatchObject({
     parentMessageId: null,
     parts: [{ text: 'edited root', type: 'text' }],
     role: 'critic',
@@ -370,8 +370,8 @@ test('edits preserve parentage and deletes are leaf-only', () => {
     session.deleteMessage(rootUserId)
   }).toThrow(`Cannot delete message with descendants: ${rootUserId}`)
   session.deleteMessage(assistantId)
-  expect(typedStore.tables.messages.getEntity(assistantId)).toBeNull()
-  expect(typedStore.tables.messages.getEntity(rootUserId)).not.toBeNull()
+  expect(boundStore.tables.messages.getEntity(assistantId)).toBeNull()
+  expect(boundStore.tables.messages.getEntity(rootUserId)).not.toBeNull()
 })
 
 test('exports preserve the whole message tree, not only one resolved thread', () => {
@@ -399,12 +399,12 @@ test('exports preserve the whole message tree, not only one resolved thread', ()
 })
 
 test('corrupt message trees fail loudly instead of inventing a thread', () => {
-  const { transcripts, typedStore } = createTranscriptHarness()
+  const { transcripts, boundStore } = createTranscriptHarness()
   const sessionId = transcripts.createSession()
   const session = transcripts.getSession(sessionId)
 
   // A self-parented row cannot be created through appendMessage, but sync corruption can expose it.
-  typedStore.tables.messages.setRow('msg_cycle', {
+  boundStore.tables.messages.setRow('msg_cycle', {
     createdAt: 1,
     parentMessageId: 'msg_cycle',
     parts: [],

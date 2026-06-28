@@ -4,7 +4,7 @@ import { dirname } from 'node:path'
 
 import { catalogStoreDefinition } from '@tetra/schemas/catalog'
 import { libraryStoreDefinition } from '@tetra/schemas/library'
-import { defineTypedStore } from '@tetra/tinybase-schema'
+import { defineStoreSchema } from '@tetra/tinybase-schema'
 import {
   createMergeableStoreInstance,
   createStoreInstance,
@@ -23,7 +23,7 @@ const SYNC_REQUEST_TIMEOUT_SECONDS = 5
 const SYNC_TIMEOUT_MS = 10_000
 const SYNC_FLUSH_GRACE_MS = 1500
 
-const cliStoreSchema = defineTypedStore({
+const cliStoreSchema = defineStoreSchema({
   tables: {},
   values: {
     activeSessionId: z.string().nullable().default(null),

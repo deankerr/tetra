@@ -5,16 +5,15 @@ import type { MergeableStore as RawMergeableStore } from 'tinybase/mergeable-sto
 import { createStore } from 'tinybase/store/with-schemas'
 import type { Store as RawStore } from 'tinybase/store/with-schemas'
 
-import { bindIndexes } from './indexes.ts'
-import type { BoundIndexes, IndexIds } from './indexes.ts'
-import type { StoreApiFor, StoreSchemasFor, TypedStoreSchema } from './store-schema.ts'
-import { bindStore } from './store.ts'
-import type { ValueDefinitions } from './store.ts'
-import type { TableDefinitions } from './table.ts'
+import { bindIndexes } from '../binding/indexes.ts'
+import type { BoundIndexes, IndexIds } from '../binding/indexes.ts'
+import { bindStore } from '../binding/store.ts'
+import type { BoundStoreFor, StoreSchema, TinybaseSchemasFor } from '../schema/define.ts'
+import type { TableDefinitions, ValueDefinitions } from '../schema/types.ts'
 
 // oxlint-disable no-unsafe-type-assertion -- Runtime creation is the boundary between TinyBase's dynamic objects and zod-derived definitions.
 
-type AnyStoreSchema = TypedStoreSchema<TableDefinitions, ValueDefinitions>
+type AnyStoreSchema = StoreSchema<TableDefinitions, ValueDefinitions>
 type IndexApplier<Schema extends AnyStoreSchema> = {
   apply(indexes: RawIndexesFor<Schema>): void
 }['apply']
@@ -37,11 +36,11 @@ export interface AnyStoreDefinition {
   schema: AnyStoreSchema
 }
 
-export type RawIndexesFor<Schema extends AnyStoreSchema> = RawIndexes<StoreSchemasFor<Schema>>
-type RawStoreFor<Schema extends AnyStoreSchema> = RawStore<StoreSchemasFor<Schema>>
+export type RawIndexesFor<Schema extends AnyStoreSchema> = RawIndexes<TinybaseSchemasFor<Schema>>
+type RawStoreFor<Schema extends AnyStoreSchema> = RawStore<TinybaseSchemasFor<Schema>>
 
 type RawMergeableStoreFor<Schema extends AnyStoreSchema> = RawMergeableStore<
-  StoreSchemasFor<Schema>
+  TinybaseSchemasFor<Schema>
 >
 
 export interface StoreInstanceFor<
@@ -52,8 +51,8 @@ export interface StoreInstanceFor<
   id: Definition['id']
   rawIndexes: RawIndexesFor<Definition['schema']>
   rawStore: Store
-  typedIndexes: BoundIndexes<Definition['indexIds']>
-  typedStore: StoreApiFor<Definition['schema']>
+  boundIndexes: BoundIndexes<Definition['indexIds']>
+  boundStore: BoundStoreFor<Definition['schema']>
 }
 
 export type MergeableStoreInstanceFor<Definition extends AnyStoreDefinition> = StoreInstanceFor<
@@ -116,11 +115,11 @@ function bindStoreInstance<const Definition extends AnyStoreDefinition, Store>(
   }
 
   return {
+    boundIndexes: bindIndexes(rawIndexes, definition.indexIds),
+    boundStore: bindStore(rawStoreForIndexes, schema.tables, schema.values),
     definition,
     id: definition.id,
     rawIndexes,
     rawStore,
-    typedIndexes: bindIndexes(rawIndexes, definition.indexIds),
-    typedStore: bindStore(rawStoreForIndexes, schema.tables, schema.values),
   } as unknown as StoreInstanceFor<Definition, Store>
 }

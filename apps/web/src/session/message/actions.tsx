@@ -179,7 +179,7 @@ function MessageMetadata({ message }: { message: LibraryRows['messages'] }) {
 function useMessageHasContinuations(message: LibraryRows['messages']): boolean {
   const tetra = useApp()
   const messageIds = libraryTinybase.useSliceRowIds('messagesBySession', message.sessionId)
-  const libraryStore = tetra.stores.library.typedStore
+  const libraryStore = tetra.stores.library.boundStore
 
   return messageIds.some((messageId) => {
     const candidate = libraryStore.tables.messages.requireEntity(messageId)

@@ -1,238 +1,217 @@
 # @tetra/tinybase-schema
 
-Typed TinyBase helpers for defining TinyBase schemas from zod schemas.
+Define a TinyBase store from zod schemas, and read and write it through typed,
+zod-parsed accessors.
 
-This package is experimental. Its job is to stay close to TinyBase's API while
-moving runtime parsing, row/entity typing, and repeated casts to one boundary.
+TinyBase stores cells as coarse, loosely-typed values. This package lets you
+declare a store's shape once as zod schemas, generates the matching TinyBase
+`tablesSchema`/`valuesSchema`, and gives back accessors whose rows, cells, and
+values are typed from — and parsed through — those same schemas. Parsing happens
+at the read/write boundary, so the rest of the app works with precise types and
+fails loudly when persisted data drifts from the schema.
 
-## Goals
+It does not own persistence, sync, or lifecycle. Those operate on the raw
+TinyBase `Store`/`Indexes`, which every instance exposes (see
+[Escape hatches](#escape-hatches)).
 
-- Define table and value metadata once.
-- Generate TinyBase `tablesSchema` and `valuesSchema` from zod schemas.
-- Derive row, entity, cell, and value types from zod schemas.
-- Parse TinyBase reads through zod at the boundary.
-- Optionally create typed TinyBase runtime instances from typed definitions.
-- Keep the public API shaped like TinyBase where possible.
+## Concepts
 
-## Current Shape
+The pipeline has three stages, each building on the last:
 
-Store schemas use `defineTypedStore`:
+| Stage          | You call                | You get                                                    |
+| -------------- | ----------------------- | ---------------------------------------------------------- |
+| **Schema**     | `defineStoreSchema`     | a `StoreSchema`: zod definitions + TinyBase schemas        |
+| **Definition** | `defineStoreDefinition` | a schema plus an id and index wiring                       |
+| **Instance**   | `createStoreInstance`   | live `rawStore`/`rawIndexes` + `boundStore`/`boundIndexes` |
+
+- **raw** objects are TinyBase's own `Store`/`Indexes`. Hand these to persisters,
+  synchronizers, and the React `Provider`.
+- **bound** objects are this package's typed wrappers over the raw objects.
+  Read and write through these; cells and rows are typed and zod-parsed.
+- An **entity** is a parsed row plus its `id`.
+
+## Usage
+
+### Define a store
 
 ```ts
-export const storeSchema = defineTypedStore({
+import { defineStoreSchema } from '@tetra/tinybase-schema'
+import { defineStoreDefinition } from '@tetra/tinybase-schema/runtime'
+import { z } from 'zod'
+
+const messagesSchema = defineStoreSchema({
   tables: {
     messages: z.object({
-      parts: z.array(MessagePart).default([]),
+      createdAt: z.number(),
+      parts: MessagePart.array(),
       sessionId: z.string(),
     }),
   },
   values: {
-    activeSessionId: z.string().default(''),
+    activeSessionId: z.string().nullable().default(null),
   },
 })
-```
 
-The store schema emits TinyBase schemas by reading zod's Standard JSON Schema
-output and keeping only the small shape TinyBase can express: `string`,
-`number`, `boolean`, `array`, `object`, `default`, and nullable `allowNull`.
-Unsupported cell schemas throw during schema creation rather than silently
-becoming loose storage. Store and Indexes binding are separate so callers can
-keep ownership of TinyBase runtime objects:
-
-```ts
-const store = createStore().setSchema(storeSchema.tablesSchema, storeSchema.valuesSchema)
-const db = bindStore(store, storeSchema.tables, storeSchema.values)
-
-const rawIndexes = createIndexes(store)
-rawIndexes.setIndexDefinition('messagesBySession', 'messages', 'sessionId')
-const indexes = bindIndexes(rawIndexes, ['messagesBySession'] as const)
-```
-
-Composition roots that want the standard runtime shape can define a store and
-create an instance:
-
-```ts
 const messagesDefinition = defineStoreDefinition({
   applyIndexes(indexes) {
-    indexes.setIndexDefinition('messagesBySession', 'messages', 'sessionId')
+    indexes.setIndexDefinition('messagesBySession', 'messages', 'sessionId', 'createdAt')
   },
   id: 'messages',
   indexIds: ['messagesBySession'] as const,
-  schema: storeSchema,
+  schema: messagesSchema,
 })
+```
+
+Index definitions use TinyBase's native `setIndexDefinition` builder inside
+`applyIndexes`. The `indexIds` tuple is what types the slice accessors later.
+
+### Create an instance and read/write
+
+```ts
+import { createStoreInstance } from '@tetra/tinybase-schema/runtime'
 
 const messages = createStoreInstance(messagesDefinition)
+
+// Bound, typed access — rows and cells are parsed through zod.
+messages.boundStore.tables.messages.setRow('msg_1', {
+  createdAt: Date.now(),
+  parts: [{ text: 'hi', type: 'text' }],
+  sessionId: 'sess_1',
+})
+const entity = messages.boundStore.tables.messages.requireEntity('msg_1') // row + { id }
+const ids = messages.boundIndexes.getSliceRowIds('messagesBySession', 'sess_1')
+
+// Mergeable variant for sync; same shape, same bound API.
+import { createMergeableStoreInstance } from '@tetra/tinybase-schema/runtime'
 const syncMessages = createMergeableStoreInstance(messagesDefinition)
 ```
 
-The resulting instance exposes the raw TinyBase `store` / `indexes` alongside
-the bound typed `typedStore` / `typedIndexes`.
+Group writes in a transaction through the bound store; it forwards to the raw
+store's transaction:
 
-Use TinyBase's own schema-aware types for raw runtime objects, parameterized by
-`StoreSchemasFor<typeof storeSchema>`. The helper surfaces are:
+```ts
+messages.boundStore.transaction(() => {
+  messages.boundStore.tables.messages.deleteRow('msg_1')
+  messages.boundStore.values.activeSessionId.set('sess_2')
+})
+```
 
-- `StoreApiFor<typeof storeSchema>` for the bound `{ tables, values }`
-  helper API.
-- `BoundIndexes<typeof indexIds>` for the bound index helper API.
-- `StoreInstanceFor<typeof storeDefinition>` for a raw-plus-typed runtime
-  instance.
-- `StoreRowsFor<typeof storeSchema>` for table-id keyed entity row types, such
-  as `Rows['messages']`.
+### React
 
-Source files mirror the TinyBase concepts they wrap:
+```tsx
+import {
+  StoreProvider,
+  createStoreReactApi,
+  createTinyBaseProviderProps,
+} from '@tetra/tinybase-schema/react'
 
-- `table.ts` and `schema.ts` define zod-backed schemas and emit
-  TinyBase-compatible schema objects.
-- `store.ts` binds table/value helpers around a caller-owned `Store`.
-- `indexes.ts` binds a caller-owned, already-configured `Indexes` object.
-- `runtime.ts` creates typed Store/Indexes instances from typed definitions.
-- `store-schema.ts` composes the store schema object and stateless parsers.
+export const messagesTinybase = createStoreReactApi(messagesDefinition)
 
-The bind functions intentionally accept a structural Store/Indexes API rather
-than TinyBase's raw or `with-schemas` interfaces. TinyBase's schema-aware types
-are useful at creation and React boundaries, but the binders only need the
-runtime methods they call.
+function Root({ children }) {
+  return <StoreProvider {...createTinyBaseProviderProps({ messages })}>{children}</StoreProvider>
+}
 
-Bound table APIs currently include:
+function MessageList({ sessionId }) {
+  const ids = messagesTinybase.useSliceRowIds('messagesBySession', sessionId)
+  // ...
+}
+```
 
-- `getRow`, `setRow`, `updateRow`, `deleteRow`
-- `getEntity`, `getEntities`, `requireEntity`, `listEntities`
-- `getRowIds`, `hasRow`
-- `getCell`, `setCell`
+`createTinyBaseProviderProps` derives the `storesById`/`indexesById` the TinyBase
+`Provider` expects from one or more instances, naming each store's indexes
+`<id>Indexes`.
 
-Bound store APIs currently include:
+## API
 
-- `tables`, with named table APIs such as `db.tables.messages`
-- `values`, with named value APIs such as `db.values.activeSessionId`
+### `@tetra/tinybase-schema`
 
-Bound value APIs currently include:
+- `defineStoreSchema({ tables, values? })` → `StoreSchema`. `tables` maps table
+  ids to `z.object` row schemas; `values` maps value ids to zod schemas.
+- Types: `BoundStoreFor<Schema>`, `StoreRowsFor<Schema>` (table-id keyed entity
+  rows, e.g. `Rows['messages']`), `TinybaseSchemasFor<Schema>` (the
+  `[tablesSchema, valuesSchema]` tuple TinyBase wants), `BoundIndexes<IndexIds>`.
 
-- `get`
-- `set`
-- `delete`
+### `@tetra/tinybase-schema/runtime`
 
-Bound index APIs currently include:
+- `defineStoreDefinition(definition)` — identity helper that infers the
+  definition types.
+- `createStoreInstance(definition)` / `createMergeableStoreInstance(definition)`
+  → an instance exposing `rawStore`, `rawIndexes`, `boundStore`, `boundIndexes`,
+  plus `id` and `definition`.
+- Types: `StoreDefinition`, `AnyStoreDefinition`, `StoreInstanceFor`,
+  `MergeableStoreInstanceFor`, `RawIndexesFor`.
 
-- `getSliceIds`
-- `getSliceRowIds`
-- per-index accessors such as `indexes.messagesBySession.getSliceRowIds(sliceId)`
+#### Bound table API — `boundStore.tables.<id>`
 
-React hooks currently include:
+`getRow` · `setRow` · `updateRow` · `deleteRow` · `getEntity` · `getEntities` ·
+`requireEntity` · `listEntities` · `getRowIds` · `hasRow` · `getCell` · `setCell`.
+Also addressable as `boundStore.tables.get(id)`.
 
-- `useRow`
-- `useRowIds`
-- `useEntity`
-- `useEntityList`
-- `useHasRow`
-- `useCell`
-- `useCellState`
-- `useValue`
-- `useValueState`
-- `useSliceIds`
-- `useSliceEntities`
-- `useSliceRowIds`
+#### Bound value API — `boundStore.values.<id>`
 
-## Typed Surface Parity
+`get` · `set` · `delete`. Also `boundStore.values.get(id)`.
 
-The regular and React typed surfaces should stay in parity for table, value,
-and index read coverage. When a typed read helper is useful outside React, add
-the equivalent hook when React can subscribe to the same TinyBase data. When a
-hook composes multiple TinyBase sources, keep the regular API as explicit
-building blocks unless this package also owns the runtime relationship.
+#### Bound index API — `boundIndexes`
 
-For example, the regular API exposes `table.getEntities(rowIds)` and typed
-indexes expose `getSliceRowIds(indexId, sliceId)`. The React API can then offer
-`useSliceEntities(indexId, sliceId, tableId)` because the hook can subscribe to
-both the index slice and the table. Mutations and lifecycle wiring do not need
-forced parity; they should follow TinyBase ownership boundaries and real app
-usage.
+`getSliceIds(indexId)` · `getSliceRowIds(indexId, sliceId)`, plus per-index
+accessors `boundIndexes.<indexId>.getSliceRowIds(sliceId)`.
 
-## Default Semantics
+### `@tetra/tinybase-schema/react`
 
-Zod defaults and TinyBase defaults are related but not identical:
+`createStoreReactApi(definition)` → a `StoreReactApi` of hooks: `useRow`,
+`useRowIds`, `useEntity`, `useEntityList`, `useHasRow`, `useCell`, `useCellState`,
+`useValue`, `useValueState`, `useSliceIds`, `useSliceEntities`, `useSliceRowIds`.
+Plus `StoreProvider` and `createTinyBaseProviderProps`.
 
-- A zod default is a parser fallback. It applies when zod receives `undefined`
-  input, and the parsed output is then written to TinyBase by the bound APIs.
-- A TinyBase default is a store fallback. For values, a defaulted value is
-  present immediately after the schema is applied. For row cells, defaulted
-  cells are filled when a row exists; a missing row remains missing.
-- Raw TinyBase writes do not throw when a cell or value has the wrong type. If
-  the schema has a default, TinyBase writes the default instead. If the schema
-  has no default, TinyBase omits the invalid cell or value and reports it
-  through invalid-cell or invalid-value listeners.
-- The bound typed APIs parse mutation inputs with zod before calling TinyBase.
-  Invalid non-`undefined` inputs therefore throw before TinyBase can repair
-  them with a default. Missing or `undefined` inputs may still become zod
-  defaults if the schema says so.
+## Behavior
 
-## Intentional Deviations From TinyBase
+- **Reads parse and can throw.** Bound reads and hooks run persisted data through
+  zod. If stored data no longer matches the schema, the read throws rather than
+  returning a malformed value — intentional for Tetra's prototype mode.
+- **Writes parse first.** Bound mutations parse their input through zod before
+  calling TinyBase, so an invalid non-`undefined` input throws before TinyBase
+  can silently repair it with a default.
+- **`requireEntity` / `updateRow` throw on a missing row.** Updates are treated as
+  updates, not upserts (`Missing row: table/id`). `getEntity` returns `null`
+  instead.
+- **Entities carry `id`.** `getEntity`, `requireEntity`, and the list/slice entity
+  reads add the row id to the parsed row.
+- **No optional cells.** TinyBase can't reliably clear a cell through normal
+  writes, so an optional cell schema throws at schema creation — use
+  `.nullable()` and explicit `null` for absence.
+- **Defaults.** A zod default is a parser fallback (applied on `undefined` input);
+  it is also emitted as the TinyBase native default. Tetra generally avoids
+  schema defaults so missing data fails loudly unless a default is a deliberate
+  part of the stored state.
 
-These are deliberate project-shaped choices, not accidental API drift:
+## Escape hatches
 
-- `updateRow` throws `Missing row: table/id` when the row does not exist.
-  Raw TinyBase partial row updates can create or fill rows; this package treats
-  updates as updates.
-- Reads are parsed through zod and can throw if persisted data does not match
-  the schema. This is preferred for Tetra's prototype mode.
-- `getEntity` / `requireEntity` add the row id to parsed rows.
-- Index ids are typed from the caller-provided index id tuple. Slice ids are
-  still plain strings.
-- TinyBase native `default` values are derived from zod defaults. Tetra core
-  still generally avoids schema defaults in its real schema so missing values
-  fail loudly unless the read site has an explicit fallback or the default is
-  deliberately part of the stored state model.
+Persistence, sync, lifecycle, and the React `Provider` work on raw TinyBase
+objects, which the composition root owns:
 
-## Escape Hatches
+- Persisters and synchronizers take `instance.rawStore`.
+- The React `Provider` takes the raw store and indexes (via
+  `createTinyBaseProviderProps`).
 
-Some TinyBase integrations still need raw objects:
+This package may create the runtime instance, but it does not choose storage
+policy — which stores are grouped, persisted, or synced stays outside it.
 
-- Persistence receives the raw `store`.
-- React `Provider` receives the raw `store` and `indexes`.
+## Design notes
 
-Those objects should be owned by the composition root. This package may create
-the generic typed runtime instance, but it should not choose app storage policy:
-persistence, sync, lifecycle, and which stores are grouped together remain
-outside `@tetra/tinybase-schema`.
+- Store and index binding are separate because TinyBase keeps `Store` and
+  `Indexes` as separate objects. Index definitions are built at the composition
+  root via TinyBase's native `setIndexDefinition`.
+- The binders accept a structural `Store`/`Indexes` shape rather than TinyBase's
+  raw or `with-schemas` interfaces — they only need the runtime methods they call.
+  TinyBase's schema-aware types are still used at instance creation and the React
+  boundary.
+- Some external shapes are trusted after a minimal boundary check, stored as
+  array/record cells (`UIMessage['parts']`, provider JSON) — one cast at the
+  schema boundary rather than repeated casts in app code.
+- Add wrappers when a real call site needs them, not speculatively.
 
-## Boundary Casts
-
-Some external shapes are intentionally trusted after a small runtime check:
-
-- `UIMessage['parts']` is stored as an array cell by declaring it as
-  `z.array(MessagePart)`, where each part is checked just enough for the app's
-  storage boundary.
-- AI SDK / provider JSON-like objects are stored as `z.record(z.string(),
-z.json())`.
-
-The aim is one cast at the schema boundary, not repeated casts throughout app
-code.
-
-## Deferred
-
-Hold off on these until the app needs them:
+### Deferred
 
 - Typing index `sliceId` from the indexed cell output.
-- Wrapping `useStore` / `addCellListener`.
-- Wrapping wider state hooks such as `useRowState`, `useTableState`, and
-  `useValuesState`.
-- Opinionated batch helpers such as `replaceRows`, `deleteRowsWhere`, or
-  insert-only APIs.
-- Domain-specific error message mapping for every missing row.
-
-## Current Design Notes
-
-- `db.tables` in Tetra contains table APIs only. Store-level values live under
-  `db.values`, and transactions should use the caller-owned TinyBase Store
-  directly.
-- Store binding and index binding are separate functions because TinyBase keeps
-  `Store` and `Indexes` as separate objects. Index definitions use TinyBase's
-  native `setIndexDefinition` builder API at the composition root.
-- `StoreApiFor<typeof storeSchema>` and `BoundIndexes<typeof indexIds>`
-  are helper types, not TinyBase raw object types. `RawStoreFor` and
-  `RawIndexesFor` describe raw TinyBase objects parameterized by a typed schema
-  when integration code needs them.
-- `raw` escape hatches should stay rare and explicit.
-- Prefer adding wrappers only when Tetra already has a raw TinyBase call site
-  that would benefit from typing.
-- TinyBase persisters, synchronizers, and app lifecycle remain runtime concerns
-  owned outside this package.
+- Wrapping wider state hooks (`useRowState`, `useTableState`, `useValuesState`).
+- Opinionated batch helpers (`replaceRows`, `deleteRowsWhere`, insert-only APIs).

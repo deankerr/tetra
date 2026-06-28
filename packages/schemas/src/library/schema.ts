@@ -1,4 +1,4 @@
-import { defineTypedStore } from '@tetra/tinybase-schema'
+import { defineStoreSchema } from '@tetra/tinybase-schema'
 import type { UIMessage } from 'ai'
 import { z } from 'zod'
 
@@ -79,7 +79,7 @@ const StepRecordSchema = z.object({
   warnings: z.array(StepWarningSchema),
 })
 
-export const libraryStoreSchema = defineTypedStore({
+export const libraryStoreSchema = defineStoreSchema({
   tables: {
     messages: z.object({
       createdAt: z.number(),

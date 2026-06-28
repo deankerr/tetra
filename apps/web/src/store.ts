@@ -2,7 +2,7 @@ import { createCoreModules } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
 import { catalogStoreDefinition } from '@tetra/schemas/catalog'
 import { libraryStoreDefinition } from '@tetra/schemas/library'
-import { defineTypedStore } from '@tetra/tinybase-schema'
+import { defineStoreSchema } from '@tetra/tinybase-schema'
 import { createStoreReactApi, createTinyBaseProviderProps } from '@tetra/tinybase-schema/react'
 import {
   createMergeableStoreInstance,
@@ -23,7 +23,7 @@ const LIBRARY_BROADCAST_CHANNEL = 'tetra:library'
 const LIBRARY_STORAGE_NAME = 'tetra:library'
 const WEB_STORAGE_NAME = 'tetra:web'
 
-const webStoreSchema = defineTypedStore({
+const webStoreSchema = defineStoreSchema({
   tables: {
     sessionThreadViews: z.object({
       threadAnchorMessageId: z.string().nullable().default(null),

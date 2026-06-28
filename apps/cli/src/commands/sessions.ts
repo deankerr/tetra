@@ -37,7 +37,7 @@ export function registerSessionCommands(
     .action(async () => {
       const ctx = await getContext()
       const activeSessionId = ctx.workspace.getActiveSessionId()
-      const rows = ctx.stores.library.typedStore.tables.sessions
+      const rows = ctx.stores.library.boundStore.tables.sessions
         .listEntities()
         .toSorted((a, b) => b.updatedAt - a.updatedAt)
 
@@ -62,7 +62,7 @@ export function registerSessionCommands(
       const ctx = await getContext()
       const config = configFromOptions(options)
       if (options.prompt !== undefined) {
-        ctx.stores.library.typedStore.tables.prompts.requireEntity(options.prompt)
+        ctx.stores.library.boundStore.tables.prompts.requireEntity(options.prompt)
       }
 
       const sessionId = ctx.transcripts.createSession({
@@ -79,12 +79,12 @@ export function registerSessionCommands(
     .description('Show a session')
     .action(async (sessionId: string) => {
       const ctx = await getContext()
-      const session = ctx.stores.library.typedStore.tables.sessions.requireEntity(sessionId)
-      const messageCount = ctx.stores.library.typedIndexes.getSliceRowIds(
+      const session = ctx.stores.library.boundStore.tables.sessions.requireEntity(sessionId)
+      const messageCount = ctx.stores.library.boundIndexes.getSliceRowIds(
         'messagesBySession',
         sessionId,
       ).length
-      const runCount = ctx.stores.library.typedIndexes.getSliceRowIds(
+      const runCount = ctx.stores.library.boundIndexes.getSliceRowIds(
         'runsBySessionNewestFirst',
         sessionId,
       ).length
@@ -130,7 +130,7 @@ export function registerSessionCommands(
         throw new Error('Title cannot be empty')
       }
 
-      ctx.stores.library.typedStore.tables.sessions.updateRow(sessionId, {
+      ctx.stores.library.boundStore.tables.sessions.updateRow(sessionId, {
         title,
         updatedAt: Date.now(),
       })
@@ -212,7 +212,7 @@ function registerSessionConfigCommands(
       const ctx = await getContext()
       requireSession(ctx, sessionId)
       if (options.prompt !== undefined) {
-        ctx.stores.library.typedStore.tables.prompts.requireEntity(options.prompt)
+        ctx.stores.library.boundStore.tables.prompts.requireEntity(options.prompt)
       }
 
       const update: Partial<RunConfig> = configFromOptions(options)

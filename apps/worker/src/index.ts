@@ -1,5 +1,5 @@
 import { libraryStoreDefinition } from '@tetra/schemas/library'
-import type { StoreSchemasFor } from '@tetra/tinybase-schema'
+import type { TinybaseSchemasFor } from '@tetra/tinybase-schema'
 import { createMergeableStoreInstance } from '@tetra/tinybase-schema/runtime'
 import { createDurableObjectSqlStoragePersister } from 'tinybase/persisters/persister-durable-object-sql-storage/with-schemas'
 import {
@@ -15,7 +15,7 @@ export interface Env {
   TinyBaseDurableObjects: DurableObjectNamespace<TinyBaseDurableObject>
 }
 
-type WorkerStoreSchemas = StoreSchemasFor<(typeof libraryStoreDefinition)['schema']>
+type WorkerStoreSchemas = TinybaseSchemasFor<(typeof libraryStoreDefinition)['schema']>
 type LibraryRuntime = ReturnType<typeof createLibraryRuntime>
 
 // TinyBase calls createPersister during super(), before subclass fields are initialized.

@@ -68,7 +68,7 @@ test('session and message commands mutate real in-memory app state', async () =>
     'Draft',
   ])
   const sessionId = created.out[0] ?? ''
-  const session = ctx.stores.library.typedStore.tables.sessions.requireEntity(sessionId)
+  const session = ctx.stores.library.boundStore.tables.sessions.requireEntity(sessionId)
 
   expect(session.title).toBe('Draft')
   expect(session.config.modelId).toBe('openrouter/test-model')
@@ -82,7 +82,7 @@ test('session and message commands mutate real in-memory app state', async () =>
   // Message creation resolves the active session and appends through the transcript module.
   const added = await runCli(ctx, ['messages', 'add', 'hello', 'there'])
   const messageId = added.out[0] ?? ''
-  const message = ctx.stores.library.typedStore.tables.messages.requireEntity(messageId)
+  const message = ctx.stores.library.boundStore.tables.messages.requireEntity(messageId)
 
   expect(message.parentMessageId).toBeNull()
   expect(message.parts).toEqual([{ text: 'hello there', type: 'text' }])
@@ -103,17 +103,17 @@ test('prompt commands create and unlink session config through real modules', as
   const createdSession = await runCli(ctx, ['sessions', 'create', '--prompt', promptId])
   const sessionId = createdSession.out[0] ?? ''
 
-  expect(ctx.stores.library.typedStore.tables.prompts.requireEntity(promptId).label).toBe('Terse')
+  expect(ctx.stores.library.boundStore.tables.prompts.requireEntity(promptId).label).toBe('Terse')
   expect(
-    ctx.stores.library.typedStore.tables.sessions.requireEntity(sessionId).config.systemPromptId,
+    ctx.stores.library.boundStore.tables.sessions.requireEntity(sessionId).config.systemPromptId,
   ).toBe(promptId)
 
   // Prompt deletion exercises the core prompt cleanup path instead of manually editing rows.
   const deleted = await runCli(ctx, ['prompts', 'delete', promptId])
   expect(deleted.out).toEqual([promptId])
-  expect(ctx.stores.library.typedStore.tables.prompts.getEntity(promptId)).toBeNull()
+  expect(ctx.stores.library.boundStore.tables.prompts.getEntity(promptId)).toBeNull()
   expect(
-    ctx.stores.library.typedStore.tables.sessions.requireEntity(sessionId).config.systemPromptId,
+    ctx.stores.library.boundStore.tables.sessions.requireEntity(sessionId).config.systemPromptId,
   ).toBe('')
 })
 

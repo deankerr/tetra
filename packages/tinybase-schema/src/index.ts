@@ -1,3 +1,3 @@
-export { defineTypedStore } from './store-schema.ts'
-export type { StoreApiFor, StoreRowsFor, StoreSchemasFor } from './store-schema.ts'
-export type { BoundIndexes } from './indexes.ts'
+export { defineStoreSchema } from './schema/define.ts'
+export type { BoundStoreFor, StoreRowsFor, TinybaseSchemasFor } from './schema/define.ts'
+export type { BoundIndexes } from './binding/indexes.ts'

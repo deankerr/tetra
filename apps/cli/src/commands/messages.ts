@@ -45,7 +45,7 @@ export function registerMessageCommands(
     .description('Delete a message')
     .action(async (messageId: string) => {
       const ctx = await getContext()
-      const message = ctx.stores.library.typedStore.tables.messages.requireEntity(messageId)
+      const message = ctx.stores.library.boundStore.tables.messages.requireEntity(messageId)
       ctx.transcripts.getSession(message.sessionId).deleteMessage(messageId)
       console.log(messageId)
     })

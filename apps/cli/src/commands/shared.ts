@@ -48,7 +48,7 @@ function requireActiveSessionId(ctx: CliAppContext): string {
 
 export function requireSession(ctx: CliAppContext, sessionId: string): void {
   // Use the typed table boundary so missing ids fail loudly and consistently.
-  ctx.stores.library.typedStore.tables.sessions.requireEntity(sessionId)
+  ctx.stores.library.boundStore.tables.sessions.requireEntity(sessionId)
 }
 
 export function resolveSessionId(ctx: CliAppContext, sessionId?: string): string {
@@ -60,7 +60,7 @@ export function resolveSessionId(ctx: CliAppContext, sessionId?: string): string
 
 export function printRunConfig(ctx: CliAppContext, sessionId: string): void {
   // Session config is colocated with the durable session row.
-  const { config } = ctx.stores.library.typedStore.tables.sessions.requireEntity(sessionId)
+  const { config } = ctx.stores.library.boundStore.tables.sessions.requireEntity(sessionId)
   console.log(`session:      ${sessionId}`)
   console.log(`model:        ${config.modelId}`)
   console.log(`prompt:       ${config.systemPromptId === '' ? '(none)' : config.systemPromptId}`)

@@ -2,7 +2,7 @@ import type { CredentialsStore } from '@tetra/credentials'
 import type {
   LibraryRows as Rows,
   LibraryStoreInstance,
-  LibraryTypedStore,
+  LibraryBoundStore,
   RunConfig as RunConfigType,
 } from '@tetra/schemas/library'
 
@@ -36,7 +36,7 @@ export class Runs {
   private readonly prompts: Prompts
   private readonly runConfigs: RunConfigs
   private readonly transcripts: Transcripts
-  private readonly typedStore: LibraryTypedStore
+  private readonly boundStore: LibraryBoundStore
 
   constructor({
     credentials,
@@ -51,7 +51,7 @@ export class Runs {
     this.prompts = prompts
     this.runConfigs = runConfigs
     this.transcripts = transcripts
-    this.typedStore = libraryStore.typedStore
+    this.boundStore = libraryStore.boundStore
   }
 
   cancel(runId: string): void {
@@ -85,8 +85,8 @@ export class Runs {
   // Callers are responsible for creating transcript messages before calling generate.
   // The target starts empty and receives streaming snapshots until the run is terminal.
   generate(args: GenerateArgs): Run {
-    const targetMessage = this.typedStore.tables.messages.requireEntity(args.targetMessageId)
-    const session = this.typedStore.tables.sessions.requireEntity(targetMessage.sessionId)
+    const targetMessage = this.boundStore.tables.messages.requireEntity(args.targetMessageId)
+    const session = this.boundStore.tables.sessions.requireEntity(targetMessage.sessionId)
     if (targetMessage.parts.length > 0) {
       throw new Error(`Cannot generate into a message with existing parts: ${args.targetMessageId}`)
     }
@@ -97,9 +97,9 @@ export class Runs {
     const transcriptMessages = this.collectMessagesBefore(targetMessage, config)
 
     let runId = ''
-    this.typedStore.transaction(() => {
-      this.typedStore.tables.sessions.setCell(session.id, 'updatedAt', Date.now())
-      runId = createRunRecord(this.typedStore, {
+    this.boundStore.transaction(() => {
+      this.boundStore.tables.sessions.setCell(session.id, 'updatedAt', Date.now())
+      runId = createRunRecord(this.boundStore, {
         config,
         sessionId: session.id,
         targetMessageId: args.targetMessageId,
@@ -133,10 +133,10 @@ export class Runs {
 
   private launchRun(runStart: RunStart): Run {
     const run = new Run({
+      boundStore: this.boundStore,
       credentials: this.credentials,
       modelResolver: this.modelResolver,
       start: runStart,
-      typedStore: this.typedStore,
     })
 
     this.active.set(run.runId, run)
