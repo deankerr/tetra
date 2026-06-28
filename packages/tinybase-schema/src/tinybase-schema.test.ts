@@ -5,7 +5,9 @@ import { createStore as createRawStore } from 'tinybase/store'
 import { createStore } from 'tinybase/store/with-schemas'
 import { z } from 'zod'
 
-import { bindIndexes, bindStore, defineTypedStore } from './index.ts'
+import { defineTypedStore } from './index.ts'
+import { bindIndexes } from './indexes.ts'
+import { bindStore } from './store.ts'
 
 const ModelConfig = z.object({
   maxMessages: z.number().int().positive().optional(),

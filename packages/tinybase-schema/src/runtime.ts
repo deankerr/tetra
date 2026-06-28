@@ -38,7 +38,7 @@ export interface AnyStoreDefinition {
 }
 
 export type RawIndexesFor<Schema extends AnyStoreSchema> = RawIndexes<StoreSchemasFor<Schema>>
-export type RawStoreFor<Schema extends AnyStoreSchema> = RawStore<StoreSchemasFor<Schema>>
+type RawStoreFor<Schema extends AnyStoreSchema> = RawStore<StoreSchemasFor<Schema>>
 
 type RawMergeableStoreFor<Schema extends AnyStoreSchema> = RawMergeableStore<
   StoreSchemasFor<Schema>

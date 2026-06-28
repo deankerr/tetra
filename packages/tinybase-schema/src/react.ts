@@ -3,18 +3,11 @@ import type { ReactNode } from 'react'
 import * as UiReact from 'tinybase/ui-react/with-schemas'
 import type { z } from 'zod'
 
-import type {
-  CellOutputOf,
-  EntityOf,
-  IndexIds,
-  OutputRowOf,
-  StoreSchemasFor,
-  TableDefinitions,
-  TableSchemaOf,
-  TypedStoreSchema,
-  ValueDefinitions,
-} from './index.ts'
-import type { AnyStoreDefinition, RawIndexesFor, RawStoreFor } from './runtime.ts'
+import type { IndexIds } from './indexes.ts'
+import type { AnyStoreDefinition } from './runtime.ts'
+import type { TypedStoreSchema } from './store-schema.ts'
+import type { CellOutputOf, EntityOf, OutputRowOf, ValueDefinitions } from './store.ts'
+import type { TableDefinitions, TableSchemaOf } from './table.ts'
 
 // oxlint-disable no-unsafe-return, no-unsafe-type-assertion -- React hooks cross from TinyBase's coarse schema into zod-derived row types.
 
@@ -117,8 +110,6 @@ export interface StoreReactApi<
     tableId: TableId,
   ): EntityOf<TableSchemaOf<Tables[TableId]>>[]
   useHasRow(tableId: keyof Tables & string, rowId: string): boolean
-  useRawIndexes(): RawIndexesFor<Schema> | undefined
-  useRawStore(): RawStoreFor<Schema> | undefined
   useRow<TableId extends keyof Tables & string>(
     tableId: TableId,
     rowId: string,
@@ -153,7 +144,7 @@ export function createTinyBaseProviderProps(host: ProviderStoreInstances) {
   }
 }
 
-export function createStoreHooks<
+function createStoreHooks<
   const Tables extends TableDefinitions,
   const Values extends ValueDefinitions,
   const IndexIdList extends IndexIds,
@@ -353,7 +344,6 @@ export function createStoreReactApi<const Definition extends AnyStoreDefinition>
   type Schema = DefinitionSchema<Definition>
   const schema = definition.schema as Schema
   const hooks = createStoreHooks(schema, definition.indexIds as DefinitionIndexIds<Definition>)
-  const tinybase = UiReact as unknown as UiReact.WithSchemas<StoreSchemasFor<Schema>>
   const indexesId = getStoreIndexesId(definition.id)
   const storeId = definition.id
 
@@ -376,14 +366,6 @@ export function createStoreReactApi<const Definition extends AnyStoreDefinition>
 
     useHasRow(tableId: string, rowId: string) {
       return hooks.useHasRow(tableId, rowId, storeId)
-    },
-
-    useRawIndexes() {
-      return tinybase.useIndexes(indexesId) as RawIndexesFor<Schema> | undefined
-    },
-
-    useRawStore() {
-      return tinybase.useStore(storeId) as RawStoreFor<Schema> | undefined
     },
 
     useRow(tableId: string, rowId: string) {

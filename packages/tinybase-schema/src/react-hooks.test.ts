@@ -8,14 +8,12 @@ import { defineStoreDefinition } from './runtime.ts'
 interface HookState {
   cell: unknown
   hasRow: boolean
-  indexes: unknown
   row: Record<string, unknown>
   rowIds: string[]
   setCell: ReturnType<typeof mock>
   setValue: ReturnType<typeof mock>
   sliceIds: string[]
   sliceRowIds: string[]
-  store: unknown
   table: Record<string, Record<string, unknown>>
   value: unknown
 }
@@ -23,14 +21,12 @@ interface HookState {
 const hookState: HookState = {
   cell: undefined,
   hasRow: false,
-  indexes: undefined,
   row: {},
   rowIds: [],
   setCell: mock(),
   setValue: mock(),
   sliceIds: [],
   sliceRowIds: [],
-  store: undefined,
   table: {},
   value: undefined,
 }
@@ -45,12 +41,10 @@ const tinybaseHooks = {
   useCell: mock(() => hookState.cell),
   useCellState: mock(() => [hookState.cell, hookState.setCell]),
   useHasRow: mock(() => hookState.hasRow),
-  useIndexes: mock(() => hookState.indexes),
   useRow: mock(() => hookState.row),
   useRowIds: mock(() => hookState.rowIds),
   useSliceIds: mock(() => hookState.sliceIds),
   useSliceRowIds: mock(() => hookState.sliceRowIds),
-  useStore: mock(() => hookState.store),
   useTable: mock(() => hookState.table),
   useValue: mock(() => hookState.value),
   useValueState: mock(() => [hookState.value, hookState.setValue]),
@@ -58,7 +52,7 @@ const tinybaseHooks = {
 
 await mock.module('tinybase/ui-react/with-schemas', () => tinybaseHooks)
 
-const { createStoreHooks, createStoreReactApi, createTinyBaseProviderProps, StoreProvider } =
+const { createStoreReactApi, createTinyBaseProviderProps, StoreProvider } =
   await import('./react.ts')
 
 const createStoreSchema = () =>
@@ -74,7 +68,7 @@ const createStoreSchema = () =>
     },
   })
 
-const createHooks = () => createStoreHooks(createStoreSchema(), ['sessionsByTitle'] as const)
+const createHooks = () => createStoreReactApi(createRuntimeDefinition())
 
 const createRuntimeDefinition = () =>
   defineStoreDefinition({
@@ -86,14 +80,12 @@ const createRuntimeDefinition = () =>
 beforeEach(() => {
   hookState.cell = undefined
   hookState.hasRow = false
-  hookState.indexes = undefined
   hookState.row = {}
   hookState.rowIds = []
   hookState.setCell = mock()
   hookState.setValue = mock()
   hookState.sliceIds = []
   hookState.sliceRowIds = []
-  hookState.store = undefined
   hookState.table = {}
   hookState.value = undefined
 
@@ -138,7 +130,7 @@ test('parses hook query results through the typed definition without rendering R
   expect(hooks.useValue('activeSessionId')).toBe('sess_1')
 })
 
-test('forwards named TinyBase objects to underlying hooks', () => {
+test('forwards definition-derived TinyBase ids to underlying hooks', () => {
   const hooks = createHooks()
 
   hookState.cell = '  Hook title  '
@@ -152,33 +144,33 @@ test('forwards named TinyBase objects to underlying hooks', () => {
   }
   hookState.value = '  sess_1  '
 
-  hooks.useCell('sessions', 'sess_1', 'title', 'webUi')
-  hooks.useCellState('sessions', 'sess_1', 'title', 'webUi')
-  hooks.useEntity('sessions', 'sess_1', 'webUi')
-  hooks.useEntityList('sessions', 'webUi')
-  hooks.useHasRow('sessions', 'sess_1', 'webUi')
-  hooks.useRow('sessions', 'sess_1', 'webUi')
-  hooks.useRowIds('sessions', 'webUi')
-  hooks.useSliceEntities('sessionsByTitle', 'First', 'sessions', 'webUiIndexes', 'webUi')
-  hooks.useSliceIds('sessionsByTitle', 'webUiIndexes')
-  hooks.useSliceRowIds('sessionsByTitle', 'First', 'webUiIndexes')
-  hooks.useValue('activeSessionId', 'webUi')
-  hooks.useValueState('activeSessionId', 'webUi')
+  hooks.useCell('sessions', 'sess_1', 'title')
+  hooks.useCellState('sessions', 'sess_1', 'title')
+  hooks.useEntity('sessions', 'sess_1')
+  hooks.useEntityList('sessions')
+  hooks.useHasRow('sessions', 'sess_1')
+  hooks.useRow('sessions', 'sess_1')
+  hooks.useRowIds('sessions')
+  hooks.useSliceEntities('sessionsByTitle', 'First', 'sessions')
+  hooks.useSliceIds('sessionsByTitle')
+  hooks.useSliceRowIds('sessionsByTitle', 'First')
+  hooks.useValue('activeSessionId')
+  hooks.useValueState('activeSessionId')
 
-  expect(tinybaseHooks.useCell).toHaveBeenCalledWith('sessions', 'sess_1', 'title', 'webUi')
-  expect(tinybaseHooks.useCellState).toHaveBeenCalledWith('sessions', 'sess_1', 'title', 'webUi')
-  expect(tinybaseHooks.useHasRow).toHaveBeenCalledWith('sessions', 'sess_1', 'webUi')
-  expect(tinybaseHooks.useRowIds).toHaveBeenCalledWith('sessions', 'webUi')
-  expect(tinybaseHooks.useTable).toHaveBeenCalledWith('sessions', 'webUi')
-  expect(tinybaseHooks.useRow).toHaveBeenCalledWith('sessions', 'sess_1', 'webUi')
-  expect(tinybaseHooks.useSliceIds).toHaveBeenCalledWith('sessionsByTitle', 'webUiIndexes')
+  expect(tinybaseHooks.useCell).toHaveBeenCalledWith('sessions', 'sess_1', 'title', 'library')
+  expect(tinybaseHooks.useCellState).toHaveBeenCalledWith('sessions', 'sess_1', 'title', 'library')
+  expect(tinybaseHooks.useHasRow).toHaveBeenCalledWith('sessions', 'sess_1', 'library')
+  expect(tinybaseHooks.useRowIds).toHaveBeenCalledWith('sessions', 'library')
+  expect(tinybaseHooks.useTable).toHaveBeenCalledWith('sessions', 'library')
+  expect(tinybaseHooks.useRow).toHaveBeenCalledWith('sessions', 'sess_1', 'library')
+  expect(tinybaseHooks.useSliceIds).toHaveBeenCalledWith('sessionsByTitle', 'libraryIndexes')
   expect(tinybaseHooks.useSliceRowIds).toHaveBeenCalledWith(
     'sessionsByTitle',
     'First',
-    'webUiIndexes',
+    'libraryIndexes',
   )
-  expect(tinybaseHooks.useValue).toHaveBeenCalledWith('activeSessionId', 'webUi')
-  expect(tinybaseHooks.useValueState).toHaveBeenCalledWith('activeSessionId', 'webUi')
+  expect(tinybaseHooks.useValue).toHaveBeenCalledWith('activeSessionId', 'library')
+  expect(tinybaseHooks.useValueState).toHaveBeenCalledWith('activeSessionId', 'library')
 })
 
 test('returns empty hook query results when TinyBase reports no row or cell', () => {
@@ -231,14 +223,10 @@ test('throws before hook setters forward invalid values', () => {
 
 test('creates store-definition-bound hooks for named TinyBase stores and indexes', () => {
   const hooks = createStoreReactApi(createRuntimeDefinition())
-  const rawIndexes = { kind: 'indexes' }
-  const rawStore = { kind: 'store' }
 
   hookState.hasRow = true
-  hookState.indexes = rawIndexes
   hookState.row = { messageCount: '3', title: '  Bound row  ' }
   hookState.sliceRowIds = ['sess_1']
-  hookState.store = rawStore
   hookState.table = {
     sess_1: { messageCount: '1', title: ' First ' },
   }
@@ -249,8 +237,6 @@ test('creates store-definition-bound hooks for named TinyBase stores and indexes
   expect(hooks.useSliceEntities('sessionsByTitle', 'First', 'sessions')).toEqual([
     { id: 'sess_1', messageCount: 1, title: 'First' },
   ])
-  expect(hooks.useRawIndexes() as unknown).toBe(rawIndexes)
-  expect(hooks.useRawStore() as unknown).toBe(rawStore)
 
   expect(tinybaseHooks.useValue).toHaveBeenCalledWith('activeSessionId', 'library')
   expect(tinybaseHooks.useRow).toHaveBeenCalledWith('sessions', 'sess_1', 'library')
@@ -259,8 +245,6 @@ test('creates store-definition-bound hooks for named TinyBase stores and indexes
     'First',
     'libraryIndexes',
   )
-  expect(tinybaseHooks.useIndexes).toHaveBeenCalledWith('libraryIndexes')
-  expect(tinybaseHooks.useStore).toHaveBeenCalledWith('library')
 })
 
 test('creates TinyBase provider props for named store instances', () => {
