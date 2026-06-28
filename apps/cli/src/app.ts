@@ -1,18 +1,42 @@
 import { createCoreModules } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
+import type { CredentialsStore } from '@tetra/credentials'
 
 import { createCliStoreRuntime } from './store'
-import type { CliStoreInstances } from './store'
+import type { CliStores } from './store'
 
-export interface CliAppOptions {
+export interface PersistentCliAppContextOptions {
   syncEnabled?: boolean
 }
 
-export async function createCliApp(options: CliAppOptions = {}) {
+export interface CliAppContextOptions {
+  close?: () => Promise<void>
+  credentials?: CredentialsStore
+  stores: CliStores
+}
+
+async function closeInMemoryCliApp(): Promise<void> {
+  // In-memory CLI apps have no persistence or sync handles to flush.
+  await Promise.resolve()
+}
+
+export async function createPersistentCliAppContext(options: PersistentCliAppContextOptions = {}) {
   const runtime = await createCliStoreRuntime({ syncEnabled: options.syncEnabled })
-  const { stores } = runtime
+  return createCliAppContext({
+    close: async () => {
+      await runtime.close()
+    },
+    stores: runtime.stores,
+  })
+}
+
+export function createCliAppContext({
+  close = closeInMemoryCliApp,
+  credentials = credentialStore,
+  stores,
+}: CliAppContextOptions) {
   const core = createCoreModules({
-    credentials: credentialStore,
+    credentials,
     stores: {
       catalogStore: stores.catalog,
       libraryStore: stores.library,
@@ -22,17 +46,15 @@ export async function createCliApp(options: CliAppOptions = {}) {
 
   return {
     ...core,
-    close: async () => {
-      await runtime.close()
-    },
+    close,
     stores,
     workspace,
   }
 }
 
-export type CliAppContext = Awaited<ReturnType<typeof createCliApp>>
+export type CliAppContext = ReturnType<typeof createCliAppContext>
 
-function connectCliWorkspace(stores: CliStoreInstances) {
+function connectCliWorkspace(stores: CliStores) {
   const { activeSessionId } = stores.cli.typedStore.values
 
   // Active session is CLI-local state.

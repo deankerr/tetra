@@ -36,8 +36,8 @@ const cliStoreDefinition = defineStoreDefinition({
   schema: cliStoreSchema,
 })
 
-export type CliStoreInstances = ReturnType<typeof createCliStoreInstances>
-type LibraryRawStore = CliStoreInstances['library']['rawStore']
+export type CliStores = ReturnType<typeof createInMemoryCliStores>
+type LibraryRawStore = CliStores['library']['rawStore']
 
 export interface CliStoreRuntimeOptions {
   syncEnabled?: boolean
@@ -48,7 +48,7 @@ interface LibrarySynchronizer {
   close(): Promise<void>
 }
 
-function createCliStoreInstances() {
+export function createInMemoryCliStores() {
   // The shared library is mergeable so SQLite cache and remote sync speak one shape.
   return {
     catalog: createStoreInstance(catalogStoreDefinition),
@@ -58,7 +58,7 @@ function createCliStoreInstances() {
 }
 
 export async function createCliStoreRuntime(options: CliStoreRuntimeOptions = {}) {
-  const stores = createCliStoreInstances()
+  const stores = createInMemoryCliStores()
   const catalogStore = stores.catalog.rawStore
   const cliStore = stores.cli.rawStore
   const libraryStore = stores.library.rawStore

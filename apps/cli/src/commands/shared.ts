@@ -36,7 +36,7 @@ export function configFromOptions(options: ConfigOptions): Partial<RunConfig> {
   }
 }
 
-export function requireActiveSessionId(ctx: CliAppContext): string {
+function requireActiveSessionId(ctx: CliAppContext): string {
   // The CLI active session is local workspace state, not a synchronized session field.
   const sessionId = ctx.workspace.getActiveSessionId()
   if (sessionId === undefined) {
@@ -51,7 +51,7 @@ export function requireSession(ctx: CliAppContext, sessionId: string): void {
   ctx.stores.library.typedStore.tables.sessions.requireEntity(sessionId)
 }
 
-export function resolveSessionId(ctx: CliAppContext, sessionId: string | undefined): string {
+export function resolveSessionId(ctx: CliAppContext, sessionId?: string): string {
   // Commands that accept an optional session id fall back to the explicit CLI selection.
   const resolvedSessionId = sessionId ?? requireActiveSessionId(ctx)
   requireSession(ctx, resolvedSessionId)

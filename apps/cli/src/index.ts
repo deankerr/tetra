@@ -1,37 +1,18 @@
-import { Command } from 'commander'
-
-import { createCliApp } from './app'
+import { createPersistentCliAppContext } from './app'
 import type { CliAppContext } from './app'
-import { registerChatCommands } from './commands/chat'
-import { registerMessageCommands } from './commands/messages'
-import { registerModelCommands } from './commands/models'
-import { registerPromptCommands } from './commands/prompts'
-import { registerSessionCommands } from './commands/sessions'
-import { registerSyncCommands } from './commands/sync'
-
-const program = new Command()
-program.name('tetra').description('Tetra CLI').version('0.1.0')
-program.option('--no-sync', 'Disable optional remote sync')
-program.showHelpAfterError()
-
-interface ProgramOptions {
-  sync?: boolean
-}
-
-interface ContextOptions {
-  syncLibrary?: boolean
-}
+import { createCliProgram } from './program'
+import type { CliProgramContextOptions, CliRootCommandOptions } from './program'
 
 // Keep store startup lazy so help, version, and sync maintenance commands stay cheap.
 let context: CliAppContext | undefined
 let contextPromise: Promise<CliAppContext> | undefined
-async function getContext(options: ContextOptions = {}): Promise<CliAppContext> {
+async function getContext(options: CliProgramContextOptions = {}): Promise<CliAppContext> {
   if (context !== undefined) {
     return context
   }
 
-  const opts = program.opts<ProgramOptions>()
-  contextPromise ??= createCliApp({
+  const opts = program.opts<CliRootCommandOptions>()
+  contextPromise ??= createPersistentCliAppContext({
     syncEnabled: opts.sync !== false && options.syncLibrary !== false,
   })
   context = await contextPromise
@@ -73,18 +54,8 @@ process.once('SIGINT', () => {
   })()
 })
 
-// The root command is informational only; chat is intentionally explicit.
-program.action(() => {
-  program.outputHelp()
-})
-
-// Register the noun-shaped command surface.
-registerChatCommands(program, getContext)
-registerSessionCommands(program, getContext)
-registerMessageCommands(program, getContext)
-registerPromptCommands(program, getContext)
-registerModelCommands(program, getContext)
-registerSyncCommands(program)
+// Production owns process argv and shutdown; command registration lives in the reusable program.
+const program = createCliProgram({ getContext })
 
 let exitCode = 0
 try {
