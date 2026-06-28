@@ -1,4 +1,4 @@
-import { toolIds, toolsRegistryMap } from '@tetra/core'
+import { toolIds as availableToolIds, toolsRegistryMap } from '@tetra/core'
 import type { CredentialId } from '@tetra/credentials'
 import { getCredentialDefinition } from '@tetra/credentials'
 import { Badge } from '@tetra/ui/components/ui/badge'
@@ -10,13 +10,13 @@ import { useHasCredential } from '@/use-credential'
 
 interface ToolSelectorProps {
   onToolIdsChange: (toolIds: string[]) => void
-  toolIds: string[]
+  enabledToolIds: string[]
 }
 
-export function ToolSelector({ onToolIdsChange, toolIds: enabledToolIds }: ToolSelectorProps) {
+export function ToolSelector({ enabledToolIds, onToolIdsChange }: ToolSelectorProps) {
   return (
     <>
-      {toolIds.map((toolId) => (
+      {availableToolIds.map((toolId) => (
         <ToolToggle
           enabledToolIds={enabledToolIds}
           key={toolId}

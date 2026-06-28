@@ -56,10 +56,10 @@ export function SessionSettings({
         </CardHeader>
         <CardContent className="space-y-3">
           <ToolSelector
+            enabledToolIds={config.toolIds}
             onToolIdsChange={(nextToolIds) => {
               updateConfig({ toolIds: nextToolIds })
             }}
-            toolIds={config.toolIds}
           />
         </CardContent>
       </Card>
