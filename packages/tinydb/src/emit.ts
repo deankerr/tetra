@@ -5,16 +5,12 @@ import type {
   AnyZod,
   FieldKind,
   TableDefinitions,
-  TableSchemaOf,
   TinyCellSchema,
   ValueDefinitions,
 } from './types.ts'
 
 export type TinybaseTablesSchemaOf<Tables extends TableDefinitions> = {
-  [TableId in keyof Tables]: Record<
-    keyof z.output<TableSchemaOf<Tables[TableId]>> & string,
-    TinyCellSchema
-  >
+  [TableId in keyof Tables]: Record<keyof z.output<Tables[TableId]> & string, TinyCellSchema>
 } & TablesSchema
 
 export type TinybaseValuesSchemaOf<Values extends ValueDefinitions> = {

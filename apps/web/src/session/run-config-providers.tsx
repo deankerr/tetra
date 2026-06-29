@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import { createContext, useCallback, useContext, useMemo, useState } from 'react'
 
 import { useApp } from '@/app'
-import { libraryTinybase } from '@/store'
+import { libraryReact } from '@/store'
 
 interface RunConfigContextValue {
   config: RunConfig
@@ -22,18 +22,18 @@ export function PersistedRunConfigProvider({
   sessionId: string
 }) {
   const { stores } = useApp()
-  const libraryStore = stores.library.boundStore
-  const storedConfig = libraryTinybase.useCell('sessions', sessionId, 'config')
+  const { library } = stores
+  const [storedConfig] = libraryReact.sessions.useFieldState(sessionId, 'config')
   const config = SessionRunConfigSchema.parse(storedConfig ?? {})
 
   // Patch from the latest store value so field editors do not capture stale config objects.
   const updateConfig = useCallback(
     (partial: Partial<RunConfig>) => {
-      const existing = libraryStore.tables.sessions.requireEntity(sessionId).config
+      const existing = library.sessions.require(sessionId).config
       const nextConfig = SessionRunConfigSchema.parse({ ...existing, ...partial })
-      libraryStore.tables.sessions.setCell(sessionId, 'config', nextConfig)
+      library.sessions.update(sessionId, { config: nextConfig })
     },
-    [libraryStore, sessionId],
+    [library, sessionId],
   )
 
   const value = useMemo(

@@ -38,8 +38,8 @@ export function createCliAppContext({
   const core = createCoreModules({
     credentials,
     stores: {
-      catalogStore: stores.catalog,
-      libraryStore: stores.library,
+      catalog: stores.catalog,
+      library: stores.library,
     },
   })
   const workspace = connectCliWorkspace(stores)
@@ -55,7 +55,7 @@ export function createCliAppContext({
 export type CliAppContext = ReturnType<typeof createCliAppContext>
 
 function connectCliWorkspace(stores: CliStores) {
-  const { activeSessionId } = stores.cli.boundStore.values
+  const { activeSessionId } = stores.cli.values
 
   // Active session is CLI-local state.
   return {

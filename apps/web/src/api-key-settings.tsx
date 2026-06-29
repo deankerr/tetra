@@ -14,11 +14,11 @@ import { toast } from '@tetra/ui/components/ui/sonner'
 import { KeyRoundIcon } from 'lucide-react'
 import { useCallback } from 'react'
 
-import { webTinybase } from '@/store'
+import { webReact } from '@/store'
 import { useCredential, useHasCredential } from '@/use-credential'
 
 export function ApiKeySettingsDialog() {
-  const [open, setOpen] = webTinybase.useValueState('apiKeySettingsOpen')
+  const [open, setOpen] = webReact.values.apiKeySettingsOpen.useState()
 
   return (
     <Dialog onOpenChange={setOpen} open={open}>
@@ -45,7 +45,7 @@ export function ApiKeySettingsButton({
   className?: string
   label?: string
 }) {
-  const [, setOpen] = webTinybase.useValueState('apiKeySettingsOpen')
+  const [, setOpen] = webReact.values.apiKeySettingsOpen.useState()
 
   return (
     <Button
@@ -66,7 +66,7 @@ export function ApiKeySettingsButton({
 
 export function MissingOpenRouterApiKeyButton() {
   const hasOpenrouterApiKey = useHasCredential('OPENROUTER_API_KEY')
-  const [, setOpen] = webTinybase.useValueState('apiKeySettingsOpen')
+  const [, setOpen] = webReact.values.apiKeySettingsOpen.useState()
 
   if (hasOpenrouterApiKey) {
     return null
@@ -91,7 +91,7 @@ export function MissingOpenRouterApiKeyButton() {
 
 export function useRequireOpenRouterApiKey(): () => void {
   const hasOpenrouterApiKey = useHasCredential('OPENROUTER_API_KEY')
-  const [, setOpen] = webTinybase.useValueState('apiKeySettingsOpen')
+  const [, setOpen] = webReact.values.apiKeySettingsOpen.useState()
 
   return useCallback(() => {
     if (hasOpenrouterApiKey) {

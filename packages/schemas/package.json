@@ -7,7 +7,7 @@
     "./library": "./src/library/index.ts"
   },
   "dependencies": {
-    "@tetra/tinybase-schema": "workspace:*",
+    "@tetra/tinydb": "workspace:*",
     "ai": "catalog:",
     "zod": "catalog:"
   },

@@ -1,10 +1,10 @@
 import type { CredentialsStore } from '@tetra/credentials'
 import { RunConfigSchema } from '@tetra/schemas/library'
 import type {
-  LibraryRows as Rows,
+  LibraryDb,
+  LibraryEntities,
   LibraryRunStatus,
-  LibraryBoundStore,
-  RunConfig as RunConfigType,
+  RunConfig,
 } from '@tetra/schemas/library'
 import { convertToModelMessages, readUIMessageStream, stepCountIs, streamText } from 'ai'
 import type { LanguageModel, ModelMessage, ToolSet, UIMessage } from 'ai'
@@ -12,39 +12,38 @@ import type { LanguageModel, ModelMessage, ToolSet, UIMessage } from 'ai'
 import { resolveTools } from '#tools'
 
 import type { LanguageModelResolver } from './language-model-resolver.ts'
-import { cancelRunRecord, completeRunRecord, failRunRecord } from './run-records.ts'
 import { StepEvent } from './steps.ts'
 
 const DURABLE_SNAPSHOT_INTERVAL_MS = 500
 
-type StepRecord = Rows['steps']
+type StepRecord = LibraryEntities['steps']
 
 export interface RunStart {
-  config: RunConfigType
+  config: RunConfig
   runId: string
-  session: Rows['sessions']
+  session: LibraryEntities['sessions']
   system?: string
   targetMessageId: string
-  transcriptMessages: Rows['messages'][]
+  transcriptMessages: LibraryEntities['messages'][]
 }
 
 interface RunInit {
   credentials: CredentialsStore
   start: RunStart
   modelResolver: LanguageModelResolver
-  boundStore: LibraryBoundStore
+  library: LibraryDb
 }
 
 export class Run extends EventTarget {
   readonly abortController = new AbortController()
-  readonly config: RunConfigType
+  readonly config: RunConfig
   readonly done: Promise<void>
   readonly runId: string
-  readonly session: Rows['sessions']
+  readonly session: LibraryEntities['sessions']
   readonly sessionId: string
   readonly system: string | undefined
   readonly targetMessageId: string
-  readonly transcriptMessages: Rows['messages'][]
+  readonly transcriptMessages: LibraryEntities['messages'][]
 
   error: unknown = null
   finalParts: UIMessage['parts'] | null = null
@@ -59,7 +58,7 @@ export class Run extends EventTarget {
   private readonly credentials: CredentialsStore
   private readonly doneController = Promise.withResolvers<undefined>()
   private readonly modelResolver: LanguageModelResolver
-  private readonly boundStore: LibraryBoundStore
+  private readonly library: LibraryDb
 
   constructor(init: RunInit) {
     super()
@@ -73,7 +72,7 @@ export class Run extends EventTarget {
     this.system = init.start.system
     this.targetMessageId = init.start.targetMessageId
     this.transcriptMessages = init.start.transcriptMessages
-    this.boundStore = init.boundStore
+    this.library = init.library
   }
 
   cancel(): void {
@@ -88,7 +87,6 @@ export class Run extends EventTarget {
     this.parts = [...parts]
     this.finalParts = [...parts]
     this.writeMessagePartsSnapshot(parts)
-    completeRunRecord(this.boundStore, this.runId)
     this.setStatus('completed')
     this.dispatchEvent(new Event('finish'))
     this.doneController.resolve()
@@ -98,7 +96,6 @@ export class Run extends EventTarget {
     this.error = error
     if (this.abortController.signal.aborted) {
       this.writeMessagePartsSnapshot(this.parts)
-      cancelRunRecord(this.boundStore, this.runId, 'Run cancelled')
       this.setStatus('cancelled')
       this.dispatchEvent(new Event('cancel'))
       this.doneController.resolve()
@@ -106,7 +103,6 @@ export class Run extends EventTarget {
     }
 
     this.writeMessagePartsSnapshot(this.parts)
-    failRunRecord(this.boundStore, this.runId, error)
     this.setStatus('error')
     this.dispatchEvent(new Event('error'))
     this.doneController.resolve()
@@ -119,7 +115,7 @@ export class Run extends EventTarget {
 
   private recordStep(step: Omit<StepRecord, 'id' | 'messageId' | 'runId' | 'sessionId'>): void {
     const stepId = `${this.runId}_step_${step.stepNumber}`
-    this.boundStore.tables.steps.setRow(stepId, {
+    this.library.steps.set(stepId, {
       ...step,
       messageId: this.targetMessageId,
       runId: this.runId,
@@ -184,7 +180,7 @@ export class Run extends EventTarget {
   }
 
   private static async toModelMessages(
-    messages: Rows['messages'][],
+    messages: LibraryEntities['messages'][],
     tools: ToolSet,
   ): Promise<ModelMessage[]> {
     return await convertToModelMessages(
@@ -208,7 +204,7 @@ export class Run extends EventTarget {
   }
 
   private writeMessagePartsSnapshot(parts: UIMessage['parts'], now = Date.now()): void {
-    this.boundStore.tables.messages.updateRow(this.targetMessageId, {
+    this.library.messages.update(this.targetMessageId, {
       parts,
       updatedAt: now,
     })

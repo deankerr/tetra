@@ -1,4 +1,4 @@
-import type { CatalogRows } from '@tetra/schemas/catalog'
+import type { CatalogEntities } from '@tetra/schemas/catalog'
 import { ModelSelectorLogo } from '@tetra/ui/components/ai-elements/model-selector'
 import { Button } from '@tetra/ui/components/ui/button'
 import { cn } from '@tetra/ui/lib/utils'
@@ -56,7 +56,7 @@ function formatUpstreamCreatedAt(upstreamCreatedAt: number) {
 }
 
 // Text is the baseline capability, so only non-text input and output modalities get icon slots.
-function ModelModalities({ model }: { model: CatalogRows['languageModels'] }) {
+function ModelModalities({ model }: { model: CatalogEntities['languageModels'] }) {
   const modalities = [
     ...model.inputModalities.map((modality) => ({ direction: 'input' as const, modality })),
     ...model.outputModalities.map((modality) => ({ direction: 'output' as const, modality })),
@@ -96,7 +96,7 @@ export function ModelCard({
   selected,
 }: {
   favorite: boolean
-  model: CatalogRows['languageModels']
+  model: CatalogEntities['languageModels']
   onSelect: () => void
   onToggleFavorite: () => void
   selected: boolean

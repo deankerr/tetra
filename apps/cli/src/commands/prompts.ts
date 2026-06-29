@@ -20,9 +20,7 @@ export function registerPromptCommands(
     .description('List stored prompts')
     .action(async () => {
       const ctx = await getContext()
-      const rows = ctx.stores.library.boundStore.tables.prompts
-        .listEntities()
-        .toSorted((a, b) => a.id.localeCompare(b.id))
+      const rows = ctx.stores.library.prompts.all().toSorted((a, b) => a.id.localeCompare(b.id))
 
       if (rows.length === 0) {
         console.log('No prompts. Run: tetra prompts create "Be terse."')
@@ -57,7 +55,7 @@ export function registerPromptCommands(
     .description('Show a stored prompt')
     .action(async (promptId: string) => {
       const ctx = await getContext()
-      const row = ctx.stores.library.boundStore.tables.prompts.requireEntity(promptId)
+      const row = ctx.stores.library.prompts.require(promptId)
       console.log(`id:      ${row.id}`)
       console.log(`label:   ${row.label || '(none)'}`)
       console.log(`content:\n${row.content}`)
@@ -72,16 +70,11 @@ export function registerPromptCommands(
     .action(async (promptId: string, parts: string[], options: PromptOptions) => {
       const ctx = await getContext()
       const content = await readTextArgument(parts)
-      const update = {
+      ctx.prompts.updatePrompt({
         ...(content !== '' && { content }),
         ...(options.label !== undefined && { label: options.label }),
-        updatedAt: Date.now(),
-      }
-      if (!('content' in update) && !('label' in update)) {
-        throw new Error('No prompt fields provided')
-      }
-
-      ctx.stores.library.boundStore.tables.prompts.updateRow(promptId, update)
+        promptId,
+      })
       console.log(promptId)
     })
 

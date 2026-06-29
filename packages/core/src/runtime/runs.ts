@@ -1,20 +1,17 @@
 import type { CredentialsStore } from '@tetra/credentials'
-import type {
-  LibraryRows as Rows,
-  LibraryStoreInstance,
-  LibraryBoundStore,
-  RunConfig as RunConfigType,
-} from '@tetra/schemas/library'
+import type { LibraryDb, LibraryEntities, RunConfig } from '@tetra/schemas/library'
 
+import { createIdGenerator } from '#ids'
 import type { Prompts } from '#prompts'
 import type { RunConfigs } from '#run-configs'
 import type { Transcripts } from '#transcripts'
 
 import { openRouterLanguageModelResolver } from './language-model-resolver.ts'
 import type { LanguageModelResolver } from './language-model-resolver.ts'
-import { createRunRecord } from './run-records.ts'
 import { Run } from './run.ts'
 import type { RunStart } from './run.ts'
+
+const nextRunId = createIdGenerator('run')
 
 export interface GenerateArgs {
   targetMessageId: string
@@ -22,7 +19,7 @@ export interface GenerateArgs {
 
 export interface RunsInit {
   credentials: CredentialsStore
-  libraryStore: LibraryStoreInstance
+  library: LibraryDb
   modelResolver?: LanguageModelResolver
   prompts: Prompts
   runConfigs: RunConfigs
@@ -36,11 +33,11 @@ export class Runs {
   private readonly prompts: Prompts
   private readonly runConfigs: RunConfigs
   private readonly transcripts: Transcripts
-  private readonly boundStore: LibraryBoundStore
+  private readonly library: LibraryDb
 
   constructor({
     credentials,
-    libraryStore,
+    library,
     modelResolver = openRouterLanguageModelResolver,
     prompts,
     runConfigs,
@@ -51,7 +48,7 @@ export class Runs {
     this.prompts = prompts
     this.runConfigs = runConfigs
     this.transcripts = transcripts
-    this.boundStore = libraryStore.boundStore
+    this.library = library
   }
 
   cancel(runId: string): void {
@@ -85,8 +82,8 @@ export class Runs {
   // Callers are responsible for creating transcript messages before calling generate.
   // The target starts empty and receives streaming snapshots until the run is terminal.
   generate(args: GenerateArgs): Run {
-    const targetMessage = this.boundStore.tables.messages.requireEntity(args.targetMessageId)
-    const session = this.boundStore.tables.sessions.requireEntity(targetMessage.sessionId)
+    const targetMessage = this.library.messages.require(args.targetMessageId)
+    const session = this.library.sessions.require(targetMessage.sessionId)
     if (targetMessage.parts.length > 0) {
       throw new Error(`Cannot generate into a message with existing parts: ${args.targetMessageId}`)
     }
@@ -97,9 +94,9 @@ export class Runs {
     const transcriptMessages = this.collectMessagesBefore(targetMessage, config)
 
     let runId = ''
-    this.boundStore.transaction(() => {
-      this.boundStore.tables.sessions.setCell(session.id, 'updatedAt', Date.now())
-      runId = createRunRecord(this.boundStore, {
+    this.library.batch(() => {
+      this.library.sessions.update(session.id, { updatedAt: Date.now() })
+      runId = this.createRunRecord({
         config,
         sessionId: session.id,
         targetMessageId: args.targetMessageId,
@@ -117,9 +114,9 @@ export class Runs {
   }
 
   private collectMessagesBefore(
-    targetMessage: Rows['messages'],
-    config: RunConfigType,
-  ): Rows['messages'][] {
+    targetMessage: LibraryEntities['messages'],
+    config: RunConfig,
+  ): LibraryEntities['messages'][] {
     const transcriptMessages = this.transcripts
       .getSession(targetMessage.sessionId)
       .getMessagePath({ messageId: targetMessage.parentMessageId })
@@ -131,12 +128,46 @@ export class Runs {
     return transcriptMessages.slice(-config.maxMessages)
   }
 
+  private createRunRecord(args: {
+    config: RunConfig
+    sessionId: string
+    targetMessageId: string
+  }): string {
+    const runId = nextRunId()
+    const now = Date.now()
+
+    // Run rows are durable status snapshots for one generation attempt.
+    this.library.runs.create(runId, {
+      config: args.config,
+      createdAt: now,
+      errorMessage: '',
+      sessionId: args.sessionId,
+      status: 'active',
+      targetMessageId: args.targetMessageId,
+      terminalAt: 0,
+      updatedAt: now,
+    })
+
+    return runId
+  }
+
   private launchRun(runStart: RunStart): Run {
     const run = new Run({
-      boundStore: this.boundStore,
       credentials: this.credentials,
+      library: this.library,
       modelResolver: this.modelResolver,
       start: runStart,
+    })
+
+    // Runs owns durable run-row status; Run owns the live stream and lifecycle events.
+    run.addEventListener('finish', () => {
+      this.completeRunRecord(run.runId)
+    })
+    run.addEventListener('cancel', () => {
+      this.cancelRunRecord(run.runId, 'Run cancelled')
+    })
+    run.addEventListener('error', () => {
+      this.failRunRecord(run.runId, run.error)
     })
 
     this.active.set(run.runId, run)
@@ -149,5 +180,34 @@ export class Runs {
   private async removeWhenDone(run: Run): Promise<void> {
     await run.done
     this.active.delete(run.runId)
+  }
+
+  private completeRunRecord(runId: string): void {
+    const now = Date.now()
+    this.library.runs.update(runId, {
+      status: 'completed',
+      terminalAt: now,
+      updatedAt: now,
+    })
+  }
+
+  private cancelRunRecord(runId: string, message = ''): void {
+    const now = Date.now()
+    this.library.runs.update(runId, {
+      errorMessage: message,
+      status: 'cancelled',
+      terminalAt: now,
+      updatedAt: now,
+    })
+  }
+
+  private failRunRecord(runId: string, error: unknown): void {
+    const now = Date.now()
+    this.library.runs.update(runId, {
+      errorMessage: String(error),
+      status: 'error',
+      terminalAt: now,
+      updatedAt: now,
+    })
   }
 }

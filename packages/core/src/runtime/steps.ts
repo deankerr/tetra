@@ -1,9 +1,9 @@
 import { StepWarningSchema } from '@tetra/schemas/library'
-import type { LibraryRows as Rows } from '@tetra/schemas/library'
+import type { LibraryEntities } from '@tetra/schemas/library'
 import { pickBy } from 'remeda'
 import { z } from 'zod'
 
-type StepRecord = Rows['steps']
+type StepRecord = LibraryEntities['steps']
 type CapturedStep = Omit<StepRecord, 'id' | 'messageId' | 'runId' | 'sessionId'>
 type StepRawUsage = NonNullable<StepRecord['raw']['usage']>
 

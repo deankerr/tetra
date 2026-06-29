@@ -6,7 +6,7 @@ import { BracesIcon, DownloadIcon } from 'lucide-react'
 
 import { useApp } from '@/app'
 import { useJsonViewSheet } from '@/components/json-view-sheet'
-import { libraryTinybase } from '@/store'
+import { libraryReact } from '@/store'
 
 import { SessionExportButton } from './export-button'
 import { useRunConfig } from './run-config-providers'
@@ -99,7 +99,7 @@ function UseAsDefaultButton() {
 
 function SessionSettingsActions() {
   const { sessionId } = useRunConfig()
-  const session = libraryTinybase.useEntity('sessions', sessionId ?? '')
+  const session = libraryReact.sessions.useGet(sessionId ?? '')
   const { openJsonView } = useJsonViewSheet()
 
   if (sessionId === null || session === null) {

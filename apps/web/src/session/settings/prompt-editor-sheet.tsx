@@ -19,12 +19,12 @@ import { Trash2Icon, XIcon } from 'lucide-react'
 import { useMemo } from 'react'
 
 import { useApp } from '@/app'
-import { libraryTinybase } from '@/store'
+import { libraryReact } from '@/store'
 
 import { useRunConfig } from '../run-config-providers'
 
 const usePromptIds = () => {
-  const prompts = libraryTinybase.useEntityList('prompts')
+  const prompts = libraryReact.prompts.useAll()
   return useMemo(
     () =>
       prompts.toSorted((left, right) => left.id.localeCompare(right.id)).map((prompt) => prompt.id),
@@ -50,7 +50,7 @@ function PromptDisplayLabel({ prompt }: { prompt: { content: string; label: stri
 }
 
 function PromptOption({ promptId }: { promptId: string }) {
-  const prompt = libraryTinybase.useEntity('prompts', promptId)
+  const prompt = libraryReact.prompts.useGet(promptId)
   if (prompt === null) {
     return null
   }
@@ -93,8 +93,8 @@ function SelectedPromptFields({
 }
 
 function PromptCellFields({ onDelete, promptId }: { onDelete: () => void; promptId: string }) {
-  const [content, setContent] = libraryTinybase.useCellState('prompts', promptId, 'content')
-  const [label, setLabel] = libraryTinybase.useCellState('prompts', promptId, 'label')
+  const [content, setContent] = libraryReact.prompts.useFieldState(promptId, 'content')
+  const [label, setLabel] = libraryReact.prompts.useFieldState(promptId, 'label')
 
   return (
     <>
@@ -129,7 +129,7 @@ function PromptCellFields({ onDelete, promptId }: { onDelete: () => void; prompt
 }
 
 function PromptLabel({ promptId }: { promptId: string }) {
-  const prompt = libraryTinybase.useEntity('prompts', promptId)
+  const prompt = libraryReact.prompts.useGet(promptId)
   return prompt === null ? (
     <span className="text-muted-foreground">None</span>
   ) : (
@@ -145,7 +145,7 @@ export function PromptPreviewButton({ onOpen }: { onOpen: () => void }) {
   const selectedPromptId =
     systemPromptId !== '' && promptIds.includes(systemPromptId) ? systemPromptId : undefined
 
-  const selectedPrompt = libraryTinybase.useEntity('prompts', selectedPromptId ?? '')
+  const selectedPrompt = libraryReact.prompts.useGet(selectedPromptId ?? '')
   const previewContent = selectedPrompt?.content?.trim() ?? ''
 
   return (

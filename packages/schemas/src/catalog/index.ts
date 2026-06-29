@@ -1,10 +1,8 @@
-import type { BoundStoreFor, StoreRowsFor } from '@tetra/tinybase-schema'
-import { defineStoreSchema } from '@tetra/tinybase-schema'
-import { defineStoreDefinition } from '@tetra/tinybase-schema/runtime'
-import type { StoreInstanceFor } from '@tetra/tinybase-schema/runtime'
+import { defineSchema } from '@tetra/tinydb'
+import type { DbFor, EntitiesFor } from '@tetra/tinydb'
 import { z } from 'zod'
 
-export const catalogStoreSchema = defineStoreSchema({
+export const catalogSchema = defineSchema({
   tables: {
     languageModels: z.object({
       contextLength: z.number(),
@@ -24,12 +22,5 @@ export const catalogStoreSchema = defineStoreSchema({
   },
 })
 
-export const catalogStoreDefinition = defineStoreDefinition({
-  id: 'catalog',
-  indexIds: [],
-  schema: catalogStoreSchema,
-})
-
-export type CatalogRows = StoreRowsFor<typeof catalogStoreSchema>
-export type CatalogStoreInstance = StoreInstanceFor<typeof catalogStoreDefinition>
-export type CatalogBoundStore = BoundStoreFor<typeof catalogStoreSchema>
+export type CatalogDb = DbFor<typeof catalogSchema>
+export type CatalogEntities = EntitiesFor<typeof catalogSchema>

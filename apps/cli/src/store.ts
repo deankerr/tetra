@@ -2,14 +2,10 @@ import { Database } from 'bun:sqlite'
 import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 
-import { catalogStoreDefinition } from '@tetra/schemas/catalog'
-import { libraryStoreDefinition } from '@tetra/schemas/library'
-import { defineStoreSchema } from '@tetra/tinybase-schema'
-import {
-  createMergeableStoreInstance,
-  createStoreInstance,
-  defineStoreDefinition,
-} from '@tetra/tinybase-schema/runtime'
+import { catalogSchema } from '@tetra/schemas/catalog'
+import { librarySchema } from '@tetra/schemas/library'
+import { defineSchema } from '@tetra/tinydb'
+import { createDb, createMergeableDb } from '@tetra/tinydb/runtime'
 import { createSqliteBunPersister } from 'tinybase/persisters/persister-sqlite-bun/with-schemas'
 import { createWsSynchronizer } from 'tinybase/synchronizers/synchronizer-ws-client/with-schemas'
 import { z } from 'zod'
@@ -23,21 +19,15 @@ const SYNC_REQUEST_TIMEOUT_SECONDS = 5
 const SYNC_TIMEOUT_MS = 10_000
 const SYNC_FLUSH_GRACE_MS = 1500
 
-const cliStoreSchema = defineStoreSchema({
+const cliSchema = defineSchema({
   tables: {},
   values: {
     activeSessionId: z.string().nullable().default(null),
   },
 })
 
-const cliStoreDefinition = defineStoreDefinition({
-  id: 'cli',
-  indexIds: [],
-  schema: cliStoreSchema,
-})
-
 export type CliStores = ReturnType<typeof createInMemoryCliStores>
-type LibraryRawStore = CliStores['library']['rawStore']
+type LibraryRawStore = CliStores['library']['raw']['store']
 
 export interface CliStoreRuntimeOptions {
   syncEnabled?: boolean
@@ -51,17 +41,17 @@ interface LibrarySynchronizer {
 export function createInMemoryCliStores() {
   // The shared library is mergeable so SQLite cache and remote sync speak one shape.
   return {
-    catalog: createStoreInstance(catalogStoreDefinition),
-    cli: createStoreInstance(cliStoreDefinition),
-    library: createMergeableStoreInstance(libraryStoreDefinition),
+    catalog: createDb(catalogSchema),
+    cli: createDb(cliSchema),
+    library: createMergeableDb(librarySchema),
   }
 }
 
 export async function createCliStoreRuntime(options: CliStoreRuntimeOptions = {}) {
   const stores = createInMemoryCliStores()
-  const catalogStore = stores.catalog.rawStore
-  const cliStore = stores.cli.rawStore
-  const libraryStore = stores.library.rawStore
+  const catalogStore = stores.catalog.raw.store
+  const cliStore = stores.cli.raw.store
+  const libraryStore = stores.library.raw.store
 
   // The CLI keeps all local stores in one SQLite database, with one JSON table per store.
   mkdirSync(dirname(DATABASE_PATH), { recursive: true })

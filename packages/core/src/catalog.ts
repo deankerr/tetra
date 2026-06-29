@@ -1,4 +1,4 @@
-import type { CatalogRows, CatalogStoreInstance } from '@tetra/schemas/catalog'
+import type { CatalogDb, CatalogEntities } from '@tetra/schemas/catalog'
 import { z } from 'zod'
 
 const STALE_MS = 60 * 60 * 1000
@@ -21,15 +21,14 @@ const OpenRouterModelsResponse = z.object({
 })
 
 export class ModelCatalog {
-  private readonly catalogStore: CatalogStoreInstance
+  private readonly catalog: CatalogDb
 
-  constructor({ catalogStore }: { catalogStore: CatalogStoreInstance }) {
-    this.catalogStore = catalogStore
+  constructor({ catalog }: { catalog: CatalogDb }) {
+    this.catalog = catalog
   }
 
   async refresh(args: { force?: boolean } = {}): Promise<void> {
-    const { boundStore } = this.catalogStore
-    const { lastRefreshed } = boundStore.values
+    const { lastRefreshed } = this.catalog.values
     const refreshedAt = lastRefreshed.get()
     const isStale = refreshedAt === null || Date.now() - refreshedAt > STALE_MS
     if (args.force !== true && !isStale) {
@@ -44,7 +43,7 @@ export class ModelCatalog {
 
     const { data } = OpenRouterModelsResponse.parse(await response.json())
     const now = Date.now()
-    const models: CatalogRows['languageModels'][] = data.map((model) => {
+    const models: CatalogEntities['languageModels'][] = data.map((model) => {
       const [provider = ''] = model.id.split('/')
       const colonIndex = model.name.indexOf(':')
       const rawProviderName = colonIndex > 0 ? model.name.slice(0, colonIndex).trim() : ''
@@ -67,15 +66,15 @@ export class ModelCatalog {
 
     // Publish the catalog replacement and refresh timestamp as one TinyBase event.
     const incomingIds = new Set(models.map((m) => m.id))
-    boundStore.transaction(() => {
-      for (const existingId of boundStore.tables.languageModels.getRowIds()) {
+    this.catalog.batch(() => {
+      for (const existingId of this.catalog.languageModels.ids()) {
         if (!incomingIds.has(existingId)) {
-          boundStore.tables.languageModels.deleteRow(existingId)
+          this.catalog.languageModels.delete(existingId)
         }
       }
       for (const { id, ...record } of models) {
-        const existing = boundStore.tables.languageModels.getEntity(id)
-        boundStore.tables.languageModels.setRow(id, {
+        const existing = this.catalog.languageModels.get(id)
+        this.catalog.languageModels.set(id, {
           ...record,
           createdAt: existing?.createdAt ?? record.createdAt,
         })

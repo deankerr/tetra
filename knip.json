@@ -33,9 +33,9 @@
       "includeEntryExports": false,
       "project": ["src/**/*.{ts,tsx}"]
     },
-    "packages/tinybase-schema": {
-      "includeEntryExports": true,
+    "packages/tinydb": {
       "entry": ["src/**/*.test.ts"],
+      "includeEntryExports": false,
       "project": ["src/**/*.{ts,tsx}"]
     },
     "packages/tools-exa": {

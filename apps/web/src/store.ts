@@ -1,14 +1,10 @@
 import { createCoreModules } from '@tetra/core'
 import { credentialStore } from '@tetra/credentials'
-import { catalogStoreDefinition } from '@tetra/schemas/catalog'
-import { libraryStoreDefinition } from '@tetra/schemas/library'
-import { defineStoreSchema } from '@tetra/tinybase-schema'
-import { createStoreReactApi, createTinyBaseProviderProps } from '@tetra/tinybase-schema/react'
-import {
-  createMergeableStoreInstance,
-  createStoreInstance,
-  defineStoreDefinition,
-} from '@tetra/tinybase-schema/runtime'
+import { catalogSchema } from '@tetra/schemas/catalog'
+import { librarySchema } from '@tetra/schemas/library'
+import { defineSchema } from '@tetra/tinydb'
+import { createDbReactApi } from '@tetra/tinydb/react'
+import { createDb, createMergeableDb } from '@tetra/tinydb/runtime'
 import {
   createLocalPersister,
   createSessionPersister,
@@ -23,7 +19,7 @@ const LIBRARY_BROADCAST_CHANNEL = 'tetra:library'
 const LIBRARY_STORAGE_NAME = 'tetra:library'
 const WEB_STORAGE_NAME = 'tetra:web'
 
-const webStoreSchema = defineStoreSchema({
+const webSchema = defineSchema({
   tables: {
     sessionThreadViews: z.object({
       threadAnchorMessageId: z.string().nullable().default(null),
@@ -40,24 +36,18 @@ const webStoreSchema = defineStoreSchema({
   },
 })
 
-const webStoreDefinition = defineStoreDefinition({
-  id: 'web',
-  indexIds: [],
-  schema: webStoreSchema,
-})
-
-function createWebStoreInstances() {
-  // The shared library is mergeable so local cache, tab sync, and remote sync speak one shape.
-  return {
-    catalog: createStoreInstance(catalogStoreDefinition),
-    library: createMergeableStoreInstance(libraryStoreDefinition),
-    web: createStoreInstance(webStoreDefinition),
-  }
+// Stores are created eagerly (synchronous, in-memory) so the React APIs can bind to concrete
+// instances at module load. Persistence and sync are layered on later by the async runtime.
+// The shared library is mergeable so local cache, tab sync, and remote sync speak one shape.
+const stores = {
+  catalog: createDb(catalogSchema),
+  library: createMergeableDb(librarySchema),
+  web: createDb(webSchema),
 }
 
-export type WebStoreInstances = ReturnType<typeof createWebStoreInstances>
+export type WebStores = typeof stores
 export type WebStoreRuntime = Awaited<ReturnType<typeof createWebStoreRuntime>>
-type LibraryRawStore = WebStoreInstances['library']['rawStore']
+type LibraryRawStore = WebStores['library']['raw']['store']
 
 // Browser-only resources live for the whole page, so the runtime is a lazily-created singleton:
 // one set of persisters, sockets, and channels shared across every mount (and StrictMode/HMR).
@@ -70,10 +60,9 @@ export async function getWebStoreRuntime(): Promise<WebStoreRuntime> {
 // and the browser reclaims sockets and channels on unload. Startup loads each cache, then turns on
 // auto-save and live sync. Core modules and provider props are derived here so React just wires them.
 async function createWebStoreRuntime() {
-  const stores = createWebStoreInstances()
-  const catalogStore = stores.catalog.rawStore
-  const libraryStore = stores.library.rawStore
-  const webStore = stores.web.rawStore
+  const catalogStore = stores.catalog.raw.store
+  const libraryStore = stores.library.raw.store
+  const webStore = stores.web.raw.store
 
   // Browser-local stores persist independently: catalog in IndexedDB, UI state in sessionStorage.
   const catalogPersister = createIndexedDbPersister(
@@ -107,16 +96,12 @@ async function createWebStoreRuntime() {
   const core = createCoreModules({
     credentials: credentialStore,
     stores: {
-      catalogStore: stores.catalog,
-      libraryStore: stores.library,
+      catalog: stores.catalog,
+      library: stores.library,
     },
   })
 
-  return {
-    core,
-    providerProps: createTinyBaseProviderProps(stores),
-    stores,
-  }
+  return { core, stores }
 }
 
 // Same-origin tab convergence over BroadcastChannel. A lone tab has no peer to answer TinyBase's
@@ -186,6 +171,7 @@ function reportIgnoredPersistenceError(label: string) {
   }
 }
 
-export const catalogTinybase = createStoreReactApi(catalogStoreDefinition)
-export const libraryTinybase = createStoreReactApi(libraryStoreDefinition)
-export const webTinybase = createStoreReactApi(webStoreDefinition)
+// Reactive read APIs bound to the eager store instances (no Provider/context).
+export const catalogReact = createDbReactApi(catalogSchema, stores.catalog)
+export const libraryReact = createDbReactApi(librarySchema, stores.library)
+export const webReact = createDbReactApi(webSchema, stores.web)

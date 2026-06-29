@@ -1,4 +1,4 @@
-import type { LibraryRows as Rows } from '@tetra/schemas/library'
+import type { LibraryEntities } from '@tetra/schemas/library'
 
 import type { TranscriptMessageTree } from './message-tree.ts'
 
@@ -22,7 +22,7 @@ export class TranscriptMessagePath {
     this.tree = tree
   }
 
-  message(): Rows['messages'] | null {
+  message(): LibraryEntities['messages'] | null {
     if (this.messageId === null) {
       return null
     }
@@ -30,7 +30,7 @@ export class TranscriptMessagePath {
     return this.tree.requireMessage(this.messageId)
   }
 
-  messages(): Rows['messages'][] {
+  messages(): LibraryEntities['messages'][] {
     return this.tree.listMessagePathMessages(this.messageId)
   }
 }

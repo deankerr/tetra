@@ -1,5 +1,5 @@
 import { summarizeSteps } from '@tetra/core'
-import type { LibraryRows } from '@tetra/schemas/library'
+import type { LibraryEntities } from '@tetra/schemas/library'
 import { CodeBlock } from '@tetra/ui/components/ai-elements/code-block'
 import { Badge } from '@tetra/ui/components/ui/badge'
 import { Button } from '@tetra/ui/components/ui/button'
@@ -15,12 +15,12 @@ import { CopyIcon, XIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useMemo } from 'react'
 
-import { libraryTinybase } from '@/store'
+import { libraryReact } from '@/store'
 
 import { useRunSteps } from './usage-hooks'
 
-type Run = LibraryRows['runs']
-type Step = LibraryRows['steps']
+type Run = LibraryEntities['runs']
+type Step = LibraryEntities['steps']
 
 // Run detail sheets subscribe directly to the run and step rows they render.
 export function RunDetailSheet({
@@ -82,7 +82,7 @@ export function RunDetailSheet({
 
 // The sheet keeps derived usage next to the source rows for copy/export parity.
 function useRunDetail(runId: string) {
-  const run = libraryTinybase.useEntity('runs', runId)
+  const run = libraryReact.runs.useGet(runId)
   const steps = useRunSteps(runId)
 
   return useMemo(() => {

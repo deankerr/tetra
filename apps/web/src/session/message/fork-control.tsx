@@ -1,14 +1,14 @@
-import type { LibraryRows } from '@tetra/schemas/library'
+import type { LibraryEntities } from '@tetra/schemas/library'
 import { Button } from '@tetra/ui/components/ui/button'
 import { ButtonGroup, ButtonGroupText } from '@tetra/ui/components/ui/button-group'
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
 
 import { useApp } from '@/app'
-import { libraryTinybase } from '@/store'
+import { libraryReact } from '@/store'
 
 import { useSessionThreadSelection } from '../thread-view'
 
-export function MessageForkControl({ message }: { message: LibraryRows['messages'] }) {
+export function MessageForkControl({ message }: { message: LibraryEntities['messages'] }) {
   const { selectThreadFromMessage } = useSessionThreadSelection(message.sessionId)
   const forkChoices = useForkChoices(message)
   const currentIndex = forkChoices.findIndex((forkChoice) => forkChoice.id === message.id)
@@ -57,9 +57,10 @@ export function MessageForkControl({ message }: { message: LibraryRows['messages
   )
 }
 
-function useForkChoices(message: LibraryRows['messages']): LibraryRows['messages'][] {
+function useForkChoices(message: LibraryEntities['messages']): LibraryEntities['messages'][] {
   const { transcripts } = useApp()
-  libraryTinybase.useSliceRowIds('messagesBySession', message.sessionId)
+  // Subscribe to the session's messages so fork choices re-render on transcript changes.
+  libraryReact.messages.useBySession(message.sessionId)
 
   // Fork choices are ordinary child messages of the current message's parent.
   return transcripts.getSession(message.sessionId).listContinuations(message.parentMessageId)

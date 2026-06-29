@@ -1,11 +1,10 @@
-import { StoreProvider } from '@tetra/tinybase-schema/react'
 import { createContext, useContext, useEffect, useState } from 'react'
 
 import { getWebStoreRuntime } from '@/store'
-import type { WebStoreInstances, WebStoreRuntime } from '@/store'
+import type { WebStores, WebStoreRuntime } from '@/store'
 
 export type AppContextValue = WebStoreRuntime['core'] & {
-  stores: WebStoreInstances
+  stores: WebStores
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
@@ -16,12 +15,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return null
   }
 
-  const { core, providerProps, stores } = runtime
-  return (
-    <StoreProvider indexesById={providerProps.indexesById} storesById={providerProps.storesById}>
-      <AppContext value={{ ...core, stores }}>{children}</AppContext>
-    </StoreProvider>
-  )
+  // Reactive reads bind to module-level store instances, so no TinyBase Provider is needed;
+  // this context only hands components the imperative core commands and store handles.
+  const { core, stores } = runtime
+  return <AppContext value={{ ...core, stores }}>{children}</AppContext>
 }
 
 function useWebStoreRuntime(): WebStoreRuntime | null {

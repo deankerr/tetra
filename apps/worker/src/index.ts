@@ -1,6 +1,6 @@
-import { libraryStoreDefinition } from '@tetra/schemas/library'
-import type { TinybaseSchemasFor } from '@tetra/tinybase-schema'
-import { createMergeableStoreInstance } from '@tetra/tinybase-schema/runtime'
+import { librarySchema } from '@tetra/schemas/library'
+import { createMergeableDb } from '@tetra/tinydb/runtime'
+import type { SchemasOf } from '@tetra/tinydb/runtime'
 import { createDurableObjectSqlStoragePersister } from 'tinybase/persisters/persister-durable-object-sql-storage/with-schemas'
 import {
   WsServerDurableObject,
@@ -15,7 +15,7 @@ export interface Env {
   TinyBaseDurableObjects: DurableObjectNamespace<TinyBaseDurableObject>
 }
 
-type WorkerStoreSchemas = TinybaseSchemasFor<(typeof libraryStoreDefinition)['schema']>
+type WorkerStoreSchemas = SchemasOf<typeof librarySchema>
 type LibraryRuntime = ReturnType<typeof createLibraryRuntime>
 
 // TinyBase calls createPersister during super(), before subclass fields are initialized.
@@ -23,9 +23,9 @@ const libraryRuntimes = new WeakMap<TinyBaseDurableObject, LibraryRuntime>()
 
 function createLibraryRuntime(sqlStorage: DurableObjectStorage['sql']) {
   // The sync server hosts only the shared library store, and it must be mergeable.
-  const library = createMergeableStoreInstance(libraryStoreDefinition)
+  const library = createMergeableDb(librarySchema)
   const libraryPersister = createDurableObjectSqlStoragePersister(
-    library.rawStore,
+    library.raw.store,
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Cloudflare SQL storage is supplied by the Worker runtime.
     sqlStorage as never,
     { mode: 'fragmented', storagePrefix: 'library_' },
@@ -71,9 +71,9 @@ export class TinyBaseDurableObject extends WsServerDurableObject<WorkerStoreSche
         return new Response('Store is not ready', { status: 503 })
       }
 
-      const { rawStore } = runtime.library
-      rawStore.delTables()
-      rawStore.delValues()
+      const { store } = runtime.library.raw
+      store.delTables()
+      store.delValues()
       await runtime.libraryPersister.save()
 
       return Response.json({ ok: true })

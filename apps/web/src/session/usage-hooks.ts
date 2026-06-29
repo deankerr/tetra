@@ -1,22 +1,16 @@
 import { summarizeSteps } from '@tetra/core'
 import type { UsageTotals } from '@tetra/core'
-import type { LibraryRows } from '@tetra/schemas/library'
+import type { LibraryEntities } from '@tetra/schemas/library'
 import { useMemo } from 'react'
 
-import { libraryTinybase } from '@/store'
+import { libraryReact } from '@/store'
 
-type StepIndexId = 'stepsByRun' | 'stepsBySession'
-
-export function useRunSteps(runId: string | undefined): LibraryRows['steps'][] {
-  return useStepsBySlice('stepsByRun', runId ?? '')
+export function useRunSteps(runId: string | undefined): LibraryEntities['steps'][] {
+  return libraryReact.steps.useByRun(runId ?? '')
 }
 
 export function useSessionUsageTotals(sessionId: string): UsageTotals {
-  const steps = useStepsBySlice('stepsBySession', sessionId)
+  const steps = libraryReact.steps.useBySession(sessionId)
 
   return useMemo(() => summarizeSteps(steps), [steps])
-}
-
-function useStepsBySlice(indexId: StepIndexId, sliceId: string): LibraryRows['steps'][] {
-  return libraryTinybase.useSliceEntities(indexId, sliceId, 'steps')
 }

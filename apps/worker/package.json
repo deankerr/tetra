@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@tetra/schemas": "workspace:*",
-    "@tetra/tinybase-schema": "workspace:*",
+    "@tetra/tinydb": "workspace:*",
     "tinybase": "catalog:"
   },
   "devDependencies": {

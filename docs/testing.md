@@ -32,7 +32,7 @@ Prefer tests for stable domain rules:
 - CLI command boundaries that can mutate local data.
 - External API request shaping.
 
-Avoid concrete store-definition smoke tests for now. They can be considered later if schema wiring itself becomes a recurring failure point, but today they mostly duplicate `packages/tinybase-schema` and core module coverage.
+Avoid concrete store-definition smoke tests for now. They can be considered later if schema wiring itself becomes a recurring failure point, but today they mostly duplicate `packages/tinydb` and core module coverage.
 
 Skip tests for churn-heavy UI layout or markup until a behavior has become stable or has already regressed once.
 

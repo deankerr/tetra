@@ -2,9 +2,9 @@ import { expect, test } from 'bun:test'
 
 import type { LanguageModelV3StreamPart } from '@ai-sdk/provider'
 import { CredentialsStore } from '@tetra/credentials'
-import { libraryStoreDefinition } from '@tetra/schemas/library'
-import type { LibraryRows } from '@tetra/schemas/library'
-import { createStoreInstance } from '@tetra/tinybase-schema/runtime'
+import { librarySchema } from '@tetra/schemas/library'
+import type { LibraryEntities } from '@tetra/schemas/library'
+import { createDb } from '@tetra/tinydb/runtime'
 import { simulateReadableStream, tool } from 'ai'
 import { MockLanguageModelV3 } from 'ai/test'
 import { z } from 'zod'
@@ -14,25 +14,17 @@ import { toolsRegistryMap } from '../tools/tools.ts'
 import type { LanguageModelResolver } from './language-model-resolver.ts'
 
 function createTestDb() {
-  // Tests own the same library store instance shape used by app composition roots.
-  const libraryStore = createStoreInstance(libraryStoreDefinition)
-  const { rawIndexes, rawStore, boundIndexes, boundStore } = libraryStore
-  return {
-    boundIndexes,
-    boundStore,
-    libraryStore,
-    rawIndexes,
-    rawStore,
-  }
+  // Tests own the same library db used by app composition roots.
+  return { library: createDb(librarySchema) }
 }
 
 function createTestRuntime() {
   const context = createTestDb()
-  const { libraryStore, boundIndexes, boundStore } = context
-  const runConfigs = new RunConfigs({ libraryStore })
-  const prompts = new Prompts({ libraryStore, runConfigs })
-  const transcripts = new Transcripts({ libraryStore, runConfigs })
-  const core = { boundIndexes, boundStore, prompts, transcripts }
+  const { library } = context
+  const runConfigs = new RunConfigs({ library })
+  const prompts = new Prompts({ library, runConfigs })
+  const transcripts = new Transcripts({ library, runConfigs })
+  const core = { library, prompts, transcripts }
   const credentials = new CredentialsStore([])
   const streamChunks: LanguageModelV3StreamPart[] = [
     { type: 'stream-start', warnings: [] },
@@ -61,7 +53,7 @@ function createTestRuntime() {
   const modelResolver: LanguageModelResolver = { resolve: () => model }
   const runs = new Runs({
     credentials,
-    libraryStore,
+    library,
     modelResolver,
     prompts,
     runConfigs,
@@ -76,7 +68,7 @@ type TestCore = ReturnType<typeof createTestRuntime>['core']
 function appendAfterNewestLeaf(
   core: TestCore,
   sessionId: string,
-  args: { parts: LibraryRows['messages']['parts']; role: LibraryRows['messages']['role'] },
+  args: { parts: LibraryEntities['messages']['parts']; role: LibraryEntities['messages']['role'] },
 ): string {
   const session = core.transcripts.getSession(sessionId)
   const parentMessageId = session.getNewestLeafMessageId()
@@ -85,7 +77,10 @@ function appendAfterNewestLeaf(
   return session.appendMessage({ parentMessageId, ...args })
 }
 
-function listThreadFromNewestLeaf(core: TestCore, sessionId: string): LibraryRows['messages'][] {
+function listThreadFromNewestLeaf(
+  core: TestCore,
+  sessionId: string,
+): LibraryEntities['messages'][] {
   const session = core.transcripts.getSession(sessionId)
   const threadAnchorMessageId = session.getNewestLeafMessageId()
   if (threadAnchorMessageId === null) {
@@ -129,12 +124,12 @@ test('generate streams through the AI SDK into TinyBase rows', async () => {
   })
 
   const run = runs.generate({ targetMessageId })
-  expect(core.boundStore.tables.runs.requireEntity(run.runId).status).toBe('active')
+  expect(core.library.runs.require(run.runId).status).toBe('active')
 
   await run.done
 
   const messages = listThreadFromNewestLeaf(core, sessionId)
-  const runRecord = core.boundStore.tables.runs.requireEntity(run.runId)
+  const runRecord = core.library.runs.require(run.runId)
 
   expect(run.status).toBe('completed')
   expect(runRecord.status).toBe('completed')
@@ -156,9 +151,7 @@ test('generate streams through the AI SDK into TinyBase rows', async () => {
     type: 'text',
   })
   expect(run.finalParts).toEqual(messages[1]?.parts)
-  const steps = core.boundIndexes
-    .getSliceRowIds('stepsByRun', run.runId)
-    .map((id) => core.boundStore.tables.steps.requireEntity(id))
+  const steps = core.library.steps.byRun(run.runId)
   expect(steps).toHaveLength(1)
   expect(steps[0]).toMatchObject({
     finishReason: 'stop',
@@ -181,11 +174,11 @@ test('generate streams through the AI SDK into TinyBase rows', async () => {
 
 test('streaming snapshots persist to the target message before terminal status', async () => {
   const context = createTestDb()
-  const { libraryStore, boundIndexes, boundStore } = context
-  const runConfigs = new RunConfigs({ libraryStore })
-  const prompts = new Prompts({ libraryStore, runConfigs })
-  const transcripts = new Transcripts({ libraryStore, runConfigs })
-  const core = { boundIndexes, boundStore, prompts, transcripts }
+  const { library } = context
+  const runConfigs = new RunConfigs({ library })
+  const prompts = new Prompts({ library, runConfigs })
+  const transcripts = new Transcripts({ library, runConfigs })
+  const core = { library, prompts, transcripts }
   const credentials = new CredentialsStore([])
   const model = new MockLanguageModelV3({
     doStream: {
@@ -212,7 +205,7 @@ test('streaming snapshots persist to the target message before terminal status',
   })
   const runs = new Runs({
     credentials,
-    libraryStore,
+    library,
     modelResolver: { resolve: () => model },
     prompts,
     runConfigs,
@@ -239,23 +232,21 @@ test('streaming snapshots persist to the target message before terminal status',
     firstSnapshot.resolve()
   }
   run.addEventListener('snapshot', handleSnapshot)
-  const messageBeforeSnapshot = core.boundStore.tables.messages.requireEntity(targetMessageId)
-  const sessionAfterGenerate = core.boundStore.tables.sessions.requireEntity(sessionId)
+  const messageBeforeSnapshot = core.library.messages.require(targetMessageId)
+  const sessionAfterGenerate = core.library.sessions.require(sessionId)
 
   await firstSnapshot.promise
 
-  const messageAfterSnapshot = core.boundStore.tables.messages.requireEntity(targetMessageId)
-  const sessionAfterSnapshot = core.boundStore.tables.sessions.requireEntity(sessionId)
+  const messageAfterSnapshot = core.library.messages.require(targetMessageId)
+  const sessionAfterSnapshot = core.library.sessions.require(sessionId)
 
   expect(messageAfterSnapshot.parts.length).toBeGreaterThan(0)
   expect(messageAfterSnapshot.updatedAt).toBeGreaterThan(messageBeforeSnapshot.updatedAt)
   expect(sessionAfterSnapshot.updatedAt).toBe(sessionAfterGenerate.updatedAt)
-  expect(core.boundStore.tables.runs.requireEntity(run.runId).status).toBe('active')
+  expect(core.library.runs.require(run.runId).status).toBe('active')
 
   await run.done
-  expect(
-    core.boundStore.tables.messages.requireEntity(targetMessageId).parts.length,
-  ).toBeGreaterThan(0)
+  expect(core.library.messages.require(targetMessageId).parts.length).toBeGreaterThan(0)
 })
 
 test('Pre-Run Invariants — throws before creating run when systemPromptId is missing', () => {
@@ -272,15 +263,15 @@ test('Pre-Run Invariants — throws before creating run when systemPromptId is m
     parts: [],
     role: 'assistant',
   })
-  const runsBefore = core.boundIndexes.getSliceRowIds('runsBySessionNewestFirst', sessionId)
-  const sessionBefore = core.boundStore.tables.sessions.requireEntity(sessionId)
+  const runsBefore = core.library.runs.bySessionNewestFirst(sessionId)
+  const sessionBefore = core.library.sessions.require(sessionId)
 
   expect(() => runs.generate({ targetMessageId })).toThrow(
     'Missing row: prompts/non-existent-prompt',
   )
 
-  const runsAfter = core.boundIndexes.getSliceRowIds('runsBySessionNewestFirst', sessionId)
-  const sessionAfter = core.boundStore.tables.sessions.requireEntity(sessionId)
+  const runsAfter = core.library.runs.bySessionNewestFirst(sessionId)
+  const sessionAfter = core.library.sessions.require(sessionId)
 
   expect(runsAfter).toHaveLength(runsBefore.length)
   expect(sessionAfter.updatedAt).toBe(sessionBefore.updatedAt)
@@ -370,18 +361,16 @@ test('Generate Invariants — refuses to write into a message with existing part
     parts: [{ text: 'existing output', type: 'text' }],
     role: 'assistant',
   })
-  const runsBefore = core.boundIndexes.getSliceRowIds('runsBySessionNewestFirst', sessionId)
+  const runsBefore = core.library.runs.bySessionNewestFirst(sessionId)
 
   expect(() => runs.generate({ targetMessageId })).toThrow(
     `Cannot generate into a message with existing parts: ${targetMessageId}`,
   )
 
-  expect(core.boundStore.tables.messages.requireEntity(targetMessageId).parts).toEqual([
+  expect(core.library.messages.require(targetMessageId).parts).toEqual([
     { text: 'existing output', type: 'text' },
   ])
-  expect(core.boundIndexes.getSliceRowIds('runsBySessionNewestFirst', sessionId)).toEqual(
-    runsBefore,
-  )
+  expect(core.library.runs.bySessionNewestFirst(sessionId)).toEqual(runsBefore)
 })
 
 test('Generate Invariants — target message role does not affect generation', async () => {
@@ -430,18 +419,18 @@ test('Caller-Owned Regeneration — sibling target preserves the old output', as
 
   const firstRun = runs.generate({ targetMessageId: oldTargetMessageId })
   await firstRun.done
-  expect(core.boundIndexes.getSliceRowIds('stepsByMessage', oldTargetMessageId)).toHaveLength(1)
+  expect(core.library.steps.byMessage(oldTargetMessageId)).toHaveLength(1)
 
-  const oldTargetMessage = core.boundStore.tables.messages.requireEntity(oldTargetMessageId)
+  const oldTargetMessage = core.library.messages.require(oldTargetMessageId)
   const newTargetMessageId = core.transcripts.getSession(sessionId).appendMessage({
     parentMessageId: oldTargetMessage.parentMessageId,
     parts: [],
     role: oldTargetMessage.role,
   })
 
-  expect(core.boundStore.tables.messages.getEntity(oldTargetMessageId)).not.toBeNull()
-  expect(core.boundIndexes.getSliceRowIds('stepsByMessage', oldTargetMessageId)).toHaveLength(1)
-  expect(core.boundIndexes.getSliceRowIds('stepsByRun', firstRun.runId)).toHaveLength(1)
+  expect(core.library.messages.get(oldTargetMessageId)).not.toBeNull()
+  expect(core.library.steps.byMessage(oldTargetMessageId)).toHaveLength(1)
+  expect(core.library.steps.byRun(firstRun.runId)).toHaveLength(1)
 
   const run = runs.generate({ targetMessageId: newTargetMessageId })
   await run.done
@@ -457,11 +446,11 @@ test('Caller-Owned Regeneration — sibling target preserves the old output', as
 
 test('Tool Loop — tool call executes and result appears in final parts', async () => {
   const context = createTestDb()
-  const { libraryStore, boundIndexes, boundStore } = context
-  const runConfigs = new RunConfigs({ libraryStore })
-  const prompts = new Prompts({ libraryStore, runConfigs })
-  const transcripts = new Transcripts({ libraryStore, runConfigs })
-  const core = { boundIndexes, boundStore, prompts, transcripts }
+  const { library } = context
+  const runConfigs = new RunConfigs({ library })
+  const prompts = new Prompts({ library, runConfigs })
+  const transcripts = new Transcripts({ library, runConfigs })
+  const core = { library, prompts, transcripts }
   const credentials = new CredentialsStore([])
 
   const toolCallChunks: LanguageModelV3StreamPart[] = [
@@ -519,7 +508,7 @@ test('Tool Loop — tool call executes and result appears in final parts', async
   const modelResolver: LanguageModelResolver = { resolve: () => model }
   const runs = new Runs({
     credentials,
-    libraryStore,
+    library,
     modelResolver,
     prompts,
     runConfigs,
@@ -570,11 +559,11 @@ test('Tool Loop — tool call executes and result appears in final parts', async
 
 test('Error Path — stream error sets run to error status', async () => {
   const context = createTestDb()
-  const { libraryStore, boundIndexes, boundStore } = context
-  const runConfigs = new RunConfigs({ libraryStore })
-  const prompts = new Prompts({ libraryStore, runConfigs })
-  const transcripts = new Transcripts({ libraryStore, runConfigs })
-  const core = { boundIndexes, boundStore, prompts, transcripts }
+  const { library } = context
+  const runConfigs = new RunConfigs({ library })
+  const prompts = new Prompts({ library, runConfigs })
+  const transcripts = new Transcripts({ library, runConfigs })
+  const core = { library, prompts, transcripts }
   const credentials = new CredentialsStore([])
 
   const model = new MockLanguageModelV3({
@@ -586,7 +575,7 @@ test('Error Path — stream error sets run to error status', async () => {
   const modelResolver: LanguageModelResolver = { resolve: () => model }
   const runs = new Runs({
     credentials,
-    libraryStore,
+    library,
     modelResolver,
     prompts,
     runConfigs,
@@ -608,7 +597,7 @@ test('Error Path — stream error sets run to error status', async () => {
     return startedRun
   })
 
-  const runRecord = core.boundStore.tables.runs.requireEntity(run.runId)
+  const runRecord = core.library.runs.require(run.runId)
 
   expect(run.status).toBe('error')
   expect(runRecord.status).toBe('error')
@@ -619,11 +608,11 @@ test('Error Path — stream error sets run to error status', async () => {
 
 test('Error Path — later runs can still run after an error', async () => {
   const context = createTestDb()
-  const { libraryStore, boundIndexes, boundStore } = context
-  const runConfigs = new RunConfigs({ libraryStore })
-  const prompts = new Prompts({ libraryStore, runConfigs })
-  const transcripts = new Transcripts({ libraryStore, runConfigs })
-  const core = { boundIndexes, boundStore, prompts, transcripts }
+  const { library } = context
+  const runConfigs = new RunConfigs({ library })
+  const prompts = new Prompts({ library, runConfigs })
+  const transcripts = new Transcripts({ library, runConfigs })
+  const core = { library, prompts, transcripts }
   const credentials = new CredentialsStore([])
 
   let callCount = 0
@@ -660,7 +649,7 @@ test('Error Path — later runs can still run after an error', async () => {
   const modelResolver: LanguageModelResolver = { resolve: () => model }
   const runs = new Runs({
     credentials,
-    libraryStore,
+    library,
     modelResolver,
     prompts,
     runConfigs,

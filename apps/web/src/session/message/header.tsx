@@ -1,10 +1,10 @@
-import type { LibraryRows } from '@tetra/schemas/library'
+import type { LibraryEntities } from '@tetra/schemas/library'
 import { Badge } from '@tetra/ui/components/ui/badge'
 import { BanIcon, CheckCircle2Icon, LoaderCircleIcon, XCircleIcon } from 'lucide-react'
 
 import { getRunModelId } from './data'
 
-type RunRow = LibraryRows['runs']
+type RunRow = LibraryEntities['runs']
 type RunStatus = RunRow['status']
 
 export function MessageHeader({ isActive, run }: { isActive: boolean; run: RunRow | null }) {

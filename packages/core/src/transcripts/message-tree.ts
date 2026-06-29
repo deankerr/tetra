@@ -1,27 +1,13 @@
-import type {
-  LibraryRows as Rows,
-  LibraryTypedIndexes,
-  LibraryBoundStore,
-} from '@tetra/schemas/library'
+import type { LibraryDb, LibraryEntities } from '@tetra/schemas/library'
 
 export class TranscriptMessageTree {
   readonly sessionId: string
 
-  private readonly boundIndexes: LibraryTypedIndexes
-  private readonly boundStore: LibraryBoundStore
+  private readonly library: LibraryDb
 
-  constructor({
-    sessionId,
-    boundIndexes,
-    boundStore,
-  }: {
-    sessionId: string
-    boundIndexes: LibraryTypedIndexes
-    boundStore: LibraryBoundStore
-  }) {
+  constructor({ sessionId, library }: { sessionId: string; library: LibraryDb }) {
     this.sessionId = sessionId
-    this.boundIndexes = boundIndexes
-    this.boundStore = boundStore
+    this.library = library
   }
 
   getNewestLeafMessageId(): string | null {
@@ -79,7 +65,7 @@ export class TranscriptMessageTree {
     return leaf.id
   }
 
-  listContinuations(messageId: string | null): Rows['messages'][] {
+  listContinuations(messageId: string | null): LibraryEntities['messages'][] {
     if (messageId !== null) {
       this.requireMessage(messageId)
     }
@@ -89,14 +75,14 @@ export class TranscriptMessageTree {
     return messages.filter((message) => message.parentMessageId === messageId)
   }
 
-  listMessagePathMessages(messageId: string | null): Rows['messages'][] {
-    this.boundStore.tables.sessions.requireEntity(this.sessionId)
+  listMessagePathMessages(messageId: string | null): LibraryEntities['messages'][] {
+    this.library.sessions.require(this.sessionId)
     if (messageId === null) {
       return []
     }
 
     // Walk parent links upward, validating ownership and cycles before display order is returned.
-    const path: Rows['messages'][] = []
+    const path: LibraryEntities['messages'][] = []
     const seen = new Set<string>()
     let cursor: string | null = messageId
     while (cursor !== null) {
@@ -113,18 +99,15 @@ export class TranscriptMessageTree {
     return path.toReversed()
   }
 
-  listMessages(): Rows['messages'][] {
-    this.boundStore.tables.sessions.requireEntity(this.sessionId)
+  listMessages(): LibraryEntities['messages'][] {
+    this.library.sessions.require(this.sessionId)
 
     // Shape session messages in memory so path semantics are independent of row ids.
-    return this.boundIndexes
-      .getSliceRowIds('messagesBySession', this.sessionId)
-      .map((id) => this.boundStore.tables.messages.requireEntity(id))
-      .toSorted(compareMessages)
+    return this.library.messages.bySession(this.sessionId).toSorted(compareMessages)
   }
 
-  requireMessage(messageId: string): Rows['messages'] {
-    const message = this.boundStore.tables.messages.requireEntity(messageId)
+  requireMessage(messageId: string): LibraryEntities['messages'] {
+    const message = this.library.messages.require(messageId)
     if (message.sessionId !== this.sessionId) {
       throw new Error(`Message ${messageId} does not belong to session ${this.sessionId}`)
     }
@@ -133,7 +116,10 @@ export class TranscriptMessageTree {
   }
 }
 
-function compareMessages(left: Rows['messages'], right: Rows['messages']): number {
+function compareMessages(
+  left: LibraryEntities['messages'],
+  right: LibraryEntities['messages'],
+): number {
   if (left.createdAt !== right.createdAt) {
     return left.createdAt - right.createdAt
   }
@@ -141,7 +127,7 @@ function compareMessages(left: Rows['messages'], right: Rows['messages']): numbe
   return left.id.localeCompare(right.id)
 }
 
-function getParentIds(messages: Rows['messages'][]): Set<string> {
+function getParentIds(messages: LibraryEntities['messages'][]): Set<string> {
   return new Set(
     messages
       .map((message) => message.parentMessageId)

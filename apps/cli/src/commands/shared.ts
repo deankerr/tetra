@@ -1,5 +1,5 @@
 import type { Run, RunConfig } from '@tetra/core'
-import type { LibraryRows } from '@tetra/schemas/library'
+import type { LibraryEntities } from '@tetra/schemas/library'
 
 import type { CliAppContext } from '../app'
 
@@ -48,7 +48,7 @@ function requireActiveSessionId(ctx: CliAppContext): string {
 
 export function requireSession(ctx: CliAppContext, sessionId: string): void {
   // Use the typed table boundary so missing ids fail loudly and consistently.
-  ctx.stores.library.boundStore.tables.sessions.requireEntity(sessionId)
+  ctx.stores.library.sessions.require(sessionId)
 }
 
 export function resolveSessionId(ctx: CliAppContext, sessionId?: string): string {
@@ -60,14 +60,17 @@ export function resolveSessionId(ctx: CliAppContext, sessionId?: string): string
 
 export function printRunConfig(ctx: CliAppContext, sessionId: string): void {
   // Session config is colocated with the durable session row.
-  const { config } = ctx.stores.library.boundStore.tables.sessions.requireEntity(sessionId)
+  const { config } = ctx.stores.library.sessions.require(sessionId)
   console.log(`session:      ${sessionId}`)
   console.log(`model:        ${config.modelId}`)
   console.log(`prompt:       ${config.systemPromptId === '' ? '(none)' : config.systemPromptId}`)
   console.log(`maxMessages:  ${config.maxMessages === 0 ? '(none)' : config.maxMessages}`)
 }
 
-export function formatSession(session: LibraryRows['sessions'], activeSessionId?: string): string {
+export function formatSession(
+  session: LibraryEntities['sessions'],
+  activeSessionId?: string,
+): string {
   // Keep the list scan-friendly without hiding the full durable id.
   const marker = session.id === activeSessionId ? '*' : ' '
   const title = session.title.trim() || '(untitled)'
@@ -75,7 +78,7 @@ export function formatSession(session: LibraryRows['sessions'], activeSessionId?
   return `${marker} ${session.id}  ${title}  ${updated}`
 }
 
-export function printMessages(messages: LibraryRows['messages'][]): void {
+export function printMessages(messages: LibraryEntities['messages'][]): void {
   // Render only human-readable text-ish parts from stored UIMessage parts.
   for (const message of messages) {
     const parts = message.parts as MessagePart[]

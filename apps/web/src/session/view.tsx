@@ -12,7 +12,7 @@ import { HomeIcon, Settings2Icon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 
 import { MissingOpenRouterApiKeyButton, useRequireOpenRouterApiKey } from '@/api-key-settings'
-import { libraryTinybase } from '@/store'
+import { libraryReact } from '@/store'
 
 import { ConversationView } from './conversation-view'
 import { SessionPanelErrorBoundary } from './error-boundary'
@@ -58,7 +58,7 @@ function MissingSession() {
 
 /** Renders one session panel. Guards session existence — children can assume valid sessionId. */
 function ActiveSession({ sessionId }: { sessionId: string }) {
-  const session = libraryTinybase.useEntity('sessions', sessionId)
+  const session = libraryReact.sessions.useGet(sessionId)
 
   if (session === null) {
     return <MissingSession />

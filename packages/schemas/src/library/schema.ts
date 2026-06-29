@@ -1,4 +1,4 @@
-import { defineStoreSchema } from '@tetra/tinybase-schema'
+import { defineSchema } from '@tetra/tinydb'
 import type { UIMessage } from 'ai'
 import { z } from 'zod'
 
@@ -79,7 +79,19 @@ const StepRecordSchema = z.object({
   warnings: z.array(StepWarningSchema),
 })
 
-export const libraryStoreSchema = defineStoreSchema({
+export const librarySchema = defineSchema({
+  indexes: {
+    messages: { bySession: { on: 'sessionId', sort: 'createdAt' } },
+    runs: {
+      bySessionNewestFirst: { desc: true, on: 'sessionId', sort: 'createdAt' },
+      byTargetMessageNewestFirst: { desc: true, on: 'targetMessageId', sort: 'createdAt' },
+    },
+    steps: {
+      byMessage: { on: 'messageId', sort: 'createdAt' },
+      byRun: { on: 'runId', sort: 'stepNumber' },
+      bySession: { on: 'sessionId', sort: 'createdAt' },
+    },
+  },
   tables: {
     messages: z.object({
       createdAt: z.number(),

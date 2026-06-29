@@ -17,7 +17,7 @@
     "@tetra/core": "workspace:*",
     "@tetra/credentials": "workspace:*",
     "@tetra/schemas": "workspace:*",
-    "@tetra/tinybase-schema": "workspace:*",
+    "@tetra/tinydb": "workspace:*",
     "@tetra/ui": "workspace:*",
     "ai": "catalog:",
     "lucide-react": "catalog:",

@@ -1,4 +1,4 @@
-import type { LibraryRows } from '@tetra/schemas/library'
+import type { LibraryEntities } from '@tetra/schemas/library'
 import {
   Message as AiMessage,
   MessageContent as AiMessageContent,
@@ -6,15 +6,15 @@ import {
 import { cn } from '@tetra/ui/lib/utils'
 import type { UIMessage } from 'ai'
 
-import { libraryTinybase } from '@/store'
+import { libraryReact } from '@/store'
 
 import { MessageActionsView } from './actions'
 import { getRunErrorMessage, useMessageRun, useMessageRunActive } from './data'
 import { MessageHeader } from './header'
 import { MessageParts } from './parts'
 
-type MessageRow = LibraryRows['messages']
-type RunRow = LibraryRows['runs']
+type MessageRow = LibraryEntities['messages']
+type RunRow = LibraryEntities['runs']
 
 export function MessageView({
   className,
@@ -25,7 +25,7 @@ export function MessageView({
   isThreadLeafMessage: boolean
   messageId: string
 } & React.ComponentProps<'div'>) {
-  const message = libraryTinybase.useEntity('messages', messageId)
+  const message = libraryReact.messages.useGet(messageId)
   const run = useMessageRun(messageId)
 
   if (message === null) {

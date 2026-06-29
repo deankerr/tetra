@@ -21,12 +21,12 @@ import { MoreHorizontalIcon, PlusIcon } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 
 import { useApp } from '@/app'
-import { libraryTinybase } from '@/store'
+import { libraryReact } from '@/store'
 
 // Sessions sorted by updatedAt descending — most recently active first.
 // Transcript writes touch updatedAt, so this order naturally tracks conversation activity.
 const useSessionIds = () => {
-  const sessions = libraryTinybase.useEntityList('sessions')
+  const sessions = libraryReact.sessions.useAll()
   return useMemo(
     () =>
       sessions
@@ -38,7 +38,7 @@ const useSessionIds = () => {
 
 export function SessionGroup() {
   const { stores, transcripts } = useApp()
-  const libraryStore = stores.library.boundStore
+  const libraryStore = stores.library
   const activeSessionMatch = useMatch({
     from: '/sessions/$sessionId',
     shouldThrow: false,
@@ -69,7 +69,7 @@ export function SessionGroup() {
                 }
               }}
               onRename={(title) => {
-                libraryStore.tables.sessions.updateRow(sessionId, {
+                libraryStore.sessions.update(sessionId, {
                   title,
                   updatedAt: Date.now(),
                 })
@@ -94,7 +94,7 @@ function SessionListItem({
   onRename: (title: string) => void
   sessionId: string
 }) {
-  const session = libraryTinybase.useEntity('sessions', sessionId)
+  const session = libraryReact.sessions.useGet(sessionId)
   const [renaming, setRenaming] = useState(false)
   const [draft, setDraft] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)

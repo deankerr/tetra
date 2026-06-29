@@ -1,4 +1,4 @@
-import type { LibraryStoreInstance, LibraryBoundStore } from '@tetra/schemas/library'
+import type { LibraryDb } from '@tetra/schemas/library'
 
 import { createIdGenerator } from '#ids'
 import type { RunConfigs } from '#run-configs'
@@ -8,24 +8,18 @@ import type { RunConfigs } from '#run-configs'
 export class Prompts {
   private readonly nextPromptId = createIdGenerator('prpt')
   private readonly runConfigs: RunConfigs
-  private readonly boundStore: LibraryBoundStore
+  private readonly library: LibraryDb
 
-  constructor({
-    libraryStore,
-    runConfigs,
-  }: {
-    libraryStore: LibraryStoreInstance
-    runConfigs: RunConfigs
-  }) {
+  constructor({ library, runConfigs }: { library: LibraryDb; runConfigs: RunConfigs }) {
     this.runConfigs = runConfigs
-    this.boundStore = libraryStore.boundStore
+    this.library = library
   }
 
   createPrompt(args: { content?: string; label?: string } = {}): string {
     const promptId = this.nextPromptId()
     const now = Date.now()
 
-    this.boundStore.tables.prompts.setRow(promptId, {
+    this.library.prompts.create(promptId, {
       content: args.content ?? '',
       createdAt: now,
       label: args.label ?? '',
@@ -35,14 +29,29 @@ export class Prompts {
     return promptId
   }
 
-  // Removes the prompt and asks RunConfigs to unlink it from session configs.
-  // TinyBase transactions nest, so the unlink merges into this transaction.
-  deletePrompt(promptId: string): void {
-    this.boundStore.tables.prompts.requireEntity(promptId)
+  updatePrompt(args: { content?: string; label?: string; promptId: string }): void {
+    const hasContent = args.content !== undefined
+    const hasLabel = args.label !== undefined
+    if (!hasContent && !hasLabel) {
+      throw new Error('No prompt fields provided')
+    }
 
-    this.boundStore.transaction(() => {
+    // Prompt edits preserve creation metadata and touch updatedAt with the edited cells.
+    this.library.prompts.update(args.promptId, {
+      ...(hasContent && { content: args.content }),
+      ...(hasLabel && { label: args.label }),
+      updatedAt: Date.now(),
+    })
+  }
+
+  // Removes the prompt and asks RunConfigs to unlink it from session configs.
+  // Batches nest, so the unlink merges into this batch.
+  deletePrompt(promptId: string): void {
+    this.library.prompts.require(promptId)
+
+    this.library.batch(() => {
       this.runConfigs.unlinkPrompt(promptId)
-      this.boundStore.tables.prompts.deleteRow(promptId)
+      this.library.prompts.delete(promptId)
     })
   }
 
@@ -52,6 +61,6 @@ export class Prompts {
       return undefined
     }
 
-    return this.boundStore.tables.prompts.requireEntity(systemPromptId).content
+    return this.library.prompts.require(systemPromptId).content
   }
 }

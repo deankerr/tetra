@@ -1,4 +1,4 @@
-import type { LibraryRows as Rows } from '@tetra/schemas/library'
+import type { LibraryEntities } from '@tetra/schemas/library'
 
 import type { TranscriptMessageTree } from './message-tree.ts'
 
@@ -22,16 +22,16 @@ export class TranscriptThread {
     this.tree = tree
   }
 
-  leafMessage(): Rows['messages'] {
+  leafMessage(): LibraryEntities['messages'] {
     return this.requireLeafMessage()
   }
 
-  messages(): Rows['messages'][] {
+  messages(): LibraryEntities['messages'][] {
     this.requireLeafMessage()
     return this.tree.listMessagePathMessages(this.leafMessageId)
   }
 
-  private requireLeafMessage(): Rows['messages'] {
+  private requireLeafMessage(): LibraryEntities['messages'] {
     const message = this.tree.requireMessage(this.leafMessageId)
     if (this.tree.listContinuations(this.leafMessageId).length > 0) {
       throw new Error(`Resolved thread is stale because ${this.leafMessageId} is no longer a leaf`)

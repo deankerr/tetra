@@ -1,4 +1,4 @@
-import type { CatalogRows } from '@tetra/schemas/catalog'
+import type { CatalogEntities } from '@tetra/schemas/catalog'
 import { ModelSelectorLogo } from '@tetra/ui/components/ai-elements/model-selector'
 import { Button } from '@tetra/ui/components/ui/button'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@tetra/ui/components/ui/input-group'
@@ -15,13 +15,13 @@ import { useMemo, useState } from 'react'
 import type { ComponentProps } from 'react'
 
 import { useApp } from '@/app'
-import { catalogTinybase, libraryTinybase } from '@/store'
+import { catalogReact, libraryReact } from '@/store'
 
 import { ModelCard } from './model-card'
 
 type ModelFilter = 'all' | 'audio' | 'file' | 'image' | 'starred' | 'text' | 'video'
 type ModelSortMode = 'latest' | 'provider'
-type LanguageModelRow = CatalogRows['languageModels']
+type LanguageModelRow = CatalogEntities['languageModels']
 
 const MODEL_FILTERS = [
   { label: 'Starred', value: 'starred' },
@@ -123,8 +123,8 @@ function useModelGroups({
   query: string
   sortMode: ModelSortMode
 }) {
-  const models = catalogTinybase.useEntityList('languageModels')
-  const favorites = libraryTinybase.useEntityList('modelFavorites')
+  const models = catalogReact.languageModels.useAll()
+  const favorites = libraryReact.modelFavorites.useAll()
 
   return useMemo(() => {
     const favoriteIds = new Set(favorites.map((favorite) => favorite.id))
@@ -152,7 +152,7 @@ function useModelGroups({
 }
 
 function useFavoriteIds() {
-  const favorites = libraryTinybase.useEntityList('modelFavorites')
+  const favorites = libraryReact.modelFavorites.useAll()
   return useMemo(() => new Set(favorites.map((favorite) => favorite.id)), [favorites])
 }
 
@@ -191,7 +191,7 @@ export function ModelPickerButton({
   variant = 'outline',
   ...props
 }: Omit<ComponentProps<typeof Button>, 'children' | 'value'> & { value: string }) {
-  const currentModel = catalogTinybase.useEntity('languageModels', value)
+  const currentModel = catalogReact.languageModels.useGet(value)
   const label = currentModel?.name ?? (value === '' ? 'Select model' : value)
 
   return (
@@ -231,7 +231,7 @@ export function ModelPickerSheet({
   value: string
 }) {
   const { stores } = useApp()
-  const libraryStore = stores.library.boundStore
+  const libraryStore = stores.library
   const [filter, setFilter] = useState<ModelFilter>('all')
   const [query, setQuery] = useState('')
   const [sortMode, setSortMode] = useState<ModelSortMode>('latest')
@@ -326,10 +326,10 @@ export function ModelPickerSheet({
                       }}
                       onToggleFavorite={() => {
                         if (favoriteIds.has(model.id)) {
-                          libraryStore.tables.modelFavorites.deleteRow(model.id)
+                          libraryStore.modelFavorites.delete(model.id)
                           return
                         }
-                        libraryStore.tables.modelFavorites.setRow(model.id, {
+                        libraryStore.modelFavorites.set(model.id, {
                           createdAt: Date.now(),
                         })
                       }}

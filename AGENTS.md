@@ -28,7 +28,7 @@ Dev data is wiped and regenerated as needed. This app is not public. There are h
 - `packages/core` — sessions, runner, tool registry, and UI-agnostic app logic.
 - `packages/credentials` — credential registry and localStorage store.
 - `packages/schemas` — Tetra TinyBase store definitions, indexes, and row types.
-- `packages/tinybase-schema` — typed TinyBase schema, store, index, and React wrappers.
+- `packages/tinydb` — typed TinyBase `db`: zod-derived collections, inferred queries, values, and React hooks.
 - `packages/tools-exa` — Exa search tool integration.
 - `packages/ui` — shadcn/ai-elements component library.
 
@@ -47,11 +47,14 @@ Dev data is wiped and regenerated as needed. This app is not public. There are h
 - TinyBase `store.transaction` batches listener notifications and exposes a transaction log; it is not a persistence or exception-safety boundary.
 - `store.transaction` is synchronous and does not use `try/finally`: validate or parse before entering it, and do not put `await` inside it.
 
-### TinyBase Schema
+### tinydb
 
-`packages/tinybase-schema` wraps TinyBase with zod-derived table, value, index, and React APIs. Keep it close to TinyBase's API first, and let concrete app usage justify any more opinionated helpers.
+`packages/tinydb` wraps TinyBase with a zod-derived `db` handle: per-table collections,
+schema-inferred query methods, typed values, `batch`, and a `raw` escape hatch — plus
+`./react` hooks. Schemas declare tables + values + indexes via `defineSchema`; `createDb` /
+`createMergeableDb` assemble a live `db`.
 
-- Track wrapper design notes, gaps, and deferred ideas in `packages/tinybase-schema/README.md`.
+- Track design notes, gaps, and deferred ideas in `packages/tinydb/README.md`.
 
 ## Monorepo
 

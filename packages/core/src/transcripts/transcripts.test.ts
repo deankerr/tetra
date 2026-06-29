@@ -1,21 +1,20 @@
 import { expect, test } from 'bun:test'
 
-import { libraryStoreDefinition } from '@tetra/schemas/library'
-import type { LibraryRows } from '@tetra/schemas/library'
-import { createStoreInstance } from '@tetra/tinybase-schema/runtime'
+import { librarySchema } from '@tetra/schemas/library'
+import type { LibraryEntities } from '@tetra/schemas/library'
+import { createDb } from '@tetra/tinydb/runtime'
 
 import { RunConfigs } from '../run-configs.ts'
 import { Transcripts } from './index.ts'
 import type { TranscriptSession } from './index.ts'
 
 function createTranscriptHarness() {
-  // Tests own the same library store instance shape used by app composition roots.
-  const libraryStore = createStoreInstance(libraryStoreDefinition)
-  const { rawStore, boundIndexes, boundStore } = libraryStore
-  const runConfigs = new RunConfigs({ libraryStore })
-  const transcripts = new Transcripts({ libraryStore, runConfigs })
+  // Tests own the same library db used by app composition roots.
+  const library = createDb(librarySchema)
+  const runConfigs = new RunConfigs({ library })
+  const transcripts = new Transcripts({ library, runConfigs })
 
-  return { boundIndexes, boundStore, rawStore, transcripts }
+  return { library, transcripts }
 }
 
 function appendText(
@@ -24,7 +23,7 @@ function appendText(
   args: {
     createdAt: number
     parentMessageId: string | null
-    role?: LibraryRows['messages']['role']
+    role?: LibraryEntities['messages']['role']
     text: string
   },
 ): string {
@@ -35,7 +34,7 @@ function appendText(
   })
 
   // Created-at ordering is semantic for thread resolution, so tests pin it explicitly.
-  harness.boundStore.tables.messages.updateRow(messageId, {
+  harness.library.messages.update(messageId, {
     createdAt: args.createdAt,
     updatedAt: args.createdAt,
   })
@@ -43,7 +42,7 @@ function appendText(
   return messageId
 }
 
-function ids(messages: LibraryRows['messages'][]): string[] {
+function ids(messages: LibraryEntities['messages'][]): string[] {
   return messages.map((message) => message.id)
 }
 
@@ -102,7 +101,7 @@ function createForkedTree() {
 }
 
 test('empty sessions have no synthetic root or thread', () => {
-  const { transcripts, boundStore } = createTranscriptHarness()
+  const { transcripts, library } = createTranscriptHarness()
   const sessionId = transcripts.createSession({
     config: { modelId: 'model-a', systemPromptId: 'prompt-a' },
     title: 'Empty',
@@ -111,8 +110,8 @@ test('empty sessions have no synthetic root or thread', () => {
   const rootPath = session.getMessagePath({ messageId: null })
 
   // Sessions are real before they have messages, but there is no implicit message row.
-  expect(boundStore.tables.sessions.requireEntity(sessionId).title).toBe('Empty')
-  expect(boundStore.tables.sessions.requireEntity(sessionId).config).toMatchObject({
+  expect(library.sessions.require(sessionId).title).toBe('Empty')
+  expect(library.sessions.require(sessionId).config).toMatchObject({
     modelId: 'model-a',
     systemPromptId: 'prompt-a',
   })
@@ -123,8 +122,49 @@ test('empty sessions have no synthetic root or thread', () => {
   expect(rootPath.messages()).toEqual([])
 })
 
+test('renameSession trims the title and touches updatedAt', () => {
+  const { transcripts, library } = createTranscriptHarness()
+  const originalDateNow = Date.now
+
+  try {
+    // Pin time so the title edit proves it owns only updatedAt, not createdAt.
+    Date.now = () => 10
+    const sessionId = transcripts.createSession({ title: 'Draft' })
+
+    Date.now = () => 20
+    transcripts.renameSession({ sessionId, title: '  Renamed  ' })
+
+    expect(library.sessions.require(sessionId)).toMatchObject({
+      createdAt: 10,
+      title: 'Renamed',
+      updatedAt: 20,
+    })
+  } finally {
+    Date.now = originalDateNow
+  }
+})
+
+test('renameSession rejects empty titles', () => {
+  const { transcripts, library } = createTranscriptHarness()
+  const sessionId = transcripts.createSession({ title: 'Draft' })
+  const original = library.sessions.require(sessionId)
+
+  expect(() => {
+    transcripts.renameSession({ sessionId, title: '   ' })
+  }).toThrow('Title cannot be empty')
+  expect(library.sessions.require(sessionId)).toEqual(original)
+})
+
+test('renameSession throws when the session does not exist', () => {
+  const { transcripts } = createTranscriptHarness()
+
+  expect(() => {
+    transcripts.renameSession({ sessionId: 'missing', title: 'Renamed' })
+  }).toThrow('Missing row: sessions/missing')
+})
+
 test('blank sessions infer a title from the first user message', () => {
-  const { transcripts, boundStore } = createTranscriptHarness()
+  const { transcripts, library } = createTranscriptHarness()
   const textSession = transcripts.getSession(transcripts.createSession())
   const titledSessionId = transcripts.createSession({ title: 'Manual title' })
   const assistantSession = transcripts.getSession(transcripts.createSession())
@@ -142,7 +182,7 @@ test('blank sessions infer a title from the first user message', () => {
     parts: [{ text: 'A later message should not rename the session', type: 'text' }],
     role: 'user',
   })
-  expect(boundStore.tables.sessions.requireEntity(textSession.id).title).toBe(
+  expect(library.sessions.require(textSession.id).title).toBe(
     `${firstText.trim().slice(0, 200)}...`,
   )
 
@@ -157,8 +197,8 @@ test('blank sessions infer a title from the first user message', () => {
     parts: [{ text: 'Assistant should not name a session', type: 'text' }],
     role: 'assistant',
   })
-  expect(boundStore.tables.sessions.requireEntity(titledSessionId).title).toBe('Manual title')
-  expect(boundStore.tables.sessions.requireEntity(assistantSession.id).title).toBe('')
+  expect(library.sessions.require(titledSessionId).title).toBe('Manual title')
+  expect(library.sessions.require(assistantSession.id).title).toBe('')
 
   // Image-only user messages preserve the existing composer fallback title.
   imageSession.appendMessage({
@@ -166,19 +206,19 @@ test('blank sessions infer a title from the first user message', () => {
     parts: [{ filename: 'image.png', mediaType: 'image/png', type: 'file', url: 'data:image/png' }],
     role: 'user',
   })
-  expect(boundStore.tables.sessions.requireEntity(imageSession.id).title).toBe('Image')
+  expect(library.sessions.require(imageSession.id).title).toBe('Image')
 })
 
 test('session creation can attach colocated library state in the same transaction', () => {
-  const { rawStore, transcripts, boundStore } = createTranscriptHarness()
+  const { library, transcripts } = createTranscriptHarness()
   let finishedTransactions = 0
-  const listenerId = rawStore.addDidFinishTransactionListener(() => {
+  const listenerId = library.raw.store.addDidFinishTransactionListener(() => {
     finishedTransactions += 1
   })
 
   const sessionId = transcripts.createSession({
     onCreate(id) {
-      boundStore.tables.messages.setRow('msg_seed', {
+      library.messages.set('msg_seed', {
         createdAt: 1,
         parentMessageId: null,
         parts: [{ text: 'seed', type: 'text' }],
@@ -190,9 +230,9 @@ test('session creation can attach colocated library state in the same transactio
   })
 
   // Caller-owned library rows can be created atomically with the backing session.
-  rawStore.delListener(listenerId)
-  expect(boundStore.tables.sessions.getEntity(sessionId)).not.toBeNull()
-  expect(boundStore.tables.messages.requireEntity('msg_seed').sessionId).toBe(sessionId)
+  library.raw.store.delListener(listenerId)
+  expect(library.sessions.get(sessionId)).not.toBeNull()
+  expect(library.messages.require('msg_seed').sessionId).toBe(sessionId)
   expect(finishedTransactions).toBe(1)
 })
 
@@ -343,7 +383,7 @@ test('session-scoped APIs reject messages owned by another session', () => {
 })
 
 test('edits preserve parentage and deletes are leaf-only', () => {
-  const { transcripts, boundStore } = createTranscriptHarness()
+  const { transcripts, library } = createTranscriptHarness()
   const session = transcripts.getSession(transcripts.createSession())
   const rootUserId = session.appendMessage({
     parentMessageId: null,
@@ -361,7 +401,7 @@ test('edits preserve parentage and deletes are leaf-only', () => {
     parts: [{ text: 'edited root', type: 'text' }],
     role: 'critic',
   })
-  expect(boundStore.tables.messages.requireEntity(rootUserId)).toMatchObject({
+  expect(library.messages.require(rootUserId)).toMatchObject({
     parentMessageId: null,
     parts: [{ text: 'edited root', type: 'text' }],
     role: 'critic',
@@ -370,8 +410,8 @@ test('edits preserve parentage and deletes are leaf-only', () => {
     session.deleteMessage(rootUserId)
   }).toThrow(`Cannot delete message with descendants: ${rootUserId}`)
   session.deleteMessage(assistantId)
-  expect(boundStore.tables.messages.getEntity(assistantId)).toBeNull()
-  expect(boundStore.tables.messages.getEntity(rootUserId)).not.toBeNull()
+  expect(library.messages.get(assistantId)).toBeNull()
+  expect(library.messages.get(rootUserId)).not.toBeNull()
 })
 
 test('exports preserve the whole message tree, not only one resolved thread', () => {
@@ -399,12 +439,12 @@ test('exports preserve the whole message tree, not only one resolved thread', ()
 })
 
 test('corrupt message trees fail loudly instead of inventing a thread', () => {
-  const { transcripts, boundStore } = createTranscriptHarness()
+  const { transcripts, library } = createTranscriptHarness()
   const sessionId = transcripts.createSession()
   const session = transcripts.getSession(sessionId)
 
   // A self-parented row cannot be created through appendMessage, but sync corruption can expose it.
-  boundStore.tables.messages.setRow('msg_cycle', {
+  library.messages.set('msg_cycle', {
     createdAt: 1,
     parentMessageId: 'msg_cycle',
     parts: [],

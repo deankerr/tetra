@@ -68,7 +68,7 @@ test('session and message commands mutate real in-memory app state', async () =>
     'Draft',
   ])
   const sessionId = created.out[0] ?? ''
-  const session = ctx.stores.library.boundStore.tables.sessions.requireEntity(sessionId)
+  const session = ctx.stores.library.sessions.require(sessionId)
 
   expect(session.title).toBe('Draft')
   expect(session.config.modelId).toBe('openrouter/test-model')
@@ -79,10 +79,15 @@ test('session and message commands mutate real in-memory app state', async () =>
   expect(listed.out).toHaveLength(1)
   expect(listed.out[0]?.startsWith(`* ${sessionId}  Draft  `)).toBe(true)
 
+  // Rename routes through the core transcript command and updates the same durable row.
+  const renamed = await runCli(ctx, ['sessions', 'rename', sessionId, '  Renamed draft  '])
+  expect(renamed.out).toEqual([sessionId])
+  expect(ctx.stores.library.sessions.require(sessionId).title).toBe('Renamed draft')
+
   // Message creation resolves the active session and appends through the transcript module.
   const added = await runCli(ctx, ['messages', 'add', 'hello', 'there'])
   const messageId = added.out[0] ?? ''
-  const message = ctx.stores.library.boundStore.tables.messages.requireEntity(messageId)
+  const message = ctx.stores.library.messages.require(messageId)
 
   expect(message.parentMessageId).toBeNull()
   expect(message.parts).toEqual([{ text: 'hello there', type: 'text' }])
@@ -103,18 +108,29 @@ test('prompt commands create and unlink session config through real modules', as
   const createdSession = await runCli(ctx, ['sessions', 'create', '--prompt', promptId])
   const sessionId = createdSession.out[0] ?? ''
 
-  expect(ctx.stores.library.boundStore.tables.prompts.requireEntity(promptId).label).toBe('Terse')
-  expect(
-    ctx.stores.library.boundStore.tables.sessions.requireEntity(sessionId).config.systemPromptId,
-  ).toBe(promptId)
+  expect(ctx.stores.library.prompts.require(promptId).label).toBe('Terse')
+  expect(ctx.stores.library.sessions.require(sessionId).config.systemPromptId).toBe(promptId)
+
+  // Prompt updates route through the core prompt command while preserving the prompt row id.
+  const updatedPrompt = await runCli(ctx, [
+    'prompts',
+    'update',
+    promptId,
+    '--label',
+    'Verbose',
+    'Use more words.',
+  ])
+  expect(updatedPrompt.out).toEqual([promptId])
+  expect(ctx.stores.library.prompts.require(promptId)).toMatchObject({
+    content: 'Use more words.',
+    label: 'Verbose',
+  })
 
   // Prompt deletion exercises the core prompt cleanup path instead of manually editing rows.
   const deleted = await runCli(ctx, ['prompts', 'delete', promptId])
   expect(deleted.out).toEqual([promptId])
-  expect(ctx.stores.library.boundStore.tables.prompts.getEntity(promptId)).toBeNull()
-  expect(
-    ctx.stores.library.boundStore.tables.sessions.requireEntity(sessionId).config.systemPromptId,
-  ).toBe('')
+  expect(ctx.stores.library.prompts.get(promptId)).toBeNull()
+  expect(ctx.stores.library.sessions.require(sessionId).config.systemPromptId).toBe('')
 })
 
 test('commands fail through real active-session resolution', async () => {

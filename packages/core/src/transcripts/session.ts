@@ -1,8 +1,4 @@
-import type {
-  LibraryRows as Rows,
-  LibraryTypedIndexes,
-  LibraryBoundStore,
-} from '@tetra/schemas/library'
+import type { LibraryDb, LibraryEntities } from '@tetra/schemas/library'
 import type { UIMessage } from 'ai'
 
 import { TranscriptMessagePath } from './message-path.ts'
@@ -15,34 +11,30 @@ export class TranscriptSession {
   readonly id: string
 
   private readonly nextMessageId: () => string
-  private readonly boundIndexes: LibraryTypedIndexes
-  private readonly boundStore: LibraryBoundStore
+  private readonly library: LibraryDb
   private readonly tree: TranscriptMessageTree
 
   constructor({
     id,
     nextMessageId,
-    boundIndexes,
-    boundStore,
+    library,
   }: {
     id: string
     nextMessageId: () => string
-    boundIndexes: LibraryTypedIndexes
-    boundStore: LibraryBoundStore
+    library: LibraryDb
   }) {
     this.id = id
     this.nextMessageId = nextMessageId
-    this.boundIndexes = boundIndexes
-    this.boundStore = boundStore
-    this.tree = new TranscriptMessageTree({ boundIndexes, boundStore, sessionId: id })
+    this.library = library
+    this.tree = new TranscriptMessageTree({ library, sessionId: id })
   }
 
   appendMessage(args: {
     parentMessageId: string | null
     parts: UIMessage['parts']
-    role: Rows['messages']['role']
+    role: LibraryEntities['messages']['role']
   }): string {
-    const session = this.boundStore.tables.sessions.requireEntity(this.id)
+    const session = this.library.sessions.require(this.id)
     if (args.parentMessageId !== null) {
       this.tree.requireMessage(args.parentMessageId)
     }
@@ -52,8 +44,8 @@ export class TranscriptSession {
     const inferredTitle = getInferredTitle({ parts: args.parts, role: args.role, session })
 
     // Persist caller-authored message content with explicit parentage.
-    this.boundStore.transaction(() => {
-      this.boundStore.tables.messages.setRow(messageId, {
+    this.library.batch(() => {
+      this.library.messages.create(messageId, {
         createdAt: now,
         parentMessageId: args.parentMessageId,
         parts: args.parts,
@@ -62,11 +54,11 @@ export class TranscriptSession {
         updatedAt: now,
       })
       if (inferredTitle === null) {
-        this.boundStore.tables.sessions.setCell(this.id, 'updatedAt', now)
+        this.library.sessions.update(this.id, { updatedAt: now })
         return
       }
 
-      this.boundStore.tables.sessions.updateRow(this.id, {
+      this.library.sessions.update(this.id, {
         title: inferredTitle,
         updatedAt: now,
       })
@@ -85,23 +77,20 @@ export class TranscriptSession {
     const now = Date.now()
 
     // Remove run and step sidecars before dropping the target content row.
-    this.boundStore.transaction(() => {
-      for (const runId of this.boundIndexes.getSliceRowIds(
-        'runsByTargetMessageNewestFirst',
-        message.id,
-      )) {
-        for (const stepId of this.boundIndexes.getSliceRowIds('stepsByRun', runId)) {
-          this.boundStore.tables.steps.deleteRow(stepId)
+    this.library.batch(() => {
+      for (const run of this.library.runs.byTargetMessageNewestFirst(message.id)) {
+        for (const step of this.library.steps.byRun(run.id)) {
+          this.library.steps.delete(step.id)
         }
-        this.boundStore.tables.runs.deleteRow(runId)
+        this.library.runs.delete(run.id)
       }
 
-      for (const stepId of this.boundIndexes.getSliceRowIds('stepsByMessage', message.id)) {
-        this.boundStore.tables.steps.deleteRow(stepId)
+      for (const step of this.library.steps.byMessage(message.id)) {
+        this.library.steps.delete(step.id)
       }
 
-      this.boundStore.tables.messages.deleteRow(message.id)
-      this.boundStore.tables.sessions.setCell(this.id, 'updatedAt', now)
+      this.library.messages.delete(message.id)
+      this.library.sessions.update(this.id, { updatedAt: now })
     })
   }
 
@@ -109,14 +98,14 @@ export class TranscriptSession {
     messageId: string,
     args: {
       parts?: UIMessage['parts']
-      role?: Rows['messages']['role']
+      role?: LibraryEntities['messages']['role']
     },
   ): void {
     this.tree.requireMessage(messageId)
     const now = Date.now()
     const update: {
       parts?: UIMessage['parts']
-      role?: Rows['messages']['role']
+      role?: LibraryEntities['messages']['role']
       updatedAt: number
     } = { updatedAt: now }
 
@@ -129,31 +118,27 @@ export class TranscriptSession {
     }
 
     // Touch the owning session so coarse activity ordering follows transcript edits.
-    this.boundStore.transaction(() => {
-      this.boundStore.tables.messages.updateRow(messageId, update)
-      this.boundStore.tables.sessions.setCell(this.id, 'updatedAt', now)
+    this.library.batch(() => {
+      this.library.messages.update(messageId, update)
+      this.library.sessions.update(this.id, { updatedAt: now })
     })
   }
 
   export() {
-    const session = this.boundStore.tables.sessions.requireEntity(this.id)
+    const session = this.library.sessions.require(this.id)
 
     // Export every message in the session so forks and alternate continuations stay inspectable.
     return {
       exportedAt: new Date().toISOString(),
       messages: this.listMessages(),
-      runs: this.boundIndexes
-        .getSliceRowIds('runsBySessionNewestFirst', this.id)
-        .map((id) => this.boundStore.tables.runs.requireEntity(id)),
+      runs: this.library.runs.bySessionNewestFirst(this.id),
       session,
-      steps: this.boundIndexes
-        .getSliceRowIds('stepsBySession', this.id)
-        .map((id) => this.boundStore.tables.steps.requireEntity(id)),
+      steps: this.library.steps.bySession(this.id),
     }
   }
 
   getMessagePath(args: { messageId: string | null }): TranscriptMessagePath {
-    this.boundStore.tables.sessions.requireEntity(this.id)
+    this.library.sessions.require(this.id)
     const { messageId } = args
     if (messageId !== null) {
       this.tree.requireMessage(messageId)
@@ -167,16 +152,16 @@ export class TranscriptSession {
     return this.tree.getNewestLeafMessageId()
   }
 
-  listContinuations(messageId: string | null): Rows['messages'][] {
+  listContinuations(messageId: string | null): LibraryEntities['messages'][] {
     return this.tree.listContinuations(messageId)
   }
 
-  listMessages(): Rows['messages'][] {
+  listMessages(): LibraryEntities['messages'][] {
     return this.tree.listMessages()
   }
 
   resolveThread(args: { fromMessageId: string }): TranscriptThread {
-    this.boundStore.tables.sessions.requireEntity(this.id)
+    this.library.sessions.require(this.id)
     const leafMessageId = this.tree.getNewestLeafMessageIdUnder(args.fromMessageId)
 
     // Resolved threads are continuable root-to-leaf paths from an explicit message anchor.
@@ -190,8 +175,8 @@ function getInferredTitle({
   session,
 }: {
   parts: UIMessage['parts']
-  role: Rows['messages']['role']
-  session: Rows['sessions']
+  role: LibraryEntities['messages']['role']
+  session: LibraryEntities['sessions']
 }): string | null {
   if (session.title.trim() !== '' || role !== 'user') {
     return null

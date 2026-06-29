@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from 'react'
 
 import { useApp } from '@/app'
-import { libraryTinybase, webTinybase } from '@/store'
+import { libraryReact, webReact } from '@/store'
 
 export function useSessionThreadView(sessionId: string) {
   const { selectThreadFromMessage, thread, threadAnchorMessageId, threadLeafMessageId } =
@@ -19,8 +19,7 @@ export function useSessionThreadAppendTarget(sessionId: string) {
 
 export function useSessionThreadSelection(sessionId: string) {
   const { transcripts } = useApp()
-  const [, setThreadAnchorMessageId] = webTinybase.useCellState(
-    'sessionThreadViews',
+  const [, setThreadAnchorMessageId] = webReact.sessionThreadViews.useFieldState(
     sessionId,
     'threadAnchorMessageId',
   )
@@ -38,17 +37,14 @@ export function useSessionThreadSelection(sessionId: string) {
 
 function useResolvedSessionThread(sessionId: string) {
   const { transcripts } = useApp()
-  const sessionMessageIds = libraryTinybase.useSliceRowIds('messagesBySession', sessionId)
-  const [storedThreadAnchorMessageId, setThreadAnchorMessageId] = webTinybase.useCellState(
-    'sessionThreadViews',
-    sessionId,
-    'threadAnchorMessageId',
-  )
+  const sessionMessages = libraryReact.messages.useBySession(sessionId)
+  const [storedThreadAnchorMessageId, setThreadAnchorMessageId] =
+    webReact.sessionThreadViews.useFieldState(sessionId, 'threadAnchorMessageId')
   const session = transcripts.getSession(sessionId)
   const validStoredAnchor =
     storedThreadAnchorMessageId !== undefined &&
     storedThreadAnchorMessageId !== null &&
-    sessionMessageIds.includes(storedThreadAnchorMessageId)
+    sessionMessages.some((message) => message.id === storedThreadAnchorMessageId)
   const threadAnchorMessageId = validStoredAnchor
     ? storedThreadAnchorMessageId
     : session.getNewestLeafMessageId()

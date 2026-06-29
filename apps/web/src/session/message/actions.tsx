@@ -1,4 +1,4 @@
-import type { LibraryRows } from '@tetra/schemas/library'
+import type { LibraryEntities } from '@tetra/schemas/library'
 import { MessageActions, MessageToolbar } from '@tetra/ui/components/ai-elements/message'
 import { Button } from '@tetra/ui/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@tetra/ui/components/ui/tooltip'
@@ -9,7 +9,7 @@ import { useState } from 'react'
 import { useRequireOpenRouterApiKey } from '@/api-key-settings'
 import { useApp } from '@/app'
 import { useJsonViewSheet } from '@/components/json-view-sheet'
-import { libraryTinybase } from '@/store'
+import { libraryReact } from '@/store'
 
 import { RunDetailSheet } from '../run-detail-sheet'
 import { useSessionThreadSelection } from '../thread-view'
@@ -23,8 +23,8 @@ export function MessageActionsView({
   run,
 }: {
   isThreadLeafMessage: boolean
-  message: LibraryRows['messages']
-  run: LibraryRows['runs'] | null
+  message: LibraryEntities['messages']
+  run: LibraryEntities['runs'] | null
 }) {
   const { runs, transcripts } = useApp()
   const { openJsonView } = useJsonViewSheet()
@@ -168,7 +168,7 @@ function MessageIconAction({
   )
 }
 
-function MessageMetadata({ message }: { message: LibraryRows['messages'] }) {
+function MessageMetadata({ message }: { message: LibraryEntities['messages'] }) {
   return (
     <div className="text-muted-foreground text-xxs flex min-w-0 flex-wrap items-center justify-end gap-x-2.5 gap-y-1">
       <span>{formatDateTime(message.updatedAt)}</span>
@@ -176,15 +176,10 @@ function MessageMetadata({ message }: { message: LibraryRows['messages'] }) {
   )
 }
 
-function useMessageHasContinuations(message: LibraryRows['messages']): boolean {
-  const tetra = useApp()
-  const messageIds = libraryTinybase.useSliceRowIds('messagesBySession', message.sessionId)
-  const libraryStore = tetra.stores.library.boundStore
+function useMessageHasContinuations(message: LibraryEntities['messages']): boolean {
+  const messages = libraryReact.messages.useBySession(message.sessionId)
 
-  return messageIds.some((messageId) => {
-    const candidate = libraryStore.tables.messages.requireEntity(messageId)
-    return candidate.parentMessageId === message.id
-  })
+  return messages.some((candidate) => candidate.parentMessageId === message.id)
 }
 
 function getTextContent(parts: MessagePart[]): string {

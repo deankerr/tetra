@@ -4,7 +4,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from '@tetra/ui/compone
 import { Progress } from '@tetra/ui/components/ui/progress'
 import { useMemo } from 'react'
 
-import { catalogTinybase } from '@/store'
+import { catalogReact } from '@/store'
 
 import { useRunConfig } from './run-config-providers'
 import { useSessionUsageTotals } from './usage-hooks'
@@ -71,7 +71,7 @@ export function SessionUsageMeter({ sessionId }: { sessionId: string }) {
 function useSessionContextSummary(sessionId: string): SessionContextSummary | null {
   const { config } = useRunConfig()
   const { modelId } = config
-  const languageModel = catalogTinybase.useRow('languageModels', modelId)
+  const languageModel = catalogReact.languageModels.useGet(modelId)
   const usage = useSessionUsageTotals(sessionId)
 
   return useMemo(() => {

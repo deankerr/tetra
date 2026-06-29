@@ -24,7 +24,7 @@ import { useCallback, useState } from 'react'
 import { useApp } from '@/app'
 import type { AppContextValue } from '@/app'
 import { ModelPickerButton, ModelPickerSheet } from '@/session/settings/model-picker'
-import { libraryTinybase } from '@/store'
+import { libraryReact } from '@/store'
 
 import { useRunConfig } from './run-config-providers'
 import { useSessionThreadAppendTarget } from './thread-view'
@@ -310,8 +310,7 @@ function getComposerSubmission(
 // the composer.
 const useActiveRun = (sessionId: string) => {
   const tetra = useApp()
-  const ids = libraryTinybase.useSliceRowIds('runsBySessionNewestFirst', sessionId)
-  const run = libraryTinybase.useEntity('runs', ids[0] ?? '')
+  const run = libraryReact.runs.useBySessionNewestFirst(sessionId)[0] ?? null
   if (run === null || run.status !== 'active') {
     return null
   }

@@ -1,6 +1,6 @@
-import type { LibraryRows as Rows } from '@tetra/schemas/library'
+import type { LibraryEntities } from '@tetra/schemas/library'
 
-type StepRecord = Rows['steps']
+type StepRecord = LibraryEntities['steps']
 
 export interface UsageTotals {
   cacheReadTokens?: number

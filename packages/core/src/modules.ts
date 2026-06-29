@@ -1,6 +1,6 @@
 import type { CredentialsStore } from '@tetra/credentials'
-import type { CatalogStoreInstance } from '@tetra/schemas/catalog'
-import type { LibraryStoreInstance } from '@tetra/schemas/library'
+import type { CatalogDb } from '@tetra/schemas/catalog'
+import type { LibraryDb } from '@tetra/schemas/library'
 
 import { ModelCatalog } from '#catalog'
 import { Prompts } from '#prompts'
@@ -25,20 +25,20 @@ export function createCoreModules({
   credentials: CredentialsStore
   modelResolver?: LanguageModelResolver
   stores: {
-    catalogStore: CatalogStoreInstance
-    libraryStore: LibraryStoreInstance
+    catalog: CatalogDb
+    library: LibraryDb
   }
 }): CoreModules {
-  const { catalogStore, libraryStore } = stores
+  const { catalog, library } = stores
 
   // Core modules share the library store and compose around run config resolution.
-  const runConfigs = new RunConfigs({ libraryStore })
-  const prompts = new Prompts({ libraryStore, runConfigs })
-  const transcripts = new Transcripts({ libraryStore, runConfigs })
-  const modelCatalog = new ModelCatalog({ catalogStore })
+  const runConfigs = new RunConfigs({ library })
+  const prompts = new Prompts({ library, runConfigs })
+  const transcripts = new Transcripts({ library, runConfigs })
+  const modelCatalog = new ModelCatalog({ catalog })
   const runs = new Runs({
     credentials,
-    libraryStore,
+    library,
     modelResolver,
     prompts,
     runConfigs,

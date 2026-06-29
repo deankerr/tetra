@@ -13,6 +13,6 @@ Current working shape:
   pointer.
 - `apps/cli`: owns CLI-only local state, currently just the active session id.
 
-TinyBase runtime creation belongs to `@tetra/tinybase-schema/runtime`.
+TinyBase runtime creation belongs to `@tetra/tinydb/runtime` (`createDb` / `createMergeableDb`).
 Persistence and sync are intentionally outside this package; each app or worker
 owns the lifecycle details for the stores it composes.

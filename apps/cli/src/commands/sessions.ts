@@ -37,9 +37,7 @@ export function registerSessionCommands(
     .action(async () => {
       const ctx = await getContext()
       const activeSessionId = ctx.workspace.getActiveSessionId()
-      const rows = ctx.stores.library.boundStore.tables.sessions
-        .listEntities()
-        .toSorted((a, b) => b.updatedAt - a.updatedAt)
+      const rows = ctx.stores.library.sessions.all().toSorted((a, b) => b.updatedAt - a.updatedAt)
 
       if (rows.length === 0) {
         console.log('No sessions. Run: tetra sessions create --title "New Session"')
@@ -62,7 +60,7 @@ export function registerSessionCommands(
       const ctx = await getContext()
       const config = configFromOptions(options)
       if (options.prompt !== undefined) {
-        ctx.stores.library.boundStore.tables.prompts.requireEntity(options.prompt)
+        ctx.stores.library.prompts.require(options.prompt)
       }
 
       const sessionId = ctx.transcripts.createSession({
@@ -79,15 +77,9 @@ export function registerSessionCommands(
     .description('Show a session')
     .action(async (sessionId: string) => {
       const ctx = await getContext()
-      const session = ctx.stores.library.boundStore.tables.sessions.requireEntity(sessionId)
-      const messageCount = ctx.stores.library.boundIndexes.getSliceRowIds(
-        'messagesBySession',
-        sessionId,
-      ).length
-      const runCount = ctx.stores.library.boundIndexes.getSliceRowIds(
-        'runsBySessionNewestFirst',
-        sessionId,
-      ).length
+      const session = ctx.stores.library.sessions.require(sessionId)
+      const messageCount = ctx.stores.library.messages.bySession(sessionId).length
+      const runCount = ctx.stores.library.runs.bySessionNewestFirst(sessionId).length
 
       console.log(`id:        ${session.id}`)
       console.log(`title:     ${session.title.trim() || '(untitled)'}`)
@@ -124,16 +116,7 @@ export function registerSessionCommands(
     .description('Rename a session')
     .action(async (sessionId: string, titleParts: string[]) => {
       const ctx = await getContext()
-      requireSession(ctx, sessionId)
-      const title = titleParts.join(' ').trim()
-      if (title === '') {
-        throw new Error('Title cannot be empty')
-      }
-
-      ctx.stores.library.boundStore.tables.sessions.updateRow(sessionId, {
-        title,
-        updatedAt: Date.now(),
-      })
+      ctx.transcripts.renameSession({ sessionId, title: titleParts.join(' ') })
       console.log(sessionId)
     })
 
@@ -212,7 +195,7 @@ function registerSessionConfigCommands(
       const ctx = await getContext()
       requireSession(ctx, sessionId)
       if (options.prompt !== undefined) {
-        ctx.stores.library.boundStore.tables.prompts.requireEntity(options.prompt)
+        ctx.stores.library.prompts.require(options.prompt)
       }
 
       const update: Partial<RunConfig> = configFromOptions(options)

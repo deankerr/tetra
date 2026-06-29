@@ -23,7 +23,7 @@
         "@tetra/core": "workspace:*",
         "@tetra/credentials": "workspace:*",
         "@tetra/schemas": "workspace:*",
-        "@tetra/tinybase-schema": "workspace:*",
+        "@tetra/tinydb": "workspace:*",
         "commander": "^14.0.3",
         "tinybase": "catalog:",
         "zod": "catalog:",
@@ -45,7 +45,7 @@
         "@tetra/core": "workspace:*",
         "@tetra/credentials": "workspace:*",
         "@tetra/schemas": "workspace:*",
-        "@tetra/tinybase-schema": "workspace:*",
+        "@tetra/tinydb": "workspace:*",
         "@tetra/ui": "workspace:*",
         "ai": "catalog:",
         "lucide-react": "catalog:",
@@ -70,7 +70,7 @@
       "name": "@tetra/worker",
       "dependencies": {
         "@tetra/schemas": "workspace:*",
-        "@tetra/tinybase-schema": "workspace:*",
+        "@tetra/tinydb": "workspace:*",
         "tinybase": "catalog:",
       },
       "devDependencies": {
@@ -92,7 +92,7 @@
         "zod": "catalog:",
       },
       "devDependencies": {
-        "@tetra/tinybase-schema": "workspace:*",
+        "@tetra/tinydb": "workspace:*",
         "@types/bun": "catalog:",
         "typescript": "catalog:",
       },
@@ -107,7 +107,7 @@
     "packages/schemas": {
       "name": "@tetra/schemas",
       "dependencies": {
-        "@tetra/tinybase-schema": "workspace:*",
+        "@tetra/tinydb": "workspace:*",
         "ai": "catalog:",
         "zod": "catalog:",
       },
@@ -116,14 +116,15 @@
         "typescript": "catalog:",
       },
     },
-    "packages/tinybase-schema": {
-      "name": "@tetra/tinybase-schema",
+    "packages/tinydb": {
+      "name": "@tetra/tinydb",
       "dependencies": {
         "react": "catalog:",
         "tinybase": "catalog:",
         "zod": "catalog:",
       },
       "devDependencies": {
+        "@tetra/schemas": "workspace:*",
         "@types/bun": "catalog:",
         "@types/react": "catalog:",
         "typescript": "catalog:",
@@ -873,7 +874,7 @@
 
     "@tetra/schemas": ["@tetra/schemas@workspace:packages/schemas"],
 
-    "@tetra/tinybase-schema": ["@tetra/tinybase-schema@workspace:packages/tinybase-schema"],
+    "@tetra/tinydb": ["@tetra/tinydb@workspace:packages/tinydb"],
 
     "@tetra/tools-exa": ["@tetra/tools-exa@workspace:packages/tools-exa"],
 
