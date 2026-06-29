@@ -27,11 +27,9 @@ import {
 import { Streamdown } from "streamdown";
 
 import {
-  customMarkdownComponents,
-  streamdownClassName,
   streamdownIcons,
   streamdownPlugins,
-} from "./markdown-components";
+} from "./streamdown-components";
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage["role"];
@@ -327,8 +325,11 @@ export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 export const MessageResponse = memo(
   ({ className, components, ...props }: MessageResponseProps) => (
     <Streamdown
-      className={cn(streamdownClassName, className)}
-      components={{ ...customMarkdownComponents, ...components }}
+      className={cn(
+        "streamdown size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
+        className
+      )}
+      components={components}
       icons={streamdownIcons}
       plugins={streamdownPlugins}
       {...props}

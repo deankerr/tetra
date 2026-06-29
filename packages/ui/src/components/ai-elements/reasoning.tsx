@@ -22,11 +22,9 @@ import {
 import { Streamdown } from "streamdown";
 
 import {
-  customMarkdownComponents,
-  streamdownClassName,
   streamdownIcons,
   streamdownPlugins,
-} from "./markdown-components";
+} from "./streamdown-components";
 import { Shimmer } from "./shimmer";
 
 interface ReasoningContextValue {
@@ -217,8 +215,7 @@ export const ReasoningContent = memo(
       {...props}
     >
       <Streamdown
-        className={streamdownClassName}
-        components={customMarkdownComponents}
+        className="streamdown"
         icons={streamdownIcons}
         plugins={streamdownPlugins}
       >
