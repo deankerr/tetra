@@ -5,7 +5,7 @@ name = "tetra"
 [setup]
 script = '''
 bun install
-cp $CODEX_SOURCE_TREE_PATH/apps/cli/.env $CODEX_WORKTREE_PATH/apps/cli/.env
+cp $CODEX_SOURCE_TREE_PATH/apps/cli/.env.local $CODEX_WORKTREE_PATH/apps/cli/.env.local
 '''
 
 [[actions]]

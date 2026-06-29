@@ -161,8 +161,14 @@ async function startLibraryRemoteSync(libraryStore: LibraryRawStore): Promise<vo
 }
 
 function getEnv(name: string): string | undefined {
-  const value = import.meta.env[name]?.trim()
-  return value === undefined || value === '' ? undefined : value
+  const rawValue: unknown = import.meta.env[name]
+  if (typeof rawValue !== 'string') {
+    return undefined
+  }
+
+  // Environment values become usable only after they are known strings.
+  const value = rawValue.trim()
+  return value === '' ? undefined : value
 }
 
 function reportIgnoredPersistenceError(label: string) {
