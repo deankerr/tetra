@@ -2,9 +2,11 @@ import type { LibraryEntities } from '@tetra/schemas/library'
 import { MessageActions, MessageToolbar } from '@tetra/ui/components/ai-elements/message'
 import { Button } from '@tetra/ui/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@tetra/ui/components/ui/tooltip'
+import { cn } from '@tetra/ui/lib/utils'
+import { formatDistance } from 'date-fns/formatDistance'
 import { BracesIcon, CopyIcon, ListTreeIcon, RefreshCwIcon, TrashIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 
 import { useRequireOpenRouterApiKey } from '@/api-key-settings'
 import { useApp } from '@/app'
@@ -18,10 +20,12 @@ import type { MessagePart } from './data'
 import { MessageForkControl } from './fork-control'
 
 export function MessageActionsView({
+  className,
   isThreadLeafMessage,
   message,
   run,
 }: {
+  className?: string | undefined
   isThreadLeafMessage: boolean
   message: LibraryEntities['messages']
   run: LibraryEntities['runs'] | null
@@ -41,7 +45,7 @@ export function MessageActionsView({
   const generateActionLabel = run === null ? 'Generate' : 'Regenerate'
 
   return (
-    <MessageToolbar className="mt-1">
+    <MessageToolbar className={cn('mt-1', className)}>
       <MessageActions>
         <MessageForkControl message={message} />
         <MessageIconAction
@@ -124,9 +128,9 @@ export function MessageActionsView({
         >
           <TrashIcon />
         </MessageIconAction>
-      </MessageActions>
 
-      <MessageMetadata message={message} />
+        <MessageMetadata message={message} />
+      </MessageActions>
     </MessageToolbar>
   )
 }
@@ -168,14 +172,6 @@ function MessageIconAction({
   )
 }
 
-function MessageMetadata({ message }: { message: LibraryEntities['messages'] }) {
-  return (
-    <div className="text-muted-foreground text-xxs flex min-w-0 flex-wrap items-center justify-end gap-x-2.5 gap-y-1">
-      <span>{formatDateTime(message.updatedAt)}</span>
-    </div>
-  )
-}
-
 function useMessageHasContinuations(message: LibraryEntities['messages']): boolean {
   const messages = libraryReact.messages.useBySession(message.sessionId)
 
@@ -189,9 +185,59 @@ function getTextContent(parts: MessagePart[]): string {
     .join('')
 }
 
-function formatDateTime(value: number): string {
-  return new Intl.DateTimeFormat(undefined, {
+const RELATIVE_TIME_REFRESH_MS = 30_000
+const relativeTimeListeners = new Set<() => void>()
+let relativeTimeNow = Date.now()
+
+// One browser clock is cheaper to understand than a mount-counted timer lifecycle.
+const relativeTimeInterval =
+  typeof window === 'undefined'
+    ? undefined
+    : window.setInterval(refreshRelativeTimeNow, RELATIVE_TIME_REFRESH_MS)
+
+if (import.meta.hot && relativeTimeInterval !== undefined) {
+  import.meta.hot.dispose(() => {
+    window.clearInterval(relativeTimeInterval)
+  })
+}
+
+function useRelativeTimeNow(): number {
+  return useSyncExternalStore(subscribeToRelativeTime, getRelativeTimeNow, getRelativeTimeNow)
+}
+
+function subscribeToRelativeTime(listener: () => void): () => void {
+  relativeTimeListeners.add(listener)
+
+  return () => {
+    relativeTimeListeners.delete(listener)
+  }
+}
+
+function getRelativeTimeNow(): number {
+  return relativeTimeNow
+}
+
+function refreshRelativeTimeNow(): void {
+  relativeTimeNow = Date.now()
+
+  for (const listener of relativeTimeListeners) {
+    listener()
+  }
+}
+
+function MessageMetadata({ message }: { message: LibraryEntities['messages'] }) {
+  const now = Math.max(useRelativeTimeNow(), message.updatedAt)
+
+  const absoluteTime = new Intl.DateTimeFormat(undefined, {
     dateStyle: 'medium',
     timeStyle: 'short',
-  }).format(new Date(value))
+  }).format(new Date(message.updatedAt))
+
+  const relativeTime = formatDistance(message.updatedAt, now, { addSuffix: true })
+
+  return (
+    <div className="text-muted-foreground text-xxs flex min-w-0 flex-wrap items-center justify-end gap-x-2.5 gap-y-1">
+      <span title={absoluteTime}>{relativeTime}</span>
+    </div>
+  )
 }
