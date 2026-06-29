@@ -19,6 +19,7 @@
     "@tetra/tinydb": "workspace:*",
     "@tetra/ui": "workspace:*",
     "ai": "catalog:",
+    "date-fns": "^4.4.0",
     "lucide-react": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",

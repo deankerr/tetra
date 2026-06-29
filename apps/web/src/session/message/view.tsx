@@ -47,7 +47,12 @@ export function MessageView({
       </AiMessageContent>
 
       {!isActive && (
-        <MessageActionsView isThreadLeafMessage={isThreadLeafMessage} message={message} run={run} />
+        <MessageActionsView
+          className={message.role === 'user' ? 'justify-end' : undefined}
+          isThreadLeafMessage={isThreadLeafMessage}
+          message={message}
+          run={run}
+        />
       )}
     </AiMessage>
   )
