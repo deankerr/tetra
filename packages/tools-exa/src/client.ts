@@ -9,12 +9,12 @@ export interface ExaClientOptions {
   apiKey: string
   baseUrl?: string
   fetchImpl?: typeof fetch
-  retry?: RetryOptions
+  retry?: RetryOptions | undefined
   timeout?: number
 }
 
 export interface ExaRequestOptions {
-  signal?: AbortSignal
+  signal?: AbortSignal | undefined
 }
 
 export class ExaClient {

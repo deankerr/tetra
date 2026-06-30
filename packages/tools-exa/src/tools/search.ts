@@ -113,10 +113,8 @@ export function exaSearch(options: ExaSearchToolOptions): Tool {
 
   return tool({
     description: 'Search the web with Exa and return ranked sources with token-efficient excerpts.',
-    execute: async (input, { abortSignal }) => {
-      const requestOptions = abortSignal === undefined ? undefined : { signal: abortSignal }
-
-      return await client.post(
+    execute: async (input, { abortSignal }) =>
+      await client.post(
         '/search',
         ExaSearchRequestSchema.parse({
           category: options.category,
@@ -128,9 +126,8 @@ export function exaSearch(options: ExaSearchToolOptions): Tool {
           userLocation: input.userLocation,
         }),
         ExaSearchResponseSchema,
-        requestOptions,
-      )
-    },
+        { signal: abortSignal },
+      ),
     inputSchema,
   })
 }

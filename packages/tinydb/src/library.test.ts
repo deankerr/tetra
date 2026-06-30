@@ -130,16 +130,10 @@ describe('real library schema', () => {
 // Type-level: inferred query methods reach across the real schema.
 type HasKey<T, K extends string> = K extends keyof T ? true : false
 
-function typeAssertions(db: LibraryDb): void {
-  const [step] = db.steps.byRun('r1')
-  if (step === undefined) {
-    throw new Error('Expected at least one step for type assertion')
-  }
+type StepsByRun = ReturnType<LibraryDb['steps']['byRun']>
+const _idIsString: StepsByRun[number]['id'] extends string ? true : false = true
+void _idIsString
 
-  const _id: string = step.id
-  void _id
-  // modelFavorites declares no indexes → no query methods (type-level, no error-typed call).
-  const _noQuery: HasKey<LibraryDb['modelFavorites'], 'bySession'> = false
-  void _noQuery
-}
-void typeAssertions
+// modelFavorites declares no indexes → no query methods (type-level, no error-typed call).
+const _noQuery: HasKey<LibraryDb['modelFavorites'], 'bySession'> = false
+void _noQuery

@@ -22,7 +22,7 @@ export interface RunStart {
   config: RunConfig
   runId: string
   session: LibraryEntities['sessions']
-  system?: string
+  system: string | undefined
   targetMessageId: string
   transcriptMessages: LibraryEntities['messages'][]
 }
