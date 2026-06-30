@@ -22,37 +22,44 @@ export class ExaClient {
 
   constructor(options: ExaClientOptions) {
     // Build request defaults per call so future credential or endpoint changes have one boundary.
-    this.fetchJson = up(options.fetchImpl ?? fetch, () => ({
-      baseUrl: options.baseUrl ?? DEFAULT_BASE_URL,
-      headers: {
-        'x-api-key': options.apiKey,
-      },
-      parseRejected: async (response) => {
-        let data: unknown
+    this.fetchJson = up(options.fetchImpl ?? fetch, () => {
+      const defaults = {
+        baseUrl: options.baseUrl ?? DEFAULT_BASE_URL,
+        headers: {
+          'x-api-key': options.apiKey,
+        },
+        parseRejected: async (response: Response) => {
+          let data: unknown
 
-        try {
-          data = await response.clone().json()
-        } catch {
-          data = await response.text()
-        }
+          try {
+            data = await response.clone().json()
+          } catch {
+            data = await response.text()
+          }
 
-        const responseError =
-          typeof data === 'object' &&
-          data !== null &&
-          'error' in data &&
-          typeof data.error === 'string'
-            ? `: ${data.error}`
-            : ''
+          const responseError =
+            typeof data === 'object' &&
+            data !== null &&
+            'error' in data &&
+            typeof data.error === 'string'
+              ? `: ${data.error}`
+              : ''
 
-        return new ResponseError({
-          data,
-          message: `[tools-exa] ${response.url} failed (${response.status} ${response.statusText})${responseError}`,
-          status: response.status,
-        })
-      },
-      retry: options.retry,
-      timeout: options.timeout ?? DEFAULT_TIMEOUT_MS,
-    }))
+          return new ResponseError({
+            data,
+            message: `[tools-exa] ${response.url} failed (${response.status} ${response.statusText})${responseError}`,
+            status: response.status,
+          })
+        },
+        timeout: options.timeout ?? DEFAULT_TIMEOUT_MS,
+      }
+
+      if (options.retry === undefined) {
+        return defaults
+      }
+
+      return { ...defaults, retry: options.retry }
+    })
   }
 
   async post<T>(
@@ -61,11 +68,16 @@ export class ExaClient {
     schema: z.ZodType<T>,
     options?: ExaRequestOptions,
   ): Promise<T> {
-    return await this.fetchJson(path, {
+    const request = {
       body,
       method: 'POST',
       schema,
-      signal: options?.signal,
-    })
+    } as const
+
+    if (options?.signal === undefined) {
+      return await this.fetchJson(path, request)
+    }
+
+    return await this.fetchJson(path, { ...request, signal: options.signal })
   }
 }

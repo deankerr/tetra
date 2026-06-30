@@ -258,7 +258,12 @@ void _newSession
 function typeAssertions(db: LibraryDb): void {
   // Query methods are inferred onto the owning collection, returning entities.
   const runs = db.runs.bySessionNewestFirst('s1')
-  const _runId: string = runs[0].id
+  const [run] = runs
+  if (run === undefined) {
+    throw new Error('Expected at least one run for type assertion')
+  }
+
+  const _runId: string = run.id
   void _runId
 
   // The `on` cell type drives the arg type.

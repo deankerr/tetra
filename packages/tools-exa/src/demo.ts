@@ -29,7 +29,7 @@ async function executeTool(toolInstance: Tool, input: unknown): Promise<unknown>
 }
 
 // Render one result without dumping full extracted page contents.
-function summarizeResult(result: { title?: string | null; url: string }): string {
+function summarizeResult(result: { title?: string | null | undefined; url: string }): string {
   return `${result.title ?? 'Untitled'} — ${result.url}`
 }
 

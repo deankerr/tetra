@@ -17,7 +17,14 @@ const exaToolDefinitions = exaToolDescriptors.map((descriptor): [string, ToolDef
   descriptor.id,
   {
     category: 'web',
-    createTool: ({ EXA_API_KEY }) => descriptor.createTool({ apiKey: EXA_API_KEY }),
+    createTool: (credentials) => {
+      const apiKey = credentials.EXA_API_KEY
+      if (apiKey === undefined) {
+        throw new Error(`${getCredentialDefinition('EXA_API_KEY').label} is required`)
+      }
+
+      return descriptor.createTool({ apiKey })
+    },
     credentialIds: ['EXA_API_KEY'],
     description: descriptor.description,
     label: descriptor.label,

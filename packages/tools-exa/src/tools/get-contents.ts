@@ -86,6 +86,7 @@ export function exaGetContents(options: ExaGetContentsToolOptions): Tool {
     description: 'Summarize known page URLs using Exa after search has found relevant sources.',
     execute: async (input, { abortSignal }) => {
       let requestContents: ExaContentsConfig = options.contents ?? { summary: true }
+      const requestOptions = abortSignal === undefined ? undefined : { signal: abortSignal }
 
       // Caller-provided contents are policy; model input only focuses the default summary.
       if (options.contents === undefined) {
@@ -101,7 +102,7 @@ export function exaGetContents(options: ExaGetContentsToolOptions): Tool {
           urls: input.urls,
         }),
         ExaContentsResponseSchema,
-        { signal: abortSignal },
+        requestOptions,
       )
     },
     inputSchema,

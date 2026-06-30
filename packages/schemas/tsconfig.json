@@ -1,14 +1,7 @@
 {
+  "extends": "@tetra/config/tsconfig.base.json",
   "compilerOptions": {
-    "allowImportingTsExtensions": true,
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "noEmit": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "target": "ES2024",
-    "types": ["bun"],
-    "verbatimModuleSyntax": true
+    "types": ["bun"]
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

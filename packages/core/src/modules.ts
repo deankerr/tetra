@@ -36,14 +36,14 @@ export function createCoreModules({
   const prompts = new Prompts({ library, runConfigs })
   const transcripts = new Transcripts({ library, runConfigs })
   const modelCatalog = new ModelCatalog({ catalog })
-  const runs = new Runs({
+  const runsInit = {
     credentials,
     library,
-    modelResolver,
     prompts,
     runConfigs,
     transcripts,
-  })
+  }
+  const runs = new Runs(modelResolver === undefined ? runsInit : { ...runsInit, modelResolver })
 
   return { modelCatalog, prompts, runConfigs, runs, transcripts }
 }

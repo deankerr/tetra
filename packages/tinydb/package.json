@@ -16,6 +16,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@tetra/config": "workspace:*",
     "@tetra/schemas": "workspace:*",
     "@types/bun": "catalog:",
     "@types/react": "catalog:",

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    /* Baseline language target */
+    "target": "ES2024",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+
+    /* Workspace import model */
+    "allowImportingTsExtensions": true,
+    "resolvePackageJsonExports": true,
+    "resolvePackageJsonImports": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+
+    /* Strictness baseline */
+    "strict": true,
+    "exactOptionalPropertyTypes": true,
+    "isolatedModules": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
+    "noUncheckedSideEffectImports": true,
+    "skipLibCheck": true
+  }
+}

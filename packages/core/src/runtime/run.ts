@@ -7,7 +7,7 @@ import type {
   RunConfig,
 } from '@tetra/schemas/library'
 import { convertToModelMessages, readUIMessageStream, stepCountIs, streamText } from 'ai'
-import type { LanguageModel, ModelMessage, ToolSet, UIMessage } from 'ai'
+import type { LanguageModel, ModelMessage, OnStepFinishEvent, ToolSet, UIMessage } from 'ai'
 
 import { resolveTools } from '#tools'
 
@@ -148,18 +148,21 @@ export class Run extends EventTarget {
       this.modelMessages = modelMessages
       this.tools = tools
 
-      const result = streamText({
+      const streamOptions = {
         abortSignal: this.abortController.signal,
         messages: modelMessages,
         model,
-        onStepFinish: (step) => {
+        onStepFinish: (step: OnStepFinishEvent) => {
           this.recordStep(StepEvent.parse(step))
         },
         providerOptions: { openrouter: config.providerOptions },
         stopWhen: stepCountIs(6),
-        system: this.system,
         tools,
-      })
+      }
+      const result =
+        this.system === undefined
+          ? streamText(streamOptions)
+          : streamText({ ...streamOptions, system: this.system })
 
       this.result = result
 

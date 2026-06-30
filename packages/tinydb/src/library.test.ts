@@ -131,7 +131,12 @@ describe('real library schema', () => {
 type HasKey<T, K extends string> = K extends keyof T ? true : false
 
 function typeAssertions(db: LibraryDb): void {
-  const _id: string = db.steps.byRun('r1')[0].id
+  const [step] = db.steps.byRun('r1')
+  if (step === undefined) {
+    throw new Error('Expected at least one step for type assertion')
+  }
+
+  const _id: string = step.id
   void _id
   // modelFavorites declares no indexes → no query methods (type-level, no error-typed call).
   const _noQuery: HasKey<LibraryDb['modelFavorites'], 'bySession'> = false
