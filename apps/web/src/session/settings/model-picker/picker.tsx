@@ -1,5 +1,4 @@
 import type { CatalogEntities } from '@tetra/schemas/catalog'
-import { ModelSelectorLogo } from '@tetra/ui/components/ai-elements/model-selector'
 import { Button } from '@tetra/ui/components/ui/button'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@tetra/ui/components/ui/input-group'
 import {
@@ -196,7 +195,16 @@ export function ModelPickerButton({
 
   return (
     <Button className={cn('justify-start', className)} variant={variant} {...props}>
-      {currentModel !== null && <ModelSelectorLogo provider={currentModel.provider} />}
+      {currentModel !== null && (
+        <img
+          alt={`${currentModel.provider} logo`}
+          className="size-3 shrink-0 rounded-[3px] border object-cover"
+          height={12}
+          loading="lazy"
+          src={`https://logos.orb.town/v1/avatar/${encodeURIComponent(currentModel.provider)}.webp`}
+          width={12}
+        />
+      )}
       <span className="min-w-0 flex-1 truncate text-left">{label}</span>
     </Button>
   )

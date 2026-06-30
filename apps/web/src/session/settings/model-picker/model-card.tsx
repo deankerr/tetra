@@ -1,5 +1,4 @@
 import type { CatalogEntities } from '@tetra/schemas/catalog'
-import { ModelSelectorLogo } from '@tetra/ui/components/ai-elements/model-selector'
 import { Button } from '@tetra/ui/components/ui/button'
 import { cn } from '@tetra/ui/lib/utils'
 import type { LucideIcon } from 'lucide-react'
@@ -121,63 +120,70 @@ export function ModelCard({
         type="button"
       />
 
-      <div className="pointer-events-none relative z-20 flex min-w-0 items-start gap-3 px-4 py-2.5">
-        <div className="bg-muted flex size-8 shrink-0 items-center justify-center rounded-md">
-          <ModelSelectorLogo className="size-4" provider={model.provider} />
+      <div className="pointer-events-none relative z-20 flex min-w-0 flex-col gap-3 px-2 py-3.5 sm:px-4">
+        <div className="flex min-w-0 gap-2.5">
+          <div className="flex items-start">
+            <img
+              alt={`${model.provider} logo`}
+              className="size-7 shrink-0 rounded-md border object-cover"
+              height={28}
+              loading="lazy"
+              src={`https://logos.orb.town/v1/avatar/${encodeURIComponent(model.provider)}.webp`}
+              width={28}
+            />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="text-foreground truncate text-sm leading-none font-medium">
+              {model.name}
+            </div>
+            <div className="text-muted-foreground min-w-0 truncate font-mono text-xs">
+              {model.id}
+            </div>
+          </div>
+
+          <div className="pointer-events-auto relative z-30 flex shrink-0 items-start gap-1">
+            <Button
+              aria-label={favorite ? 'Remove model from favorites' : 'Add model to favorites'}
+              onClick={onToggleFavorite}
+              size="icon-sm"
+              title={favorite ? 'Remove model from favorites' : 'Add model to favorites'}
+              variant="ghost"
+            >
+              <StarIcon className={cn(favorite && 'fill-current')} />
+            </Button>
+            <Button
+              aria-label={`Copy ${model.id}`}
+              onClick={() => {
+                void navigator.clipboard.writeText(model.id)
+              }}
+              size="icon-sm"
+              title="Copy model id"
+              variant="ghost"
+            >
+              <CopyIcon />
+            </Button>
+          </div>
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <div className="flex min-w-0 items-start gap-2">
-            <div className="min-w-0 flex-1">
-              <div className="text-foreground truncate text-sm font-medium">{model.name}</div>
-              <div className="text-muted-foreground min-w-0 truncate font-mono text-xs">
-                {model.id}
-              </div>
-            </div>
-
-            <div className="pointer-events-auto relative z-30 flex shrink-0 items-start gap-1">
-              <Button
-                aria-label={favorite ? 'Remove model from favorites' : 'Add model to favorites'}
-                onClick={onToggleFavorite}
-                size="icon-sm"
-                title={favorite ? 'Remove model from favorites' : 'Add model to favorites'}
-                variant="ghost"
-              >
-                <StarIcon className={cn(favorite && 'fill-current')} />
-              </Button>
-              <Button
-                aria-label={`Copy ${model.id}`}
-                onClick={() => {
-                  void navigator.clipboard.writeText(model.id)
-                }}
-                size="icon-sm"
-                title="Copy model id"
-                variant="ghost"
-              >
-                <CopyIcon />
-              </Button>
-            </div>
-          </div>
-
-          <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-            <span
-              aria-label={`Context length ${contextLength}`}
-              className="flex items-center gap-1.5"
-              title="Context length"
-            >
-              <GaugeIcon aria-hidden className="size-3.5 shrink-0" />
-              {contextLength}
-            </span>
-            <span
-              aria-label={`Release date ${releaseDate}`}
-              className="flex items-center gap-1.5"
-              title="Release date"
-            >
-              <CalendarDaysIcon aria-hidden className="size-3.5 shrink-0" />
-              {releaseDate}
-            </span>
-            <ModelModalities model={model} />
-          </div>
+        <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+          <span
+            aria-label={`Context length ${contextLength}`}
+            className="flex items-center gap-1.5"
+            title="Context length"
+          >
+            <GaugeIcon aria-hidden className="size-3.5 shrink-0" />
+            {contextLength}
+          </span>
+          <span
+            aria-label={`Release date ${releaseDate}`}
+            className="flex items-center gap-1.5"
+            title="Release date"
+          >
+            <CalendarDaysIcon aria-hidden className="size-3.5 shrink-0" />
+            {releaseDate}
+          </span>
+          <ModelModalities model={model} />
         </div>
       </div>
     </div>
