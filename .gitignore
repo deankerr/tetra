@@ -19,6 +19,7 @@
 *.tsbuildinfo
 build
 dist
+dist-desktop
 logs
 node_modules
 tmp

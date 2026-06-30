@@ -1,0 +1,43 @@
+[package]
+name = "tetra-desktop"
+version = "0.1.0"
+description = "Tetra desktop shell"
+authors = ["Dean Kerr"]
+license = ""
+repository = ""
+edition = "2021"
+rust-version = "1.77.2"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "tetra_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.6.3", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+tauri = { version = "2.11.3", features = [] }
+tauri-plugin-log = "2"
+
+# tauri-agent-tools dev bridge (src/dev_bridge.rs). The bridge only runs under cfg!(debug_assertions),
+# but its module compiles in every profile, so these stay as regular deps.
+tiny_http = "0.12"
+scopeguard = "1"
+rand = "0.8"
+uuid = { version = "1", features = ["v4"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["registry"] }
+
+# Desktop-only: persist window size/position across launches. The plugin is desktop-only, so it is
+# scoped away from any future mobile target.
+[target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
+tauri-plugin-window-state = "2"
+
+# Unix-only: cheap kill(pid, 0) liveness probe used by the dev bridge's /process + /health endpoints.
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"

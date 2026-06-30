@@ -25,14 +25,14 @@
   },
   "type": "module",
   "scripts": {
-    "build": "turbo run build",
-    "build:vercel": "bun run --filter @tetra/web build",
+    "build": "bun run --cwd apps/web build",
+    "build:vercel": "bun run build",
     "check": "ultracite check --type-aware --type-check",
     "cli": "bun run --cwd apps/cli start",
-    "dev": "bun run --cwd apps/web dev --port 5148",
+    "dev": "bun run --cwd apps/web dev",
     "fix": "ultracite fix --type-aware --type-check",
     "knip": "knip",
-    "preview": "turbo run preview",
+    "preview": "bun run build && bun run --cwd apps/web preview",
     "reset-sync": "bun run --cwd apps/cli start sync reset --yes",
     "test": "bun test"
   },
@@ -44,7 +44,6 @@
     "oxfmt": "0.48.0",
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
-    "turbo": "^2.9.14",
     "typescript": "catalog:",
     "ultracite": "7.6.4"
   },

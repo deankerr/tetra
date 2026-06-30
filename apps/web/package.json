@@ -4,8 +4,11 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
+    "build:tauri": "vite build --mode desktop",
     "dev": "vite dev",
-    "preview": "vite preview"
+    "dev:tauri": "vite dev --mode desktop",
+    "preview": "vite preview",
+    "tauri": "tauri"
   },
   "dependencies": {
     "@lonik/themer": "^0.5.4",
@@ -30,10 +33,12 @@
   "devDependencies": {
     "@tanstack/devtools-vite": "^0.6.1",
     "@tanstack/router-plugin": "^1.168.18",
+    "@tauri-apps/cli": "^2.11.3",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "^6.0.2",
+    "tauri-agent-tools": "^0.8.0",
     "typescript": "catalog:",
     "vite": "^8.0.14"
   }
