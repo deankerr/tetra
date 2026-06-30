@@ -1,22 +1,8 @@
 {
+  "extends": "@tetra/config/tsconfig.base.json",
   "include": ["src/**/*.ts", "worker-configuration.d.ts"],
 
   "compilerOptions": {
-    "target": "ES2024",
-    "module": "ESNext",
-    "lib": ["ES2024"],
-
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "resolvePackageJsonExports": true,
-    "resolvePackageJsonImports": true,
-    "verbatimModuleSyntax": true,
-    "noEmit": true,
-
-    "skipLibCheck": true,
-    "strict": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true,
-    "noImplicitOverride": true
+    "lib": ["ES2024"]
   }
 }

@@ -21,7 +21,9 @@ async function closeInMemoryCliApp(): Promise<void> {
 }
 
 export async function createPersistentCliAppContext(options: PersistentCliAppContextOptions = {}) {
-  const runtime = await createCliStoreRuntime({ syncEnabled: options.syncEnabled })
+  const runtime = await createCliStoreRuntime(
+    options.syncEnabled === undefined ? {} : { syncEnabled: options.syncEnabled },
+  )
   return createCliAppContext({
     close: async () => {
       await runtime.close()
