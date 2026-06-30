@@ -257,9 +257,9 @@ void _newSession
 
 function typeAssertions(db: LibraryDb): void {
   // Query methods are inferred onto the owning collection, returning entities.
-  const runs = db.runs.bySessionNewestFirst('s1')
-  const _runId: string = runs[0].id
-  void _runId
+  type RunsBySessionNewestFirst = ReturnType<LibraryDb['runs']['bySessionNewestFirst']>
+  const _runIdIsString: RunsBySessionNewestFirst[number]['id'] extends string ? true : false = true
+  void _runIdIsString
 
   // The `on` cell type drives the arg type.
   // @ts-expect-error sessionId is a string, not a number

@@ -7,17 +7,24 @@ import { z } from 'zod'
 
 export interface ToolDefinition {
   category: string
-  createTool: (credentials: Record<string, string>) => ToolSet[string]
+  createTool: (credentials: ToolCredentials) => ToolSet[string]
   credentialIds: CredentialId[]
   description: string
   label: string
+}
+
+interface ToolCredentials {
+  require(id: CredentialId): string
 }
 
 const exaToolDefinitions = exaToolDescriptors.map((descriptor): [string, ToolDefinition] => [
   descriptor.id,
   {
     category: 'web',
-    createTool: ({ EXA_API_KEY }) => descriptor.createTool({ apiKey: EXA_API_KEY }),
+    createTool: (credentials) => {
+      const apiKey = credentials.require('EXA_API_KEY')
+      return descriptor.createTool({ apiKey })
+    },
     credentialIds: ['EXA_API_KEY'],
     description: descriptor.description,
     label: descriptor.label,
@@ -70,15 +77,11 @@ export function resolveTools(
       continue
     }
 
-    const credentials: Record<string, string> = {}
     const missingCredentialIds: CredentialId[] = []
     for (const id of def.credentialIds) {
-      const value = getCredential(id)
-      if (value === undefined) {
+      if (getCredential(id) === undefined) {
         missingCredentialIds.push(id)
-        continue
       }
-      credentials[id] = value
     }
 
     if (missingCredentialIds.length > 0) {
@@ -86,7 +89,16 @@ export function resolveTools(
       throw new Error(`${def.label} requires ${labels}`)
     }
 
-    tools[toolId] = def.createTool(credentials)
+    tools[toolId] = def.createTool({
+      require(id) {
+        const value = getCredential(id)
+        if (value === undefined) {
+          throw new Error(`${def.label} requires ${getCredentialDefinition(id).label}`)
+        }
+
+        return value
+      },
+    })
   }
 
   return tools

@@ -150,7 +150,12 @@ test('generate streams through the AI SDK into TinyBase rows', async () => {
     text: 'hello world',
     type: 'text',
   })
-  expect(run.finalParts).toEqual(messages[1]?.parts)
+  const [, assistantMessage] = messages
+  if (assistantMessage === undefined) {
+    throw new Error('Expected assistant message')
+  }
+
+  expect(run.finalParts).toEqual(assistantMessage.parts)
   const steps = core.library.steps.byRun(run.runId)
   expect(steps).toHaveLength(1)
   expect(steps[0]).toMatchObject({

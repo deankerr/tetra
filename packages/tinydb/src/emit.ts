@@ -110,7 +110,12 @@ function unwrapNullable(schema: JsonSchema): { allowNull: boolean; schema: JsonS
   const schemas = schema.anyOf.filter(isJsonSchema)
   const nonNullSchemas = schemas.filter((candidate) => candidate.type !== 'null')
   if (schemas.length === schema.anyOf.length && nonNullSchemas.length === 1) {
-    return { allowNull: true, schema: nonNullSchemas[0] }
+    const [nonNullSchema] = nonNullSchemas
+    if (nonNullSchema === undefined) {
+      throw new Error('Nullable schema has no non-null branch')
+    }
+
+    return { allowNull: true, schema: nonNullSchema }
   }
 
   return { allowNull: false, schema }

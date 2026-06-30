@@ -65,7 +65,7 @@ export function registerSessionCommands(
 
       const sessionId = ctx.transcripts.createSession({
         config,
-        title: options.title,
+        ...(options.title === undefined ? {} : { title: options.title }),
       })
       ctx.workspace.setActiveSessionId(sessionId)
       console.log(sessionId)

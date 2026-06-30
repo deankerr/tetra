@@ -103,14 +103,16 @@ export class Runs {
       })
     })
 
-    return this.launchRun({
+    const runStart: RunStart = {
       config,
       runId,
       session,
       system,
       targetMessageId: args.targetMessageId,
       transcriptMessages,
-    })
+    }
+
+    return this.launchRun(runStart)
   }
 
   private collectMessagesBefore(

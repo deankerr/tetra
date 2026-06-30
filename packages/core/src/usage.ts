@@ -50,17 +50,26 @@ export function summarizeSteps(steps: StepRecord[]): UsageTotals {
     }
   }
 
-  return compactUsageTotals({
+  const summary: UsageTotals = {
     cacheReadTokens,
     cacheWriteTokens,
-    costInput: hasCostInput ? costInput : undefined,
-    costOutput: hasCostOutput ? costOutput : undefined,
-    costTotal: hasCostTotal ? costTotal : undefined,
     inputTokens,
     outputTokens,
     reasoningTokens,
     totalTokens,
-  })
+  }
+
+  if (hasCostInput) {
+    summary.costInput = costInput
+  }
+  if (hasCostOutput) {
+    summary.costOutput = costOutput
+  }
+  if (hasCostTotal) {
+    summary.costTotal = costTotal
+  }
+
+  return compactUsageTotals(summary)
 }
 
 function compactUsageTotals(summary: UsageTotals): UsageTotals {
