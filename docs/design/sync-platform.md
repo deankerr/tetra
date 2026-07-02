@@ -24,7 +24,7 @@ flag are build-time `VITE_` / `SYNC_` env vars. Consequences:
   before anything works.
 - No way to have independent instances for experiments, demos, or per-feature test data.
 
-We want many independent instances **without accounts or auth**. A random string key *is* the
+We want many independent instances **without accounts or auth**. A random string key _is_ the
 instance id: possession of the key = access. Explicitly not secure — dev data, no users, and we
 are not ready to commit to an auth model.
 
@@ -33,7 +33,7 @@ are not ready to commit to an auth model.
 - **Keys, not accounts.** A sync key names an instance and grants access. Keys are user-supplied
   or generated; the server neither issues nor validates them beyond shape.
 - **Runtime state over build-time env.** Sync config is user-authored runtime state (like
-  credentials). Env vars remain fully capable of configuring everything — they become *seeds*
+  credentials). Env vars remain fully capable of configuring everything — they become _seeds_
   for first-run defaults, not the source of truth. Precedence: runtime user state → env seed →
   defaults. This keeps agent/demo/CI flows env-drivable (including "sync hard-disabled" builds).
 - **Least written code, first-party parts.** Prefer TinyBase's shipped persisters/synchronizers
@@ -60,7 +60,7 @@ Research findings this design leans on, with sources (TinyBase 8.4.1 dist; docs 
    `onPathId(pathId, addedOrRemoved)` / `onClientId(pathId, clientId, addedOrRemoved)` fire on
    every connect/disconnect (`...-durable-object/index.js:846-847`).
 3. **`createWsSynchronizer` does zero connection management.** It binds `send` to the socket you
-   pass and resolves once the socket opens *or errors* (resolving the synchronizer anyway,
+   pass and resolves once the socket opens _or errors_ (resolving the synchronizer anyway,
    reporting via `onIgnoredError`) — so booting offline with a reconnecting socket yields a
    working-but-quiet synchronizer. Initial convergence is driven entirely by `startSync()`
    (`load()` broadcasts a `GetContentHashes` request; `save()` announces our hashes). **Nothing
@@ -68,7 +68,7 @@ Research findings this design leans on, with sources (TinyBase 8.4.1 dist; docs 
    (`synchronizers/synchronizer-ws-client/index.js`.)
 4. **Docs officially recommend `pladaria/reconnecting-websocket`** and state its API is
    compatible (`createwssynchronizer` article). It re-emits `open`, buffers sends while closed.
-   It solves the *socket*; it does not solve the *resync* (see 3).
+   It solves the _socket_; it does not solve the _resync_ (see 3).
 5. **The DO's join "hello" is of unclear value.** On accept, the server sends the new client a
    `GetContentHashes` from `'S'` with requestId `null` (`...-durable-object/index.js:791`). The
    client replies with a `Response` keyed `null`, which by our reading the server's synchronizer
@@ -80,7 +80,7 @@ Research findings this design leans on, with sources (TinyBase 8.4.1 dist; docs 
    support it in `DpcJson` mode only. The CLI's `createSqliteBunPersister` + `mode: 'json'` is
    already in the supported column.
 7. **OPFS persister is ~25 lines, async, main-thread** (`persisters/persister-browser/index.js:
-   498-523`): whole-file JSON via `handle.getFile()` / `createWritable()`. No worker, no sync
+498-523`): whole-file JSON via `handle.getFile()` / `createWritable()`. No worker, no sync
    access handles, no locks. Its change-listener uses `FileSystemObserver` (Chrome-only, absent
    in WebKit) — irrelevant to our load-once + auto-save pattern, where tab convergence comes from
    the BroadcastChannel synchronizer. Caller supplies the file handle, so per-key filenames are
@@ -123,7 +123,7 @@ Research findings this design leans on, with sources (TinyBase 8.4.1 dist; docs 
 - Registry storage: directory DO vs KV. (DO keeps everything in one wrangler config and gives
   transactional updates; KV is simpler reads. Lean: directory DO — we already have the DO
   toolchain and types.)
-- Does the registry track *sizes*? Would require the library DO to self-report (e.g. on
+- Does the registry track _sizes_? Would require the library DO to self-report (e.g. on
   `onPathId` teardown). Defer until we miss it.
 - Admin route auth: none for now (consistent with the threat model), but shape routes so a
   bearer token can be added in one place later.
@@ -145,7 +145,7 @@ Research findings this design leans on, with sources (TinyBase 8.4.1 dist; docs 
   - The CLI's timeout-wrapped connect and flush dance (evidence 8) as first-class modes: the
     web consumer holds the handle open for the page lifetime; the CLI consumer does
     connect → converge → flush → close.
-- Status is exposed as plain callbacks/values on the handle; *where* it lands (a store value for
+- Status is exposed as plain callbacks/values on the handle; _where_ it lands (a store value for
   reactive UI, stdout for CLI) is the consumer's business. The package has no TinyBase-React,
   no React, no env access.
 
@@ -163,16 +163,16 @@ Research findings this design leans on, with sources (TinyBase 8.4.1 dist; docs 
 
 - Resolved sync config is `{ enabled, workerUrl, key }`. Precedence: **runtime user state → env
   seed → defaults**.
-- `workerUrl` is *provided* (default baked per-surface, env-overridable), **not user-editable
+- `workerUrl` is _provided_ (default baked per-surface, env-overridable), **not user-editable
   UI**. The key is the primary user-facing knob.
 - Web: runtime home is credential-style localStorage (synchronous read at boot, durable,
   per-origin — the same profile as `@tetra/credentials`, and sync config is conceptually
   credential-adjacent). Not the `web` store (sessionStorage: per-tab, ephemeral).
 - Env vars remain able to express every configuration — `VITE_SYNC_ENABLED=false` builds,
-  agent contexts pre-pointed at a shared key, demo instances — by *seeding* the runtime state on
+  agent contexts pre-pointed at a shared key, demo instances — by _seeding_ the runtime state on
   first run. A seeded value that the user later edits stays edited; changing the env after first
   run does not silently override user state.
-- CLI has no UI: env/flags *are* its runtime layer (`SYNC_WORKER_URL`, new `SYNC_KEY`,
+- CLI has no UI: env/flags _are_ its runtime layer (`SYNC_WORKER_URL`, new `SYNC_KEY`,
   `--sync-key`?). The resolution function in `@tetra/sync` must treat this as a first-class
   input path, not a web fallback.
 
@@ -187,13 +187,13 @@ Research findings this design leans on, with sources (TinyBase 8.4.1 dist; docs 
 ## Area D — Store identity and isolation (the mixing problem)
 
 The doorway this whole design opens: changing your key can point your synchronizer at a store
-with a *different history*. A CRDT merge of two histories is an irreversible union (evidence 9).
+with a _different history_. A CRDT merge of two histories is an irreversible union (evidence 9).
 
 **Direction (settled):**
 
 - **Bind local persistence identity to the sync key.** The library persists per key —
   `library-<key>` (unkeyed `library` for local-only). Changing key does not repoint the
-  synchronizer at existing data; it *switches which local store loads*. Joining a key you've
+  synchronizer at existing data; it _switches which local store loads_. Joining a key you've
   never used starts from that instance's state; leaving it leaves it intact; coming back
   resumes it. Mixing then requires a deliberate export/import gesture that does not exist yet
   (and may never).
@@ -203,7 +203,7 @@ with a *different history*. A CRDT merge of two histories is an irreversible uni
 
 **Open:**
 
-- What happens to the *current* unkeyed data when the user first sets a key: adopt (rename the
+- What happens to the _current_ unkeyed data when the user first sets a key: adopt (rename the
   local store to the key — the natural upgrade for our own dev data) vs fresh-start (strict
   isolation)? Adopt-once for the migration, strict after, is the likely answer; confirm during
   the web session.
@@ -285,11 +285,11 @@ store instances eagerly and binds the React APIs to those concrete instances
 
 ## Spikes (verification gates)
 
-| # | Question | Method | Gates |
-|---|---|---|---|
-| S1 | Does a reconnecting client converge without our forced resync? (Resolves the DO hello puzzle, evidence 5.) | Local worker + client; mutate server-side while client disconnected; reconnect via RWS; observe. | Nothing — the wrapper's resync-on-reopen makes us correct either way. Informative only. |
-| S2 | OPFS `createWritable` inside packaged Tauri WebKit? | One-line probe + persister round-trip in `tauri dev` and a release build. | Area E persister choice. |
-| S3 | Two tabs auto-saving one OPFS file — clean? | Two tabs, rapid writes, inspect file + console. | Area E (expected pass). |
+| #   | Question                                                                                                   | Method                                                                                           | Gates                                                                                   |
+| --- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| S1  | Does a reconnecting client converge without our forced resync? (Resolves the DO hello puzzle, evidence 5.) | Local worker + client; mutate server-side while client disconnected; reconnect via RWS; observe. | Nothing — the wrapper's resync-on-reopen makes us correct either way. Informative only. |
+| S2  | OPFS `createWritable` inside packaged Tauri WebKit?                                                        | One-line probe + persister round-trip in `tauri dev` and a release build.                        | Area E persister choice.                                                                |
+| S3  | Two tabs auto-saving one OPFS file — clean?                                                                | Two tabs, rapid writes, inspect file + console.                                                  | Area E (expected pass).                                                                 |
 
 Housekeeping noticed en route: the workspace resolves four TinyBase versions (8.0.2 → 8.4.1 in
 the Bun store). Align on one before touching sync — client↔DO protocol skew is exactly where
@@ -313,3 +313,25 @@ Each is one R&D session; order respects dependencies but A/E/C are mutually inde
 
 Deferred beyond all sessions: deliberate store merge/import gesture, registry size reporting,
 admin auth token, CI deploys, localStorage cleanup UI.
+
+## Progress log
+
+### 2026-07-02 — OPFS library persister implemented
+
+**Status:** confirmed and implemented for the web client.
+
+- Replaced the web library store's `localStorage` persister with TinyBase's first-party
+  `createOpfsPersister` in `apps/web/src/store.ts`.
+- The OPFS file is currently the unkeyed local-only library file, `tetra-library.json`. Per-key
+  OPFS file naming remains part of the later runtime sync-key work in Areas C/D/F.
+- Startup still uses the deliberate one-way persistence lifecycle: `load()` once, then
+  `startAutoSave()`. We are not using `startAutoLoad()` or the OPFS `FileSystemObserver` path,
+  so tab convergence remains owned by the BroadcastChannel synchronizer.
+- Browser verification confirmed that creating library data writes to OPFS, survives reload, and
+  does not populate the old `localStorage["tetra:library"]` key.
+- Multi-tab verification confirmed that a write in one tab appears in another tab without reload
+  via BroadcastChannel, while the OPFS file is also updated.
+- Tauri verification confirmed the OPFS persister path works in the desktop WebView as well.
+- Added lightweight first-load observability for each browser persister. The library persister log
+  includes `storage: "opfs"`, `fileName`, and TinyBase load/save stats after the initial load
+  succeeds.

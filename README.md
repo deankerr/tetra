@@ -19,26 +19,26 @@ Consumers call runtime commands for user intentions and read from TinyBase for r
 
 Bun monorepo:
 
-| Workspace | Role |
-| --- | --- |
-| `apps/web` | TanStack Router + Vite SPA, with a Tauri desktop runtime |
-| `apps/cli` | Bun CLI frontend, tracking the web feature set |
-| `apps/worker` | Cloudflare Worker + Durable Object sync backend |
-| `packages/core` | UI-agnostic app logic: sessions, run/inference runtime, run configs, transcripts, prompts, tools |
-| `packages/schemas` | TinyBase store definitions, indexes, and row types |
-| `packages/tinydb` | Reusable typed TinyBase `db`: zod-derived collections, inferred queries, values, React hooks |
-| `packages/credentials` | Credential registry and local key storage |
-| `packages/tools-exa` | Exa search tool integration |
-| `packages/ui` | shadcn / AI Elements component library |
-| `packages/config` | Shared base tsconfig |
+| Workspace              | Role                                                                                             |
+| ---------------------- | ------------------------------------------------------------------------------------------------ |
+| `apps/web`             | TanStack Router + Vite SPA, with a Tauri desktop runtime                                         |
+| `apps/cli`             | Bun CLI frontend, tracking the web feature set                                                   |
+| `apps/worker`          | Cloudflare Worker + Durable Object sync backend                                                  |
+| `packages/core`        | UI-agnostic app logic: sessions, run/inference runtime, run configs, transcripts, prompts, tools |
+| `packages/schemas`     | TinyBase store definitions, indexes, and row types                                               |
+| `packages/tinydb`      | Reusable typed TinyBase `db`: zod-derived collections, inferred queries, values, React hooks     |
+| `packages/credentials` | Credential registry and local key storage                                                        |
+| `packages/tools-exa`   | Exa search tool integration                                                                      |
+| `packages/ui`          | shadcn / AI Elements component library                                                           |
+| `packages/config`      | Shared base tsconfig                                                                             |
 
 ### State and sync
 
-TinyBase is the local, durable, reactive state between frontend and runtime — reads are synchronous, with no network round-trip. The shared library store is *mergeable* (CRDT), so one shape serves three layers: local persistence (localStorage / IndexedDB), same-origin tab convergence over BroadcastChannel, and optional cross-device sync over the Worker WebSocket (Durable Object + SQLite storage). Provider secrets are local host state, never persisted domain data.
+TinyBase is the local, durable, reactive state between frontend and runtime — reads are synchronous, with no network round-trip. The shared library store is _mergeable_ (CRDT), so one shape serves three layers: local persistence (localStorage / IndexedDB), same-origin tab convergence over BroadcastChannel, and optional cross-device sync over the Worker WebSocket (Durable Object + SQLite storage). Provider secrets are local host state, never persisted domain data.
 
 ### Sessions as message trees
 
-A session is a durable tree of messages linked by parent, not a linear transcript. Threads (root-to-leaf paths), fork points, and continuations are *derived views* over that tree rather than stored entities — which makes branching, regeneration, and manual transcript editing first-class. See `CONTEXT.md` for the domain language.
+A session is a durable tree of messages linked by parent, not a linear transcript. Threads (root-to-leaf paths), fork points, and continuations are _derived views_ over that tree rather than stored entities — which makes branching, regeneration, and manual transcript editing first-class. See `CONTEXT.md` for the domain language.
 
 ## Inference
 

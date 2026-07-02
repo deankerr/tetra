@@ -6,7 +6,7 @@ import { defineSchema } from '@tetra/tinydb'
 import { createDbReactApi } from '@tetra/tinydb/react'
 import { createDb, createMergeableDb } from '@tetra/tinydb/runtime'
 import {
-  createLocalPersister,
+  createOpfsPersister,
   createSessionPersister,
 } from 'tinybase/persisters/persister-browser/with-schemas'
 import { createIndexedDbPersister } from 'tinybase/persisters/persister-indexed-db/with-schemas'
@@ -16,7 +16,7 @@ import { z } from 'zod'
 
 const CATALOG_DB_NAME = 'tetra:catalog'
 const LIBRARY_BROADCAST_CHANNEL = 'tetra:library'
-const LIBRARY_STORAGE_NAME = 'tetra:library'
+const LIBRARY_OPFS_FILE_NAME = 'tetra-library.json'
 const WEB_STORAGE_NAME = 'tetra:web'
 
 const webSchema = defineSchema({
@@ -48,6 +48,9 @@ const stores = {
 export type WebStores = typeof stores
 export type WebStoreRuntime = Awaited<ReturnType<typeof createWebStoreRuntime>>
 type LibraryRawStore = WebStores['library']['raw']['store']
+interface StorePersister {
+  getStats(): { loads: number; saves: number }
+}
 
 // Browser-only resources live for the whole page, so the runtime is a lazily-created singleton:
 // one set of persisters, sockets, and channels shared across every mount (and StrictMode/HMR).
@@ -64,7 +67,8 @@ async function createWebStoreRuntime() {
   const libraryStore = stores.library.raw.store
   const webStore = stores.web.raw.store
 
-  // Browser-local stores persist independently: catalog in IndexedDB, UI state in sessionStorage.
+  // Browser-local stores persist independently: catalog in IndexedDB, library in OPFS, UI state in sessionStorage.
+  const libraryHandle = await getLibraryOpfsHandle()
   const catalogPersister = createIndexedDbPersister(
     catalogStore,
     CATALOG_DB_NAME,
@@ -76,14 +80,26 @@ async function createWebStoreRuntime() {
     WEB_STORAGE_NAME,
     reportIgnoredPersistenceError('web'),
   )
-  const libraryPersister = createLocalPersister(
+  const libraryPersister = createOpfsPersister(
     libraryStore,
-    LIBRARY_STORAGE_NAME,
+    libraryHandle,
     reportIgnoredPersistenceError('library'),
   )
   await catalogPersister.load(() => catalogStore.getContent())
+  logPersisterLoaded('catalog', catalogPersister, {
+    dbName: CATALOG_DB_NAME,
+    storage: 'indexedDB',
+  })
   await webPersister.load(() => webStore.getContent())
+  logPersisterLoaded('web', webPersister, {
+    storage: 'sessionStorage',
+    storageName: WEB_STORAGE_NAME,
+  })
   await libraryPersister.load(() => libraryStore.getContent())
+  logPersisterLoaded('library', libraryPersister, {
+    fileName: libraryHandle.name,
+    storage: 'opfs',
+  })
   await catalogPersister.startAutoSave()
   await webPersister.startAutoSave()
   await libraryPersister.startAutoSave()
@@ -171,10 +187,31 @@ function getEnv(name: string): string | undefined {
   return value === '' ? undefined : value
 }
 
+async function getLibraryOpfsHandle(): Promise<FileSystemFileHandle> {
+  if (navigator.storage.getDirectory === undefined) {
+    throw new Error('OPFS is not available: navigator.storage.getDirectory is missing')
+  }
+
+  // TinyBase's OPFS persister works with an existing file handle and owns whole-file JSON writes.
+  const opfsDirectory = await navigator.storage.getDirectory()
+  return await opfsDirectory.getFileHandle(LIBRARY_OPFS_FILE_NAME, { create: true })
+}
+
 function reportIgnoredPersistenceError(label: string) {
   return (error: unknown) => {
-    console.error(`[stores:web:${label}] persistence error`, error)
+    console.error(`[stores:${label}] persistence error`, error)
   }
+}
+
+function logPersisterLoaded(
+  label: string,
+  persister: StorePersister,
+  details: Record<string, string>,
+): void {
+  console.log(`[stores:${label}] persister loaded`, {
+    ...details,
+    stats: persister.getStats(),
+  })
 }
 
 // Reactive read APIs bound to the eager store instances (no Provider/context).
