@@ -11,8 +11,9 @@ import {
 } from 'tinybase/persisters/persister-browser/with-schemas'
 import { createIndexedDbPersister } from 'tinybase/persisters/persister-indexed-db/with-schemas'
 import { createBroadcastChannelSynchronizer } from 'tinybase/synchronizers/synchronizer-broadcast-channel/with-schemas'
-import { createWsSynchronizer } from 'tinybase/synchronizers/synchronizer-ws-client/with-schemas'
 import { z } from 'zod'
+
+import { createWebSyncRuntime } from '@/sync'
 
 const CATALOG_DB_NAME = 'tetra:catalog'
 const LIBRARY_BROADCAST_CHANNEL = 'tetra:library'
@@ -33,6 +34,7 @@ const webSchema = defineSchema({
         title: z.string(),
       })
       .default({ json: '', title: '' }),
+    syncSettingsOpen: z.boolean().default(false),
   },
 })
 
@@ -107,7 +109,7 @@ async function createWebStoreRuntime() {
   // Live library sync: BroadcastChannel converges same-origin tabs, the optional Worker socket
   // fans out to other devices. Each owns its own swallowed-error logging.
   await startLibraryTabSync(libraryStore)
-  await startLibraryRemoteSync(libraryStore)
+  const sync = createWebSyncRuntime(libraryStore)
 
   const core = createCoreModules({
     credentials: credentialStore,
@@ -117,7 +119,7 @@ async function createWebStoreRuntime() {
     },
   })
 
-  return { core, stores }
+  return { core, stores, sync }
 }
 
 // Same-origin tab convergence over BroadcastChannel. A lone tab has no peer to answer TinyBase's
@@ -141,50 +143,6 @@ async function startLibraryTabSync(libraryStore: LibraryRawStore): Promise<void>
     },
   )
   await synchronizer.startSync()
-}
-
-// Remote sync is opt-in: it needs the VITE_SYNC_ENABLED switch on and a Worker URL configured.
-async function startLibraryRemoteSync(libraryStore: LibraryRawStore): Promise<void> {
-  if (getEnv('VITE_SYNC_ENABLED') !== 'true') {
-    return
-  }
-  const workerUrl = getEnv('VITE_SYNC_WORKER_URL')
-  if (workerUrl === undefined) {
-    return
-  }
-
-  // Convert the Worker origin into the Durable Object websocket endpoint.
-  const url = new URL('/sync', workerUrl)
-  if (url.protocol === 'http:') {
-    url.protocol = 'ws:'
-  }
-  if (url.protocol === 'https:') {
-    url.protocol = 'wss:'
-  }
-
-  console.log('sync enabled', url.toString())
-  const synchronizer = await createWsSynchronizer(
-    libraryStore,
-    new WebSocket(url.toString()),
-    undefined,
-    undefined,
-    undefined,
-    (error: unknown) => {
-      console.error('[stores:web] remote library sync error', error)
-    },
-  )
-  await synchronizer.startSync()
-}
-
-function getEnv(name: string): string | undefined {
-  const rawValue: unknown = import.meta.env[name]
-  if (typeof rawValue !== 'string') {
-    return undefined
-  }
-
-  // Environment values become usable only after they are known strings.
-  const value = rawValue.trim()
-  return value === '' ? undefined : value
 }
 
 async function getLibraryOpfsHandle(): Promise<FileSystemFileHandle> {

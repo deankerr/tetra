@@ -5,6 +5,7 @@ import { ApiKeySettingsButton } from '@/api-key-settings'
 import { TetraLogo } from '@/components/tetra-logo'
 import { ThemeSwitcher } from '@/sidebar/footer/theme-switcher'
 import { SessionGroup } from '@/sidebar/session-group'
+import { SyncSettingsButton } from '@/sync-settings'
 
 export function AppSidebar() {
   return (
@@ -28,6 +29,7 @@ export function AppSidebar() {
       <SidebarFooter>
         <div className="flex items-center justify-center gap-1">
           <ApiKeySettingsButton />
+          <SyncSettingsButton />
           <ThemeSwitcher />
         </div>
       </SidebarFooter>

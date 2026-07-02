@@ -1,8 +1,8 @@
 # Sync platform: keyed instances, runtime config, and the persistence exit
 
-**Status:** problem-space map with settled directions and marked open questions. Nothing
-implemented. Each area is sized to be an individual R&D session; see the session breakdown at the
-end.
+**Status:** problem-space map with settled directions, marked open questions, and progress notes for
+implemented slices. Each area is sized to be an individual R&D session; see the session breakdown at
+the end.
 **Scope:** the worker (multi-instance sync), the client sync lifecycle, config layering across
 web/CLI/Tauri, store identity and mixing, the browser persistence exit from localStorage, and
 deployment.
@@ -291,10 +291,6 @@ store instances eagerly and binds the React APIs to those concrete instances
 | S2  | OPFS `createWritable` inside packaged Tauri WebKit?                                                        | One-line probe + persister round-trip in `tauri dev` and a release build.                        | Area E persister choice.                                                                |
 | S3  | Two tabs auto-saving one OPFS file — clean?                                                                | Two tabs, rapid writes, inspect file + console.                                                  | Area E (expected pass).                                                                 |
 
-Housekeeping noticed en route: the workspace resolves four TinyBase versions (8.0.2 → 8.4.1 in
-the Bun store). Align on one before touching sync — client↔DO protocol skew is exactly where
-this would bite.
-
 ## Session breakdown
 
 Each is one R&D session; order respects dependencies but A/E/C are mutually independent starts.
@@ -308,13 +304,35 @@ Each is one R&D session; order respects dependencies but A/E/C are mutually inde
 4. **Web runtime config + per-key stores** (Areas C, D, E, F): credential-style config store,
    env seeding, OPFS per-key persistence, instanceId stamp, reload-on-switch, sync status +
    key UI.
-5. **TinyBase version alignment** (chore): fold into whichever session touches `package.json`
-   first.
 
 Deferred beyond all sessions: deliberate store merge/import gesture, registry size reporting,
 admin auth token, CI deploys, localStorage cleanup UI.
 
 ## Progress log
+
+### 2026-07-02 — Web opt-in remote sync runtime prototype
+
+**Status:** implemented for the web client while still under the single remote sync instance.
+
+- Added `apps/web/src/sync.ts` as the home for web remote-sync behavior, keeping `store.ts`
+  focused on store creation, persistence, and same-origin tab sync.
+- Remote sync is now user-controlled at runtime instead of silently starting from build-time env.
+  The first-run/default posture is off; local library data stays on the device until the user
+  explicitly enables remote sync in the app.
+- Added a small browser settings handle backed by `localStorage`. It currently stores the sync
+  enabled flag, with `VITE_SYNC_WORKER_URL` still supplying the worker URL and
+  `VITE_SYNC_ENABLED=false` still acting as a hard-disable build switch.
+- Added React-visible sync state via `useSyncExternalStore`, surfaced through the sidebar sync
+  button and sync settings dialog in `apps/web/src/sync-settings.tsx`.
+- The remote lifecycle uses `reconnecting-websocket` with TinyBase's `createWsSynchronizer`.
+  Because TinyBase documents compatibility but types only native/ws WebSockets, the cast is kept
+  at one named boundary. Reconnect `open` events force an explicit `load()` then `save()` resync.
+- The code is deliberately structured around the live instances we need to reason about:
+  browser settings, one web sync runtime controller, and one remote connection. The exported state
+  remains plain data, and UI-only status wording stays in the React component layer.
+- No keyed instances, per-key persistence identity, worker routing, CLI parity, or shared
+  `@tetra/sync` package were introduced in this slice. Those remain the planned Areas A/B/C/D/G
+  work; this prototype gives us the web status/consent surface to refine before extraction.
 
 ### 2026-07-02 — OPFS library persister implemented
 

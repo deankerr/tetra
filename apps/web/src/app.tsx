@@ -4,6 +4,7 @@ import { getWebStoreRuntime } from '@/store'
 import type { WebStores, WebStoreRuntime } from '@/store'
 
 export type AppContextValue = WebStoreRuntime['core'] & {
+  sync: WebStoreRuntime['sync']
   stores: WebStores
 }
 
@@ -17,8 +18,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Reactive reads bind to module-level store instances, so no TinyBase Provider is needed;
   // this context only hands components the imperative core commands and store handles.
-  const { core, stores } = runtime
-  return <AppContext value={{ ...core, stores }}>{children}</AppContext>
+  const { core, stores, sync } = runtime
+  return <AppContext value={{ ...core, stores, sync }}>{children}</AppContext>
 }
 
 function useWebStoreRuntime(): WebStoreRuntime | null {

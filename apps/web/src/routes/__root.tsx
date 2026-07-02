@@ -12,6 +12,7 @@ import { JsonViewSheet } from '@/components/json-view-sheet'
 import { RootErrorComponent } from '@/components/root-error'
 import { RootNotFoundComponent } from '@/components/root-not-found'
 import { AppSidebar } from '@/sidebar/app-sidebar'
+import { SyncSettingsDialog } from '@/sync-settings'
 
 import '../styles.css'
 
@@ -38,6 +39,7 @@ function RootAppLayout() {
             </SidebarInset>
           </SidebarProvider>
           <ApiKeySettingsDialog />
+          <SyncSettingsDialog />
           <JsonViewSheet />
           <Toaster richColors />
         </AppProvider>
