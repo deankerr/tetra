@@ -23,6 +23,13 @@ const PREFS_STORAGE_NAME = 'tetra:prefs'
 
 export type WebRuntime = Awaited<ReturnType<typeof createWebRuntime>>
 
+// The DEV-only console/agent handle: imperative core commands plus the live TinyBase stores.
+type TetraDevHandle = ReturnType<typeof createCoreModules> & { stores: WebStores }
+declare global {
+  // oxlint-disable-next-line no-var -- global augmentation requires `var`.
+  var __tetra: TetraDevHandle | undefined
+}
+
 // Browser-only resources live for the whole page, so the runtime is a lazily-created singleton:
 // one set of persisters, sockets, and channels shared across every mount (and StrictMode/HMR).
 let webRuntime: Promise<WebRuntime> | undefined
@@ -87,6 +94,12 @@ async function createWebRuntime() {
   // The model catalog is a rebuildable cache: refresh stale/empty data in the background, but
   // never block the app shell or overwrite a fresh cache on startup.
   void refreshModelCatalog(core.modelCatalog)
+
+  // Dev-only: expose the imperative core commands and live stores on window so the tab can be
+  // driven and inspected from the console (or an agent's browser eval). Never ships: DEV-guarded.
+  if (import.meta.env.DEV) {
+    globalThis.__tetra = { ...core, stores }
+  }
 
   console.log('[stores:runtime] runtime ready')
   return { core, stores, sync, wipeAllData }

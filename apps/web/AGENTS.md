@@ -21,3 +21,7 @@
 ### Custom Theme Tokens
 
 - `text-xxs`: 10px text with an explicit 12px line-height.
+
+### Dev runtime global
+
+- In `DEV` only, the runtime is exposed on `window.__tetra` (`{ ...core, stores }`) — use it to query, mutate, and drive the live tab from the console or a browser eval. See `src/stores/runtime.ts`.

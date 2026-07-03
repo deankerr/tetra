@@ -9,6 +9,11 @@ import type { UserConfig } from 'vite'
 // `dev:tauri`/`build:tauri` scripts that Tauri's before-commands run) selects the desktop slice; every
 // other invocation — `vite dev`, `vite build`, `vite preview`, Vercel — gets the shared base untouched.
 
+// The preview launcher sets PORT when autoPort picks a free port; honor it so parallel agent dev
+// servers don't collide. Empty/unset falls back to Vite's normal floating default.
+const portEnv = process.env.PORT
+const assignedPort = portEnv !== undefined && portEnv !== '' ? Number(portEnv) : undefined
+
 // Shared by web and desktop.
 const shared: UserConfig = {
   build: { chunkSizeWarningLimit: 2000 },
@@ -21,8 +26,14 @@ const shared: UserConfig = {
     viteReact(),
   ],
   resolve: { tsconfigPaths: true },
-  // src-tauri is the Rust shell; nothing the web reload cares about lives there.
-  server: { watch: { ignored: ['**/src-tauri/**'] } },
+  server: {
+    // Bind exactly the harness-assigned port when present; strictPort fails loudly instead of
+    // floating away, which is what left the preview proxy pointing at nothing. Spread rather than
+    // assign undefined so exactOptionalPropertyTypes stays happy.
+    ...(assignedPort !== undefined && { port: assignedPort, strictPort: true }),
+    // src-tauri is the Rust shell; nothing the web reload cares about lives there.
+    watch: { ignored: ['**/src-tauri/**'] },
+  },
 }
 
 // Desktop (Tauri) overrides, merged onto `shared` only under `--mode desktop`.

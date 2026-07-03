@@ -77,6 +77,10 @@ notarization.
   Regenerate by rasterizing a ≥1024px square PNG and feeding it to the Tauri CLI:
   `magick -background none public/favicon.svg -resize 1024x1024 /tmp/icon.png && bun run tauri icon /tmp/icon.png`
   (the generated `android/`+`ios/` dirs are removed — desktop-only target).
+- **Dev runtime global** (`src/stores/runtime.ts`) — in `DEV` builds only, the composed runtime is
+  exposed as `window.__tetra` (`{ ...core, stores }`), so the live tab can be queried and driven from
+  the console or an agent's browser eval, e.g. `__tetra.transcripts.createSession(...)` or
+  `__tetra.stores.library.sessions.all()`. Guarded by `import.meta.env.DEV`, so it never ships.
 - **Dev inspection bridge** (`src-tauri/src/dev_bridge.rs`) — a vendored copy of the
   [`tauri-agent-tools`](https://github.com/cesarandreslopez/tauri-agent-tools) Rust bridge, wired into
   `lib.rs` behind `cfg!(debug_assertions)` so it's stripped from release builds. Under `tauri dev` it
