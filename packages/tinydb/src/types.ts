@@ -38,18 +38,18 @@ export type NewOf<Table extends RowZod> = z.input<Table>
 // Loose runtime contracts for the raw TinyBase Store/Indexes. zod owns the precise
 // boundary parse; these only describe the coarse calls the accessors make.
 export interface StoreApi {
-  delRow(tableId: string, rowId: string): unknown
-  delValue(valueId: string): unknown
-  getRow(tableId: string, rowId: string): unknown
-  getRowIds(tableId: string): string[]
-  getValue(valueId: string): unknown
-  hasRow(tableId: string, rowId: string): boolean
-  setCell(tableId: string, rowId: string, cellId: string, cell: never): unknown
-  setRow(tableId: string, rowId: string, row: never): unknown
-  setValue(valueId: string, value: never): unknown
-  transaction(fn: () => void): unknown
+  delRow: (tableId: string, rowId: string) => unknown
+  delValue: (valueId: string) => unknown
+  getRow: (tableId: string, rowId: string) => unknown
+  getRowIds: (tableId: string) => string[]
+  getValue: (valueId: string) => unknown
+  hasRow: (tableId: string, rowId: string) => boolean
+  setCell: (tableId: string, rowId: string, cellId: string, cell: never) => unknown
+  setRow: (tableId: string, rowId: string, row: never) => unknown
+  setValue: (valueId: string, value: never) => unknown
+  transaction: (fn: () => void) => unknown
 }
 
 export interface IndexesApi {
-  getSliceRowIds(indexId: string, sliceId: string): string[]
+  getSliceRowIds: (indexId: string, sliceId: string) => string[]
 }

@@ -14,7 +14,7 @@ export interface ToolDefinition {
 }
 
 interface ToolCredentials {
-  require(id: CredentialId): string
+  require: (id: CredentialId) => string
 }
 
 const exaToolDefinitions = exaToolDescriptors.map((descriptor): [string, ToolDefinition] => [

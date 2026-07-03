@@ -53,6 +53,7 @@ async function createWebRuntime() {
     ),
   ]
   for (const entry of persistence) {
+    // oxlint-disable-next-line no-await-in-loop -- Store boot is intentionally ordered so each persister fully loads before the next store starts listening/saving.
     await entry.start()
   }
 
@@ -79,6 +80,7 @@ async function createWebRuntime() {
     await sync.shutdown()
     await tabSync.destroy()
     for (const entry of persistence) {
+      // oxlint-disable-next-line no-await-in-loop -- Wipe shutdown preserves the same storage order as startup and stops on the first halt failure.
       await entry.halt()
     }
   })

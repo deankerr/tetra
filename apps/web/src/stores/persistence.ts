@@ -12,13 +12,13 @@ import type { OptionalSchemas } from 'tinybase/store/with-schemas'
 // handles, database names, cross-tab reloads) stay visible instead of behind a generic wrapper.
 export interface StorePersistence {
   readonly label: string
-  start(): Promise<void>
-  halt(): Promise<void>
+  halt: () => Promise<void>
+  start: () => Promise<void>
 }
 
 // halt() only needs to stop the machinery; the concrete persister types stay inside start().
 interface RunningPersister {
-  destroy(): Promise<unknown>
+  destroy: () => Promise<unknown>
 }
 
 export class OpfsFilePersistence<Schemas extends OptionalSchemas> implements StorePersistence {
@@ -197,7 +197,7 @@ function reportPersistenceError(label: string) {
 
 function logPersisterLoaded(
   label: string,
-  persister: { getStats(): { loads: number; saves: number } },
+  persister: { getStats: () => { loads: number; saves: number } },
   details: Record<string, string>,
 ): void {
   console.log(`[stores:${label}] persister loaded`, {

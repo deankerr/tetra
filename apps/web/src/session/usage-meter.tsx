@@ -98,14 +98,7 @@ function UsageIcon({ percentUsed }: { percentUsed: number | null }) {
   const dashOffset = circumference * (1 - Math.min(1, Math.max(0, percentUsed ?? 0)))
 
   return (
-    <svg
-      aria-label="Model context usage"
-      height="20"
-      role="img"
-      style={{ color: 'currentcolor' }}
-      viewBox="0 0 24 24"
-      width="20"
-    >
+    <svg aria-hidden height="20" style={{ color: 'currentcolor' }} viewBox="0 0 24 24" width="20">
       <circle
         cx="12"
         cy="12"

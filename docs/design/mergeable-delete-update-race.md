@@ -130,7 +130,7 @@ read funnels through the same strict parse:
 ```ts
 // packages/tinydb/src/collection.ts
 export function parseEntity(schema, rowId, row) {
-  return { ...schema.parse(row), id: rowId }   // throws: createdAt/title/updatedAt missing
+  return { ...schema.parse(row), id: rowId } // throws: createdAt/title/updatedAt missing
 }
 ```
 
@@ -190,7 +190,12 @@ const A = createMergeableStore('A')
 const B = createMergeableStore('B')
 
 // A full row, converged to both peers.
-A.setRow('sessions', 's1', { config: '{"modelId":"m"}', createdAt: 1, title: 'Hello', updatedAt: 1 })
+A.setRow('sessions', 's1', {
+  config: '{"modelId":"m"}',
+  createdAt: 1,
+  title: 'Hello',
+  updatedAt: 1,
+})
 A.merge(B)
 
 // The race: A deletes the whole row; B (hasn't seen the delete) edits only config.
@@ -273,14 +278,14 @@ directions on merge granularity and deserve their own decision.
 
 ## Related code
 
-| Concern | Location |
-| --- | --- |
-| Mergeable library store | [`apps/web/src/stores/index.ts:90`](../../apps/web/src/stores/index.ts) |
-| `delete` (delRow) / `update` (setCell) / `parseEntity` | [`packages/tinydb/src/collection.ts`](../../packages/tinydb/src/collection.ts) |
-| `useAll` / index hooks (crash sites) | [`packages/tinydb/src/react.ts:94`](../../packages/tinydb/src/react.ts) |
-| Sidebar `useSessionIds` | [`apps/web/src/sidebar/session-group.tsx:29`](../../apps/web/src/sidebar/session-group.tsx) |
-| Config-only writers | [`run-configs.ts:30`](../../packages/core/src/run-configs.ts), [`run-config-providers.tsx:34`](../../apps/web/src/session/run-config-providers.tsx) |
-| Session delete cascade (delRow) | [`transcripts.ts:45`](../../packages/core/src/transcripts/transcripts.ts) |
-| Streaming per-cell writers | [`run.ts:257`](../../packages/core/src/runtime/run.ts), [`runs.ts:189`](../../packages/core/src/runtime/runs.ts) |
-| Stateless sync relay | [`apps/worker/src/index.ts`](../../apps/worker/src/index.ts) |
-| Library OPFS persistence | [`apps/web/src/stores/runtime.ts:46`](../../apps/web/src/stores/runtime.ts) |
+| Concern                                                | Location                                                                                                                                            |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mergeable library store                                | [`apps/web/src/stores/index.ts:90`](../../apps/web/src/stores/index.ts)                                                                             |
+| `delete` (delRow) / `update` (setCell) / `parseEntity` | [`packages/tinydb/src/collection.ts`](../../packages/tinydb/src/collection.ts)                                                                      |
+| `useAll` / index hooks (crash sites)                   | [`packages/tinydb/src/react.ts:94`](../../packages/tinydb/src/react.ts)                                                                             |
+| Sidebar `useSessionIds`                                | [`apps/web/src/sidebar/session-group.tsx:29`](../../apps/web/src/sidebar/session-group.tsx)                                                         |
+| Config-only writers                                    | [`run-configs.ts:30`](../../packages/core/src/run-configs.ts), [`run-config-providers.tsx:34`](../../apps/web/src/session/run-config-providers.tsx) |
+| Session delete cascade (delRow)                        | [`transcripts.ts:45`](../../packages/core/src/transcripts/transcripts.ts)                                                                           |
+| Streaming per-cell writers                             | [`run.ts:257`](../../packages/core/src/runtime/run.ts), [`runs.ts:189`](../../packages/core/src/runtime/runs.ts)                                    |
+| Stateless sync relay                                   | [`apps/worker/src/index.ts`](../../apps/worker/src/index.ts)                                                                                        |
+| Library OPFS persistence                               | [`apps/web/src/stores/runtime.ts:46`](../../apps/web/src/stores/runtime.ts)                                                                         |

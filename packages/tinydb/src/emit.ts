@@ -56,10 +56,10 @@ export function toTinybaseValuesSchema(values: ValueDefinitions): ValuesSchema {
 
 interface StandardJsonSchemaProps {
   jsonSchema: {
-    input(options: {
+    input: (options: {
       libraryOptions: { unrepresentable: 'any' }
       target: 'draft-2020-12'
-    }): Record<string, unknown>
+    }) => Record<string, unknown>
   }
 }
 

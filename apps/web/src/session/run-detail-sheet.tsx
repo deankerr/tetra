@@ -186,11 +186,11 @@ function RunSteps({ steps }: { steps: Step[] }) {
 
   return (
     <DetailSection title={`Steps (${steps.length})`}>
-      <div className="flex flex-col gap-2" role="list">
+      <ul className="flex list-none flex-col gap-2 p-0">
         {steps.map((step) => (
           <StepDetail key={step.id} step={step} />
         ))}
-      </div>
+      </ul>
     </DetailSection>
   )
 }
@@ -198,7 +198,7 @@ function RunSteps({ steps }: { steps: Step[] }) {
 // Each step keeps normalized accounting, warnings, and raw provider fields together.
 function StepDetail({ step }: { step: Step }) {
   return (
-    <div className="flex flex-col gap-3 rounded-md border p-3" role="listitem">
+    <li className="flex flex-col gap-3 rounded-md border p-3">
       <div className="flex min-w-0 items-center gap-2">
         <Badge className="rounded-xs font-mono" variant="secondary">
           step {step.stepNumber}
@@ -228,7 +228,7 @@ function StepDetail({ step }: { step: Step }) {
       {step.warnings.length > 0 && <JsonBlock title="Warnings JSON" value={step.warnings} />}
 
       {hasJsonDetail(step.raw) && <JsonBlock title="Raw provider JSON" value={step.raw} />}
-    </div>
+    </li>
   )
 }
 

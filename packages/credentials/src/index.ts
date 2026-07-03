@@ -29,9 +29,9 @@ export function getCredentialDefinition(id: CredentialId): CredentialDefinition 
 // What consumers (core, tools) need at execution time: reads only. Each surface owns its
 // storage — the web app a TinyBase store, the CLI process env — and wraps it in a reader.
 export interface CredentialReader {
-  get(id: CredentialId): string | undefined
-  has(id: CredentialId): boolean
-  require(id: CredentialId): string
+  get: (id: CredentialId) => string | undefined
+  has: (id: CredentialId) => boolean
+  require: (id: CredentialId) => string
 }
 
 // Wrap a raw lookup into a reader: trims values, treats blank as missing, and gives

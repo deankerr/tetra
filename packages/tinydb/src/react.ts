@@ -19,18 +19,18 @@ type Reactify<Methods> = {
 // The one two-way hook per collection: read a field reactively, write it imperatively.
 // Invariant-carrying writes still go through core commands, not this.
 interface FieldStateHook<Table extends RowZod> {
-  useFieldState<Field extends keyof NewOf<Table> & string>(
+  useFieldState: <Field extends keyof NewOf<Table> & string>(
     id: string,
     field: Field,
-  ): [z.output<Table>[Field] | undefined, (value: NewOf<Table>[Field]) => void]
+  ) => [z.output<Table>[Field] | undefined, (value: NewOf<Table>[Field]) => void]
 }
 
 type ReactCollection<Table extends RowZod, TableIndexes> = FieldStateHook<Table> &
   Reactify<CollectionReads<EntityOf<Table>> & QueriesForTable<Table, TableIndexes>>
 
 interface ReactValue<Schema extends AnyZod> {
-  use(): z.output<Schema>
-  useState(): [z.output<Schema>, (value: z.input<Schema>) => void]
+  use: () => z.output<Schema>
+  useState: () => [z.output<Schema>, (value: z.input<Schema>) => void]
 }
 
 export type ReactDbFor<Schema extends AnyStoreSchema> =
@@ -46,14 +46,14 @@ export type ReactDbFor<Schema extends AnyStoreSchema> =
 // precise shapes are re-asserted by ReactDbFor at the boundary. Stores/indexes are passed as
 // instances (the trailing arg), so there is no Provider or string-id context.
 interface LooseHooks {
-  useCellState(t: string, r: string, c: string, store: unknown): [unknown, (v: unknown) => void]
-  useHasRow(t: string, r: string, store: unknown): boolean
-  useRow(t: string, r: string, store: unknown): Record<string, unknown>
-  useRowIds(t: string, store: unknown): string[]
-  useSliceRowIds(i: string, s: string, indexes: unknown): string[]
-  useTable(t: string, store: unknown): Record<string, Record<string, unknown>>
-  useValue(v: string, store: unknown): unknown
-  useValueState(v: string, store: unknown): [unknown, (v: unknown) => void]
+  useCellState: (t: string, r: string, c: string, store: unknown) => [unknown, (v: unknown) => void]
+  useHasRow: (t: string, r: string, store: unknown) => boolean
+  useRow: (t: string, r: string, store: unknown) => Record<string, unknown>
+  useRowIds: (t: string, store: unknown) => string[]
+  useSliceRowIds: (i: string, s: string, indexes: unknown) => string[]
+  useTable: (t: string, store: unknown) => Record<string, Record<string, unknown>>
+  useValue: (v: string, store: unknown) => unknown
+  useValueState: (v: string, store: unknown) => [unknown, (v: unknown) => void]
 }
 
 // oxlint-disable no-unsafe-argument, no-unsafe-type-assertion -- zod owns the boundary parse; TinyBase hooks hand back coarse cells.

@@ -116,6 +116,7 @@ async function eraseIndexedDbDatabases(): Promise<WipeFailure[]> {
     }
 
     try {
+      // oxlint-disable-next-line no-await-in-loop -- IndexedDB deletion is intentionally best-effort per database so one failure is recorded before the next delete starts.
       await deleteIndexedDbDatabase(name)
     } catch (error: unknown) {
       failures.push({ message: toMessage(error), step: `erase database: ${name}` })

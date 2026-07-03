@@ -5,18 +5,18 @@ import type { EntityOf, NewOf, RowZod, StoreApi } from './types.ts'
 // which methods carry invariants.
 // Exported because the React module derives its read surface from this half.
 export interface CollectionReads<Entity> {
-  all(): Entity[]
-  get(id: string): Entity | null
-  has(id: string): boolean
-  ids(): string[]
-  require(id: string): Entity
+  all: () => Entity[]
+  get: (id: string) => Entity | null
+  has: (id: string) => boolean
+  ids: () => string[]
+  require: (id: string) => Entity
 }
 
 interface CollectionWrites<New> {
-  create(id: string, data: New): void
-  delete(id: string): void
-  set(id: string, data: New): void
-  update(id: string, patch: Partial<New>): void
+  create: (id: string, data: New) => void
+  delete: (id: string) => void
+  set: (id: string, data: New) => void
+  update: (id: string, patch: Partial<New>) => void
 }
 
 export type Collection<Entity, New> = CollectionReads<Entity> & CollectionWrites<New>

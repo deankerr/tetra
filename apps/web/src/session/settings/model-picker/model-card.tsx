@@ -72,14 +72,8 @@ function ModelModalities({ model }: { model: CatalogEntities['languageModels'] }
         const label = `${modality} ${direction}`
 
         return (
-          <span
-            aria-label={label}
-            className="inline-flex"
-            key={`${direction}:${modality}`}
-            role="img"
-            title={label}
-          >
-            <Icon aria-hidden className="size-3.5 shrink-0" />
+          <span aria-hidden className="inline-flex" key={`${direction}:${modality}`} title={label}>
+            <Icon className="size-3.5 shrink-0" />
           </span>
         )
       })}

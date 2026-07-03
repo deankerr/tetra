@@ -13,9 +13,9 @@ const TINYBASE_STATUS_LOADING = 1
 const TINYBASE_STATUS_SAVING = 2
 
 export interface SocketHandlers {
-  onClose(): void
-  onError(event: ReconnectingWebSocketErrorEvent): void
-  onOpen(): void
+  onClose: () => void
+  onError: (event: ReconnectingWebSocketErrorEvent) => void
+  onOpen: () => void
 }
 
 // A connection owns one reconnecting socket and, once started, one TinyBase synchronizer.
@@ -59,10 +59,10 @@ export class SyncConnection<Schemas extends OptionalSchemas> {
 
     for (const [event, listener] of entries) {
       // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- RWS's per-event listener map defeats a readonly tuple; the pairs above are correct.
-      this.socket.addEventListener(event, listener as never)
+      this.socket.addEventListener(event, listener)
       this.removeSocketListeners.push(() => {
         // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Same pairing as the add above.
-        this.socket.removeEventListener(event, listener as never)
+        this.socket.removeEventListener(event, listener)
       })
     }
   }

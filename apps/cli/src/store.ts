@@ -1,6 +1,6 @@
 import { Database } from 'bun:sqlite'
 import { mkdirSync } from 'node:fs'
-import { dirname } from 'node:path'
+import path from 'node:path'
 
 import { catalogSchema } from '@tetra/schemas/catalog'
 import { librarySchema } from '@tetra/schemas/library'
@@ -40,7 +40,7 @@ export async function createCliStoreRuntime() {
   const libraryStore = stores.library.raw.store
 
   // The CLI keeps all local stores in one SQLite database, with one JSON table per store.
-  mkdirSync(dirname(DATABASE_PATH), { recursive: true })
+  mkdirSync(path.dirname(DATABASE_PATH), { recursive: true })
   const db = new Database(DATABASE_PATH)
   const catalogPersister = createSqliteBunPersister(
     catalogStore,

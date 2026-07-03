@@ -15,7 +15,7 @@ export function SessionPanelErrorBoundary({
 }) {
   return (
     <ErrorBoundary
-      fallbackRender={(props) => <SessionPanelErrorFallback {...props} />}
+      fallbackRender={SessionPanelErrorFallback}
       onError={(error) => {
         console.error('Session view crashed', { error, sessionId })
       }}

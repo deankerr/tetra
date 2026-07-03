@@ -75,5 +75,5 @@ export function summarizeSteps(steps: StepRecord[]): UsageTotals {
 function compactUsageTotals(summary: UsageTotals): UsageTotals {
   return Object.fromEntries(
     Object.entries(summary).filter(([, value]) => value !== undefined && value !== 0),
-  ) as UsageTotals
+  )
 }

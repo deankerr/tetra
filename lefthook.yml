@@ -1,12 +1,26 @@
 pre-commit:
   jobs:
-    - run: bun x ultracite fix
+    - run: bun run fix
       glob:
+        - '**/*.cjs'
+        - '**/*.cts'
         - '**/*.js'
         - '**/*.jsx'
-        - '**/*.ts'
-        - '**/*.tsx'
+        - '**/*.css'
+        - '**/*.graphql'
+        - '**/*.html'
         - '**/*.json'
         - '**/*.jsonc'
-        - '**/*.css'
+        - '**/*.json5'
+        - '**/*.less'
+        - '**/*.md'
+        - '**/*.mdx'
+        - '**/*.mjs'
+        - '**/*.mts'
+        - '**/*.sass'
+        - '**/*.scss'
+        - '**/*.ts'
+        - '**/*.tsx'
+        - '**/*.yaml'
+        - '**/*.yml'
       stage_fixed: true

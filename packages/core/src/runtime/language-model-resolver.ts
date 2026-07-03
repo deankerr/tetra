@@ -4,7 +4,7 @@ import type { RunConfig } from '@tetra/schemas/library'
 import type { LanguageModel } from 'ai'
 
 export interface LanguageModelResolver {
-  resolve(args: { config: RunConfig; credentials: CredentialReader }): LanguageModel
+  resolve: (args: { config: RunConfig; credentials: CredentialReader }) => LanguageModel
 }
 
 export const openRouterLanguageModelResolver: LanguageModelResolver = {

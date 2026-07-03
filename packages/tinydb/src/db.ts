@@ -37,7 +37,7 @@ type DbShape<
   [TableId in keyof Tables]: Collection<EntityOf<Tables[TableId]>, NewOf<Tables[TableId]>> &
     QueriesForTable<Tables[TableId], Indexes[TableId]>
 } & {
-  batch(fn: () => void): void
+  batch: (fn: () => void) => void
   raw: { indexes: RawIndexes<TinybaseStoreSchemasOf<Tables, Values>>; store: StoreKind }
   values: {
     [ValueId in keyof Values]: Value<z.output<Values[ValueId]>, z.input<Values[ValueId]>>
@@ -119,18 +119,18 @@ function assembleDb(schema: AnyStoreSchema, baseStore: { setSchema: unknown }): 
 
 // Minimal views of the TinyBase store/indexes used during assembly.
 interface RawStoreLike {
-  setSchema(tablesSchema: unknown, valuesSchema: unknown): Parameters<typeof createIndexes>[0]
+  setSchema: (tablesSchema: unknown, valuesSchema: unknown) => Parameters<typeof createIndexes>[0]
 }
 
 interface RawIndexApi {
-  setIndexDefinition(
+  setIndexDefinition: (
     indexId: string,
     tableId: string,
     getSliceIdOrIds: string,
     getSortKey: string,
     sliceIdSorter: undefined,
     rowIdSorter: ((a: string, b: string) => number) | undefined,
-  ): unknown
+  ) => unknown
 }
 
 function applyIndexes(schema: AnyStoreSchema, indexes: RawIndexApi): void {
