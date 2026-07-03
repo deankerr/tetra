@@ -84,8 +84,23 @@ async function createWebRuntime() {
     },
   })
 
+  // The model catalog is a rebuildable cache: refresh stale/empty data in the background, but
+  // never block the app shell or overwrite a fresh cache on startup.
+  void refreshModelCatalog(core.modelCatalog)
+
   console.log('[stores:runtime] runtime ready')
   return { core, stores, sync, wipeAllData }
+}
+
+async function refreshModelCatalog(
+  modelCatalog: ReturnType<typeof createCoreModules>['modelCatalog'],
+): Promise<void> {
+  try {
+    // ModelCatalog owns the stale check; this call should only fetch when the cache needs it.
+    await modelCatalog.refresh()
+  } catch (error) {
+    console.error('[stores:catalog] auto-refresh failed', error)
+  }
 }
 
 // Seed-if-empty: env vars fill blanks, they never overwrite what the user set in the UI.
