@@ -198,14 +198,15 @@ export function ModelPickerButton({
       {currentModel !== null && (
         <img
           alt={`${currentModel.provider} logo`}
-          className="size-3 shrink-0 rounded-[3px] border object-cover"
-          height={12}
+          className="size-4 shrink-0 rounded-sm border object-cover"
+          height={16}
           loading="lazy"
           src={`https://logos.orb.town/v1/avatar/${encodeURIComponent(currentModel.provider)}.webp`}
-          width={12}
+          width={16}
+          data-icon="inline-start"
         />
       )}
-      <span className="min-w-0 flex-1 truncate text-left">{label}</span>
+      {label}
     </Button>
   )
 }

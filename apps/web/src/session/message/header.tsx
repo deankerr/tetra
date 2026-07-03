@@ -23,7 +23,7 @@ export function MessageHeader({ isActive, run }: { isActive: boolean; run: RunRo
     <div className="flex items-center gap-2 group-[.is-user]:justify-end">
       <div
         aria-label={statusLabel}
-        className="bg-secondary text-secondary-foreground flex h-6.5 w-fit items-center overflow-hidden rounded-md text-xs font-medium"
+        className="bg-secondary text-secondary-foreground flex h-7 w-fit items-center overflow-hidden rounded-md text-sm font-medium"
         title={statusLabel}
       >
         <span className="flex h-full min-w-0 items-center gap-2 px-2.5">
@@ -45,7 +45,7 @@ export function MessageHeader({ isActive, run }: { isActive: boolean; run: RunRo
         </span>
         <span
           className={cn(
-            'border-border/70 text-muted-foreground flex h-full items-center border-l px-2 [&>svg]:size-3.5',
+            'border-border/70 text-muted-foreground flex h-full items-center border-l px-2 [&>svg]:size-4',
             run.status === 'error' && 'text-destructive',
           )}
         >
