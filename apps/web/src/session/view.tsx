@@ -33,9 +33,14 @@ function MissingSession() {
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       {/* Header */}
-      <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b px-2">
+      <header
+        className="flex h-(--header-height) shrink-0 items-center gap-2 border-b px-2"
+        data-tauri-drag-region
+      >
         <SidebarTrigger title="Open sidebar" />
-        <span className="min-w-0 flex-1 truncate text-xs font-medium">Session not found</span>
+        <span className="min-w-0 flex-1 truncate text-xs font-medium" data-tauri-drag-region>
+          Session not found
+        </span>
         <MissingOpenRouterApiKeyButton />
       </header>
 
@@ -88,10 +93,13 @@ function ActiveSessionPanel({
     <div className="flex min-h-0 min-w-[420px] flex-1 flex-col border-r last:border-r-0">
       {/* Main content */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b px-2">
+        <header
+          className="flex h-(--header-height) shrink-0 items-center gap-2 border-b px-2"
+          data-tauri-drag-region
+        >
           <SidebarTrigger />
 
-          <span className="min-w-0 flex-1 truncate text-xs font-medium">
+          <span className="min-w-0 flex-1 truncate text-xs font-medium" data-tauri-drag-region>
             {session.title ?? 'New session'}
           </span>
 

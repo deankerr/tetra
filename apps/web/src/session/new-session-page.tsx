@@ -45,9 +45,14 @@ function NewSessionPageContent() {
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       {/* Header */}
-      <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b px-2">
+      <header
+        className="flex h-(--header-height) shrink-0 items-center gap-2 border-b px-2"
+        data-tauri-drag-region
+      >
         <SidebarTrigger title="Open sidebar" />
-        <span className="min-w-0 flex-1 truncate text-xs font-medium">New session</span>
+        <span className="min-w-0 flex-1 truncate text-xs font-medium" data-tauri-drag-region>
+          New session
+        </span>
         <MissingOpenRouterApiKeyButton />
         <Button
           aria-label="Open new session settings"

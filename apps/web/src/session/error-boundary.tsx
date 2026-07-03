@@ -33,9 +33,14 @@ function SessionPanelErrorFallback({ error, resetErrorBoundary }: FallbackProps)
   return (
     <div className="flex min-h-0 min-w-[420px] flex-1 flex-col border-r last:border-r-0">
       {/* Fallback header */}
-      <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b px-2">
+      <header
+        className="flex h-(--header-height) shrink-0 items-center gap-2 border-b px-2"
+        data-tauri-drag-region
+      >
         <SidebarTrigger title="Open sidebar" />
-        <span className="min-w-0 flex-1 truncate text-xs font-medium">Session crashed</span>
+        <span className="min-w-0 flex-1 truncate text-xs font-medium" data-tauri-drag-region>
+          Session crashed
+        </span>
       </header>
 
       {/* Recovery actions */}
