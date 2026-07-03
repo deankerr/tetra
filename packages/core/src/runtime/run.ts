@@ -59,6 +59,12 @@ export class Run extends EventTarget {
   private readonly doneController = Promise.withResolvers<undefined>()
   private readonly modelResolver: LanguageModelResolver
   private readonly library: LibraryDb
+  // Per reasoning part (keyed by its stable index in the message), measured live: the stream
+  // is the only place the streaming→done transition is observable.
+  private readonly reasoningTimings = new Map<
+    number,
+    { durationMs: number | null; startedAt: number }
+  >()
 
   constructor(init: RunInit) {
     super()
@@ -84,9 +90,10 @@ export class Run extends EventTarget {
   }
 
   private complete(parts: UIMessage['parts']): void {
-    this.parts = [...parts]
-    this.finalParts = [...parts]
-    this.writeMessagePartsSnapshot(parts)
+    const timedParts = this.withReasoningDurations(parts)
+    this.parts = [...timedParts]
+    this.finalParts = [...timedParts]
+    this.writeMessagePartsSnapshot(timedParts)
     this.setStatus('completed')
     this.dispatchEvent(new Event('finish'))
     this.doneController.resolve()
@@ -109,8 +116,48 @@ export class Run extends EventTarget {
   }
 
   private notifySnapshot(message: UIMessage): void {
+    this.trackReasoning(message.parts)
     this.parts = [...message.parts]
     this.dispatchEvent(new Event('snapshot'))
+  }
+
+  // Reasoning never overlaps, so per-part wall-clock is enough: stamp the start on first sight
+  // and close it when the part reports done.
+  private trackReasoning(parts: UIMessage['parts']): void {
+    const now = Date.now()
+    for (const [index, part] of parts.entries()) {
+      if (part.type !== 'reasoning') {
+        continue
+      }
+      const timing = this.reasoningTimings.get(index)
+      if (timing === undefined) {
+        this.reasoningTimings.set(index, { durationMs: null, startedAt: now })
+        continue
+      }
+      if (timing.durationMs === null && part.state === 'done') {
+        timing.durationMs = now - timing.startedAt
+      }
+    }
+  }
+
+  // Stamp each reasoning part with its measured duration so persisted/synced reads have a value;
+  // the component's own live timer never runs for those. Close any block still open at completion.
+  private withReasoningDurations(parts: UIMessage['parts']): UIMessage['parts'] {
+    const now = Date.now()
+    return parts.map((part, index) => {
+      if (part.type !== 'reasoning') {
+        return part
+      }
+      const timing = this.reasoningTimings.get(index)
+      if (timing === undefined) {
+        return part
+      }
+      const durationMs = timing.durationMs ?? now - timing.startedAt
+      return {
+        ...part,
+        providerMetadata: { ...part.providerMetadata, tetra: { durationMs } },
+      }
+    })
   }
 
   private recordStep(step: Omit<StepRecord, 'id' | 'messageId' | 'runId' | 'sessionId'>): void {

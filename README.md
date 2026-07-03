@@ -6,7 +6,7 @@ Local-first LLM chat app for power users, built on [TinyBase](https://tinybase.o
 
 Most chat UIs couple the inference stream to the React lifecycle: navigating away kills the request, switching sessions disrupts in-flight generation, and component state is the source of truth. Tetra inverts that. The runtime writes streaming snapshots into TinyBase; the UI is a pure reader. A request started in one session keeps running when you leave it, and every surface — web, CLI, another tab, another device — sees the same state converge.
 
-It is a working chat app, but the real subject is the foundation underneath it: sessions as durable message trees, run configuration as a first-class shared recipe, and a tool/sub-agent runtime that grows from the same primitives.
+It is a working chat app, but the real subject is the foundation underneath it: sessions as durable message trees, run configuration as a first-class shared recipe, and a tool-execution loop that runs over those same primitives. Sub-agents, a command palette, and composable prompt assembly are designed-for but not yet built — see `VISION.md` for what's planned versus shipped.
 
 ## Architecture
 

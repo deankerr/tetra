@@ -177,6 +177,70 @@ test('generate streams through the AI SDK into TinyBase rows', async () => {
   ])
 })
 
+test('reasoning parts are stamped with a measured duration', async () => {
+  const context = createTestDb()
+  const { library } = context
+  const runConfigs = new RunConfigs({ library })
+  const prompts = new Prompts({ library, runConfigs })
+  const transcripts = new Transcripts({ library, runConfigs })
+  const core = { library, prompts, transcripts }
+  const credentials = createCredentialReader(() => {})
+  // Delay chunks so the reasoning-start → reasoning-end span has measurable wall-clock time.
+  const model = new MockLanguageModelV3({
+    doStream: {
+      stream: simulateReadableStream<LanguageModelV3StreamPart>({
+        chunkDelayInMs: 20,
+        chunks: [
+          { type: 'stream-start', warnings: [] },
+          { id: 'reasoning-1', type: 'reasoning-start' },
+          { delta: 'let me think', id: 'reasoning-1', type: 'reasoning-delta' },
+          { id: 'reasoning-1', type: 'reasoning-end' },
+          { id: 'text-1', type: 'text-start' },
+          { delta: 'hello', id: 'text-1', type: 'text-delta' },
+          { id: 'text-1', type: 'text-end' },
+          {
+            finishReason: { raw: 'stop', unified: 'stop' },
+            type: 'finish',
+            usage: {
+              inputTokens: { cacheRead: 0, cacheWrite: 0, noCache: 1, total: 1 },
+              outputTokens: { reasoning: 3, text: 1, total: 4 },
+            },
+          },
+        ],
+        initialDelayInMs: 20,
+      }),
+    },
+  })
+  const runs = new Runs({
+    credentials,
+    library,
+    modelResolver: { resolve: () => model },
+    prompts,
+    runConfigs,
+    transcripts,
+  })
+  const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
+
+  appendAfterNewestLeaf(core, sessionId, {
+    parts: [{ text: 'hello', type: 'text' }],
+    role: 'user',
+  })
+  const targetMessageId = appendAfterNewestLeaf(core, sessionId, {
+    parts: [],
+    role: 'assistant',
+  })
+  const run = runs.generate({ targetMessageId })
+  await run.done
+
+  const assistantMessage = core.library.messages.require(targetMessageId)
+  const reasoningPart = assistantMessage.parts.find((part) => part.type === 'reasoning')
+  const durationMs = reasoningPart?.providerMetadata?.tetra?.durationMs
+
+  expect(reasoningPart).toMatchObject({ state: 'done', text: 'let me think', type: 'reasoning' })
+  expect(typeof durationMs).toBe('number')
+  expect(durationMs).toBeGreaterThan(0)
+})
+
 test('streaming snapshots persist to the target message before terminal status', async () => {
   const context = createTestDb()
   const { library } = context

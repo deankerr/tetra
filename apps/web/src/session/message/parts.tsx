@@ -51,11 +51,21 @@ function PartList({
         }
 
         if (part.type === 'reasoning') {
+          // Merge only consecutive reasoning parts, rendered in place: a model may reason after a
+          // tool call, so hoisting all reasoning to the top would misorder the transcript. Later
+          // parts of a run fold into the block opened by its first part.
+          if (parts[partIndex - 1]?.type === 'reasoning') {
+            return null
+          }
+
+          const runParts = collectReasoningRun(parts, partIndex)
+          const runEndIndex = partIndex + runParts.length - 1
+
           return (
             <ReasoningPart
-              isStreaming={isStreaming && partIndex === latestContentPartIndex}
+              isStreaming={isStreaming && latestContentPartIndex === runEndIndex}
               key={partKey}
-              part={part}
+              parts={runParts}
             />
           )
         }
@@ -84,21 +94,50 @@ function TextPart({ part }: { part: Extract<MessagePart, { type: 'text' }> }) {
 
 function ReasoningPart({
   isStreaming,
-  part,
+  parts,
 }: {
   isStreaming: boolean
-  part: Extract<MessagePart, { type: 'reasoning' }>
+  parts: Extract<MessagePart, { type: 'reasoning' }>[]
 }) {
-  if (part.text === '') {
+  const text = parts.map((part) => part.text).join('\n\n')
+  if (text === '') {
     return null
   }
 
+  // Sum the measured per-part durations; 0 means unmeasured (live stream or older message), so we
+  // pass undefined and let the component fall back to its own timer / "a few seconds" label.
+  const totalMs = parts.reduce((sum, part) => sum + getReasoningDurationMs(part), 0)
+  const seconds = Math.ceil(totalMs / 1000)
+
   return (
-    <Reasoning className="mt-1" isStreaming={isStreaming}>
+    <Reasoning
+      className="mt-1"
+      isStreaming={isStreaming}
+      {...(seconds > 0 && { duration: seconds })}
+    >
       <ReasoningTrigger />
-      <ReasoningContent>{part.text}</ReasoningContent>
+      <ReasoningContent>{text}</ReasoningContent>
     </Reasoning>
   )
+}
+
+function getReasoningDurationMs(part: Extract<MessagePart, { type: 'reasoning' }>): number {
+  const value = part.providerMetadata?.tetra?.durationMs
+  return typeof value === 'number' ? value : 0
+}
+
+function collectReasoningRun(
+  parts: MessagePart[],
+  startIndex: number,
+): Extract<MessagePart, { type: 'reasoning' }>[] {
+  const run: Extract<MessagePart, { type: 'reasoning' }>[] = []
+  for (const part of parts.slice(startIndex)) {
+    if (part.type !== 'reasoning') {
+      break
+    }
+    run.push(part)
+  }
+  return run
 }
 
 function ToolPartView({ part }: { part: ToolPartType }) {

@@ -1,6 +1,8 @@
 import type { LibraryEntities } from '@tetra/schemas/library'
-import { Badge } from '@tetra/ui/components/ui/badge'
+import { cn } from '@tetra/ui/lib/utils'
 import { BanIcon, CheckCircle2Icon, LoaderCircleIcon, XCircleIcon } from 'lucide-react'
+
+import { catalogReact } from '@/stores'
 
 import { getRunModelId } from './data'
 
@@ -8,29 +10,53 @@ type RunRow = LibraryEntities['runs']
 type RunStatus = RunRow['status']
 
 export function MessageHeader({ isActive, run }: { isActive: boolean; run: RunRow | null }) {
+  const modelId = run === null ? '' : getRunModelId(run)
+  const model = catalogReact.languageModels.useGet(modelId)
+
   if (run === null) {
     return null
   }
 
-  const modelId = getRunModelId(run)
   const statusLabel = getRunStatusLabel({ isActive, status: run.status })
 
   return (
     <div className="flex items-center gap-2 group-[.is-user]:justify-end">
-      <Badge
+      <div
         aria-label={statusLabel}
-        className="gap-2 rounded-sm font-mono"
+        className="bg-secondary text-secondary-foreground flex h-6.5 w-fit items-center overflow-hidden rounded-md text-xs font-medium"
         title={statusLabel}
-        variant={run.status === 'error' ? 'destructive' : 'secondary'}
       >
-        {modelId !== '' && <span className="truncate">{modelId}</span>}
-        {run.status === 'completed' && <CheckCircle2Icon />}
-        {run.status === 'error' && <XCircleIcon />}
-        {run.status === 'cancelled' && <BanIcon />}
-        {run.status === 'active' && (
-          <LoaderCircleIcon className={isActive ? 'animate-spin' : undefined} />
-        )}
-      </Badge>
+        <span className="flex h-full min-w-0 items-center gap-2 px-2.5">
+          {model !== null && (
+            <img
+              alt={`${model.providerName} logo`}
+              className="size-4 shrink-0 rounded-sm object-cover"
+              height={16}
+              loading="lazy"
+              src={`https://logos.orb.town/v1/avatar/${encodeURIComponent(model.provider)}.webp`}
+              width={16}
+            />
+          )}
+          {model === null ? (
+            modelId !== '' && <span className="truncate font-mono">{modelId}</span>
+          ) : (
+            <span className="truncate">{model.name}</span>
+          )}
+        </span>
+        <span
+          className={cn(
+            'border-border/70 text-muted-foreground flex h-full items-center border-l px-2 [&>svg]:size-3.5',
+            run.status === 'error' && 'text-destructive',
+          )}
+        >
+          {run.status === 'completed' && <CheckCircle2Icon />}
+          {run.status === 'error' && <XCircleIcon />}
+          {run.status === 'cancelled' && <BanIcon />}
+          {run.status === 'active' && (
+            <LoaderCircleIcon className={isActive ? 'animate-spin' : undefined} />
+          )}
+        </span>
+      </div>
     </div>
   )
 }
