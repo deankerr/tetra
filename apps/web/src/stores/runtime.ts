@@ -1,5 +1,5 @@
 import { createCoreModules } from '@tetra/core'
-import { credentialStore } from '@tetra/credentials'
+import { createCredentialReader, credentialRegistry } from '@tetra/credentials'
 import { createBroadcastChannelSynchronizer } from 'tinybase/synchronizers/synchronizer-broadcast-channel/with-schemas'
 
 import { stores } from '@/stores'
@@ -15,6 +15,7 @@ import { SyncController } from '@/stores/sync/controller'
 import { createDataWipe } from '@/stores/wipe'
 
 const CATALOG_DB_NAME = 'tetra:catalog'
+const CREDENTIALS_STORAGE_NAME = 'tetra:credentials'
 const DESK_STORAGE_NAME = 'tetra:desk'
 const LIBRARY_BROADCAST_CHANNEL = 'tetra:library'
 const LIBRARY_OPFS_FILE_NAME = 'tetra-library.json'
@@ -38,9 +39,21 @@ async function createWebRuntime() {
     new OpfsFilePersistence('library', stores.library.raw.store, LIBRARY_OPFS_FILE_NAME),
     new SessionStoragePersistence('desk', stores.desk.raw.store, DESK_STORAGE_NAME),
     new LocalStoragePersistence('prefs', stores.prefs.raw.store, PREFS_STORAGE_NAME),
+    new LocalStoragePersistence(
+      'credentials',
+      stores.credentials.raw.store,
+      CREDENTIALS_STORAGE_NAME,
+    ),
   ]
   for (const entry of persistence) {
     await entry.start()
+  }
+
+  // Dev-only: seed credentials and the sync key from VITE_* env vars so fresh browser
+  // environments (agents, throwaway profiles) work without manual setup. Guarded by DEV so a
+  // production build can never bake secrets into the bundle; stored values always win.
+  if (import.meta.env.DEV) {
+    seedDevValuesFromEnv()
   }
 
   // Live library sync: BroadcastChannel converges same-origin tabs, the optional Worker socket
@@ -64,7 +77,7 @@ async function createWebRuntime() {
   })
 
   const core = createCoreModules({
-    credentials: credentialStore,
+    credentials: createCredentialReader((id) => stores.credentials.values[id].get()),
     stores: {
       catalog: stores.catalog,
       library: stores.library,
@@ -73,6 +86,32 @@ async function createWebRuntime() {
 
   console.log('[stores:runtime] runtime ready')
   return { core, stores, sync, wipeAllData }
+}
+
+// Seed-if-empty: env vars fill blanks, they never overwrite what the user set in the UI.
+function seedDevValuesFromEnv() {
+  for (const { id } of credentialRegistry) {
+    const envValue = getDevEnv(`VITE_${id}`)
+    if (envValue !== undefined && stores.credentials.values[id].get().trim() === '') {
+      stores.credentials.values[id].set(envValue)
+      console.log(`[stores:credentials] seeded ${id} from VITE_${id}`)
+    }
+  }
+
+  // A sync key in the env is a clear intent to sync, so consent is seeded along with it —
+  // but only when the device had no key at all, so a UI "pause sync" survives reloads.
+  const envSyncKey = getDevEnv('VITE_SYNC_KEY')
+  if (envSyncKey !== undefined && stores.prefs.values.syncKey.get() === null) {
+    stores.prefs.values.syncKey.set(envSyncKey)
+    stores.prefs.values.syncEnabled.set(true)
+    console.log('[stores:prefs] seeded sync key from VITE_SYNC_KEY')
+  }
+}
+
+function getDevEnv(name: string): string | undefined {
+  const rawValue: unknown = import.meta.env[name]
+  const value = typeof rawValue === 'string' ? rawValue.trim() : ''
+  return value === '' ? undefined : value
 }
 
 // Same-origin tab convergence over BroadcastChannel. A lone tab has no peer to answer TinyBase's

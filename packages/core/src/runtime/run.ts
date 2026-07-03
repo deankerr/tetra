@@ -1,4 +1,4 @@
-import type { CredentialsStore } from '@tetra/credentials'
+import type { CredentialReader } from '@tetra/credentials'
 import { RunConfigSchema } from '@tetra/schemas/library'
 import type {
   LibraryDb,
@@ -28,7 +28,7 @@ export interface RunStart {
 }
 
 interface RunInit {
-  credentials: CredentialsStore
+  credentials: CredentialReader
   start: RunStart
   modelResolver: LanguageModelResolver
   library: LibraryDb
@@ -55,7 +55,7 @@ export class Run extends EventTarget {
   status: LibraryRunStatus = 'active'
   tools: ToolSet = {}
 
-  private readonly credentials: CredentialsStore
+  private readonly credentials: CredentialReader
   private readonly doneController = Promise.withResolvers<undefined>()
   private readonly modelResolver: LanguageModelResolver
   private readonly library: LibraryDb

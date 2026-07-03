@@ -7,8 +7,7 @@ import { toast } from '@tetra/ui/components/ui/sonner'
 import { KeyRoundIcon } from 'lucide-react'
 import { useCallback } from 'react'
 
-import { deskReact } from '@/stores'
-import { useCredential, useHasCredential } from '@/use-credential'
+import { credentialsReact, deskReact } from '@/stores'
 
 // The API keys tab of the settings dialog.
 export function ApiKeysPanel() {
@@ -25,7 +24,7 @@ export function ApiKeysPanel() {
 }
 
 export function MissingOpenRouterApiKeyButton() {
-  const hasOpenrouterApiKey = useHasCredential('OPENROUTER_API_KEY')
+  const hasOpenrouterApiKey = credentialsReact.values.OPENROUTER_API_KEY.use().trim() !== ''
   const [, setSettingsTab] = deskReact.values.settingsTab.useState()
 
   if (hasOpenrouterApiKey) {
@@ -50,7 +49,7 @@ export function MissingOpenRouterApiKeyButton() {
 }
 
 export function useRequireOpenRouterApiKey(): () => void {
-  const hasOpenrouterApiKey = useHasCredential('OPENROUTER_API_KEY')
+  const hasOpenrouterApiKey = credentialsReact.values.OPENROUTER_API_KEY.use().trim() !== ''
   const [, setSettingsTab] = deskReact.values.settingsTab.useState()
 
   return useCallback(() => {
@@ -67,7 +66,7 @@ export function useRequireOpenRouterApiKey(): () => void {
 }
 
 function CredentialField({ definition }: { definition: CredentialDefinition }) {
-  const [value, setValue] = useCredential(definition.id)
+  const [value, setValue] = credentialsReact.values[definition.id].useState()
   const inputId = `credential-${definition.id}`
 
   return (

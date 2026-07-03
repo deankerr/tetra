@@ -1,9 +1,4 @@
-declare const process: { env: Record<string, string | undefined> }
-
-function noopUnsubscribe() {
-  // no-op: subscribe has no effect outside a browser environment
-}
-
+// The registry is pure data: which credentials exist and how surfaces describe them.
 export const credentialRegistry = [
   {
     description: 'Required for model inference. Get a key at openrouter.ai/keys.',
@@ -31,102 +26,35 @@ export function getCredentialDefinition(id: CredentialId): CredentialDefinition 
   return definition
 }
 
-function normalizeCredentialValue(value: string | null | undefined): string | undefined {
-  const trimmedValue = value?.trim() ?? ''
-  return trimmedValue === '' ? undefined : trimmedValue
+// What consumers (core, tools) need at execution time: reads only. Each surface owns its
+// storage — the web app a TinyBase store, the CLI process env — and wraps it in a reader.
+export interface CredentialReader {
+  get(id: CredentialId): string | undefined
+  has(id: CredentialId): boolean
+  require(id: CredentialId): string
 }
 
-export class CredentialsStore {
-  readonly registry: Map<CredentialId, CredentialDefinition>
-  private readonly listeners = new Map<CredentialId, Set<() => void>>()
-
-  constructor(definitions: readonly CredentialDefinition[]) {
-    this.registry = new Map(definitions.map((d) => [d.id, d]))
+// Wrap a raw lookup into a reader: trims values, treats blank as missing, and gives
+// `require` its user-facing error message.
+export function createCredentialReader(
+  read: (id: CredentialId) => string | null | undefined,
+): CredentialReader {
+  const get = (id: CredentialId): string | undefined => {
+    getCredentialDefinition(id)
+    const value = read(id)?.trim() ?? ''
+    return value === '' ? undefined : value
   }
 
-  get(id: CredentialId): string | undefined {
-    this.requireDefinition(id)
-
-    if (typeof window !== 'undefined') {
-      try {
-        return normalizeCredentialValue(localStorage.getItem(id))
-      } catch (error) {
-        console.error('[credentials] localStorage read failed', { error, id })
-        return undefined
+  return {
+    get,
+    has: (id) => get(id) !== undefined,
+    require(id) {
+      const value = get(id)
+      if (value === undefined) {
+        throw new Error(`${getCredentialDefinition(id).label} is required`)
       }
-    }
 
-    return normalizeCredentialValue(process.env[id])
-  }
-
-  has(id: CredentialId): boolean {
-    return this.get(id) !== undefined
-  }
-
-  require(id: CredentialId): string {
-    const value = this.get(id)
-    if (value !== undefined) {
       return value
-    }
-
-    throw new Error(`${this.requireDefinition(id).label} is required`)
-  }
-
-  set(id: CredentialId, value: string): void {
-    this.requireDefinition(id)
-
-    if (typeof window === 'undefined') {
-      return
-    }
-
-    const nextValue = normalizeCredentialValue(value)
-    try {
-      if (nextValue === undefined) {
-        localStorage.removeItem(id)
-      } else {
-        localStorage.setItem(id, nextValue)
-      }
-    } catch (error) {
-      console.error('[credentials] localStorage write failed', { error, id })
-    }
-    for (const fn of this.listeners.get(id) ?? []) {
-      fn()
-    }
-  }
-
-  subscribe(id: CredentialId, listener: () => void): () => void {
-    this.requireDefinition(id)
-
-    if (typeof window === 'undefined') {
-      return noopUnsubscribe
-    }
-
-    const set = this.listeners.get(id) ?? new Set<() => void>()
-    this.listeners.set(id, set)
-    set.add(listener)
-
-    // Other tabs can update the same locally persisted secret.
-    const onStorage = (event: StorageEvent) => {
-      if (event.key === id) {
-        listener()
-      }
-    }
-    window.addEventListener('storage', onStorage)
-
-    return () => {
-      this.listeners.get(id)?.delete(listener)
-      window.removeEventListener('storage', onStorage)
-    }
-  }
-
-  private requireDefinition(id: CredentialId): CredentialDefinition {
-    const definition = this.registry.get(id)
-    if (definition === undefined) {
-      throw new Error(`Unknown credential id: ${id}`)
-    }
-
-    return definition
+    },
   }
 }
-
-export const credentialStore = new CredentialsStore(credentialRegistry)

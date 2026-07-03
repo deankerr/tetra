@@ -1,3 +1,4 @@
+import type { CredentialId } from '@tetra/credentials'
 import { catalogSchema } from '@tetra/schemas/catalog'
 import { librarySchema } from '@tetra/schemas/library'
 import { defineSchema } from '@tetra/tinydb'
@@ -6,11 +7,12 @@ import { createDb, createMergeableDb } from '@tetra/tinydb/runtime'
 import { z } from 'zod'
 
 // The web app's store vocabulary, one line each:
-//   library — your data: mergeable, durable, syncable across devices.
-//   catalog — rebuildable cache of the OpenRouter model catalog.
-//   desk    — what is spread out on this tab right now; cleared when you leave.
-//   prefs   — durable device-level preferences, including sync consent.
-//   sync    — ephemeral connection state written by the SyncController, read by React.
+//   library     — your data: mergeable, durable, syncable across devices.
+//   catalog     — rebuildable cache of the OpenRouter model catalog.
+//   desk        — what is spread out on this tab right now; cleared when you leave.
+//   prefs       — durable device-level preferences, including sync consent.
+//   credentials — API keys: durable, device-local secrets, deliberately never synced.
+//   sync        — ephemeral connection state written by the SyncController, read by React.
 
 export const SettingsTabSchema = z.enum(['api-keys', 'sync', 'data'])
 export type SettingsTab = z.infer<typeof SettingsTabSchema>
@@ -31,6 +33,16 @@ const deskSchema = defineSchema({
     // The settings dialog: null is closed, otherwise the active tab.
     settingsTab: SettingsTabSchema.nullable().default(null),
   },
+})
+
+// One value per registry entry; `satisfies` keeps this map and the credential registry in
+// lockstep. Blank means unset — the reader in runtime.ts normalizes at the read boundary.
+const credentialsSchema = defineSchema({
+  tables: {},
+  values: {
+    EXA_API_KEY: z.string().default(''),
+    OPENROUTER_API_KEY: z.string().default(''),
+  } satisfies Record<CredentialId, z.ZodType>,
 })
 
 const prefsSchema = defineSchema({
@@ -73,6 +85,7 @@ const syncSchema = defineSchema({
 // The shared library is mergeable so local cache, tab sync, and remote sync speak one shape.
 export const stores = {
   catalog: createDb(catalogSchema),
+  credentials: createDb(credentialsSchema),
   desk: createDb(deskSchema),
   library: createMergeableDb(librarySchema),
   prefs: createDb(prefsSchema),
@@ -83,6 +96,7 @@ export type WebStores = typeof stores
 
 // Reactive read APIs bound to the eager store instances (no Provider/context).
 export const catalogReact = createDbReactApi(catalogSchema, stores.catalog)
+export const credentialsReact = createDbReactApi(credentialsSchema, stores.credentials)
 export const deskReact = createDbReactApi(deskSchema, stores.desk)
 export const libraryReact = createDbReactApi(librarySchema, stores.library)
 export const prefsReact = createDbReactApi(prefsSchema, stores.prefs)

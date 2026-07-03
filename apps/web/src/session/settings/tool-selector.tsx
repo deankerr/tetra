@@ -6,7 +6,7 @@ import { Field, FieldContent, FieldDescription, FieldTitle } from '@tetra/ui/com
 import { Switch } from '@tetra/ui/components/ui/switch'
 import { KeyIcon } from 'lucide-react'
 
-import { useHasCredential } from '@/use-credential'
+import { credentialsReact } from '@/stores'
 
 interface ToolSelectorProps {
   onToolIdsChange: (toolIds: string[]) => void
@@ -71,7 +71,7 @@ function ToolToggle({
 }
 
 function ToolCredentialBadge({ credentialId }: { credentialId: CredentialId }) {
-  const hasCredential = useHasCredential(credentialId)
+  const hasCredential = credentialsReact.values[credentialId].use().trim() !== ''
   const definition = getCredentialDefinition(credentialId)
 
   return (

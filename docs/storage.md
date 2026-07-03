@@ -19,20 +19,25 @@ remembered."
 
 ## Web stores
 
-Five TinyBase stores, created eagerly at module load so the React APIs bind to concrete
+Six TinyBase stores, created eagerly at module load so the React APIs bind to concrete
 instances (`stores/index.ts`); persistence and sync are layered on by the async runtime
 (`stores/runtime.ts`).
 
-| Store     | What it is                                               | Home                          |
-| --------- | -------------------------------------------------------- | ----------------------------- |
-| `library` | Your data: mergeable, durable, syncable across devices   | OPFS (`tetra-library.json`)   |
-| `catalog` | Rebuildable cache of the OpenRouter model catalog        | IndexedDB (`tetra:catalog`)   |
-| `desk`    | This tab, right now; cleared when you leave              | sessionStorage (`tetra:desk`) |
-| `prefs`   | Durable device-level preferences, including sync consent | localStorage (`tetra:prefs`)  |
-| `sync`    | Ephemeral connection state written by the SyncController | unpersisted (in-memory)       |
+| Store         | What it is                                                | Home                               |
+| ------------- | --------------------------------------------------------- | ---------------------------------- |
+| `library`     | Your data: mergeable, durable, syncable across devices    | OPFS (`tetra-library.json`)        |
+| `catalog`     | Rebuildable cache of the OpenRouter model catalog         | IndexedDB (`tetra:catalog`)        |
+| `desk`        | This tab, right now; cleared when you leave               | sessionStorage (`tetra:desk`)      |
+| `prefs`       | Durable device-level preferences, including sync consent  | localStorage (`tetra:prefs`)       |
+| `credentials` | API keys: device-local secrets, deliberately never synced | localStorage (`tetra:credentials`) |
+| `sync`        | Ephemeral connection state written by the SyncController  | unpersisted (in-memory)            |
 
 The `sync` store is deliberately unpersisted: a rehydrated `status: "live"` from a previous
-session would be a lie.
+session would be a lie. The `credentials` store is deliberately outside the library: secrets in
+a MergeableStore would survive deletion as tombstones and clock history on every converged
+device, and "delete means delete" matters most for keys. `@tetra/credentials` holds only the
+registry (which credentials exist) and a `CredentialReader` interface; each surface wraps its
+own storage in a reader — the web app this store, the CLI process env.
 
 ### Persistence lifecycle
 
@@ -42,7 +47,8 @@ recipe: create the persister, load once, log, auto-save from then on. Medium par
 visible in each class rather than behind a generic wrapper (OPFS's async file handles; a note
 that the IndexedDB persister opens connections per-operation so it never blocks a wipe;
 localStorage's native cross-tab auto-load). Tab convergence is owned by synchronizers, not by
-persister auto-load — except `prefs`, where localStorage auto-load _is_ the cross-tab mechanism.
+persister auto-load — except `prefs` and `credentials`, where localStorage auto-load _is_ the
+cross-tab mechanism.
 
 The library store is a MergeableStore (per-cell HLC last-write-wins CRDT) so the local cache,
 tab sync, and remote sync all speak one shape. Consequence worth remembering: its persisted JSON
@@ -90,6 +96,12 @@ mechanism that makes reconnects correct.
 build-time disable — the runtime toggle is the only switch, and an unset worker URL disables
 sync structurally.
 
+**Dev seeding:** in dev builds only (`import.meta.env.DEV`, so a production build can never
+bake secrets into the bundle), boot fills blank values from env vars: each credential from
+`VITE_<id>` (e.g. `VITE_OPENROUTER_API_KEY`), and the sync key + consent from `VITE_SYNC_KEY`.
+Seed-if-empty: stored values always win, so agents with fresh browser environments get working
+keys while UI edits survive reloads.
+
 ## Delete all data
 
 A first-class privacy gesture (`stores/wipe.ts`), in the settings dialog's Data tab. The one
@@ -127,7 +139,8 @@ verbose while the system is young; thin once confidence is earned.
 Purely local: one SQLite database (`tetra.db`, `DATABASE_PATH`-overridable), one JSON table per
 store (`catalog`, `cli`, `library`), load at startup, save on close. The library store stays
 mergeable so its shape matches the web app's synced store, but the CLI currently has no sync —
-removed deliberately so its story doesn't shape the user-facing design.
+removed deliberately so its story doesn't shape the user-facing design. Credentials are read
+straight from process env (`OPENROUTER_API_KEY`, `EXA_API_KEY`) — no persister, no settings UI.
 
 ## Accepted trade-offs
 
@@ -161,8 +174,10 @@ Noted, not planned:
   support needs a spike, and worker consoles hide our logs. Web Locks leader election buys most
   of the single-writer/single-socket wins with none of the platform risk. Either is a bounded
   change now that ownership is gathered in `stores/runtime.ts`.
-- **Credentials on TinyBase.** `@tetra/credentials` is a hand-rolled observable localStorage
-  store — the same pattern the prefs store replaced for sync settings. Shared with the CLI, so
-  it's a cross-surface design question.
+- **Synced credentials.** Channel-key entropy makes it thinkable, but rows in the library
+  MergeableStore would leave deleted/rotated keys lingering as tombstones in every converged
+  device's OPFS file. If ever done: a separate small mergeable store on the same channel (e.g.
+  `/sync/<key>/credentials`), independently toggleable, keeping secrets out of the library
+  artifact. Dev env seeding removed most of the motivation.
 - **E2EE.** Relay-only makes it conceivable; TinyBase's protocol doesn't make it pluggable today.
 - **Deployment automation.** Manual `wrangler deploy` until it annoys us.

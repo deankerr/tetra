@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test'
 
 import type { LanguageModelV3StreamPart } from '@ai-sdk/provider'
-import { CredentialsStore } from '@tetra/credentials'
+import { createCredentialReader } from '@tetra/credentials'
 import { librarySchema } from '@tetra/schemas/library'
 import type { LibraryEntities } from '@tetra/schemas/library'
 import { createDb } from '@tetra/tinydb/runtime'
@@ -25,7 +25,7 @@ function createTestRuntime() {
   const prompts = new Prompts({ library, runConfigs })
   const transcripts = new Transcripts({ library, runConfigs })
   const core = { library, prompts, transcripts }
-  const credentials = new CredentialsStore([])
+  const credentials = createCredentialReader(() => {})
   const streamChunks: LanguageModelV3StreamPart[] = [
     { type: 'stream-start', warnings: [] },
     { id: 'text-1', type: 'text-start' },
@@ -184,7 +184,7 @@ test('streaming snapshots persist to the target message before terminal status',
   const prompts = new Prompts({ library, runConfigs })
   const transcripts = new Transcripts({ library, runConfigs })
   const core = { library, prompts, transcripts }
-  const credentials = new CredentialsStore([])
+  const credentials = createCredentialReader(() => {})
   const model = new MockLanguageModelV3({
     doStream: {
       stream: simulateReadableStream<LanguageModelV3StreamPart>({
@@ -456,7 +456,7 @@ test('Tool Loop — tool call executes and result appears in final parts', async
   const prompts = new Prompts({ library, runConfigs })
   const transcripts = new Transcripts({ library, runConfigs })
   const core = { library, prompts, transcripts }
-  const credentials = new CredentialsStore([])
+  const credentials = createCredentialReader(() => {})
 
   const toolCallChunks: LanguageModelV3StreamPart[] = [
     { type: 'stream-start', warnings: [] },
@@ -569,7 +569,7 @@ test('Error Path — stream error sets run to error status', async () => {
   const prompts = new Prompts({ library, runConfigs })
   const transcripts = new Transcripts({ library, runConfigs })
   const core = { library, prompts, transcripts }
-  const credentials = new CredentialsStore([])
+  const credentials = createCredentialReader(() => {})
 
   const model = new MockLanguageModelV3({
     doStream: () => {
@@ -618,7 +618,7 @@ test('Error Path — later runs can still run after an error', async () => {
   const prompts = new Prompts({ library, runConfigs })
   const transcripts = new Transcripts({ library, runConfigs })
   const core = { library, prompts, transcripts }
-  const credentials = new CredentialsStore([])
+  const credentials = createCredentialReader(() => {})
 
   let callCount = 0
   const model = new MockLanguageModelV3({

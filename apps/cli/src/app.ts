@@ -1,15 +1,18 @@
 import { createCoreModules } from '@tetra/core'
-import { credentialStore } from '@tetra/credentials'
-import type { CredentialsStore } from '@tetra/credentials'
+import { createCredentialReader } from '@tetra/credentials'
+import type { CredentialReader } from '@tetra/credentials'
 
 import { createCliStoreRuntime } from './store'
 import type { CliStores } from './store'
 
 export interface CliAppContextOptions {
   close?: () => Promise<void>
-  credentials?: CredentialsStore
+  credentials?: CredentialReader
   stores: CliStores
 }
+
+// The CLI reads credentials straight from the process environment.
+const envCredentials = createCredentialReader((id) => process.env[id])
 
 async function closeInMemoryCliApp(): Promise<void> {
   // In-memory CLI apps have no persistence handles to flush.
@@ -28,7 +31,7 @@ export async function createPersistentCliAppContext() {
 
 export function createCliAppContext({
   close = closeInMemoryCliApp,
-  credentials = credentialStore,
+  credentials = envCredentials,
   stores,
 }: CliAppContextOptions) {
   const core = createCoreModules({

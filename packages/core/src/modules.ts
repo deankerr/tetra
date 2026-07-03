@@ -1,4 +1,4 @@
-import type { CredentialsStore } from '@tetra/credentials'
+import type { CredentialReader } from '@tetra/credentials'
 import type { CatalogDb } from '@tetra/schemas/catalog'
 import type { LibraryDb } from '@tetra/schemas/library'
 
@@ -22,7 +22,7 @@ export function createCoreModules({
   modelResolver,
   stores,
 }: {
-  credentials: CredentialsStore
+  credentials: CredentialReader
   modelResolver?: LanguageModelResolver
   stores: {
     catalog: CatalogDb

@@ -1,4 +1,4 @@
-import type { CredentialsStore } from '@tetra/credentials'
+import type { CredentialReader } from '@tetra/credentials'
 import type { LibraryDb, LibraryEntities, RunConfig } from '@tetra/schemas/library'
 
 import { createIdGenerator } from '#ids'
@@ -18,7 +18,7 @@ export interface GenerateArgs {
 }
 
 export interface RunsInit {
-  credentials: CredentialsStore
+  credentials: CredentialReader
   library: LibraryDb
   modelResolver?: LanguageModelResolver
   prompts: Prompts
@@ -28,7 +28,7 @@ export interface RunsInit {
 
 export class Runs {
   private readonly active = new Map<string, Run>()
-  private readonly credentials: CredentialsStore
+  private readonly credentials: CredentialReader
   private readonly modelResolver: LanguageModelResolver
   private readonly prompts: Prompts
   private readonly runConfigs: RunConfigs
