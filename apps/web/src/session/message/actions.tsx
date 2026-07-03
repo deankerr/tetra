@@ -11,7 +11,7 @@ import { useState, useSyncExternalStore } from 'react'
 import { useRequireOpenRouterApiKey } from '@/api-key-settings'
 import { useApp } from '@/app'
 import { useJsonViewSheet } from '@/components/json-view-sheet'
-import { libraryReact } from '@/store'
+import { libraryReact } from '@/stores'
 
 import { RunDetailSheet } from '../run-detail-sheet'
 import { useSessionThreadSelection } from '../thread-view'

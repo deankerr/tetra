@@ -1,72 +1,32 @@
 import type { CredentialDefinition } from '@tetra/credentials'
 import { credentialRegistry } from '@tetra/credentials'
 import { Button } from '@tetra/ui/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@tetra/ui/components/ui/dialog'
+import { Field, FieldDescription, FieldTitle } from '@tetra/ui/components/ui/field'
 import { Input } from '@tetra/ui/components/ui/input'
-import { Label } from '@tetra/ui/components/ui/label'
 import { toast } from '@tetra/ui/components/ui/sonner'
 import { KeyRoundIcon } from 'lucide-react'
 import { useCallback } from 'react'
 
-import { webReact } from '@/store'
+import { deskReact } from '@/stores'
 import { useCredential, useHasCredential } from '@/use-credential'
 
-export function ApiKeySettingsDialog() {
-  const [open, setOpen] = webReact.values.apiKeySettingsOpen.useState()
-
+// The API keys tab of the settings dialog.
+export function ApiKeysPanel() {
   return (
-    <Dialog onOpenChange={setOpen} open={open}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>API keys</DialogTitle>
-          <DialogDescription>
-            Inference runs entirely in your browser. API keys are stored locally on this device.
-          </DialogDescription>
-        </DialogHeader>
-
-        {credentialRegistry.map((definition) => (
-          <CredentialField key={definition.id} definition={definition} />
-        ))}
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-export function ApiKeySettingsButton({
-  className,
-  label = 'Open API key settings',
-}: {
-  className?: string
-  label?: string
-}) {
-  const [, setOpen] = webReact.values.apiKeySettingsOpen.useState()
-
-  return (
-    <Button
-      aria-label={label}
-      className={className}
-      onClick={() => {
-        setOpen(true)
-      }}
-      size="icon"
-      title={label}
-      type="button"
-      variant="ghost"
-    >
-      <KeyRoundIcon />
-    </Button>
+    <div className="flex flex-col gap-4">
+      <p className="text-muted-foreground text-sm">
+        Inference runs entirely in your browser. API keys are stored locally on this device.
+      </p>
+      {credentialRegistry.map((definition) => (
+        <CredentialField key={definition.id} definition={definition} />
+      ))}
+    </div>
   )
 }
 
 export function MissingOpenRouterApiKeyButton() {
   const hasOpenrouterApiKey = useHasCredential('OPENROUTER_API_KEY')
-  const [, setOpen] = webReact.values.apiKeySettingsOpen.useState()
+  const [, setSettingsTab] = deskReact.values.settingsTab.useState()
 
   if (hasOpenrouterApiKey) {
     return null
@@ -76,14 +36,14 @@ export function MissingOpenRouterApiKeyButton() {
     <Button
       aria-label="Missing OpenRouter API key"
       onClick={() => {
-        setOpen(true)
+        setSettingsTab('api-keys')
       }}
       size="sm"
       title="Missing OpenRouter API key"
       type="button"
       variant="destructive"
     >
-      <KeyRoundIcon />
+      <KeyRoundIcon data-icon="inline-start" />
       Missing OpenRouter key
     </Button>
   )
@@ -91,7 +51,7 @@ export function MissingOpenRouterApiKeyButton() {
 
 export function useRequireOpenRouterApiKey(): () => void {
   const hasOpenrouterApiKey = useHasCredential('OPENROUTER_API_KEY')
-  const [, setOpen] = webReact.values.apiKeySettingsOpen.useState()
+  const [, setSettingsTab] = deskReact.values.settingsTab.useState()
 
   return useCallback(() => {
     if (hasOpenrouterApiKey) {
@@ -101,9 +61,9 @@ export function useRequireOpenRouterApiKey(): () => void {
     toast.error('OpenRouter API key required', {
       description: 'Add an OpenRouter API key before running model inference.',
     })
-    setOpen(true)
+    setSettingsTab('api-keys')
     throw new Error('OpenRouter API key required')
-  }, [hasOpenrouterApiKey, setOpen])
+  }, [hasOpenrouterApiKey, setSettingsTab])
 }
 
 function CredentialField({ definition }: { definition: CredentialDefinition }) {
@@ -111,8 +71,10 @@ function CredentialField({ definition }: { definition: CredentialDefinition }) {
   const inputId = `credential-${definition.id}`
 
   return (
-    <div className="grid gap-2">
-      <Label htmlFor={inputId}>{definition.label}</Label>
+    <Field>
+      <FieldTitle>
+        <label htmlFor={inputId}>{definition.label}</label>
+      </FieldTitle>
       <Input
         id={inputId}
         onChange={(e) => {
@@ -122,7 +84,7 @@ function CredentialField({ definition }: { definition: CredentialDefinition }) {
         type="password"
         value={value}
       />
-      <p className="text-muted-foreground text-xs">{definition.description}</p>
-    </div>
+      <FieldDescription>{definition.description}</FieldDescription>
+    </Field>
   )
 }

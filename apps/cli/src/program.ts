@@ -6,26 +6,16 @@ import { registerMessageCommands } from './commands/messages'
 import { registerModelCommands } from './commands/models'
 import { registerPromptCommands } from './commands/prompts'
 import { registerSessionCommands } from './commands/sessions'
-import { registerSyncCommands } from './commands/sync'
-
-export interface CliProgramContextOptions {
-  syncLibrary?: boolean
-}
 
 export interface CliProgramOptions {
-  getContext: (options?: CliProgramContextOptions) => Promise<CliAppContext>
-}
-
-export interface CliRootCommandOptions {
-  sync?: boolean
+  getContext: () => Promise<CliAppContext>
 }
 
 export function createCliProgram({ getContext }: CliProgramOptions): Command {
   const program = new Command()
 
-  // Root options belong to every command, while the root action itself stays informational.
+  // The root action itself stays informational.
   program.name('tetra').description('Tetra CLI').version('0.1.0')
-  program.option('--no-sync', 'Disable optional remote sync')
   program.showHelpAfterError()
   program.action(() => {
     program.outputHelp()
@@ -37,7 +27,6 @@ export function createCliProgram({ getContext }: CliProgramOptions): Command {
   registerMessageCommands(program, getContext)
   registerPromptCommands(program, getContext)
   registerModelCommands(program, getContext)
-  registerSyncCommands(program)
 
   return program
 }

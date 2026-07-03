@@ -9,12 +9,12 @@ import {
 } from '@tetra/ui/components/ui/sheet'
 import { CopyIcon, XIcon } from 'lucide-react'
 
-import { webReact } from '@/store'
+import { deskReact } from '@/stores'
 
 const CLOSED_JSON_VIEW = { json: '', title: '' }
 
 export function useJsonViewSheet() {
-  const [, setJsonView] = webReact.values.jsonView.useState()
+  const [, setJsonView] = deskReact.values.jsonView.useState()
 
   return {
     openJsonView: (payload: { title: string; value: unknown }) => {
@@ -27,7 +27,7 @@ export function useJsonViewSheet() {
 }
 
 export function JsonViewSheet() {
-  const [jsonView, setJsonView] = webReact.values.jsonView.useState()
+  const [jsonView, setJsonView] = deskReact.values.jsonView.useState()
   const open = jsonView.title !== ''
 
   return (

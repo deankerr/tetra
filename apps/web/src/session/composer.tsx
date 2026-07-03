@@ -24,7 +24,7 @@ import { useCallback, useState } from 'react'
 import { useApp } from '@/app'
 import type { AppContextValue } from '@/app'
 import { ModelPickerButton, ModelPickerSheet } from '@/session/settings/model-picker'
-import { libraryReact } from '@/store'
+import { libraryReact } from '@/stores'
 
 import { useRunConfig } from './run-config-providers'
 import { useSessionThreadAppendTarget } from './thread-view'

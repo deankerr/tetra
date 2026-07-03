@@ -19,7 +19,7 @@ import { Trash2Icon, XIcon } from 'lucide-react'
 import { useMemo } from 'react'
 
 import { useApp } from '@/app'
-import { libraryReact } from '@/store'
+import { libraryReact } from '@/stores'
 
 import { useRunConfig } from '../run-config-providers'
 

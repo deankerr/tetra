@@ -1,20 +1,16 @@
 import { createPersistentCliAppContext } from './app'
 import type { CliAppContext } from './app'
 import { createCliProgram } from './program'
-import type { CliProgramContextOptions, CliRootCommandOptions } from './program'
 
-// Keep store startup lazy so help, version, and sync maintenance commands stay cheap.
+// Keep store startup lazy so help and version commands stay cheap.
 let context: CliAppContext | undefined
 let contextPromise: Promise<CliAppContext> | undefined
-async function getContext(options: CliProgramContextOptions = {}): Promise<CliAppContext> {
+async function getContext(): Promise<CliAppContext> {
   if (context !== undefined) {
     return context
   }
 
-  const opts = program.opts<CliRootCommandOptions>()
-  contextPromise ??= createPersistentCliAppContext({
-    syncEnabled: opts.sync !== false && options.syncLibrary !== false,
-  })
+  contextPromise ??= createPersistentCliAppContext()
   context = await contextPromise
   return context
 }

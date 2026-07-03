@@ -1,29 +1,42 @@
+import { toast } from '@tetra/ui/components/ui/sonner'
 import { createContext, useContext, useEffect, useState } from 'react'
 
-import { getWebStoreRuntime } from '@/store'
-import type { WebStores, WebStoreRuntime } from '@/store'
+import type { WebStores } from '@/stores'
+import { getWebRuntime } from '@/stores/runtime'
+import type { WebRuntime } from '@/stores/runtime'
+import { consumeWipeReport } from '@/stores/wipe'
 
-export type AppContextValue = WebStoreRuntime['core'] & {
-  sync: WebStoreRuntime['sync']
+export type AppContextValue = WebRuntime['core'] & {
+  sync: WebRuntime['sync']
   stores: WebStores
+  wipeAllData: WebRuntime['wipeAllData']
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const runtime = useWebStoreRuntime()
+  const runtime = useWebRuntime()
+
+  // Runs after the gated children — including the Toaster — have mounted; firing the toast in
+  // the same tick that resolves the runtime would drop it, since sonner does not replay.
+  useEffect(() => {
+    if (runtime !== null) {
+      reportIncompleteWipe()
+    }
+  }, [runtime])
+
   if (runtime === null) {
     return null
   }
 
   // Reactive reads bind to module-level store instances, so no TinyBase Provider is needed;
   // this context only hands components the imperative core commands and store handles.
-  const { core, stores, sync } = runtime
-  return <AppContext value={{ ...core, stores, sync }}>{children}</AppContext>
+  const { core, stores, sync, wipeAllData } = runtime
+  return <AppContext value={{ ...core, stores, sync, wipeAllData }}>{children}</AppContext>
 }
 
-function useWebStoreRuntime(): WebStoreRuntime | null {
-  const [runtime, setRuntime] = useState<WebStoreRuntime | null>(null)
+function useWebRuntime(): WebRuntime | null {
+  const [runtime, setRuntime] = useState<WebRuntime | null>(null)
   const [error, setError] = useState<Error | null>(null)
 
   useEffect(() => {
@@ -33,7 +46,7 @@ function useWebStoreRuntime(): WebStoreRuntime | null {
     // Browser-only stores mean this resolves client-side, after hydration.
     void (async () => {
       try {
-        const nextRuntime = await getWebStoreRuntime()
+        const nextRuntime = await getWebRuntime()
         if (mounted) {
           setRuntime(nextRuntime)
         }
@@ -54,6 +67,21 @@ function useWebStoreRuntime(): WebStoreRuntime | null {
   }
 
   return runtime
+}
+
+// A delete-all-data that could not erase everything must say so; silence means it was complete.
+function reportIncompleteWipe(): void {
+  const failures = consumeWipeReport()
+  if (failures === undefined) {
+    return
+  }
+
+  toast.error('Delete all data was incomplete', {
+    description: `Some data may not have been fully removed: ${failures
+      .map((failure) => failure.step)
+      .join(', ')}`,
+    duration: Infinity,
+  })
 }
 
 function toError(error: unknown): Error {

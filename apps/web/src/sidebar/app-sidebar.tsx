@@ -1,11 +1,11 @@
 import { Link } from '@tanstack/react-router'
 import { SidebarContent, SidebarFooter, SidebarHeader } from '@tetra/ui/components/ui/sidebar'
 
-import { ApiKeySettingsButton } from '@/api-key-settings'
 import { TetraLogo } from '@/components/tetra-logo'
+import { SettingsButton } from '@/settings-dialog'
 import { ThemeSwitcher } from '@/sidebar/footer/theme-switcher'
 import { SessionGroup } from '@/sidebar/session-group'
-import { SyncSettingsButton } from '@/sync-settings'
+import { SyncStatusButton } from '@/sync-settings'
 
 export function AppSidebar() {
   return (
@@ -28,8 +28,8 @@ export function AppSidebar() {
 
       <SidebarFooter>
         <div className="flex items-center justify-center gap-1">
-          <ApiKeySettingsButton />
-          <SyncSettingsButton />
+          <SettingsButton />
+          <SyncStatusButton />
           <ThemeSwitcher />
         </div>
       </SidebarFooter>

@@ -2,7 +2,7 @@ import { RunConfigSchema } from '@tetra/schemas/library'
 import type { LibraryEntities } from '@tetra/schemas/library'
 
 import { useApp } from '@/app'
-import { libraryReact } from '@/store'
+import { libraryReact } from '@/stores'
 
 export type MessagePart = LibraryEntities['messages']['parts'][number]
 

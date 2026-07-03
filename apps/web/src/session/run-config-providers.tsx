@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import { createContext, useCallback, useContext, useMemo, useState } from 'react'
 
 import { useApp } from '@/app'
-import { libraryReact } from '@/store'
+import { libraryReact } from '@/stores'
 
 interface RunConfigContextValue {
   config: RunConfig

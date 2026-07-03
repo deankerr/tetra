@@ -8,8 +8,8 @@
   "durable_objects": {
     "bindings": [
       {
-        "name": "TinyBaseDurableObjects",
-        "class_name": "TinyBaseDurableObject",
+        "name": "RelayDurableObjects",
+        "class_name": "RelayDurableObject",
       },
     ],
   },
@@ -18,6 +18,14 @@
     {
       "tag": "v1",
       "new_sqlite_classes": ["TinyBaseDurableObject"],
+    },
+    // v2 moves to a fresh relay class and deletes the persisted-store-era class in one deploy:
+    // the relay keeps no data at rest, and deleting the old class erases what its objects stored.
+    // (Delete-and-recreate under one name is impossible while a binding references the class.)
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["RelayDurableObject"],
+      "deleted_classes": ["TinyBaseDurableObject"],
     },
   ],
 

@@ -6,7 +6,7 @@ import { BracesIcon, DownloadIcon } from 'lucide-react'
 
 import { useApp } from '@/app'
 import { useJsonViewSheet } from '@/components/json-view-sheet'
-import { libraryReact } from '@/store'
+import { libraryReact } from '@/stores'
 
 import { SessionExportButton } from './export-button'
 import { useRunConfig } from './run-config-providers'

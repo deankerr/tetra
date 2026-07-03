@@ -73,8 +73,6 @@
     "apps/worker": {
       "name": "@tetra/worker",
       "dependencies": {
-        "@tetra/schemas": "workspace:*",
-        "@tetra/tinydb": "workspace:*",
         "tinybase": "catalog:",
       },
       "devDependencies": {

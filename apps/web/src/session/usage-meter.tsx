@@ -4,7 +4,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from '@tetra/ui/compone
 import { Progress } from '@tetra/ui/components/ui/progress'
 import { useMemo } from 'react'
 
-import { catalogReact } from '@/store'
+import { catalogReact } from '@/stores'
 
 import { useRunConfig } from './run-config-providers'
 import { useSessionUsageTotals } from './usage-hooks'

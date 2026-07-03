@@ -4,7 +4,7 @@ import { ButtonGroup, ButtonGroupText } from '@tetra/ui/components/ui/button-gro
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
 
 import { useApp } from '@/app'
-import { libraryReact } from '@/store'
+import { libraryReact } from '@/stores'
 
 import { useSessionThreadSelection } from '../thread-view'
 

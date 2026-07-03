@@ -8,8 +8,6 @@
     "dev": "wrangler dev"
   },
   "dependencies": {
-    "@tetra/schemas": "workspace:*",
-    "@tetra/tinydb": "workspace:*",
     "tinybase": "catalog:"
   },
   "devDependencies": {

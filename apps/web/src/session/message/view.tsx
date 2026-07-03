@@ -6,7 +6,7 @@ import {
 import { cn } from '@tetra/ui/lib/utils'
 import type { UIMessage } from 'ai'
 
-import { libraryReact } from '@/store'
+import { libraryReact } from '@/stores'
 
 import { MessageActionsView } from './actions'
 import { getRunErrorMessage, useMessageRun, useMessageRunActive } from './data'

@@ -5,10 +5,6 @@ import type { CredentialsStore } from '@tetra/credentials'
 import { createCliStoreRuntime } from './store'
 import type { CliStores } from './store'
 
-export interface PersistentCliAppContextOptions {
-  syncEnabled?: boolean
-}
-
 export interface CliAppContextOptions {
   close?: () => Promise<void>
   credentials?: CredentialsStore
@@ -16,14 +12,12 @@ export interface CliAppContextOptions {
 }
 
 async function closeInMemoryCliApp(): Promise<void> {
-  // In-memory CLI apps have no persistence or sync handles to flush.
+  // In-memory CLI apps have no persistence handles to flush.
   await Promise.resolve()
 }
 
-export async function createPersistentCliAppContext(options: PersistentCliAppContextOptions = {}) {
-  const runtime = await createCliStoreRuntime(
-    options.syncEnabled === undefined ? {} : { syncEnabled: options.syncEnabled },
-  )
+export async function createPersistentCliAppContext() {
+  const runtime = await createCliStoreRuntime()
   return createCliAppContext({
     close: async () => {
       await runtime.close()

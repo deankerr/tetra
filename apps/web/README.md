@@ -47,10 +47,10 @@ notarization.
 
 ## Configuration notes
 
-- **Env** (`.env.local`, git-ignored): `VITE_SYNC_WORKER_URL` (the Worker `wss://` URL) and
-  `VITE_SYNC_ENABLED`, **baked in at build time**. Web and desktop **deliberately share** this file —
-  both point at the same remote sync target. Vite's mode env files (`.env.desktop`) could split them,
-  but the real issue is that sync config is a build-time env var at all; see the remaining items.
+- **Env** (`.env.local`, git-ignored): `VITE_SYNC_WORKER_URL` (the relay Worker `wss://` URL),
+  **baked in at build time**. Web and desktop **deliberately share** this file — both point at the
+  same relay worker. All other sync config (enabled, channel key) is runtime user state in the
+  `prefs` store.
 - **Mode-driven config** (`vite.config.ts`) — one discriminator, the Vite **mode**. `--mode desktop`
   (baked into the `dev:tauri`/`build:tauri` scripts that Tauri's before-commands run) merges a small
   `desktop` slice onto the shared base; every other invocation (`vite dev`, `vite build`, Vercel) gets
@@ -116,10 +116,9 @@ Roughly in priority order:
   (~1k lines, debug-only). Decide later whether to keep vendoring it as-is (easy re-sync, harmless
   dead-code warnings) or trim it to the endpoints we actually use.
 - **Version source** — `tauri.conf.json` `version` is hardcoded `0.1.0`; nothing derives it.
-- **Runtime sync config** — sync target + enabled flag are build-time `VITE_` envs, so web and desktop
-  share `.env.local` and a `tauri build` bakes in whatever it held. A per-surface env split (`.env.desktop`)
-  is the cheap patch, but the underlying weakness is that sync config is build-time at all; it should be
-  runtime, user-authored state (like credentials). Fix that and the desktop/web env split is moot. Parked
-  for now — sharing one remote sync target is currently the desired behavior.
+- **Runtime sync config** — mostly resolved: the enabled flag and channel key are runtime,
+  user-authored state in the `prefs` store (see `src/stores/`); a `tauri build` no longer bakes in
+  the user-facing knobs. Only the relay worker URL remains a build-time `VITE_SYNC_WORKER_URL`
+  env, which web and desktop deliberately share.
 - **Distribution** — code signing + notarization before the `.app`/`.dmg` can run on other Macs.
 - **Cross-platform** — currently macOS-only; Windows/Linux targets would need CI.

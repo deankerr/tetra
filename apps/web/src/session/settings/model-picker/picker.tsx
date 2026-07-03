@@ -14,7 +14,7 @@ import { useMemo, useState } from 'react'
 import type { ComponentProps } from 'react'
 
 import { useApp } from '@/app'
-import { catalogReact, libraryReact } from '@/store'
+import { catalogReact, libraryReact } from '@/stores'
 
 import { ModelCard } from './model-card'
 

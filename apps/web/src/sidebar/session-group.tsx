@@ -21,7 +21,7 @@ import { MoreHorizontalIcon, PlusIcon } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 
 import { useApp } from '@/app'
-import { libraryReact } from '@/store'
+import { libraryReact } from '@/stores'
 
 // Sessions sorted by updatedAt descending — most recently active first.
 // Transcript writes touch updatedAt, so this order naturally tracks conversation activity.

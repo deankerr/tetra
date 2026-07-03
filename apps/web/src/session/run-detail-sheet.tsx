@@ -15,7 +15,7 @@ import { CopyIcon, XIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useMemo } from 'react'
 
-import { libraryReact } from '@/store'
+import { libraryReact } from '@/stores'
 
 import { useRunSteps } from './usage-hooks'
 

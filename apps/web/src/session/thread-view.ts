@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from 'react'
 
 import { useApp } from '@/app'
-import { libraryReact, webReact } from '@/store'
+import { libraryReact, deskReact } from '@/stores'
 
 export function useSessionThreadView(sessionId: string) {
   const { selectThreadFromMessage, thread, threadAnchorMessageId, threadLeafMessageId } =
@@ -19,7 +19,7 @@ export function useSessionThreadAppendTarget(sessionId: string) {
 
 export function useSessionThreadSelection(sessionId: string) {
   const { transcripts } = useApp()
-  const [, setThreadAnchorMessageId] = webReact.sessionThreadViews.useFieldState(
+  const [, setThreadAnchorMessageId] = deskReact.sessionThreadViews.useFieldState(
     sessionId,
     'threadAnchorMessageId',
   )
@@ -39,7 +39,7 @@ function useResolvedSessionThread(sessionId: string) {
   const { transcripts } = useApp()
   const sessionMessages = libraryReact.messages.useBySession(sessionId)
   const [storedThreadAnchorMessageId, setThreadAnchorMessageId] =
-    webReact.sessionThreadViews.useFieldState(sessionId, 'threadAnchorMessageId')
+    deskReact.sessionThreadViews.useFieldState(sessionId, 'threadAnchorMessageId')
   const session = transcripts.getSession(sessionId)
   const validStoredAnchor =
     storedThreadAnchorMessageId !== undefined &&
