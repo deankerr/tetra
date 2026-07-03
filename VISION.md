@@ -32,6 +32,6 @@ This decoupling strategy natively allows for active requests to survive navigati
 - Context Management: selection and assembly of prompt/message request inputs.
 - Composable Prompt Management: Reusable prompt fragments, assembly, preview.
 - Tool registry, execution loop, result rendering. AI SDK tool calling.
-- Sessions spawn sub-sessions via tools. An agent can delegate work to another agent — blocking or async. See `reference/sub-agents.md`.
+- Sessions spawn sub-sessions via tools. An agent can delegate work to another agent — blocking or async.
 - Media/file support.
 - Slash command/command palette interaction model.

@@ -4,8 +4,6 @@
 
 ## Claims
 
-- TinyBase is the durable, synchronous state substrate. Prefer ordinary reads and mutations over async state actions.
-- Raw TinyBase access belongs at explicit integration boundaries. Most code should speak through typed table APIs or domain methods.
 - Core should express domain moves, not UI workflows. Web and CLI can decide what messages to create; core should own the durable invariants once they do.
 - Long-running work should have explicit handles for lifecycle, cancellation, completion, and recovery. Avoid fire-and-forget as the durable shape.
 - Async/external work, such as inference, catalog refresh, persistence, network tools, and recovery, should use the same synchronous state APIs as everything else.

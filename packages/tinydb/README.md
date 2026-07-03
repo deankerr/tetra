@@ -1,12 +1,6 @@
 # @tetra/tinydb
 
-A typed `db` handle over a TinyBase store, derived from zod schemas. The flatter,
-consumption-shaped successor to the old `@tetra/tinybase-schema` (now deleted): one `db`
-per store replaces the `boundStore`/`boundIndexes` split.
-
-> **Status: integrated.** Consumed by `@tetra/schemas`, `@tetra/core`, `apps/cli`,
-> `apps/web`, and `apps/worker`. Design rationale lives in `docs/design/tinybase-db-api.md`;
-> deferred consumer cleanups in `docs/design/db-migration-followups.md`.
+A typed `db` handle over a TinyBase store, derived from zod schemas. Design rationale lives in `docs/design/tinybase-db-api.md`.
 
 ## Shape
 

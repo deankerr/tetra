@@ -16,15 +16,12 @@ Dev data is wiped and regenerated as needed. This app is not public. There are h
 
 - Fail fast, throw exceptions, never swallow errors, use console.log/warn/error
 - Prefer using existing libraries/solutions over writing our own.
-- Lockfile changes are acceptable even if they seem unrelated, do not edit manually.
-
-- Note: the `shiki` wasm warning emitted during build is a known non-issue, do not report it.
 
 ## Packages
 
 - `apps/cli` — Bun CLI frontend, should always track the feature set of the web frontend (within reason).
 - `apps/web` — TanStack Start web frontend.
-- `apps/worker` — Cloudflare Worker and Durable Object sync backend.
+- `apps/worker` — Cloudflare Worker sync backend.
 - `packages/core` — sessions, runner, tool registry, and UI-agnostic app logic.
 - `packages/credentials` — credential registry and localStorage store.
 - `packages/schemas` — Tetra TinyBase store definitions, indexes, and row types.
@@ -41,11 +38,8 @@ Dev data is wiped and regenerated as needed. This app is not public. There are h
   - what components need to rerender,
   - what needs an index,
   - what needs to be persisted as a durable artifact.
-
-- Cleaned TinyBase docs: `reference/tinybase-docs` - this is .gitignored, use your bash tool to navigate.
-- Inspect the library directly in `{apps|packages}/<name>/node_modules` when a deeper understand of behaviour is necessary.
-- TinyBase `store.transaction` batches listener notifications and exposes a transaction log; it is not a persistence or exception-safety boundary.
-- `store.transaction` is synchronous and does not use `try/finally`: validate or parse before entering it, and do not put `await` inside it.
+- Inspect code directly in `packages/tinydb/node_modules/tinybase` when required.
+- `store.transaction` batches listener notifications and exposes a transaction log; it is NOT a persistence or exception-safety boundary.
 
 ### tinydb
 
@@ -54,16 +48,12 @@ schema-inferred query methods, typed values, `batch`, and a `raw` escape hatch �
 `./react` hooks. Schemas declare tables + values + indexes via `defineSchema`; `createDb` /
 `createMergeableDb` assemble a live `db`.
 
-- Track design notes, gaps, and deferred ideas in `packages/tinydb/README.md`.
-
 ## Monorepo
 
 - Bun workspaces with isolated modules.
 - Auto-fix lint/format/type-aware issues: `bun run fix`. This is the only check script you should use. Do not use `tsc`.
-- Keep package root exports demand-driven. Do not export every internal symbol by default; let real consumers justify the public surface, and run `bun run knip` when tightening exports.
-- Review `knip.json` whenever the monorepo package surface is modified, especially when adding or removing packages, package entrypoints, root exports, or test entrypoints.
+- Keep package root exports demand-driven. Do not export every internal symbol by default; let real consumers justify the public surface, and run `bun run knip` when tightening exports. Review `knip.json` whenever the monorepo package surface is modified.
 - Inline disables may be used if the reasoning is justified.
-- `sort-keys` is enabled - allow it to re-order object keys.
 
 ## TypeScript 6
 

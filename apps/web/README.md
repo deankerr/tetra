@@ -11,12 +11,6 @@ TinyBase data layer. It ships as **two form-factors from one codebase**:
 Inference goes directly to OpenRouter from the client with user-supplied credentials. Remote sync
 (optional) is a WebSocket to the Cloudflare Worker. Neither needs a server of our own at runtime.
 
-## Prerequisites
-
-- **Bun** (repo uses Bun workspaces) — `bun install` at the repo root.
-- **Desktop only:** a Rust toolchain (`rustup`/`cargo`) and Xcode Command Line Tools
-  (`xcode-select --install`). See [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/).
-
 ## Develop
 
 | Command                             | What it runs                                                                          |
@@ -26,8 +20,7 @@ Inference goes directly to OpenRouter from the client with user-supplied credent
 | `bun run tauri dev` (in `apps/web`) | Desktop shell — boots Vite, compiles the Rust crate, opens the native window with HMR |
 
 `tauri dev` drives the web dev server itself through `beforeDevCommand`, so you don't start Vite
-separately. The first Rust compile takes ~1 min; subsequent runs are fast. Frontend logs don't stream
-to the terminal — open the in-window devtools (right-click → Inspect), or poll them on demand with
+separately. Frontend logs don't stream to the terminal — open the in-window devtools (right-click → Inspect), or poll them on demand with
 `node_modules/.bin/tauri-agent-tools console-monitor` (see the dev bridge note below).
 
 ## Build

@@ -151,8 +151,6 @@ straight from process env (`OPENROUTER_API_KEY`, `EXA_API_KEY`) — no persister
   store isolation — per-key local stores were considered and deliberately rejected (end users
   have one library; a key change that switches to an empty store reads as data loss).
 - **Not E2EE.** The relay sees frames in transit.
-- **Old server-era storage keys** (`tetra:sync`, `tetra:web`) are orphaned in existing browser
-  profiles, not migrated. Prototype mode.
 
 ## Possible futures
 
