@@ -42,7 +42,12 @@ export function MessageView({
     >
       <MessageHeader isActive={isActive} run={run} />
       <AiMessageContent className="group-[.is-assistant]:w-full">
-        <MessageParts isStreaming={isActive} messageId={message.id} parts={message.parts} />
+        <MessageParts
+          isStreaming={isActive}
+          messageId={message.id}
+          parts={message.parts}
+          role={message.role}
+        />
         <MessageRunError run={run} />
       </AiMessageContent>
 

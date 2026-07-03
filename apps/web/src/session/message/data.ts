@@ -5,6 +5,7 @@ import { useApp } from '@/app'
 import { libraryReact } from '@/stores'
 
 export type MessagePart = LibraryEntities['messages']['parts'][number]
+export type MessageRole = LibraryEntities['messages']['role']
 
 export function getRunModelId(run: LibraryEntities['runs']): string {
   return RunConfigSchema.parse(run.config).modelId
