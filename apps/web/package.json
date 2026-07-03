@@ -12,9 +12,9 @@
   },
   "dependencies": {
     "@lonik/themer": "^0.5.4",
-    "@tailwindcss/vite": "^4.3.0",
+    "@tailwindcss/vite": "^4.3.2",
     "@tanstack/react-devtools": "^0.10.5",
-    "@tanstack/react-router": "^1.170.7",
+    "@tanstack/react-router": "^1.170.17",
     "@tanstack/react-router-devtools": "^1.167.0",
     "@tetra/core": "workspace:*",
     "@tetra/credentials": "workspace:*",
@@ -32,16 +32,16 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@tanstack/devtools-vite": "^0.6.1",
-    "@tanstack/router-plugin": "^1.168.18",
-    "@tauri-apps/cli": "^2.11.3",
+    "@tanstack/devtools-vite": "^0.8.1",
+    "@tanstack/router-plugin": "^1.168.19",
+    "@tauri-apps/cli": "^2.11.4",
     "@tetra/config": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "@vitejs/plugin-react": "^6.0.2",
+    "@vitejs/plugin-react": "^6.0.3",
     "tauri-agent-tools": "^0.8.0",
     "typescript": "catalog:",
-    "vite": "^8.0.14"
+    "vite": "^8.1.3"
   }
 }
