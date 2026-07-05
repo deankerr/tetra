@@ -48,7 +48,6 @@ describe('real library schema', () => {
     db.runs.create('r1', {
       config: { maxMessages: 5, modelId: 'x' },
       createdAt: 100,
-      errorMessage: '',
       sessionId: 's1',
       status: 'active',
       targetMessageId: 'm1',
@@ -58,7 +57,6 @@ describe('real library schema', () => {
     db.runs.create('r2', {
       config: {},
       createdAt: 200,
-      errorMessage: '',
       sessionId: 's1',
       status: 'completed',
       targetMessageId: 'm2',

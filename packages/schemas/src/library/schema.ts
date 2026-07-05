@@ -113,7 +113,17 @@ export const librarySchema = defineSchema({
     runs: z.object({
       config: RunConfigSnapshotSchema,
       createdAt: z.number(),
-      errorMessage: z.string(),
+      // Error surface is display-first: null unless the run failed/was cancelled. A flattened
+      // message always, plus the raw provider payload verbatim and the HTTP status (the one field
+      // worth branching on, e.g. retry).
+      error: z
+        .object({
+          detail: z.record(z.string(), z.json()).optional(),
+          message: z.string(),
+          status: z.number().optional(),
+        })
+        .nullable()
+        .default(null),
       sessionId: z.string(),
       status: RunStatusSchema,
       targetMessageId: z.string(),

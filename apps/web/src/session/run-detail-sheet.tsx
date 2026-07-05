@@ -116,15 +116,26 @@ function RunOverview({ run }: { run: Run }) {
         <DataListItem label="Duration" value={formatDuration(run)} />
       </DataListGrid>
 
-      {run.errorMessage !== '' && (
+      {run.error !== null && (
         <DataListGrid>
           <DataListItem
             label="Error"
             labelClassName="text-destructive"
-            value={run.errorMessage}
+            value={run.error.message}
             valueClassName="text-destructive whitespace-pre-wrap"
           />
+          {run.error.status !== undefined && (
+            <DataListItem
+              label="Status"
+              labelClassName="text-destructive"
+              value={String(run.error.status)}
+              valueClassName="text-destructive"
+            />
+          )}
         </DataListGrid>
+      )}
+      {run.error?.detail !== undefined && (
+        <JsonBlock title="Error detail" value={run.error.detail} />
       )}
     </DetailSection>
   )

@@ -5,7 +5,7 @@ import { createCredentialReader } from '@tetra/credentials'
 import { librarySchema } from '@tetra/schemas/library'
 import type { LibraryEntities } from '@tetra/schemas/library'
 import { createDb } from '@tetra/tinydb/runtime'
-import { simulateReadableStream, tool } from 'ai'
+import { APICallError, simulateReadableStream, tool } from 'ai'
 import { MockLanguageModelV3 } from 'ai/test'
 import { z } from 'zod'
 
@@ -670,9 +670,56 @@ test('Error Path — stream error sets run to error status', async () => {
 
   expect(run.status).toBe('error')
   expect(runRecord.status).toBe('error')
-  expect(runRecord.errorMessage).toContain('Provider API error')
+  expect(runRecord.error?.message).toContain('Provider API error')
   expect(run.error).toBeDefined()
   expect(String(run.error)).toContain('Provider API error')
+})
+
+test('Error Path — APICallError captures status and structured detail', async () => {
+  const context = createTestDb()
+  const { library } = context
+  const runConfigs = new RunConfigs({ library })
+  const prompts = new Prompts({ library, runConfigs })
+  const transcripts = new Transcripts({ library, runConfigs })
+  const core = { library, prompts, transcripts }
+  const credentials = createCredentialReader(() => {})
+
+  // Mirror a request-level OpenRouter failure: flattened message, structured body on `.data`,
+  // HTTP status on `.statusCode`.
+  const model = new MockLanguageModelV3({
+    doStream: () => {
+      throw new APICallError({
+        data: { error: { code: 'rate_limited', message: 'Rate limited by provider' } },
+        // Non-retryable so the test exercises the capture path directly, not the SDK's retry backoff.
+        isRetryable: false,
+        message: '[provider] Rate limited by provider',
+        requestBodyValues: {},
+        responseBody: '{"error":{"code":"rate_limited"}}',
+        statusCode: 429,
+        url: 'https://openrouter.ai/api/v1/chat/completions',
+      })
+    },
+  })
+
+  const modelResolver: LanguageModelResolver = { resolve: () => model }
+  const runs = new Runs({ credentials, library, modelResolver, prompts, runConfigs, transcripts })
+  const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
+
+  appendAfterNewestLeaf(core, sessionId, { parts: [{ text: 'hello', type: 'text' }], role: 'user' })
+  const targetMessageId = appendAfterNewestLeaf(core, sessionId, { parts: [], role: 'assistant' })
+  const run = await withoutExpectedConsoleErrors({ messages: ['Rate limited'] }, async () => {
+    const startedRun = runs.generate({ targetMessageId })
+    await startedRun.done
+    return startedRun
+  })
+
+  const runRecord = core.library.runs.require(run.runId)
+
+  expect(runRecord.status).toBe('error')
+  expect(runRecord.error?.status).toBe(429)
+  expect(runRecord.error?.detail).toEqual({
+    error: { code: 'rate_limited', message: 'Rate limited by provider' },
+  })
 })
 
 test('Error Path — later runs can still run after an error', async () => {

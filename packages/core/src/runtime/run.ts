@@ -55,6 +55,9 @@ export class Run extends EventTarget {
   status: LibraryRunStatus = 'active'
   tools: ToolSet = {}
 
+  // toUIMessageStream flattens errors to a text-only part before readUIMessageStream rethrows them,
+  // so we grab the original (structured APICallError, etc.) at that boundary via onError.
+  private capturedError: unknown = null
   private readonly credentials: CredentialReader
   private readonly doneController = Promise.withResolvers<undefined>()
   private readonly modelResolver: LanguageModelResolver
@@ -202,7 +205,7 @@ export class Run extends EventTarget {
         onStepFinish: (step: OnStepFinishEvent) => {
           this.recordStep(StepEvent.parse(step))
         },
-        providerOptions: { openrouter: config.providerOptions },
+        providerOptions: { openrouter: { ...config.providerOptions, session_id: this.sessionId } },
         stopWhen: stepCountIs(6),
         tools,
       }
@@ -215,7 +218,13 @@ export class Run extends EventTarget {
 
       let finalParts: UIMessage['parts'] = []
       for await (const message of readUIMessageStream({
-        stream: result.toUIMessageStream({ sendReasoning: true }),
+        stream: result.toUIMessageStream({
+          onError: (error) => {
+            this.capturedError = error
+            return error instanceof Error ? error.message : String(error)
+          },
+          sendReasoning: true,
+        }),
         terminateOnError: true,
       })) {
         finalParts = message.parts
@@ -225,7 +234,8 @@ export class Run extends EventTarget {
 
       this.complete(finalParts)
     } catch (error) {
-      this.fail(error)
+      // Prefer the original error captured at the UI-stream boundary; the caught value is flattened.
+      this.fail(this.capturedError ?? error)
     }
   }
 

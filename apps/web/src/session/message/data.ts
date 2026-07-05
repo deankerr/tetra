@@ -12,11 +12,7 @@ export function getRunModelId(run: LibraryEntities['runs']): string {
 }
 
 export function getRunErrorMessage(run: LibraryEntities['runs'] | null): string | null {
-  if (run === null || run.errorMessage === '') {
-    return null
-  }
-
-  return run.errorMessage
+  return run?.error?.message ?? null
 }
 
 // An `active` run row is only a claim. The live Run object is the authority on liveness,

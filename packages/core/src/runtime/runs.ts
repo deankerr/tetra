@@ -1,5 +1,7 @@
 import type { CredentialReader } from '@tetra/credentials'
 import type { LibraryDb, LibraryEntities, RunConfig } from '@tetra/schemas/library'
+import { APICallError } from 'ai'
+import { z } from 'zod'
 
 import { createIdGenerator } from '#ids'
 import type { Prompts } from '#prompts'
@@ -142,7 +144,6 @@ export class Runs {
     this.library.runs.create(runId, {
       config: args.config,
       createdAt: now,
-      errorMessage: '',
       sessionId: args.sessionId,
       status: 'active',
       targetMessageId: args.targetMessageId,
@@ -196,7 +197,7 @@ export class Runs {
   private cancelRunRecord(runId: string, message = ''): void {
     const now = Date.now()
     this.library.runs.update(runId, {
-      errorMessage: message,
+      error: message === '' ? null : { message },
       status: 'cancelled',
       terminalAt: now,
       updatedAt: now,
@@ -206,10 +207,51 @@ export class Runs {
   private failRunRecord(runId: string, error: unknown): void {
     const now = Date.now()
     this.library.runs.update(runId, {
-      errorMessage: String(error),
+      error: describeError(error),
       status: 'error',
       terminalAt: now,
       updatedAt: now,
     })
   }
+}
+
+const JsonRecordSchema = z.record(z.string(), z.json())
+type JsonRecord = z.infer<typeof JsonRecordSchema>
+
+// Flatten a thrown value into the durable error surface: a human message always, plus the raw
+// provider payload and HTTP status when they exist. We show these; we never model their internals.
+function describeError(error: unknown): {
+  detail?: JsonRecord
+  message: string
+  status?: number
+} {
+  // Request-level failures arrive as APICallError: message flattened by the provider, structured
+  // body on `.data`, HTTP status on `.statusCode` (not inside `.data`).
+  if (APICallError.isInstance(error)) {
+    const detail = toJsonRecord(error.data) ?? toJsonRecord(error.responseBody)
+    return {
+      ...(detail && { detail }),
+      message: error.message,
+      ...(error.statusCode !== undefined && { status: error.statusCode }),
+    }
+  }
+
+  // Mid-stream errors (HTTP 200 + error payload) surface as the raw OpenRouter error object.
+  const detail = toJsonRecord(error)
+  if (detail) {
+    return { detail, message: typeof detail.message === 'string' ? detail.message : String(error) }
+  }
+
+  return { message: String(error) }
+}
+
+// Coerce an opaque value into the JSON cell: objects as-is, a raw string body wrapped so the shape
+// stays uniform. safeParse means capturing an error never itself throws on a non-JSON payload.
+function toJsonRecord(value: unknown): JsonRecord | undefined {
+  const candidate = typeof value === 'string' ? { raw: value } : value
+  const parsed = JsonRecordSchema.safeParse(candidate)
+  if (!parsed.success || Object.keys(parsed.data).length === 0) {
+    return undefined
+  }
+  return parsed.data
 }
