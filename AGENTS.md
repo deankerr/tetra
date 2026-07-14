@@ -20,7 +20,7 @@ Dev data is wiped and regenerated as needed. This app is not public. There are h
 ## Packages
 
 - `apps/cli` — Bun CLI frontend, should always track the feature set of the web frontend (within reason).
-- `apps/web` — TanStack Start web frontend.
+- `apps/web` — Vite + TanStack Router web frontend.
 - `apps/worker` — Cloudflare Worker sync backend.
 - `packages/core` — sessions, runner, tool registry, and UI-agnostic app logic.
 - `packages/credentials` — credential registry and localStorage store.
@@ -62,8 +62,25 @@ schema-inferred query methods, typed values, `batch`, and a `raw` escape hatch �
 
 ## Project Docs
 
-@VISION.md
-@CONTEXT-MAP.md
+### Current system
+
+- `README.md` — current architecture, package map, stack, and development entry point.
+- `CONTEXT.md` — shared product and domain vocabulary.
+- `CONTEXT-MAP.md` — context-specific documentation and ADR routing.
+- `docs/storage.md` — store vocabulary, persistence, sync, deletion, and ownership boundaries.
+- `docs/testing.md` — testing strategy, coverage boundaries, and the default test command.
+- `docs/usage.md` — usage, cost, step, message, and context-accounting semantics.
+
+### Direction and research
+
+- `VISION.md` — product direction and planned capabilities.
+- `docs/sub-agents.md` — planned sub-agent model and design constraints.
+- `docs/research/openrouter-features.md` — dated OpenRouter capability research and implementation status.
+
+### Decisions and design history
+
+- `docs/adr/` — current system-wide architectural decisions.
+- `docs/design/` — design explorations and reviews; verify claims against current code and ADRs.
 
 ## Agent skills
 
