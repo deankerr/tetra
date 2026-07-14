@@ -8,11 +8,13 @@ import {
   SheetTitle,
 } from '@tetra/ui/components/ui/sheet'
 import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
+import { cn } from '@tetra/ui/lib/utils'
 import { HomeIcon, Settings2Icon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 
 import { MissingOpenRouterApiKeyButton, useRequireOpenRouterApiKey } from '@/api-key-settings'
 import { libraryReact } from '@/stores'
+import { useTrafficLightClearance } from '@/tauri'
 
 import { ConversationView } from './conversation-view'
 import { SessionPanelErrorBoundary } from './error-boundary'
@@ -30,11 +32,15 @@ export function SessionView({ sessionId }: { sessionId: string }) {
 }
 
 function MissingSession() {
+  const trafficLightClearance = useTrafficLightClearance()
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       {/* Header */}
       <header
-        className="flex h-(--header-height) shrink-0 items-center gap-2 border-b px-2"
+        className={cn(
+          'flex h-(--header-height) shrink-0 items-center gap-2 border-b px-2',
+          trafficLightClearance,
+        )}
         data-tauri-drag-region
       >
         <SidebarTrigger title="Open sidebar" />
@@ -88,13 +94,17 @@ function ActiveSessionPanel({
   const { config, updateConfig } = useRunConfig()
   const [promptSheetOpen, setPromptSheetOpen] = useState(false)
   const requireGenerateReady = useRequireOpenRouterApiKey()
+  const trafficLightClearance = useTrafficLightClearance()
 
   return (
     <div className="flex min-h-0 min-w-[420px] flex-1 flex-col border-r last:border-r-0">
       {/* Main content */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <header
-          className="flex h-(--header-height) shrink-0 items-center gap-2 border-b px-2"
+          className={cn(
+            'flex h-(--header-height) shrink-0 items-center gap-2 border-b px-2',
+            trafficLightClearance,
+          )}
           data-tauri-drag-region
         >
           <SidebarTrigger />

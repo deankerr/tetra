@@ -1,10 +1,13 @@
 import { Link } from '@tanstack/react-router'
 import { Button } from '@tetra/ui/components/ui/button'
 import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
+import { cn } from '@tetra/ui/lib/utils'
 import { AlertCircleIcon, HomeIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 import type { FallbackProps } from 'react-error-boundary'
+
+import { useTrafficLightClearance } from '@/tauri'
 
 export function SessionPanelErrorBoundary({
   children,
@@ -29,12 +32,16 @@ export function SessionPanelErrorBoundary({
 function SessionPanelErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   const message =
     error instanceof Error ? error.message : 'An unexpected session view error occurred.'
+  const trafficLightClearance = useTrafficLightClearance()
 
   return (
     <div className="flex min-h-0 min-w-[420px] flex-1 flex-col border-r last:border-r-0">
       {/* Fallback header */}
       <header
-        className="flex h-(--header-height) shrink-0 items-center gap-2 border-b px-2"
+        className={cn(
+          'flex h-(--header-height) shrink-0 items-center gap-2 border-b px-2',
+          trafficLightClearance,
+        )}
         data-tauri-drag-region
       >
         <SidebarTrigger title="Open sidebar" />
