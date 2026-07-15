@@ -9,46 +9,24 @@ Ordering is roughly by how much the awkwardness will compound if built on top of
 
 ---
 
-## 1. RunConfig has four names and three write paths
+## 1. RunConfig states and write ownership — resolved
 
-This is the most load-bearing concept in the app and currently the least settled.
+The review found two durable session-config update implementations and schemas named by
+location rather than meaning. It also found one loose JSON schema serving two unrelated
+roles: historical run snapshots and partial defaults for future sessions.
 
-**Four schema identities** in `packages/schemas/src/library/schema.ts`:
+The cleanup now gives each durable state the schema matching its invariant:
 
-- `RunConfigSchema` — strict, no defaults (line 11)
-- `SessionRunConfigSchema` — same shape, everything defaulted (line 21)
-- `RunConfigSnapshotSchema` — `z.record(z.string(), z.json())`, i.e. untyped (line 18)
-- `ProviderOptionsSchema` — the one nested field that's genuinely open
+- `RunConfigSchema` is the complete executable recipe and the run-row snapshot shape.
+- `SessionRunConfigSchema` supplies built-in defaults for the durable session cell.
+- `RunConfigDefaultsSchema` validates the partial template used for new sessions.
+- `ProviderOptionsSchema` remains the deliberately open field inside all three.
 
-The strict/defaulted pair is a reasonable "stored vs. resolved" split, but nothing in the
-naming says which is which, and call sites pick whichever parses. The snapshot schema is
-worse: `runs.config` is written loose and then **strictly re-parsed at read time** —
-`getRunModelId` does `RunConfigSchema.parse(run.config)` on every message-actions render
-(`apps/web/src/session/message/data.ts:11`), and `Run.stream()` re-parses the config it was
-handed (`packages/core/src/runtime/run.ts:192`). This is "loose at the boundary, strict deep
-in the call stack" — the inversion of the project's own parse-at-the-boundary rule. A run row
-written by an older schema shape doesn't fail on write or sync; it fails later, inside a
-message toolbar render.
-
-**Three write paths** for the same session config cell:
-
-1. Core: `RunConfigs.update` — merge, parse, write (`packages/core/src/run-configs.ts:26`).
-   The CLI uses this (`apps/cli/src/commands/sessions.ts:206`).
-2. Web: `PersistedRunConfigProvider.updateConfig` re-implements the same merge+parse+write
-   directly against the library store (`apps/web/src/session/run-config-providers.tsx:30-37`)
-   — and uses `SessionRunConfigSchema` where core uses `RunConfigSchema`.
-3. Web drafts: `DraftRunConfigProvider` does the merge in React state (fine — it's a draft).
-
-`CONTEXT.md` says _"RunConfigs owns every merge, multi-cell, or cross-table operation"_. The
-web app's primary config editor doesn't go through it. This isn't hypothetical drift — the
-two paths already parse with different schemas, so an invalid partial that core would reject
-can land via the web path (defaults paper over it). Either the web provider should call
-`runConfigs.update`, or the CONTEXT.md claim should be weakened to match reality. The first
-is a ~5 line change; the concept is worth more than the code.
-
-**Related conceptual gap:** the vocabulary in `CONTEXT.md` defines RunConfig/RunConfigs but
-not the _snapshot_ (the frozen copy on a run row) or the _draft_ (the pre-session config in
-web). Both exist in code and neither has a name in the shared language.
+The persisted web provider delegates patches to `RunConfigs.update`; the draft provider
+continues to merge transient React state but validates the result as a complete RunConfig.
+Live execution no longer re-parses the already-resolved config, and snapshot readers consume
+the typed row directly. `CONTEXT.md` names Session RunConfig, RunConfig Default, RunConfig
+Snapshot, and RunConfig Draft so their different lifecycles are part of the shared language.
 
 ## 2. Run liveness has two authorities and no recovery story
 
@@ -205,9 +183,9 @@ would be a better user error.
   and deliberate, but new component code visibly hesitates between them.
 - **`docs/design/db-migration-followups.md` items are aging in.** The CLI write-path
   inconsistency it describes still exists (`sessions rename` now goes through core, but
-  `prompts update` still writes direct — and the web config path from §1 is the same
-  disease in a bigger organ). The doc said "revisit during a dedicated cleanup pass";
-  that pass hasn't happened.
+  `prompts update` still writes direct). The analogous web config path from §1 has now
+  moved behind its core module. The doc said "revisit during a dedicated cleanup pass";
+  the remaining paths still need that pass.
 - **`apps/cli` parity is drifting.** No tools display, no fork/thread control, no usage
   meter, no provider options — AGENTS.md says the CLI "should always track the feature set
   of the web frontend (within reason)". It's currently more of a scripting harness than a
@@ -216,12 +194,12 @@ would be a better user error.
 ## 10. Test coverage is shaped like the old architecture
 
 Core is well-tested (810-line runtime integration test, transcripts, configs, steps), tinydb
-is tested, the CLI has an integration test. The web layer — 40+ files, and per §1–§3 the
-place where domain logic keeps leaking to — has zero tests. This is the known coverage gap
-from the migration doc, but the shape matters more than the number: **the untested layer is
-the one currently accumulating behavior.** Either behavior moves down into tested core
-(§1, §3 both push that way), or the web layer needs its own harness. The former is cheaper
-and matches the stated architecture.
+is tested, and the CLI has an integration test. The web layer — 40+ files and still the seam
+where §3's domain logic accumulates — has zero tests. This is the known coverage gap from
+the migration doc, but the shape matters more than the number: **the untested layer is the
+one currently accumulating behavior.** Either behavior moves down into tested core, as the
+§1 cleanup did, or the web layer needs its own harness. The former is cheaper and matches
+the stated architecture.
 
 ## 11. Conceptual: the vision's next features all press on the same three joints
 
@@ -229,8 +207,8 @@ Reading VISION.md against the code, the undercooked-but-planned features (agent 
 prompt fragments/composition, sub-sessions, context assembly) all land on joints this doc
 already flagged:
 
-- **Profiles** are "named RunConfigs" — they'll multiply the config write paths and the
-  snapshot/draft/stored ambiguity of §1.
+- **Profiles** are "named RunConfigs" — they now have the typed states and single update
+  seam established by the §1 cleanup, but will still add another lifecycle to that model.
 - **Prompt composition** replaces the `systemPromptId: ''` sentinel and single-blob prompts
   — it inherits the unlink-scan and the sentinel conventions of §8.
 - **Sub-sessions** multiply concurrent runs (§2's undeclared policy), tree-walking surfaces
@@ -238,22 +216,20 @@ already flagged:
 - **Context assembly** replaces `maxMessages` + `.slice(-n)` (`runs.ts:132`) — which today
   can slice a transcript mid-tool-call and ship an orphaned tool result to the provider.
 
-None of these require pausing feature work for a refactor era. But the order matters: each
-of §1–§3 is a one-to-two-session cleanup _now_ and a lot more after profiles, sub-agents,
-and composition are built on top of the current joints.
+None of these require pausing feature work for a refactor era. The §1 cleanup is complete;
+§2–§3 remain much cheaper before sub-agents and composition are built on top of them.
 
 ---
 
 ## Suggested balance
 
-If I had to pick three refinements to do _before_ the next feature push, in order:
+The first recommended refinement — unifying the RunConfig write path and naming its states
+(§1) — is complete. The remaining priorities are:
 
-1. **Unify the RunConfig write path and name its states** (§1) — route web through
-   `RunConfigs`, pick names for stored/resolved/snapshot/draft, put them in CONTEXT.md.
-2. **Add the boot-time run reconciliation sweep** (§2) — makes run rows trustworthy,
+1. **Add the boot-time run reconciliation sweep** (§2) — makes run rows trustworthy,
    deletes the scattered two-authority checks, and is a prerequisite for honest
    multi-device and sub-agent status UI.
-3. **Settle the reactive-derivation seam** (§3) — one blessed way to get a reactive thread/
+2. **Settle the reactive-derivation seam** (§3) — one blessed way to get a reactive thread/
    fork view, killing the subscription-for-side-effect idiom.
 
 Cheap hygiene to fold into any passing commit: the role-projection policy (§4),

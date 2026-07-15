@@ -11,8 +11,8 @@ export type LibraryRunStatus = LibraryEntities['runs']['status']
 
 export {
   ProviderOptionsSchema,
+  RunConfigDefaultsSchema,
   RunConfigSchema,
-  RunConfigSnapshotSchema,
   SessionRunConfigSchema,
   StepWarningSchema,
 } from './schema.ts'

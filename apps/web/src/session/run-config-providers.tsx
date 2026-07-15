@@ -1,4 +1,4 @@
-import { SessionRunConfigSchema } from '@tetra/schemas/library'
+import { RunConfigSchema, SessionRunConfigSchema } from '@tetra/schemas/library'
 import type { RunConfig } from '@tetra/schemas/library'
 import type { ReactNode } from 'react'
 import { createContext, useCallback, useContext, useMemo, useState } from 'react'
@@ -21,19 +21,15 @@ export function PersistedRunConfigProvider({
   children: ReactNode
   sessionId: string
 }) {
-  const { stores } = useApp()
-  const { library } = stores
+  const { runConfigs } = useApp()
   const [storedConfig] = libraryReact.sessions.useFieldState(sessionId, 'config')
   const config = SessionRunConfigSchema.parse(storedConfig ?? {})
 
-  // Patch from the latest store value so field editors do not capture stale config objects.
   const updateConfig = useCallback(
     (partial: Partial<RunConfig>) => {
-      const existing = library.sessions.require(sessionId).config
-      const nextConfig = SessionRunConfigSchema.parse({ ...existing, ...partial })
-      library.sessions.update(sessionId, { config: nextConfig })
+      runConfigs.update(sessionId, partial)
     },
-    [library, sessionId],
+    [runConfigs, sessionId],
   )
 
   const value = useMemo(
@@ -50,7 +46,7 @@ export function DraftRunConfigProvider({ children }: { children: ReactNode }) {
 
   // Drafts are ordinary config objects until submit materializes a real session.
   const updateConfig = useCallback((partial: Partial<RunConfig>) => {
-    setConfig((existing) => SessionRunConfigSchema.parse({ ...existing, ...partial }))
+    setConfig((existing) => RunConfigSchema.parse({ ...existing, ...partial }))
   }, [])
 
   const value = useMemo(() => ({ config, sessionId: null, updateConfig }), [config, updateConfig])

@@ -1,4 +1,3 @@
-import { RunConfigSchema } from '@tetra/schemas/library'
 import type { LibraryEntities } from '@tetra/schemas/library'
 
 import { useApp } from '@/app'
@@ -8,7 +7,7 @@ export type MessagePart = LibraryEntities['messages']['parts'][number]
 export type MessageRole = LibraryEntities['messages']['role']
 
 export function getRunModelId(run: LibraryEntities['runs']): string {
-  return RunConfigSchema.parse(run.config).modelId
+  return run.config.modelId
 }
 
 export function getRunErrorMessage(run: LibraryEntities['runs'] | null): string | null {

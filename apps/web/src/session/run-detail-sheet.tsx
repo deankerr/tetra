@@ -163,7 +163,6 @@ function RunUsage({ usage }: { usage: ReturnType<typeof summarizeSteps> }) {
   )
 }
 
-// Config snapshots are loose JSON, so quick fields are best-effort and the blob stays visible.
 function RunConfigDetail({ config }: { config: Run['config'] }) {
   return (
     <DetailSection title="Config snapshot">
@@ -346,7 +345,6 @@ function RunStatusBadge({ status }: { status: Run['status'] }) {
   return <Badge variant="secondary">{status}</Badge>
 }
 
-// Config cells are intentionally best-effort because run snapshots preserve loose JSON.
 function formatConfigValue(value: unknown): string {
   if (value === undefined || value === null || value === '') {
     return 'n/a'

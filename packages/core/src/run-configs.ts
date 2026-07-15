@@ -16,7 +16,7 @@ export class RunConfigs {
   createForSession(partial?: Partial<RunConfig>): RunConfig {
     const storedDefault = this.library.values.defaultRunConfig.get()
     return SessionRunConfigSchema.parse({
-      ...toConfigObject(storedDefault),
+      ...storedDefault,
       ...partial,
     })
   }
@@ -66,13 +66,4 @@ export class RunConfigs {
     const session = this.library.sessions.require(sessionId)
     return RunConfigSchema.parse(session.config)
   }
-}
-
-// Stored defaults are user-authored input; ignore non-object shapes instead of merging them.
-function toConfigObject(value: unknown): Record<string, unknown> {
-  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-    return Object.fromEntries(Object.entries(value))
-  }
-
-  return {}
 }

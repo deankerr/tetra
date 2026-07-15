@@ -5,8 +5,8 @@ import { librarySchema } from '@tetra/schemas/library'
 import { createDb } from './db.ts'
 import type { DbFor } from './db.ts'
 
-// The REAL library schema (custom UIMessage parts, z.record/z.json snapshots, nested-optional
-// step usage, nullable-default value, object-default session config, the six indexes).
+// The REAL library schema (custom UIMessage parts, typed run configs, nested-optional step usage,
+// nullable-default value, object-default session config, and the six indexes).
 const schema = librarySchema
 
 type LibraryDb = DbFor<typeof schema>
@@ -42,11 +42,29 @@ describe('real library schema', () => {
     expect(message.parentMessageId).toBeNull()
   })
 
-  test('runs: z.record/z.json config snapshot round-trips; desc query', () => {
+  test('runs: complete config snapshot round-trips; desc query', () => {
     const db = createDb(schema)
 
+    expect(() =>
+      schema.tables.runs.parse({
+        config: {},
+        createdAt: 0,
+        sessionId: 's1',
+        status: 'active',
+        targetMessageId: 'm0',
+        terminalAt: 0,
+        updatedAt: 0,
+      }),
+    ).toThrow()
+
     db.runs.create('r1', {
-      config: { maxMessages: 5, modelId: 'x' },
+      config: {
+        maxMessages: 5,
+        modelId: 'x',
+        providerOptions: {},
+        systemPromptId: '',
+        toolIds: [],
+      },
       createdAt: 100,
       sessionId: 's1',
       status: 'active',
@@ -55,7 +73,13 @@ describe('real library schema', () => {
       updatedAt: 100,
     })
     db.runs.create('r2', {
-      config: {},
+      config: {
+        maxMessages: 0,
+        modelId: 'y',
+        providerOptions: {},
+        systemPromptId: '',
+        toolIds: [],
+      },
       createdAt: 200,
       sessionId: 's1',
       status: 'completed',
@@ -64,7 +88,13 @@ describe('real library schema', () => {
       updatedAt: 200,
     })
 
-    expect(db.runs.require('r1').config).toEqual({ maxMessages: 5, modelId: 'x' })
+    expect(db.runs.require('r1').config).toEqual({
+      maxMessages: 5,
+      modelId: 'x',
+      providerOptions: {},
+      systemPromptId: '',
+      toolIds: [],
+    })
     expect(db.runs.bySessionNewestFirst('s1').map((run) => run.id)).toEqual(['r2', 'r1'])
   })
 
@@ -92,7 +122,7 @@ describe('real library schema', () => {
     expect(db.steps.require('st1').usage).toEqual({ input: { total: 10 }, output: { total: 20 } })
   })
 
-  test('value: nullable-default snapshot', () => {
+  test('value: nullable partial RunConfig default', () => {
     const db = createDb(schema)
 
     expect(db.values.defaultRunConfig.get()).toBeNull()

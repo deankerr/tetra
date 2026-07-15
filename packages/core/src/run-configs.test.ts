@@ -52,14 +52,13 @@ test('createForSession layers stored default over schema defaults and caller par
   })
 })
 
-test('createForSession parses stored defaults before returning a config', () => {
-  const { runConfigs, library } = createRunConfigHarness()
+test('stored defaults reject invalid config fields at the value write seam', () => {
+  const { library } = createRunConfigHarness()
 
-  // A stored default with a wrong-typed cell must fail loudly without a partial write.
-  library.values.defaultRunConfig.set({ maxMessages: -1 })
-
-  expect(() => runConfigs.createForSession()).toThrow()
-  expect(library.sessions.get('sess_1')).toBeNull()
+  expect(() => {
+    library.values.defaultRunConfig.set({ maxMessages: -1 })
+  }).toThrow()
+  expect(library.values.defaultRunConfig.get()).toBeNull()
 })
 
 test('update merges the partial over the existing session config', () => {

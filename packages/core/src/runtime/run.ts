@@ -1,5 +1,4 @@
 import type { CredentialReader } from '@tetra/credentials'
-import { RunConfigSchema } from '@tetra/schemas/library'
 import type {
   LibraryDb,
   LibraryEntities,
@@ -189,7 +188,6 @@ export class Run extends EventTarget {
 
   private async stream(): Promise<void> {
     try {
-      const config = RunConfigSchema.parse(this.config)
       const tools = this.resolveTools()
       const model = this.resolveModel()
       const modelMessages = await Run.toModelMessages(this.transcriptMessages, tools)
@@ -205,7 +203,9 @@ export class Run extends EventTarget {
         onStepFinish: (step: OnStepFinishEvent) => {
           this.recordStep(StepEvent.parse(step))
         },
-        providerOptions: { openrouter: { ...config.providerOptions, session_id: this.sessionId } },
+        providerOptions: {
+          openrouter: { ...this.config.providerOptions, session_id: this.sessionId },
+        },
         stopWhen: stepCountIs(6),
         tools,
       }

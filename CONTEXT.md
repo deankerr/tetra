@@ -9,11 +9,27 @@ A transcript workspace that groups messages. A session can be empty; Tetra does 
 _Avoid_: Conversation, chat
 
 **RunConfig**:
-A recipe for starting a run: model, system prompt, selected tools, provider-specific options, and message selection. It is shared by app surfaces and core execution rather than owned by one UI.
+A complete recipe for starting a run: model, system prompt, selected tools, provider-specific options, and message selection. Execution accepts only complete RunConfigs. It is shared by app surfaces and core execution rather than owned by one UI.
 _Avoid_: Settings, one-off overrides
 
+**Session RunConfig**:
+The durable RunConfig edited in place for one session. Its storage schema supplies built-in defaults when a session cell is absent or sparse, and RunConfigs validates it as a complete RunConfig when a run starts.
+_Avoid_: Resolved config, settings row
+
+**RunConfig Default**:
+A durable partial RunConfig used as the starting template for new sessions. Built-in defaults fill omitted fields; it does not affect existing sessions.
+_Avoid_: Global settings, default snapshot
+
+**RunConfig Snapshot**:
+The complete, frozen RunConfig copied onto a run row when generation starts. It records the recipe that produced that run and uses the same typed shape as executable RunConfig.
+_Avoid_: Live config, loose metadata
+
+**RunConfig Draft**:
+A complete, transient RunConfig edited before a new session is created. It becomes a Session RunConfig when the session is materialized.
+_Avoid_: Session config, run override
+
 **RunConfigs**:
-The core module that owns the run config lifecycle: session config creation, structured updates, the new-session default, prompt unlinking, and resolving the effective config when a run starts. Typed per-cell writes to a session's config row are part of its interface; RunConfigs owns every merge, multi-cell, or cross-table operation.
+The core module that owns the run config lifecycle: session config creation, structured updates, the new-session default, prompt unlinking, and resolving the effective config when a run starts. Session config is stored as one object cell; callers send patches through RunConfigs so its merge and validation invariant has one implementation.
 _Avoid_: Helpers, settings service
 
 **Message**:

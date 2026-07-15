@@ -15,7 +15,7 @@ export const RunConfigSchema = z.object({
   systemPromptId: z.string(),
   toolIds: z.array(z.string()),
 })
-export const RunConfigSnapshotSchema = z.record(z.string(), z.json())
+export const RunConfigDefaultsSchema = RunConfigSchema.partial()
 const RunStatusSchema = z.enum(['active', 'cancelled', 'completed', 'error'])
 
 export const SessionRunConfigSchema = z.object({
@@ -111,7 +111,7 @@ export const librarySchema = defineSchema({
       updatedAt: z.number(),
     }),
     runs: z.object({
-      config: RunConfigSnapshotSchema,
+      config: RunConfigSchema,
       createdAt: z.number(),
       // Error surface is display-first: null unless the run failed/was cancelled. A flattened
       // message always, plus the raw provider payload verbatim and the HTTP status (the one field
@@ -139,6 +139,6 @@ export const librarySchema = defineSchema({
     steps: StepRecordSchema,
   },
   values: {
-    defaultRunConfig: RunConfigSnapshotSchema.nullable().default(null),
+    defaultRunConfig: RunConfigDefaultsSchema.nullable().default(null),
   },
 })
