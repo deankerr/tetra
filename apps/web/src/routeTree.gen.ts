@@ -9,18 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as LogosRouteImport } from './routes/logos'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LogosRouteImport } from './routes/logos'
 import { Route as SessionsSessionIdRouteImport } from './routes/sessions.$sessionId'
 
-const LogosRoute = LogosRouteImport.update({
-  id: '/logos',
-  path: '/logos',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LogosRoute = LogosRouteImport.update({
+  id: '/logos',
+  path: '/logos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SessionsSessionIdRoute = SessionsSessionIdRouteImport.update({
@@ -61,18 +61,18 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/logos': {
-      id: '/logos'
-      path: '/logos'
-      fullPath: '/logos'
-      preLoaderRoute: typeof LogosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/logos': {
+      id: '/logos'
+      path: '/logos'
+      fullPath: '/logos'
+      preLoaderRoute: typeof LogosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sessions/$sessionId': {

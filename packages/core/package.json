@@ -24,7 +24,7 @@
     "@tetra/schemas": "workspace:*",
     "@tetra/tools-exa": "workspace:*",
     "ai": "catalog:",
-    "nanoid": "^5.1.16",
+    "nanoid": "catalog:",
     "remeda": "^2.39.0",
     "zod": "catalog:"
   },

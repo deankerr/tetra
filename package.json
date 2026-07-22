@@ -13,14 +13,15 @@
       "@types/react": "19.2.17",
       "@types/react-dom": "19.2.3",
       "ai": "6.0.191",
-      "lucide-react": "1.23.0",
+      "lucide-react": "1.25.0",
       "react": "19.2.7",
       "react-dom": "19.2.7",
       "shiki": "4.0.2",
-      "tailwindcss": "4.3.2",
+      "tailwindcss": "4.3.3",
       "tinybase": "8.5.0",
       "typescript": "6.0.3",
-      "zod": "4.4.3"
+      "zod": "4.4.3",
+      "nanoid": "^6.0.0"
     }
   },
   "type": "module",
@@ -39,8 +40,8 @@
   "devDependencies": {
     "@types/bun": "catalog:",
     "@types/node": "catalog:",
-    "knip": "^6.24.0",
-    "lefthook": "^2.1.9",
+    "knip": "^6.27.0",
+    "lefthook": "^2.1.10",
     "oxfmt": "0.57.0",
     "oxlint": "1.72.0",
     "oxlint-tsgolint": "0.24.0",
