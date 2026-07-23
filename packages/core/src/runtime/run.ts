@@ -5,8 +5,15 @@ import type {
   LibraryRunStatus,
   RunConfig,
 } from '@tetra/schemas/library'
-import { convertToModelMessages, readUIMessageStream, stepCountIs, streamText } from 'ai'
-import type { LanguageModel, ModelMessage, OnStepFinishEvent, ToolSet, UIMessage } from 'ai'
+import {
+  convertToModelMessages,
+  isStepCount,
+  readUIMessageStream,
+  streamText,
+  toUIMessageStream,
+  validateUIMessages,
+} from 'ai'
+import type { GenerateTextStepEndEvent, LanguageModel, ModelMessage, ToolSet, UIMessage } from 'ai'
 
 import { resolveTools } from '#tools'
 
@@ -21,7 +28,7 @@ export interface RunStart {
   config: RunConfig
   runId: string
   session: LibraryEntities['sessions']
-  system: string | undefined
+  instructions: string | undefined
   targetMessageId: string
   transcriptMessages: LibraryEntities['messages'][]
 }
@@ -40,7 +47,7 @@ export class Run extends EventTarget {
   readonly runId: string
   readonly session: LibraryEntities['sessions']
   readonly sessionId: string
-  readonly system: string | undefined
+  readonly instructions: string | undefined
   readonly targetMessageId: string
   readonly transcriptMessages: LibraryEntities['messages'][]
 
@@ -77,7 +84,7 @@ export class Run extends EventTarget {
     this.runId = init.start.runId
     this.session = init.start.session
     this.sessionId = init.start.session.id
-    this.system = init.start.system
+    this.instructions = init.start.instructions
     this.targetMessageId = init.start.targetMessageId
     this.transcriptMessages = init.start.transcriptMessages
     this.library = init.library
@@ -200,30 +207,31 @@ export class Run extends EventTarget {
         abortSignal: this.abortController.signal,
         messages: modelMessages,
         model,
-        onStepFinish: (step: OnStepFinishEvent) => {
+        onStepEnd: (step: GenerateTextStepEndEvent) => {
           this.recordStep(StepEvent.parse(step))
         },
         providerOptions: {
           openrouter: { ...this.config.providerOptions, session_id: this.sessionId },
         },
-        stopWhen: stepCountIs(6),
+        stopWhen: isStepCount(6),
         tools,
       }
       const result =
-        this.system === undefined
+        this.instructions === undefined
           ? streamText(streamOptions)
-          : streamText({ ...streamOptions, system: this.system })
+          : streamText({ ...streamOptions, instructions: this.instructions })
 
       this.result = result
 
       let finalParts: UIMessage['parts'] = []
       for await (const message of readUIMessageStream({
-        stream: result.toUIMessageStream({
+        stream: toUIMessageStream({
           onError: (error) => {
             this.capturedError = error
             return error instanceof Error ? error.message : String(error)
           },
           sendReasoning: true,
+          stream: result.stream,
         }),
         terminateOnError: true,
       })) {
@@ -243,14 +251,22 @@ export class Run extends EventTarget {
     messages: LibraryEntities['messages'][],
     tools: ToolSet,
   ): Promise<ModelMessage[]> {
-    return await convertToModelMessages(
-      messages.map((message) => ({
-        id: message.id,
-        parts: message.parts,
-        role: toAiSdkUiMessageRole(message.role),
-      })),
-      { tools },
+    // Durable roles are caller-authored labels, not provider roles. Until other roles have an
+    // explicit projection policy, they remain in the transcript but outside model context.
+    const uiMessages: UIMessage[] = messages.flatMap((message) =>
+      isProjectedUiMessageRole(message.role)
+        ? [
+            {
+              id: message.id,
+              parts: message.parts,
+              role: message.role,
+            },
+          ]
+        : [],
     )
+    const validatedMessages = await validateUIMessages({ messages: uiMessages })
+
+    return await convertToModelMessages(validatedMessages, { tools })
   }
 
   private writeDurableSnapshot(message: UIMessage): void {
@@ -271,10 +287,6 @@ export class Run extends EventTarget {
   }
 }
 
-function toAiSdkUiMessageRole(role: string): UIMessage['role'] {
-  if (role === 'assistant' || role === 'system' || role === 'user') {
-    return role
-  }
-
-  throw new Error(`Cannot project message role to AI SDK UIMessage role: ${role}`)
+function isProjectedUiMessageRole(role: string): role is 'assistant' | 'user' {
+  return role === 'assistant' || role === 'user'
 }

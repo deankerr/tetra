@@ -116,6 +116,10 @@ function PartList({
           return <FilePart index={partIndex} key={partKey} messageId={messageId} part={part} />
         }
 
+        if (part.type === 'reasoning-file') {
+          return <FilePart index={partIndex} key={partKey} messageId={messageId} part={part} />
+        }
+
         return <UnsupportedPart key={partKey} part={part} />
       })}
     </div>
@@ -195,6 +199,8 @@ function ToolPartView({ part }: { part: ToolPartType }) {
 }
 
 type FilePartType = Extract<MessagePart, { type: 'file' }>
+type ReasoningFilePartType = Extract<MessagePart, { type: 'reasoning-file' }>
+type DownloadableFilePart = FilePartType | ReasoningFilePartType
 
 // User attachments: a compact grid of uniform square thumbnails. Actions live in the lightbox,
 // which the tiles are too small to host.
@@ -365,14 +371,15 @@ function FilePart({
 }: {
   index: number
   messageId: string
-  part: FilePartType
+  part: DownloadableFilePart
 }) {
-  const label = [part.mediaType, part.filename].filter(Boolean).join(' · ')
+  const filename = 'filename' in part ? part.filename : undefined
+  const label = [part.mediaType, filename].filter(Boolean).join(' · ')
 
   return (
     <div className="text-muted-foreground text-xxs flex w-fit items-center gap-2 rounded-md border p-2">
       <Badge className="rounded-xs" variant="secondary">
-        file
+        {part.type === 'reasoning-file' ? 'reasoning file' : 'file'}
       </Badge>
       <span>{label}</span>
       <Button
@@ -421,8 +428,8 @@ function collectImageRun(parts: MessagePart[], startIndex: number): FilePartType
 
 // Prefer the part's own filename (user uploads carry the original); otherwise mint a unique name
 // from the owning message and part index so generated images never collapse to "download.png".
-function attachmentFilename(part: FilePartType, messageId: string, index: number): string {
-  const provided = part.filename?.trim()
+function attachmentFilename(part: DownloadableFilePart, messageId: string, index: number): string {
+  const provided = 'filename' in part ? part.filename?.trim() : undefined
   if (provided !== undefined && provided !== '') {
     return provided
   }

@@ -15,9 +15,10 @@ if (apiKey === undefined || apiKey === '') {
 
 // Reuse the same AI SDK execution context for each direct tool invocation.
 const toolExecutionOptions = {
+  context: undefined,
   messages: [],
   toolCallId: 'tools-exa-demo',
-} satisfies ToolExecutionOptions
+} satisfies ToolExecutionOptions<undefined>
 
 // Run an AI SDK tool directly and keep the return type at the validation boundary.
 async function executeTool(toolInstance: Tool, input: unknown): Promise<unknown> {

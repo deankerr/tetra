@@ -18,7 +18,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@ai-sdk/provider": "^3.0.13",
+    "@ai-sdk/provider": "^4.0.3",
     "@openrouter/ai-sdk-provider": "catalog:",
     "@tetra/credentials": "workspace:*",
     "@tetra/schemas": "workspace:*",

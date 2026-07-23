@@ -12,6 +12,10 @@ _Avoid_: Conversation, chat
 A complete recipe for starting a run: model, system prompt, selected tools, provider-specific options, and message selection. Execution accepts only complete RunConfigs. It is shared by app surfaces and core execution rather than owned by one UI.
 _Avoid_: Settings, one-off overrides
 
+**Provider Options**:
+Opaque, user-authored provider configuration carried by a RunConfig. Tetra promotes an option to a first-class field only when its runtime must interpret that value for orchestration; model tuning remains provider-owned even when the AI SDK offers a provider-neutral name.
+_Avoid_: Model settings, typed generation controls
+
 **Session RunConfig**:
 The durable RunConfig edited in place for one session. Its storage schema supplies built-in defaults when a session cell is absent or sparse, and RunConfigs validates it as a complete RunConfig when a run starts.
 _Avoid_: Resolved config, settings row

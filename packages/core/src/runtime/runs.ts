@@ -92,7 +92,7 @@ export class Runs {
 
     // RunConfigs resolves the effective config from the session row (ADR-0008).
     const config = this.runConfigs.resolveForRun(session.id)
-    const system = this.prompts.resolveContent(config.systemPromptId)
+    const instructions = this.prompts.resolveContent(config.systemPromptId)
     const transcriptMessages = this.collectMessagesBefore(targetMessage, config)
 
     let runId = ''
@@ -107,9 +107,9 @@ export class Runs {
 
     const runStart: RunStart = {
       config,
+      instructions,
       runId,
       session,
-      system,
       targetMessageId: args.targetMessageId,
       transcriptMessages,
     }

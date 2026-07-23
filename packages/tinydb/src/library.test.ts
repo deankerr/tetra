@@ -108,6 +108,13 @@ describe('real library schema', () => {
       generationId: 'g',
       messageId: 'm1',
       model: 'x',
+      performance: {
+        effectiveOutputTokensPerSecond: 20,
+        effectiveTotalTokensPerSecond: 30,
+        responseTimeMs: 500,
+        stepTimeMs: 650,
+        toolExecutionMs: {},
+      },
       provider: 'openrouter',
       raw: {},
       runId: 'r1',

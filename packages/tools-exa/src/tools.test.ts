@@ -42,9 +42,10 @@ async function runTool(tool: Tool, input: unknown): Promise<unknown> {
 
   // Exa tools do not inspect model messages, but the AI SDK execution contract supplies them.
   const options = {
+    context: undefined,
     messages: [],
     toolCallId: 'call_test',
-  } satisfies ToolExecutionOptions
+  } satisfies ToolExecutionOptions<undefined>
 
   return await tool.execute(input, options)
 }

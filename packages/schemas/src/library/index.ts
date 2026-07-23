@@ -14,6 +14,7 @@ export {
   RunConfigDefaultsSchema,
   RunConfigSchema,
   SessionRunConfigSchema,
+  StepPerformanceSchema,
   StepWarningSchema,
 } from './schema.ts'
 export { librarySchema }

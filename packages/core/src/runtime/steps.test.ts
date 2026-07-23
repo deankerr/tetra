@@ -2,10 +2,30 @@ import { expect, test } from 'bun:test'
 
 import { StepEvent } from './steps.ts'
 
+const performance = {
+  effectiveOutputTokensPerSecond: 20,
+  effectiveTotalTokensPerSecond: 30,
+  inputTokensPerSecond: 40,
+  outputTokensPerSecond: 25,
+  responseTimeMs: 500,
+  stepTimeMs: 650,
+  timeBetweenOutputChunksMs: {
+    avg: 25,
+    max: 40,
+    median: 24,
+    min: 10,
+    p10: 12,
+    p90: 35,
+  },
+  timeToFirstOutputMs: 250,
+  toolExecutionMs: { 'tool-call-1': 150 },
+}
+
 test('StepEvent preserves raw OpenRouter usage while storing exclusive render buckets', () => {
   // This mirrors the live OpenRouter shape captured by the sdk-probe usage script.
   const step = StepEvent.parse({
     finishReason: 'tool-calls',
+    performance,
     providerMetadata: { openrouter: { provider: 'OpenAI' } },
     rawFinishReason: 'tool_calls',
     response: { id: 'gen-test', modelId: 'openai/gpt-5.4-nano-20260317' },
@@ -55,6 +75,7 @@ test('StepEvent preserves raw OpenRouter usage while storing exclusive render bu
     finishReason: 'tool-calls',
     generationId: 'gen-test',
     model: 'openai/gpt-5.4-nano-20260317',
+    performance,
     provider: 'OpenAI',
     raw: {
       finishReason: 'tool_calls',
@@ -79,6 +100,7 @@ test('StepEvent preserves future warning fields without strict warning discrimin
   // AI SDK warnings are structured, but upstream can add warning variants over time.
   const step = StepEvent.parse({
     finishReason: 'stop',
+    performance,
     response: { id: 'gen-test', modelId: 'openai/gpt-5.4-nano-20260317' },
     stepNumber: 0,
     usage: {},
@@ -92,6 +114,7 @@ test('StepEvent stores empty raw and warning containers when providers report ne
   // These containers are always present so readers only check for the specific key they need.
   const step = StepEvent.parse({
     finishReason: 'stop',
+    performance,
     response: { id: 'gen-test', modelId: 'openai/gpt-5.4-nano-20260317' },
     stepNumber: 0,
     usage: {},
@@ -105,6 +128,7 @@ test('StepEvent prefers SDK output text tokens when reported', () => {
   // Explicit text tokens are better than deriving text from total minus known output modalities.
   const step = StepEvent.parse({
     finishReason: 'stop',
+    performance,
     response: { id: 'gen-test', modelId: 'openai/gpt-5.4-nano-20260317' },
     stepNumber: 0,
     usage: {

@@ -56,6 +56,27 @@ const StepRawSchema = z.object({
   usage: z.record(z.string(), z.json()).optional(),
 })
 
+const OutputChunkTimingStatsSchema = z.object({
+  avg: z.number(),
+  max: z.number(),
+  median: z.number(),
+  min: z.number(),
+  p10: z.number(),
+  p90: z.number(),
+})
+
+export const StepPerformanceSchema = z.object({
+  effectiveOutputTokensPerSecond: z.number(),
+  effectiveTotalTokensPerSecond: z.number(),
+  inputTokensPerSecond: z.number().optional(),
+  outputTokensPerSecond: z.number().optional(),
+  responseTimeMs: z.number(),
+  stepTimeMs: z.number(),
+  timeBetweenOutputChunksMs: OutputChunkTimingStatsSchema.optional(),
+  timeToFirstOutputMs: z.number().optional(),
+  toolExecutionMs: z.record(z.string(), z.number()),
+})
+
 export const StepWarningSchema = z.looseObject({
   details: z.string().optional(),
   feature: z.string().optional(),
@@ -70,6 +91,7 @@ const StepRecordSchema = z.object({
   generationId: z.string(),
   messageId: z.string(),
   model: z.string(),
+  performance: StepPerformanceSchema,
   provider: z.string(),
   raw: StepRawSchema,
   runId: z.string(),

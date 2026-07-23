@@ -1,4 +1,4 @@
-import { StepWarningSchema } from '@tetra/schemas/library'
+import { StepPerformanceSchema, StepWarningSchema } from '@tetra/schemas/library'
 import type { LibraryEntities } from '@tetra/schemas/library'
 import { pickBy } from 'remeda'
 import { z } from 'zod'
@@ -64,10 +64,11 @@ const ProviderMetadata = z.looseObject({
     .optional(),
 })
 
-// Parse the AI SDK step/onStepFinish shape, not UI message stream lifecycle chunks.
+// Parse the AI SDK step/onStepEnd shape, not UI message stream lifecycle chunks.
 const StepEventShape = z.object({
   finishReason: z.string(),
   model: z.object({ modelId: z.string() }).optional(),
+  performance: StepPerformanceSchema,
   providerMetadata: ProviderMetadata.optional(),
   rawFinishReason: z.string().optional(),
   response: z.object({ id: z.string(), modelId: z.string() }),
@@ -108,6 +109,7 @@ function captureStep(event: StepEventShape): CapturedStep {
     finishReason: event.finishReason,
     generationId: event.response.id,
     model: event.response.modelId,
+    performance: event.performance,
     provider: event.providerMetadata?.openrouter?.provider ?? '',
     raw: captureRaw(event),
     stepNumber: event.stepNumber,

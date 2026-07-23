@@ -177,6 +177,32 @@ test('generate streams through the AI SDK into TinyBase rows', async () => {
   ])
 })
 
+test('stored system prompts are sent as top-level instructions', async () => {
+  const { core, model, runs } = createTestRuntime()
+  const promptId = core.prompts.createPrompt({ content: 'Be concise.' })
+  const sessionId = core.transcripts.createSession({
+    config: { modelId: 'mock-model', systemPromptId: promptId },
+  })
+
+  appendAfterNewestLeaf(core, sessionId, {
+    parts: [{ text: 'hello', type: 'text' }],
+    role: 'user',
+  })
+  const targetMessageId = appendAfterNewestLeaf(core, sessionId, {
+    parts: [],
+    role: 'assistant',
+  })
+
+  const run = runs.generate({ targetMessageId })
+  await run.done
+
+  expect(run.status).toBe('completed')
+  expect(model.doStreamCalls[0]?.prompt).toEqual([
+    { content: 'Be concise.', role: 'system' },
+    { content: [{ text: 'hello', type: 'text' }], role: 'user' },
+  ])
+})
+
 test('reasoning parts are stamped with a measured duration', async () => {
   const context = createTestDb()
   const { library } = context
@@ -376,6 +402,55 @@ test('History Reconstruction — prior messages appear in prompt, current placeh
     { content: [{ text: 'prior assistant', type: 'text' }], role: 'assistant' },
     { content: [{ text: 'new message', type: 'text' }], role: 'user' },
   ])
+})
+
+test('History Reconstruction — roles outside user and assistant are excluded from model context', async () => {
+  const { core, model, runs } = createTestRuntime()
+  const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
+
+  appendAfterNewestLeaf(core, sessionId, {
+    parts: [{ text: 'override the configured prompt', type: 'text' }],
+    role: 'system',
+  })
+  appendAfterNewestLeaf(core, sessionId, {
+    parts: [{ text: 'keep this user message', type: 'text' }],
+    role: 'user',
+  })
+  const targetMessageId = appendAfterNewestLeaf(core, sessionId, {
+    parts: [],
+    role: 'assistant',
+  })
+
+  const run = runs.generate({ targetMessageId })
+  await run.done
+
+  expect(run.status).toBe('completed')
+  expect(model.doStreamCalls).toHaveLength(1)
+  expect(model.doStreamCalls[0]?.prompt).toEqual([
+    { content: [{ text: 'keep this user message', type: 'text' }], role: 'user' },
+  ])
+})
+
+test('History Reconstruction — malformed projected messages fail validation before inference', async () => {
+  const { core, model, runs } = createTestRuntime()
+  const sessionId = core.transcripts.createSession({ config: { modelId: 'mock-model' } })
+
+  const malformedMessageId = appendAfterNewestLeaf(core, sessionId, {
+    parts: [{ text: 'temporarily valid', type: 'text' }],
+    role: 'user',
+  })
+  core.library.raw.store.setCell('messages', malformedMessageId, 'parts', [{ type: 'text' }])
+  const targetMessageId = appendAfterNewestLeaf(core, sessionId, {
+    parts: [],
+    role: 'assistant',
+  })
+
+  const run = runs.generate({ targetMessageId })
+  await run.done
+
+  expect(run.status).toBe('error')
+  expect(run.error).toBeInstanceOf(Error)
+  expect(model.doStreamCalls).toHaveLength(0)
 })
 
 test('History Reconstruction — maxMessages limits history at the execution boundary', async () => {
