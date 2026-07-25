@@ -7,10 +7,21 @@ Tetra is still in prototype mode, so tests should protect the parts of the syste
 Run the project test suite with:
 
 ```sh
-bun test
+bun run test
+```
+
+The canonical command runs both the Bun test suite and the web Vitest suite. Run either suite
+individually with:
+
+```sh
+bun run test:bun
+bun run test:web
 ```
 
 `bun run fix` remains the formatting and type-aware lint gate. It does not run tests.
+
+Web tests use the `.vitest.ts` / `.vitest.tsx` suffix so the Bun test runner does not mistake them
+for Bun tests.
 
 ## Test Buckets
 
@@ -38,12 +49,15 @@ Skip tests for churn-heavy UI layout or markup until a behavior has become stabl
 
 ## React And Web Tests
 
-There is no web test harness right now. The old `@tetra/web` Vitest script came from the TanStack Start template and did not exercise any app tests.
+The web package has a deliberately narrow Vitest + jsdom + React Testing Library harness for
+component-owned behavior that requires a DOM. It exists first to protect application chrome and
+error containment; it is not a mandate to snapshot churn-heavy markup.
 
 Do not add React tests by default. When a web behavior clearly deserves coverage, choose the smallest deliberate harness for that behavior:
 
 - Extract pure logic or store-hook policy and test it with `bun:test` when possible.
-- Add DOM-level React testing only when the behavior is truly component-owned.
+- Add DOM-level React testing only when the behavior is truly component-owned, colocating
+  `.vitest.tsx` files with that behavior.
 - Use a browser-level test only for flows where route composition, focus, layout, or browser APIs are the thing being protected.
 
 The bar for adding a web test is higher than the bar for adding core/package tests because the web surface is changing quickly.

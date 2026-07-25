@@ -77,7 +77,9 @@ export function MessageActionsView({
             >
               <ListTreeIcon />
             </MessageIconAction>
-            <RunDetailSheet onOpenChange={setRunDetailOpen} open={runDetailOpen} runId={run.id} />
+            {runDetailOpen ? (
+              <RunDetailSheet onOpenChange={setRunDetailOpen} open runId={run.id} />
+            ) : null}
           </>
         )}
 

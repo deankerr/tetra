@@ -7,13 +7,11 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@tetra/ui/components/ui/sheet'
-import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
-import { cn } from '@tetra/ui/lib/utils'
 import { Settings2Icon, XIcon } from 'lucide-react'
 import { useCallback, useState } from 'react'
 
 import { MissingOpenRouterApiKeyButton, useRequireOpenRouterApiKey } from '@/api-key-settings'
-import { useTrafficLightClearance } from '@/tauri'
+import { WorkspacePane } from '@/components/workspace-pane'
 
 import { NewSessionComposer } from './composer'
 import { DraftRunConfigProvider, useRunConfig } from './run-config-providers'
@@ -36,7 +34,6 @@ function NewSessionPageContent() {
   const { config, updateConfig } = useRunConfig()
   const [promptSheetOpen, setPromptSheetOpen] = useState(false)
   const requireGenerateReady = useRequireOpenRouterApiKey()
-  const trafficLightClearance = useTrafficLightClearance()
 
   const openMaterializedSession = useCallback(
     ({ sessionId }: { sessionId: string }) => {
@@ -46,34 +43,26 @@ function NewSessionPageContent() {
   )
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-      {/* Header */}
-      <header
-        className={cn(
-          'flex h-(--header-height) shrink-0 items-center gap-2 border-b px-2',
-          trafficLightClearance,
-        )}
-        data-tauri-drag-region
-      >
-        <SidebarTrigger title="Open sidebar" />
-        <span className="min-w-0 flex-1 truncate text-xs font-medium" data-tauri-drag-region>
-          New session
-        </span>
-        <MissingOpenRouterApiKeyButton />
-        <Button
-          aria-label="Open new session settings"
-          onClick={() => {
-            setDetailOpen(true)
-          }}
-          size="icon-sm"
-          title="Open new session settings"
-          type="button"
-          variant="ghost"
-        >
-          <Settings2Icon />
-        </Button>
-      </header>
-
+    <WorkspacePane
+      actions={
+        <>
+          <MissingOpenRouterApiKeyButton />
+          <Button
+            aria-label="Open new session settings"
+            onClick={() => {
+              setDetailOpen(true)
+            }}
+            size="icon-sm"
+            title="Open new session settings"
+            type="button"
+            variant="ghost"
+          >
+            <Settings2Icon />
+          </Button>
+        </>
+      }
+      title="New session"
+    >
       {/* Composer */}
       <main className="flex min-h-0 flex-1 items-center justify-center px-4 py-8">
         <NewSessionComposer
@@ -127,6 +116,6 @@ function NewSessionPageContent() {
         open={modelPickerOpen}
         value={config.modelId}
       />
-    </div>
+    </WorkspacePane>
   )
 }

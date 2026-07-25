@@ -2,11 +2,12 @@ import { Link } from '@tanstack/react-router'
 import { SidebarContent, SidebarFooter, SidebarHeader } from '@tetra/ui/components/ui/sidebar'
 
 import { TetraLogo } from '@/components/tetra-logo'
+import { appPlatform } from '@/platform'
 import { SettingsButton } from '@/settings-dialog'
 import { ThemeSwitcher } from '@/sidebar/footer/theme-switcher'
 import { SessionGroup } from '@/sidebar/session-group'
+import { SessionGroupErrorBoundary } from '@/sidebar/session-group-error-boundary'
 import { SyncStatusButton } from '@/sync-settings'
-import { isTauri } from '@/tauri'
 
 export function AppSidebar() {
   return (
@@ -14,7 +15,7 @@ export function AppSidebar() {
       {/* Desktop: hide the app-name branding — native apps don't repeat their own name in-window —
           leaving an empty, draggable strip for the macOS traffic lights to sit within. */}
       <SidebarHeader className="p-0">
-        {isTauri ? (
+        {appPlatform === 'tauri' ? (
           <div className="h-(--header-height) border-b" data-tauri-drag-region />
         ) : (
           <Link
@@ -30,7 +31,9 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <SessionGroup />
+        <SessionGroupErrorBoundary>
+          <SessionGroup />
+        </SessionGroupErrorBoundary>
       </SidebarContent>
 
       <SidebarFooter>

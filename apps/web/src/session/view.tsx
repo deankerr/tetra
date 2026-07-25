@@ -7,14 +7,12 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@tetra/ui/components/ui/sheet'
-import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
-import { cn } from '@tetra/ui/lib/utils'
 import { HomeIcon, Settings2Icon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 
 import { MissingOpenRouterApiKeyButton, useRequireOpenRouterApiKey } from '@/api-key-settings'
+import { WorkspacePane } from '@/components/workspace-pane'
 import { libraryReact } from '@/stores'
-import { useTrafficLightClearance } from '@/tauri'
 
 import { ConversationView } from './conversation-view'
 import { SessionPanelErrorBoundary } from './error-boundary'
@@ -24,33 +22,12 @@ import { ModelPickerSheet } from './settings/model-picker'
 import { PromptEditorSheet } from './settings/prompt-editor-sheet'
 
 export function SessionView({ sessionId }: { sessionId: string }) {
-  return (
-    <SessionPanelErrorBoundary key={sessionId} sessionId={sessionId}>
-      <ActiveSession sessionId={sessionId} />
-    </SessionPanelErrorBoundary>
-  )
+  return <ActiveSession sessionId={sessionId} />
 }
 
 function MissingSession() {
-  const trafficLightClearance = useTrafficLightClearance()
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-      {/* Header */}
-      <header
-        className={cn(
-          'flex h-(--header-height) shrink-0 items-center gap-2 border-b px-2',
-          trafficLightClearance,
-        )}
-        data-tauri-drag-region
-      >
-        <SidebarTrigger title="Open sidebar" />
-        <span className="min-w-0 flex-1 truncate text-xs font-medium" data-tauri-drag-region>
-          Session not found
-        </span>
-        <MissingOpenRouterApiKeyButton />
-      </header>
-
-      {/* Empty state */}
+    <WorkspacePane actions={<MissingOpenRouterApiKeyButton />} title="Session not found">
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
         <div className="flex max-w-md flex-col gap-1">
           <h1 className="text-lg font-medium">Session not found</h1>
@@ -59,11 +36,11 @@ function MissingSession() {
           </p>
         </div>
         <Button nativeButton={false} render={<Link to="/" />} variant="outline">
-          <HomeIcon />
+          <HomeIcon data-icon="inline-start" />
           New session
         </Button>
       </div>
-    </div>
+    </WorkspacePane>
   )
 }
 
@@ -75,14 +52,10 @@ function ActiveSession({ sessionId }: { sessionId: string }) {
     return <MissingSession />
   }
 
-  return (
-    <PersistedRunConfigProvider sessionId={sessionId}>
-      <ActiveSessionPanel session={session} sessionId={sessionId} />
-    </PersistedRunConfigProvider>
-  )
+  return <ActiveSessionWorkspace session={session} sessionId={sessionId} />
 }
 
-function ActiveSessionPanel({
+function ActiveSessionWorkspace({
   session,
   sessionId,
 }: {
@@ -91,30 +64,13 @@ function ActiveSessionPanel({
 }) {
   const [detailOpen, setDetailOpen] = useState(false)
   const [modelPickerOpen, setModelPickerOpen] = useState(false)
-  const { config, updateConfig } = useRunConfig()
   const [promptSheetOpen, setPromptSheetOpen] = useState(false)
-  const requireGenerateReady = useRequireOpenRouterApiKey()
-  const trafficLightClearance = useTrafficLightClearance()
 
   return (
-    <div className="flex min-h-0 min-w-[420px] flex-1 flex-col border-r last:border-r-0">
-      {/* Main content */}
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <header
-          className={cn(
-            'flex h-(--header-height) shrink-0 items-center gap-2 border-b px-2',
-            trafficLightClearance,
-          )}
-          data-tauri-drag-region
-        >
-          <SidebarTrigger />
-
-          <span className="min-w-0 flex-1 truncate text-xs font-medium" data-tauri-drag-region>
-            {session.title ?? 'New session'}
-          </span>
-
+    <WorkspacePane
+      actions={
+        <>
           <MissingOpenRouterApiKeyButton />
-
           <Button
             aria-label="Open session settings"
             onClick={() => {
@@ -127,11 +83,51 @@ function ActiveSessionPanel({
           >
             <Settings2Icon />
           </Button>
-        </header>
+        </>
+      }
+      className="min-w-[420px] border-r last:border-r-0"
+      title={session.title ?? 'New session'}
+    >
+      <SessionPanelErrorBoundary key={sessionId} sessionId={sessionId}>
+        <PersistedRunConfigProvider sessionId={sessionId}>
+          <ActiveSessionContent
+            detailOpen={detailOpen}
+            modelPickerOpen={modelPickerOpen}
+            promptSheetOpen={promptSheetOpen}
+            sessionId={sessionId}
+            setDetailOpen={setDetailOpen}
+            setModelPickerOpen={setModelPickerOpen}
+            setPromptSheetOpen={setPromptSheetOpen}
+          />
+        </PersistedRunConfigProvider>
+      </SessionPanelErrorBoundary>
+    </WorkspacePane>
+  )
+}
 
-        <ConversationView requireGenerateReady={requireGenerateReady} sessionId={sessionId} />
-      </div>
+function ActiveSessionContent({
+  detailOpen,
+  modelPickerOpen,
+  promptSheetOpen,
+  sessionId,
+  setDetailOpen,
+  setModelPickerOpen,
+  setPromptSheetOpen,
+}: {
+  detailOpen: boolean
+  modelPickerOpen: boolean
+  promptSheetOpen: boolean
+  sessionId: string
+  setDetailOpen: (open: boolean) => void
+  setModelPickerOpen: (open: boolean) => void
+  setPromptSheetOpen: (open: boolean) => void
+}) {
+  const { config, updateConfig } = useRunConfig()
+  const requireGenerateReady = useRequireOpenRouterApiKey()
 
+  return (
+    <>
+      <ConversationView requireGenerateReady={requireGenerateReady} sessionId={sessionId} />
       {/* Settings sheet */}
       <Sheet onOpenChange={setDetailOpen} open={detailOpen}>
         <SheetContent className="w-80 sm:max-w-80">
@@ -176,6 +172,6 @@ function ActiveSessionPanel({
         open={modelPickerOpen}
         value={config.modelId}
       />
-    </div>
+    </>
   )
 }

@@ -1,13 +1,8 @@
-import { Link } from '@tanstack/react-router'
-import { Button } from '@tetra/ui/components/ui/button'
-import { SidebarTrigger } from '@tetra/ui/components/ui/sidebar'
-import { cn } from '@tetra/ui/lib/utils'
-import { AlertCircleIcon, HomeIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 import type { FallbackProps } from 'react-error-boundary'
 
-import { useTrafficLightClearance } from '@/tauri'
+import { WorkspacePaneError } from '@/components/workspace-pane-error'
 
 export function SessionPanelErrorBoundary({
   children,
@@ -18,7 +13,7 @@ export function SessionPanelErrorBoundary({
 }) {
   return (
     <ErrorBoundary
-      fallbackRender={SessionPanelErrorFallback}
+      FallbackComponent={SessionPanelErrorFallback}
       onError={(error) => {
         console.error('Session view crashed', { error, sessionId })
       }}
@@ -30,43 +25,12 @@ export function SessionPanelErrorBoundary({
 }
 
 function SessionPanelErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
-  const message =
-    error instanceof Error ? error.message : 'An unexpected session view error occurred.'
-  const trafficLightClearance = useTrafficLightClearance()
-
   return (
-    <div className="flex min-h-0 min-w-[420px] flex-1 flex-col border-r last:border-r-0">
-      {/* Fallback header */}
-      <header
-        className={cn(
-          'flex h-(--header-height) shrink-0 items-center gap-2 border-b px-2',
-          trafficLightClearance,
-        )}
-        data-tauri-drag-region
-      >
-        <SidebarTrigger title="Open sidebar" />
-        <span className="min-w-0 flex-1 truncate text-xs font-medium" data-tauri-drag-region>
-          Session crashed
-        </span>
-      </header>
-
-      {/* Recovery actions */}
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
-        <AlertCircleIcon className="text-destructive size-8" />
-        <div className="flex max-w-md flex-col gap-1">
-          <h1 className="text-lg font-medium">Session has crashed</h1>
-          <p className="text-muted-foreground text-sm">{message}</p>
-        </div>
-        <div className="flex flex-wrap justify-center gap-2">
-          <Button onClick={resetErrorBoundary} variant="outline">
-            Try again
-          </Button>
-          <Button nativeButton={false} render={<Link to="/" />} variant="outline">
-            <HomeIcon />
-            New session
-          </Button>
-        </div>
-      </div>
-    </div>
+    <WorkspacePaneError
+      error={error}
+      onRetry={resetErrorBoundary}
+      showHomeAction
+      title="Session has crashed"
+    />
   )
 }

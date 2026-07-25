@@ -35,7 +35,9 @@
     "knip": "knip",
     "preview": "bun run build && bun run --cwd apps/web preview",
     "reset-sync": "bun run --cwd apps/cli start sync reset --yes",
-    "test": "bun test"
+    "test": "bun run test:bun && bun run test:web",
+    "test:bun": "bun test",
+    "test:web": "bun run --cwd apps/web test"
   },
   "devDependencies": {
     "@types/bun": "catalog:",

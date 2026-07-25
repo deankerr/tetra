@@ -10,6 +10,7 @@ import { AppProvider } from '@/app'
 import { JsonViewSheet } from '@/components/json-view-sheet'
 import { RootErrorComponent } from '@/components/root-error'
 import { RootNotFoundComponent } from '@/components/root-not-found'
+import { appPlatform } from '@/platform'
 import { SettingsDialog } from '@/settings-dialog'
 import { AppSidebar } from '@/sidebar/app-sidebar'
 
@@ -26,7 +27,7 @@ function RootAppLayout() {
     <ThemeProvider defaultTheme="dark" enableSystem storageKey="tetra-theme">
       <TooltipProvider>
         <AppProvider>
-          <SidebarProvider>
+          <SidebarProvider data-platform={appPlatform}>
             <Sidebar variant='inset'>
               <AppSidebar />
             </Sidebar>

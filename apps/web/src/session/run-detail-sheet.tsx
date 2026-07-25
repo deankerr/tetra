@@ -11,9 +11,11 @@ import {
   SheetTitle,
 } from '@tetra/ui/components/ui/sheet'
 import { cn } from '@tetra/ui/lib/utils'
-import { CopyIcon, XIcon } from 'lucide-react'
+import { AlertCircleIcon, CopyIcon, XIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useMemo } from 'react'
+import { ErrorBoundary } from 'react-error-boundary'
+import type { FallbackProps } from 'react-error-boundary'
 
 import { libraryReact } from '@/stores'
 
@@ -32,51 +34,93 @@ export function RunDetailSheet({
   open: boolean
   runId: string
 }) {
-  const detail = useRunDetail(runId)
-  const copyDisabled = detail === null
-
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
       <SheetContent className="data-[side=right]:sm:max-w-2xl">
-        <SheetHeader>
-          <SheetTitle>Run details</SheetTitle>
-          <div className="flex items-center gap-1">
-            <Button
-              aria-label="Copy run details JSON"
-              disabled={copyDisabled}
-              onClick={() => {
-                if (detail === null) {
-                  return
-                }
-                void navigator.clipboard.writeText(detail.json)
-              }}
-              size="icon-sm"
-              title="Copy run details JSON"
-              type="button"
-              variant="ghost"
-            >
-              <CopyIcon />
-            </Button>
-            <SheetClose
-              render={<Button aria-label="Close run details" size="icon-sm" variant="ghost" />}
-            >
-              <XIcon />
-            </SheetClose>
-          </div>
-        </SheetHeader>
-
-        {detail === null ? (
-          <MissingRun />
-        ) : (
-          <div className="flex flex-col gap-4 divide-y p-4">
-            <RunOverview run={detail.run} />
-            <RunUsage usage={detail.usage} />
-            <RunConfigDetail config={detail.run.config} />
-            <RunSteps steps={detail.steps} />
-          </div>
-        )}
+        <ErrorBoundary
+          FallbackComponent={RunDetailError}
+          onError={(error) => {
+            console.error('Run details crashed', { error, runId })
+          }}
+          resetKeys={[runId]}
+        >
+          <RunDetailContent runId={runId} />
+        </ErrorBoundary>
       </SheetContent>
     </Sheet>
+  )
+}
+
+function RunDetailContent({ runId }: { runId: string }) {
+  const detail = useRunDetail(runId)
+
+  return (
+    <>
+      <SheetHeader>
+        <SheetTitle>Run details</SheetTitle>
+        <div className="flex items-center gap-1">
+          <Button
+            aria-label="Copy run details JSON"
+            disabled={detail === null}
+            onClick={() => {
+              if (detail === null) {
+                return
+              }
+              void navigator.clipboard.writeText(detail.json)
+            }}
+            size="icon-sm"
+            title="Copy run details JSON"
+            type="button"
+            variant="ghost"
+          >
+            <CopyIcon />
+          </Button>
+          <SheetClose
+            render={<Button aria-label="Close run details" size="icon-sm" variant="ghost" />}
+          >
+            <XIcon />
+          </SheetClose>
+        </div>
+      </SheetHeader>
+
+      {detail === null ? (
+        <MissingRun />
+      ) : (
+        <div className="flex flex-col gap-4 divide-y p-4">
+          <RunOverview run={detail.run} />
+          <RunUsage usage={detail.usage} />
+          <RunConfigDetail config={detail.run.config} />
+          <RunSteps steps={detail.steps} />
+        </div>
+      )}
+    </>
+  )
+}
+
+function RunDetailError({ error, resetErrorBoundary }: FallbackProps) {
+  const message = error instanceof Error ? error.message : 'Run details could not be displayed.'
+
+  return (
+    <>
+      <SheetHeader>
+        <SheetTitle>Run details unavailable</SheetTitle>
+        <SheetClose
+          render={<Button aria-label="Close run details" size="icon-sm" variant="ghost" />}
+        >
+          <XIcon />
+        </SheetClose>
+      </SheetHeader>
+      <div className="flex min-h-48 flex-col items-center justify-center gap-3 p-6 text-center">
+        <AlertCircleIcon className="text-destructive size-6" />
+        <div className="flex max-w-sm flex-col gap-1">
+          <p className="text-sm font-medium">Run details unavailable</p>
+          <p className="text-muted-foreground text-xs">{message}</p>
+        </div>
+        <Button onClick={resetErrorBoundary} size="sm" variant="outline">
+          Try again
+        </Button>
+      </div>
+    </>
   )
 }
 
