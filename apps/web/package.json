@@ -44,7 +44,6 @@
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "^6.0.3",
     "jsdom": "^29.1.1",
-    "tauri-agent-tools": "^0.9.0",
     "typescript": "catalog:",
     "vite": "^8.1.5",
     "vitest": "^4.1.10"

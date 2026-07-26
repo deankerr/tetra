@@ -5,6 +5,7 @@
     "packages/ui/src/components/ai-elements/**": ["exports", "types"],
     "packages/ui/src/components/ui/**": ["exports", "types"]
   },
+  "ignoreWorkspaces": ["packages/config"],
   "workspaces": {
     ".": {
       "entry": ["package.json"],
@@ -14,7 +15,7 @@
       "project": ["src/**/*.ts"]
     },
     "apps/web": {
-      "entry": ["src/router.tsx", "src/routes/**/*.{ts,tsx}"],
+      "entry": ["src/routes/**/*.{ts,tsx}"],
       "project": ["src/**/*.{ts,tsx}"]
     },
     "apps/worker": {

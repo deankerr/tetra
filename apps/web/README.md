@@ -15,13 +15,13 @@ Inference goes directly to OpenRouter from the client with user-supplied credent
 
 | Command                             | What it runs                                                                          |
 | ----------------------------------- | ------------------------------------------------------------------------------------- |
-| `bun run dev` (in `apps/web`)       | Vite dev server only; prefers **port 5299**, floats to the next free port if taken    |
+| `bun run dev` (in `apps/web`)       | Vite dev server only; uses Vite's normal floating port                                |
 | `bun run dev` (repo root)           | Same web dev server (`bun run --cwd apps/web dev`)                                    |
 | `bun run tauri dev` (in `apps/web`) | Desktop shell — boots Vite, compiles the Rust crate, opens the native window with HMR |
 
 `tauri dev` drives the web dev server itself through `beforeDevCommand`, so you don't start Vite
-separately. Frontend logs don't stream to the terminal — open the in-window devtools (right-click → Inspect), or poll them on demand with
-`node_modules/.bin/tauri-agent-tools console-monitor` (see the dev bridge note below).
+separately. Frontend logs don't stream to the terminal, so open the in-window devtools
+(right-click → Inspect).
 
 ## Build
 
@@ -74,15 +74,6 @@ notarization.
   exposed as `window.__tetra` (`{ ...core, stores }`), so the live tab can be queried and driven from
   the console or an agent's browser eval, e.g. `__tetra.transcripts.createSession(...)` or
   `__tetra.stores.library.sessions.all()`. Guarded by `import.meta.env.DEV`, so it never ships.
-- **Dev inspection bridge** (`src-tauri/src/dev_bridge.rs`) — a vendored copy of the
-  [`tauri-agent-tools`](https://github.com/cesarandreslopez/tauri-agent-tools) Rust bridge, wired into
-  `lib.rs` behind `cfg!(debug_assertions)` so it's stripped from release builds. Under `tauri dev` it
-  runs a localhost-only, token-authed HTTP server (token in `/tmp/tauri-dev-bridge-<pid>.token`) that
-  lets the CLI inspect the live app: `node_modules/.bin/tauri-agent-tools probe | dom | eval |
-screenshot --selector | storage | console-monitor | health`. Its extra deps (`tiny_http`, `tracing`,
-  `rand`, `uuid`, `scopeguard`, `libc`) are dev-bridge-only. Re-sync the module by re-copying it from
-  `node_modules/tauri-agent-tools/examples/tauri-bridge/src/dev_bridge.rs`; its unused sidecar helpers
-  emit harmless dead-code warnings. If the app is killed (not quit), remove the stale token file.
 
 ## Layout
 
@@ -96,8 +87,7 @@ apps/web/
   src-tauri/        # Rust desktop shell
     tauri.conf.json # window, bundle, build hooks
     Cargo.toml      # crate `tetra-desktop`, lib `tetra_lib`
-    src/lib.rs      # Tauri builder + plugins + dev-bridge wiring
-    src/dev_bridge.rs # vendored tauri-agent-tools dev bridge (debug-only)
+    src/lib.rs      # Tauri builder + plugin wiring
     capabilities/   # permission sets
     icons/          # app icons (Tetra mark — see Configuration notes)
     target/         # Rust build output (git-ignored)
@@ -109,9 +99,6 @@ Roughly in priority order:
 
 - **Security pass** — define and enable the CSP (see above); revisit whether credentials should move
   from `localStorage` to OS-secure storage.
-- **Vendored dev bridge** — `src-tauri/src/dev_bridge.rs` is kept verbatim from `tauri-agent-tools`
-  (~1k lines, debug-only). Decide later whether to keep vendoring it as-is (easy re-sync, harmless
-  dead-code warnings) or trim it to the endpoints we actually use.
 - **Version source** — `tauri.conf.json` `version` is hardcoded `0.1.0`; nothing derives it.
 - **Runtime sync config** — mostly resolved: the enabled flag and channel key are runtime,
   user-authored state in the `prefs` store (see `src/stores/`); a `tauri build` no longer bakes in
