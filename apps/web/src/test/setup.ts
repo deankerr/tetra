@@ -4,12 +4,16 @@ import { afterEach, vi } from 'vitest'
 Object.defineProperty(window, 'matchMedia', {
   configurable: true,
   value: (query: string) => ({
-    addEventListener: () => {},
+    addEventListener: () => {
+      void query
+    },
     dispatchEvent: () => false,
     matches: false,
     media: query,
     onchange: null,
-    removeEventListener: () => {},
+    removeEventListener: () => {
+      void query
+    },
   }),
 })
 

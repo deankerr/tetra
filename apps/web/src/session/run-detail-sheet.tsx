@@ -11,12 +11,13 @@ import {
   SheetTitle,
 } from '@tetra/ui/components/ui/sheet'
 import { cn } from '@tetra/ui/lib/utils'
-import { AlertCircleIcon, CopyIcon, XIcon } from 'lucide-react'
+import { CopyIcon, XIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useMemo } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 import type { FallbackProps } from 'react-error-boundary'
 
+import { ErrorFallback } from '@/components/error-fallback'
 import { libraryReact } from '@/stores'
 
 import { useRunSteps } from './usage-hooks'
@@ -97,9 +98,7 @@ function RunDetailContent({ runId }: { runId: string }) {
   )
 }
 
-function RunDetailError({ error, resetErrorBoundary }: FallbackProps) {
-  const message = error instanceof Error ? error.message : 'Run details could not be displayed.'
-
+function RunDetailError({ error }: FallbackProps) {
   return (
     <>
       <SheetHeader>
@@ -110,16 +109,7 @@ function RunDetailError({ error, resetErrorBoundary }: FallbackProps) {
           <XIcon />
         </SheetClose>
       </SheetHeader>
-      <div className="flex min-h-48 flex-col items-center justify-center gap-3 p-6 text-center">
-        <AlertCircleIcon className="text-destructive size-6" />
-        <div className="flex max-w-sm flex-col gap-1">
-          <p className="text-sm font-medium">Run details unavailable</p>
-          <p className="text-muted-foreground text-xs">{message}</p>
-        </div>
-        <Button onClick={resetErrorBoundary} size="sm" variant="outline">
-          Try again
-        </Button>
-      </div>
+      <ErrorFallback className="min-h-48" error={error} title="Run details unavailable" />
     </>
   )
 }

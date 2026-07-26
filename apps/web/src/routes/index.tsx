@@ -1,8 +1,8 @@
 import type { ErrorComponentProps } from '@tanstack/react-router'
-import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 
+import { ErrorFallback } from '@/components/error-fallback'
 import { WorkspacePane } from '@/components/workspace-pane'
-import { WorkspacePaneError } from '@/components/workspace-pane-error'
 import { NewSessionPage } from '@/session/new-session-page'
 
 export const Route = createFileRoute('/')({
@@ -10,19 +10,10 @@ export const Route = createFileRoute('/')({
   errorComponent: NewSessionRouteError,
 })
 
-function NewSessionRouteError({ error, reset }: ErrorComponentProps) {
-  const router = useRouter()
-
+function NewSessionRouteError({ error }: ErrorComponentProps) {
   return (
     <WorkspacePane title="New session unavailable">
-      <WorkspacePaneError
-        error={error}
-        onRetry={() => {
-          reset()
-          void router.invalidate()
-        }}
-        title="New session unavailable"
-      />
+      <ErrorFallback error={error} title="New session unavailable" />
     </WorkspacePane>
   )
 }
