@@ -18,16 +18,15 @@ const performance = {
     p90: 35,
   },
   timeToFirstOutputMs: 250,
-  toolExecutionMs: { 'tool-call-1': 150 },
 }
 
 test('StepEvent preserves raw OpenRouter usage while storing exclusive render buckets', () => {
   // This mirrors the live OpenRouter shape captured by the sdk-probe usage script.
   const step = StepEvent.parse({
-    finishReason: 'tool-calls',
+    finishReason: 'stop',
     performance,
     providerMetadata: { openrouter: { provider: 'OpenAI' } },
-    rawFinishReason: 'tool_calls',
+    rawFinishReason: 'stop',
     response: { id: 'gen-test', modelId: 'openai/gpt-5.4-nano-20260317' },
     stepNumber: 1,
     usage: {
@@ -72,13 +71,13 @@ test('StepEvent preserves raw OpenRouter usage while storing exclusive render bu
   // Cache-write tokens are their own bucket; noCache must not double-count them.
   expect(step).toMatchObject({
     cost: { currency: 'USD', input: 0.1, output: 0.2, total: 0.3 },
-    finishReason: 'tool-calls',
+    finishReason: 'stop',
     generationId: 'gen-test',
     model: 'openai/gpt-5.4-nano-20260317',
     performance,
     provider: 'OpenAI',
     raw: {
-      finishReason: 'tool_calls',
+      finishReason: 'stop',
       usage: {
         prompt_tokens_details: {
           cache_write_tokens: 2,

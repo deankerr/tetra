@@ -26,7 +26,6 @@ describe('real library schema', () => {
       modelId: '',
       providerOptions: {},
       systemPromptId: '',
-      toolIds: [],
     })
 
     db.messages.create('m1', {
@@ -63,7 +62,6 @@ describe('real library schema', () => {
         modelId: 'x',
         providerOptions: {},
         systemPromptId: '',
-        toolIds: [],
       },
       createdAt: 100,
       sessionId: 's1',
@@ -78,7 +76,6 @@ describe('real library schema', () => {
         modelId: 'y',
         providerOptions: {},
         systemPromptId: '',
-        toolIds: [],
       },
       createdAt: 200,
       sessionId: 's1',
@@ -93,7 +90,6 @@ describe('real library schema', () => {
       modelId: 'x',
       providerOptions: {},
       systemPromptId: '',
-      toolIds: [],
     })
     expect(db.runs.bySessionNewestFirst('s1').map((run) => run.id)).toEqual(['r2', 'r1'])
   })
@@ -113,7 +109,6 @@ describe('real library schema', () => {
         effectiveTotalTokensPerSecond: 30,
         responseTimeMs: 500,
         stepTimeMs: 650,
-        toolExecutionMs: {},
       },
       provider: 'openrouter',
       raw: {},

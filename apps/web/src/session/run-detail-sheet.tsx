@@ -204,7 +204,6 @@ function RunConfigDetail({ config }: { config: Run['config'] }) {
         <DataListItem label="Model" value={formatConfigValue(config.modelId)} />
         <DataListItem label="Max messages" value={formatConfigValue(config.maxMessages)} />
         <DataListItem label="System prompt ID" value={formatConfigValue(config.systemPromptId)} />
-        <DataListItem label="Tools" value={formatToolIds(config.toolIds)} />
       </DataListGrid>
 
       <JsonBlock title="Full config JSON" value={config} />
@@ -397,15 +396,6 @@ function formatConfigValue(value: unknown): string {
   }
 
   return stringifyJson(value)
-}
-
-// Tool ids get their own formatter so an empty tool list reads differently from missing config.
-function formatToolIds(value: unknown): string {
-  if (!Array.isArray(value)) {
-    return 'n/a'
-  }
-
-  return value.length === 0 ? 'none' : value.map(String).join(', ')
 }
 
 // Timestamp cells should be explicit because run data is often inspected after the fact.

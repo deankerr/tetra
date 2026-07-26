@@ -5,12 +5,10 @@ import { createCredentialReader } from '@tetra/credentials'
 import { librarySchema } from '@tetra/schemas/library'
 import type { LibraryEntities } from '@tetra/schemas/library'
 import { createDb } from '@tetra/tinydb/runtime'
-import { APICallError, simulateReadableStream, tool } from 'ai'
+import { APICallError, simulateReadableStream } from 'ai'
 import { MockLanguageModelV3 } from 'ai/test'
-import { z } from 'zod'
 
 import { Prompts, RunConfigs, Runs, Transcripts, summarizeSteps } from '../index.ts'
-import { toolsRegistryMap } from '../tools/tools.ts'
 import type { LanguageModelResolver } from './language-model-resolver.ts'
 
 function createTestDb() {
@@ -138,7 +136,6 @@ test('generate streams through the AI SDK into TinyBase rows', async () => {
     modelId: 'mock-model',
     providerOptions: {},
     systemPromptId: '',
-    toolIds: [],
   })
   expect(messages).toHaveLength(2)
   expect(messages[0]?.role).toBe('user')
@@ -586,119 +583,6 @@ test('Caller-Owned Regeneration — sibling target preserves the old output', as
   expect(model.doStreamCalls[1]?.prompt).toEqual([
     { content: [{ text: 'again', type: 'text' }], role: 'user' },
   ])
-})
-
-test('Tool Loop — tool call executes and result appears in final parts', async () => {
-  const context = createTestDb()
-  const { library } = context
-  const runConfigs = new RunConfigs({ library })
-  const prompts = new Prompts({ library, runConfigs })
-  const transcripts = new Transcripts({ library, runConfigs })
-  const core = { library, prompts, transcripts }
-  const credentials = createCredentialReader(() => {})
-
-  const toolCallChunks: LanguageModelV3StreamPart[] = [
-    { type: 'stream-start', warnings: [] },
-    { id: 'tool-1', toolName: 'getWeather', type: 'tool-input-start' },
-    { delta: '{"city":"Paris"}', id: 'tool-1', type: 'tool-input-delta' },
-    { id: 'tool-1', type: 'tool-input-end' },
-    {
-      input: '{"city":"Paris"}',
-      toolCallId: 'call-1',
-      toolName: 'getWeather',
-      type: 'tool-call',
-    },
-    {
-      finishReason: { raw: 'tool-calls', unified: 'tool-calls' },
-      type: 'finish',
-      usage: {
-        inputTokens: { cacheRead: 0, cacheWrite: 0, noCache: 1, total: 1 },
-        outputTokens: { reasoning: 0, text: 0, total: 0 },
-      },
-    },
-  ]
-
-  const textChunks: LanguageModelV3StreamPart[] = [
-    { type: 'stream-start', warnings: [] },
-    { id: 'text-1', type: 'text-start' },
-    { delta: 'Paris is sunny', id: 'text-1', type: 'text-delta' },
-    { id: 'text-1', type: 'text-end' },
-    {
-      finishReason: { raw: 'stop', unified: 'stop' },
-      type: 'finish',
-      usage: {
-        inputTokens: { cacheRead: 0, cacheWrite: 0, noCache: 1, total: 2 },
-        outputTokens: { reasoning: 0, text: 2, total: 2 },
-      },
-    },
-  ]
-
-  let streamCallCount = 0
-  const model = new MockLanguageModelV3({
-    // eslint-disable-next-line require-await -- async required by PromiseLike<LanguageModelV3StreamResult>; no await needed when returning a pre-built stream
-    doStream: async () => {
-      const call = streamCallCount
-      streamCallCount += 1
-      return {
-        stream: simulateReadableStream<LanguageModelV3StreamPart>({
-          chunkDelayInMs: null,
-          chunks: call === 0 ? toolCallChunks : textChunks,
-          initialDelayInMs: null,
-        }),
-      }
-    },
-  })
-
-  const modelResolver: LanguageModelResolver = { resolve: () => model }
-  const runs = new Runs({
-    credentials,
-    library,
-    modelResolver,
-    prompts,
-    runConfigs,
-    transcripts,
-  })
-  const sessionId = core.transcripts.createSession({
-    config: { modelId: 'mock-model', toolIds: ['getWeather'] },
-  })
-
-  const getWeatherTool = tool({
-    description: 'Get weather for a city',
-    execute: ({ city }) => ({ city, weather: 'sunny' }),
-    inputSchema: z.object({ city: z.string() }),
-  })
-
-  toolsRegistryMap.set('getWeather', {
-    category: 'test',
-    createTool: () => getWeatherTool,
-    credentialIds: [],
-    description: 'Get weather for a city',
-    label: 'Get Weather',
-  })
-
-  try {
-    appendAfterNewestLeaf(core, sessionId, {
-      parts: [{ text: 'what is the weather?', type: 'text' }],
-      role: 'user',
-    })
-    const targetMessageId = appendAfterNewestLeaf(core, sessionId, {
-      parts: [],
-      role: 'assistant',
-    })
-    const run = runs.generate({ targetMessageId })
-    await run.done
-
-    expect(model.doStreamCalls).toHaveLength(2)
-    expect(run.status).toBe('completed')
-    expect(model.doStreamCalls[1]?.prompt).toBeDefined()
-    expect(run.finalParts?.find((p) => p.type === 'text')).toMatchObject({
-      state: 'done',
-      text: 'Paris is sunny',
-      type: 'text',
-    })
-  } finally {
-    toolsRegistryMap.delete('getWeather')
-  }
 })
 
 test('Error Path — stream error sets run to error status', async () => {

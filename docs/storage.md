@@ -140,7 +140,7 @@ Purely local: one SQLite database (`tetra.db`, `DATABASE_PATH`-overridable), one
 store (`catalog`, `cli`, `library`), load at startup, save on close. The library store stays
 mergeable so its shape matches the web app's synced store, but the CLI currently has no sync —
 removed deliberately so its story doesn't shape the user-facing design. Credentials are read
-straight from process env (`OPENROUTER_API_KEY`, `EXA_API_KEY`) — no persister, no settings UI.
+straight from process env (`OPENROUTER_API_KEY`) — no persister, no settings UI.
 
 ## Accepted trade-offs
 

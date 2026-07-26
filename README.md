@@ -28,7 +28,6 @@ Bun monorepo:
 | `packages/schemas`     | TinyBase store definitions, indexes, and row types                                               |
 | `packages/tinydb`      | Reusable typed TinyBase `db`: zod-derived collections, inferred queries, values, React hooks     |
 | `packages/credentials` | Credential registry and local key storage                                                        |
-| `packages/tools-exa`   | Exa search tool integration                                                                      |
 | `packages/ui`          | shadcn / AI Elements component library                                                           |
 | `packages/config`      | Shared base tsconfig                                                                             |
 

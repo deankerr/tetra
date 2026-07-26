@@ -128,7 +128,6 @@ test('setDefault stores a config object without requiring a session row', () => 
     modelId: 'draft-model',
     providerOptions: {},
     systemPromptId: '',
-    toolIds: [],
   })
 
   expect(library.values.defaultRunConfig.get()).toMatchObject({
@@ -172,7 +171,6 @@ test('resolveForRun returns a complete stored session config as-is', () => {
     modelId: 'model-a',
     providerOptions: { reasoning: { effort: 'high' } },
     systemPromptId: 'prompt-a',
-    toolIds: ['getWeather'],
   }
 
   createSession(harness, 'sess_1', stored)

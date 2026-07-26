@@ -26,7 +26,6 @@ Dev data is wiped and regenerated as needed. This app is not public. There are h
 - `packages/credentials` — credential registry and localStorage store.
 - `packages/schemas` — Tetra TinyBase store definitions, indexes, and row types.
 - `packages/tinydb` — typed TinyBase `db`: zod-derived collections, inferred queries, values, and React hooks.
-- `packages/tools-exa` — Exa search tool integration.
 - `packages/ui` — shadcn/ai-elements component library.
 
 ## TinyBase

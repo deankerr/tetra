@@ -11,17 +11,14 @@ old Step/Block renderer with ai-elements primitives:
 - `Message`, `MessageContent`, `MessageResponse`, `MessageActions`, and
   `MessageToolbar` provide the outer message structure, markdown, and controls.
 - `Reasoning` renders reasoning parts as collapsible model thinking. Only
-  _consecutive_ reasoning parts merge into one block, rendered in place — a model can
-  reason after a tool call, so hoisting all reasoning to the top would misorder the
-  transcript. Each block's "Thought for N seconds" is the sum of its parts' durations.
+  _consecutive_ reasoning parts merge into one block, rendered in place. Each block's
+  "Thought for N seconds" is the sum of its parts' durations.
   The runtime measures each part's duration live and stamps it onto the part as
   `providerMetadata.tetra.durationMs`, so persisted/synced reads keep a real value
   even though the component's own timer only runs during a live stream.
-- `Tool` renders AI SDK tool parts without Tetra-specific tool chrome.
-
-The message surface intentionally keeps run accounting quiet. The header shows the
-run model id from the run config snapshot with coarse run status; step metadata,
-token counts, and detailed usage live in the run details sheet.
+  The message surface intentionally keeps run accounting quiet. The header shows the
+  run model id from the run config snapshot with coarse run status; step metadata,
+  token counts, and detailed usage live in the run details sheet.
 
 Composition stays explicit. Major behavior slices live in separate files, but their
 sub-components remain local unless another slice needs them. TinyBase remains the

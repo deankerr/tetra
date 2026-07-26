@@ -15,7 +15,6 @@ import { z } from 'zod'
 //   sync        — ephemeral connection state written by the SyncController, read by React.
 
 export const SettingsTabSchema = z.enum(['api-keys', 'sync', 'data'])
-export type SettingsTab = z.infer<typeof SettingsTabSchema>
 
 const deskSchema = defineSchema({
   tables: {
@@ -40,7 +39,6 @@ const deskSchema = defineSchema({
 const credentialsSchema = defineSchema({
   tables: {},
   values: {
-    EXA_API_KEY: z.string().default(''),
     OPENROUTER_API_KEY: z.string().default(''),
   } satisfies Record<CredentialId, z.ZodType>,
 })

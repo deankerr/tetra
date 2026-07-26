@@ -22,7 +22,6 @@ Most context files are created lazily. If a mapped `CONTEXT.md` or `docs/adr/` d
 | `apps/worker/CONTEXT.md`          | Cloudflare Worker sync backend: Durable Object behavior, websocket synchronization, and deployment/runtime constraints.                                                    |
 | `packages/ui/CONTEXT.md`          | Shared UI system: shadcn components, AI Elements, vendored component boundaries, theme tokens, and reusable visual primitives.                                             |
 | `packages/credentials/CONTEXT.md` | Credential storage and provider key concerns shared by app surfaces.                                                                                                       |
-| `packages/tools-exa/CONTEXT.md`   | Exa tool integration: tool descriptors, request/response boundaries, and search/content tool semantics.                                                                    |
 
 ## ADR Lookup
 

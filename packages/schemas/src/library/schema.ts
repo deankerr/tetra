@@ -13,7 +13,6 @@ export const RunConfigSchema = z.object({
   modelId: z.string(),
   providerOptions: ProviderOptionsSchema,
   systemPromptId: z.string(),
-  toolIds: z.array(z.string()),
 })
 export const RunConfigDefaultsSchema = RunConfigSchema.partial()
 const RunStatusSchema = z.enum(['active', 'cancelled', 'completed', 'error'])
@@ -23,7 +22,6 @@ export const SessionRunConfigSchema = z.object({
   modelId: z.string().default(''),
   providerOptions: ProviderOptionsSchema.default({}),
   systemPromptId: z.string().default(''),
-  toolIds: z.array(z.string()).default([]),
 })
 const DefaultSessionRunConfig = SessionRunConfigSchema.parse({})
 
@@ -74,7 +72,6 @@ export const StepPerformanceSchema = z.object({
   stepTimeMs: z.number(),
   timeBetweenOutputChunksMs: OutputChunkTimingStatsSchema.optional(),
   timeToFirstOutputMs: z.number().optional(),
-  toolExecutionMs: z.record(z.string(), z.number()),
 })
 
 export const StepWarningSchema = z.looseObject({

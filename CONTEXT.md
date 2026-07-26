@@ -9,7 +9,7 @@ A transcript workspace that groups messages. A session can be empty; Tetra does 
 _Avoid_: Conversation, chat
 
 **RunConfig**:
-A complete recipe for starting a run: model, system prompt, selected tools, provider-specific options, and message selection. Execution accepts only complete RunConfigs. It is shared by app surfaces and core execution rather than owned by one UI.
+A complete recipe for starting a run: model, system prompt, provider-specific options, and message selection. Execution accepts only complete RunConfigs. It is shared by app surfaces and core execution rather than owned by one UI.
 _Avoid_: Settings, one-off overrides
 
 **Provider Options**:

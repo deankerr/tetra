@@ -6,18 +6,12 @@ export const credentialRegistry = [
     label: 'OpenRouter API Key',
     placeholder: 'sk-or-v1-...',
   },
-  {
-    description: 'Used for neural web search via Exa. Get a key at dashboard.exa.ai/api-keys.',
-    id: 'EXA_API_KEY',
-    label: 'Exa API Key',
-    placeholder: 'exa_...',
-  },
 ] as const
 
 export type CredentialId = (typeof credentialRegistry)[number]['id']
 export type CredentialDefinition = (typeof credentialRegistry)[number]
 
-export function getCredentialDefinition(id: CredentialId): CredentialDefinition {
+function getCredentialDefinition(id: CredentialId): CredentialDefinition {
   const definition = credentialRegistry.find((credential) => credential.id === id)
   if (definition === undefined) {
     throw new Error(`Unknown credential id: ${id}`)
@@ -26,7 +20,7 @@ export function getCredentialDefinition(id: CredentialId): CredentialDefinition 
   return definition
 }
 
-// What consumers (core, tools) need at execution time: reads only. Each surface owns its
+// What core needs at execution time: reads only. Each surface owns its
 // storage — the web app a TinyBase store, the CLI process env — and wraps it in a reader.
 export interface CredentialReader {
   get: (id: CredentialId) => string | undefined

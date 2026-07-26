@@ -4,14 +4,6 @@ import {
   ReasoningContent,
   ReasoningTrigger,
 } from '@tetra/ui/components/ai-elements/reasoning'
-import {
-  Tool,
-  ToolContent,
-  ToolHeader,
-  ToolInput,
-  ToolOutput,
-} from '@tetra/ui/components/ai-elements/tool'
-import type { ToolPart as ToolPartType } from '@tetra/ui/components/ai-elements/tool'
 import { Badge } from '@tetra/ui/components/ui/badge'
 import { Button } from '@tetra/ui/components/ui/button'
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@tetra/ui/components/ui/dialog'
@@ -59,14 +51,9 @@ function PartList({
           return null
         }
 
-        if (isToolPart(part)) {
-          return <ToolPartView key={partKey} part={part} />
-        }
-
         if (part.type === 'reasoning') {
-          // Merge only consecutive reasoning parts, rendered in place: a model may reason after a
-          // tool call, so hoisting all reasoning to the top would misorder the transcript. Later
-          // parts of a run fold into the block opened by its first part.
+          // Merge only consecutive reasoning parts, rendered in place. Later parts of a run fold
+          // into the block opened by its first part.
           if (parts[partIndex - 1]?.type === 'reasoning') {
             return null
           }
@@ -180,22 +167,6 @@ function collectReasoningRun(
     run.push(part)
   }
   return run
-}
-
-function ToolPartView({ part }: { part: ToolPartType }) {
-  return (
-    <Tool>
-      {part.type === 'dynamic-tool' ? (
-        <ToolHeader state={part.state} toolName={part.toolName} type={part.type} />
-      ) : (
-        <ToolHeader state={part.state} type={part.type} />
-      )}
-      <ToolContent>
-        <ToolInput input={part.input} />
-        <ToolOutput errorText={part.errorText} output={part.output} />
-      </ToolContent>
-    </Tool>
-  )
 }
 
 type FilePartType = Extract<MessagePart, { type: 'file' }>
@@ -405,10 +376,6 @@ function UnsupportedPart({ part }: { part: MessagePart }) {
       Unsupported message part: <span className="font-mono">{part.type}</span>
     </div>
   )
-}
-
-function isToolPart(part: MessagePart): part is ToolPartType {
-  return part.type === 'dynamic-tool' || part.type.startsWith('tool-')
 }
 
 function isImagePart(part: MessagePart | undefined): part is FilePartType {

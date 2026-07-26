@@ -10,7 +10,6 @@
     "#run-configs": "./src/run-configs.ts",
     "#runtime": "./src/runtime/index.ts",
     "#runtime/*": "./src/runtime/*",
-    "#tools": "./src/tools/tools.ts",
     "#transcripts": "./src/transcripts/index.ts",
     "#usage": "./src/usage.ts"
   },
@@ -22,7 +21,6 @@
     "@openrouter/ai-sdk-provider": "catalog:",
     "@tetra/credentials": "workspace:*",
     "@tetra/schemas": "workspace:*",
-    "@tetra/tools-exa": "workspace:*",
     "ai": "catalog:",
     "nanoid": "catalog:",
     "remeda": "^2.39.0",

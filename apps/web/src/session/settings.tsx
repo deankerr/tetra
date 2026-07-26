@@ -13,7 +13,6 @@ import { useRunConfig } from './run-config-providers'
 import { ModelPickerButton } from './settings/model-picker'
 import { PromptPreviewButton } from './settings/prompt-editor-sheet'
 import { ProviderOptionsEditor } from './settings/provider-options-editor'
-import { ToolSelector } from './settings/tool-selector'
 
 export function SessionSettings({
   onOpenModelPicker,
@@ -49,20 +48,6 @@ export function SessionSettings({
         <FieldTitle>System Prompt</FieldTitle>
         <PromptPreviewButton onOpen={onOpenPromptSheet} />
       </Field>
-
-      <Card size="sm">
-        <CardHeader>
-          <CardTitle className="text-xs">Tools</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <ToolSelector
-            enabledToolIds={config.toolIds}
-            onToolIdsChange={(nextToolIds) => {
-              updateConfig({ toolIds: nextToolIds })
-            }}
-          />
-        </CardContent>
-      </Card>
 
       <Card size="sm">
         <CardHeader>

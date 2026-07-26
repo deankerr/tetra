@@ -7,15 +7,12 @@ import type {
 } from '@tetra/schemas/library'
 import {
   convertToModelMessages,
-  isStepCount,
   readUIMessageStream,
   streamText,
   toUIMessageStream,
   validateUIMessages,
 } from 'ai'
-import type { GenerateTextStepEndEvent, LanguageModel, ModelMessage, ToolSet, UIMessage } from 'ai'
-
-import { resolveTools } from '#tools'
+import type { GenerateTextStepEndEvent, LanguageModel, ModelMessage, UIMessage } from 'ai'
 
 import type { LanguageModelResolver } from './language-model-resolver.ts'
 import { StepEvent } from './steps.ts'
@@ -59,7 +56,6 @@ export class Run extends EventTarget {
   parts: UIMessage['parts'] = []
   result: ReturnType<typeof streamText> | null = null
   status: LibraryRunStatus = 'active'
-  tools: ToolSet = {}
 
   // toUIMessageStream flattens errors to a text-only part before readUIMessageStream rethrows them,
   // so we grab the original (structured APICallError, etc.) at that boundary via onError.
@@ -184,10 +180,6 @@ export class Run extends EventTarget {
     return this.modelResolver.resolve({ config: this.config, credentials: this.credentials })
   }
 
-  private resolveTools(): ToolSet {
-    return resolveTools(this.config.toolIds, (id) => this.credentials.get(id))
-  }
-
   private setStatus(status: LibraryRunStatus): void {
     this.status = status
     this.dispatchEvent(new Event('status'))
@@ -195,13 +187,11 @@ export class Run extends EventTarget {
 
   private async stream(): Promise<void> {
     try {
-      const tools = this.resolveTools()
       const model = this.resolveModel()
-      const modelMessages = await Run.toModelMessages(this.transcriptMessages, tools)
+      const modelMessages = await Run.toModelMessages(this.transcriptMessages)
 
       this.model = model
       this.modelMessages = modelMessages
-      this.tools = tools
 
       const streamOptions = {
         abortSignal: this.abortController.signal,
@@ -213,8 +203,6 @@ export class Run extends EventTarget {
         providerOptions: {
           openrouter: { ...this.config.providerOptions, session_id: this.sessionId },
         },
-        stopWhen: isStepCount(6),
-        tools,
       }
       const result =
         this.instructions === undefined
@@ -249,7 +237,6 @@ export class Run extends EventTarget {
 
   private static async toModelMessages(
     messages: LibraryEntities['messages'][],
-    tools: ToolSet,
   ): Promise<ModelMessage[]> {
     // Durable roles are caller-authored labels, not provider roles. Until other roles have an
     // explicit projection policy, they remain in the transcript but outside model context.
@@ -266,7 +253,7 @@ export class Run extends EventTarget {
     )
     const validatedMessages = await validateUIMessages({ messages: uiMessages })
 
-    return await convertToModelMessages(validatedMessages, { tools })
+    return await convertToModelMessages(validatedMessages)
   }
 
   private writeDurableSnapshot(message: UIMessage): void {

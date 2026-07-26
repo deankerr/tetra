@@ -95,7 +95,8 @@ One parameter across vendors: `effort` (minimal→xhigh), `max_tokens` (Anthropi
 
 Standardized `tools`/`tool_choice`/`parallel_tool_calls`. OpenRouter validates args against JSON Schema; **Auto Exacto** reorders providers by tool-call reliability (default on; opt out with `:floor`).
 
-- **✅ functional.** Client-side tool calling works end to end: registry ([tools.ts](../../packages/core/src/tools/tools.ts), Exa + datetime), per-config `toolIds`, multi-step loop (`stopWhen: stepCountIs(6)`), step records per tool round. Auto Exacto applies upstream. `tool_choice`/`parallel_tool_calls` aren't exposed as controls and the step cap is hardcoded, but the core capability is complete.
+- **⬜ deliberately not implemented.** Tetra's previous client-side tool registry, Exa integration,
+  run-config selection, and multi-step loop were removed in July 2026 ahead of a different approach.
 - Refs: https://openrouter.ai/docs/guides/features/tool-calling · https://openrouter.ai/docs/guides/routing/auto-exacto
 
 ### Structured outputs
@@ -146,7 +147,7 @@ Named server-side configs (`@preset/slug`) bundling model/fallbacks, system prom
 
 ### Server tools (`{ type: "openrouter:..." }` in the tools array)
 
-OpenRouter executes these server-side mid-request — no client implementation, and they mix with our function tools:
+OpenRouter executes these server-side mid-request without a client implementation:
 
 | Tool                          | What it does                                                                                                                              |
 | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
@@ -161,7 +162,9 @@ OpenRouter executes these server-side mid-request — no client implementation, 
 
 Usage is reported in the `usage` object (e.g. `web_search_requests`).
 
-- **⬜ not implemented.** The registry is exclusively client-side function tools (`createTool` + `execute`); no representation for an execution-less, config-only tool, and the `tools` array sent to `streamText` can't carry an `openrouter:` entry (so not editor-reachable). The two existing client tools (Exa search, datetime) duplicate server-tool equivalents and could be replaced without the EXA_API_KEY requirement. Advisor/subagent overlap with the sub-agents vision (`reference/sub-agents.md`).
+- **⬜ not implemented.** Tetra currently has no tool representation or request wiring. The prior
+  client-side Exa/datetime implementation was removed before redesigning this area.
+  Advisor/subagent overlap with the sub-agents vision (`reference/sub-agents.md`).
 - Refs: https://openrouter.ai/docs/guides/features/server-tools/overview · /web-search · /web-fetch · /datetime · /image-generation · /apply-patch · /fusion · /advisor · /subagent
 
 ### Plugins (`plugins` array — run once per request)
